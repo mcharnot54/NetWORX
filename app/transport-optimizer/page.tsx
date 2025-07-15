@@ -131,6 +131,14 @@ interface LogEntry {
 }
 
 export default function TransportOptimizer() {
+  const {
+    getTransportationData,
+    lockedLocations,
+    setLockedLocations,
+    setTransportResults,
+    fetchMarketData,
+  } = useData();
+
   const [activeTab, setActiveTab] = useState<
     "network" | "optimization" | "scenarios" | "results"
   >("network");
