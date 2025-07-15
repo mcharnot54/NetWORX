@@ -56,6 +56,10 @@ import {
   MapPin,
   Gauge,
   Eye,
+  Map,
+  Navigation,
+  Crosshair,
+  Layers as LayersIcon,
 } from "lucide-react";
 
 // Comprehensive Result Data Structures
@@ -770,6 +774,13 @@ export default function Visualizer() {
                   >
                     <Eye size={16} />
                     Executive Dashboard
+                  </button>
+                  <button
+                    className={`button ${selectedChart === "geographic" ? "button-primary" : "button-secondary"}`}
+                    onClick={() => setSelectedChart("geographic")}
+                  >
+                    <Map size={16} />
+                    Geographic Analytics
                   </button>
                 </div>
               </div>
