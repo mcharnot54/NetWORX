@@ -8,6 +8,7 @@ const navItems = [
   { href: "/data-processor", label: "Data Processor" },
   { href: "/warehouse-optimizer", label: "Warehouse Optimizer" },
   { href: "/transport-optimizer", label: "Transport Optimizer" },
+  { href: "/inventory-optimizer", label: "Inventory Optimizer" },
   { href: "/visualizer", label: "Results & Visualization" },
   { href: "/config", label: "Configuration" },
 ];
