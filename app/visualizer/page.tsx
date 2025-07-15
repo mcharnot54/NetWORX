@@ -2492,6 +2492,754 @@ export default function Visualizer() {
                 </div>
               )}
 
+              {/* Geographic Analytics */}
+              {selectedChart === "geographic" && (
+                <div>
+                  <div style={{ marginBottom: "2rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <h3 style={{ color: "#111827" }}>
+                        Geographic Network Analytics
+                      </h3>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button className="button button-secondary">
+                          <Download size={16} />
+                          Export Maps
+                        </button>
+                        <button className="button button-secondary">
+                          <Navigation size={16} />
+                          View in GIS
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Centers of Gravity Analysis */}
+                  <div className="card" style={{ marginBottom: "2rem" }}>
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Centers of Gravity Analysis
+                    </h4>
+                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
+                      {/* Center of Gravity Comparison */}
+                      <div>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          Optimal Location Analysis
+                        </h5>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <ScatterChart
+                            data={[
+                              {
+                                name: "Demand Weighted",
+                                lat: 36.2048,
+                                lng: -95.9928,
+                                type: "demand",
+                                size: 100,
+                              },
+                              {
+                                name: "Geographic Center",
+                                lat: 36.1627,
+                                lng: -100.7785,
+                                type: "geographic",
+                                size: 80,
+                              },
+                              {
+                                name: "Cost Optimal",
+                                lat: 35.8914,
+                                lng: -94.719,
+                                type: "cost",
+                                size: 120,
+                              },
+                              ...geographicData.facilities.map((f) => ({
+                                name: f.name,
+                                lat: f.lat,
+                                lng: f.lng,
+                                type: "facility",
+                                size: f.demand / 200,
+                              })),
+                            ]}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="lng"
+                              type="number"
+                              domain={[-125, -70]}
+                              name="Longitude"
+                              label={{
+                                value: "Longitude",
+                                position: "insideBottom",
+                                offset: -5,
+                              }}
+                            />
+                            <YAxis
+                              dataKey="lat"
+                              type="number"
+                              domain={[25, 50]}
+                              name="Latitude"
+                              label={{
+                                value: "Latitude",
+                                angle: -90,
+                                position: "insideLeft",
+                              }}
+                            />
+                            <Tooltip
+                              formatter={(value, name, props) => [
+                                name === "lat"
+                                  ? `${value.toFixed(4)}°N`
+                                  : `${Math.abs(value).toFixed(4)}°W`,
+                                name === "lat" ? "Latitude" : "Longitude",
+                              ]}
+                              labelFormatter={(label) => `Location: ${label}`}
+                            />
+                            <Scatter
+                              name="Locations"
+                              dataKey="size"
+                              fill={(entry) => {
+                                const colors = {
+                                  demand: "#f59e0b",
+                                  geographic: "#8b5cf6",
+                                  cost: "#ef4444",
+                                  facility: "#10b981",
+                                };
+                                return colors[entry.type] || "#6b7280";
+                              }}
+                            />
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Center of Gravity Summary */}
+                      <div>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          Center Analysis Summary
+                        </h5>
+                        <div style={{ padding: "1rem" }}>
+                          <div style={{ marginBottom: "1.5rem" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                marginBottom: "0.75rem",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  backgroundColor: "#f59e0b",
+                                  borderRadius: "50%",
+                                }}
+                              ></div>
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                Demand-Weighted Center
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.875rem",
+                                paddingLeft: "1.5rem",
+                              }}
+                            >
+                              <div>Lat: 36.2048°N, Lng: 95.9928°W</div>
+                              <div>
+                                Total Demand:{" "}
+                                {geographicData.centerOfGravity.demand_weighted.total_demand.toLocaleString()}{" "}
+                                units
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ marginBottom: "1.5rem" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                marginBottom: "0.75rem",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  backgroundColor: "#8b5cf6",
+                                  borderRadius: "50%",
+                                }}
+                              ></div>
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                Geographic Center
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.875rem",
+                                paddingLeft: "1.5rem",
+                              }}
+                            >
+                              <div>Lat: 36.1627°N, Lng: 100.7785°W</div>
+                              <div>Equal distance from all points</div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.75rem",
+                                marginBottom: "0.75rem",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  backgroundColor: "#ef4444",
+                                  borderRadius: "50%",
+                                }}
+                              ></div>
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                Cost-Optimal Center
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.875rem",
+                                paddingLeft: "1.5rem",
+                              }}
+                            >
+                              <div>Lat: 35.8914°N, Lng: 94.7190°W</div>
+                              <div>Minimizes total transportation cost</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Network Heat Map */}
+                  <div className="card" style={{ marginBottom: "2rem" }}>
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Regional Network Heat Map
+                    </h4>
+                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
+                      {/* Heat Map Visualization */}
+                      <div>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          Demand Intensity by Region
+                        </h5>
+                        <ResponsiveContainer width="100%" height={350}>
+                          <BarChart
+                            data={geographicData.heatmapData}
+                            layout="horizontal"
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type="number" />
+                            <YAxis
+                              dataKey="region"
+                              type="category"
+                              width={80}
+                            />
+                            <Tooltip
+                              formatter={(value, name) => [
+                                name === "intensity"
+                                  ? `${value}%`
+                                  : name === "demand"
+                                    ? value.toLocaleString()
+                                    : value,
+                                name === "intensity"
+                                  ? "Intensity"
+                                  : name === "demand"
+                                    ? "Demand"
+                                    : "Facilities",
+                              ]}
+                            />
+                            <Legend />
+                            <Bar
+                              dataKey="intensity"
+                              fill="#f59e0b"
+                              name="Intensity %"
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Heat Map Data Table */}
+                      <div>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          Regional Analysis
+                        </h5>
+                        <div style={{ maxHeight: "350px", overflowY: "auto" }}>
+                          <table
+                            style={{ width: "100%", fontSize: "0.875rem" }}
+                          >
+                            <thead>
+                              <tr style={{ backgroundColor: "#f9fafb" }}>
+                                <th
+                                  style={{
+                                    padding: "0.5rem",
+                                    textAlign: "left",
+                                  }}
+                                >
+                                  Region
+                                </th>
+                                <th
+                                  style={{
+                                    padding: "0.5rem",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  Intensity
+                                </th>
+                                <th
+                                  style={{
+                                    padding: "0.5rem",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  Facilities
+                                </th>
+                                <th
+                                  style={{
+                                    padding: "0.5rem",
+                                    textAlign: "right",
+                                  }}
+                                >
+                                  Demand
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {geographicData.heatmapData
+                                .sort((a, b) => b.intensity - a.intensity)
+                                .map((region, index) => (
+                                  <tr key={index}>
+                                    <td style={{ padding: "0.5rem" }}>
+                                      {region.region}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "0.5rem",
+                                        textAlign: "center",
+                                        backgroundColor:
+                                          region.intensity > 80
+                                            ? "#dcfce7"
+                                            : region.intensity > 60
+                                              ? "#fef3c7"
+                                              : "#fecaca",
+                                        color:
+                                          region.intensity > 80
+                                            ? "#166534"
+                                            : region.intensity > 60
+                                              ? "#92400e"
+                                              : "#991b1b",
+                                      }}
+                                    >
+                                      {region.intensity}%
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "0.5rem",
+                                        textAlign: "center",
+                                      }}
+                                    >
+                                      {region.facilities}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "0.5rem",
+                                        textAlign: "right",
+                                      }}
+                                    >
+                                      {region.demand.toLocaleString()}
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scenario Network Models */}
+                  <div className="card" style={{ marginBottom: "2rem" }}>
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Scenario Network Models
+                    </h4>
+                    <div className="grid grid-cols-3" style={{ gap: "1.5rem" }}>
+                      {geographicData.scenarios.map((scenario, index) => (
+                        <div key={index} className="card">
+                          <h5
+                            style={{
+                              marginBottom: "0.75rem",
+                              color: "#374151",
+                            }}
+                          >
+                            {scenario.name}
+                          </h5>
+
+                          {/* Scenario Center of Gravity */}
+                          <div
+                            style={{
+                              marginBottom: "1rem",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              <Crosshair
+                                size={16}
+                                style={{ color: "#3b82f6" }}
+                              />
+                              <span style={{ fontWeight: "600" }}>
+                                Center of Gravity
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                paddingLeft: "1.5rem",
+                                color: "#6b7280",
+                              }}
+                            >
+                              {scenario.center_of_gravity.lat.toFixed(4)}°N,{" "}
+                              {Math.abs(scenario.center_of_gravity.lng).toFixed(
+                                4,
+                              )}
+                              °W
+                            </div>
+                          </div>
+
+                          {/* Scenario Facilities */}
+                          <div style={{ marginBottom: "1rem" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              <MapPin size={16} style={{ color: "#10b981" }} />
+                              <span
+                                style={{
+                                  fontWeight: "600",
+                                  fontSize: "0.875rem",
+                                }}
+                              >
+                                Recommended Facilities
+                              </span>
+                            </div>
+                            <div style={{ fontSize: "0.875rem" }}>
+                              {scenario.facilities.map((facility, fIndex) => (
+                                <div
+                                  key={fIndex}
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    marginBottom: "0.25rem",
+                                    paddingLeft: "1.5rem",
+                                  }}
+                                >
+                                  <span>{facility.name}</span>
+                                  <span style={{ color: "#6b7280" }}>
+                                    {facility.coverage}mi
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Service Coverage Visualization */}
+                          <div style={{ marginBottom: "1rem" }}>
+                            <div
+                              style={{
+                                fontSize: "0.875rem",
+                                fontWeight: "600",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              Service Coverage
+                            </div>
+                            <ResponsiveContainer width="100%" height={150}>
+                              <BarChart data={scenario.facilities}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis
+                                  dataKey="name"
+                                  angle={-45}
+                                  textAnchor="end"
+                                  height={60}
+                                  fontSize={10}
+                                />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar
+                                  dataKey="coverage"
+                                  fill="#3b82f6"
+                                  name="Coverage (mi)"
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+
+                          {/* Cost Benefit Analysis */}
+                          <div
+                            style={{
+                              backgroundColor: "#f0f9ff",
+                              padding: "0.75rem",
+                              borderRadius: "0.5rem",
+                              border: "1px solid #0ea5e9",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "0.875rem",
+                                fontWeight: "600",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              Average Cost Benefit
+                            </div>
+                            <div style={{ textAlign: "center" }}>
+                              <div
+                                style={{
+                                  fontSize: "1.5rem",
+                                  fontWeight: "700",
+                                  color: "#0c4a6e",
+                                }}
+                              >
+                                {(
+                                  (scenario.facilities.reduce(
+                                    (sum, f) => sum + f.cost_benefit,
+                                    0,
+                                  ) /
+                                    scenario.facilities.length) *
+                                  100
+                                ).toFixed(1)}
+                                %
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#075985",
+                                }}
+                              >
+                                Efficiency Score
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Service Coverage Analysis */}
+                  <div className="card">
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Current Network Service Coverage
+                    </h4>
+                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
+                      {/* Coverage Metrics */}
+                      <div>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          Coverage Analysis
+                        </h5>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <ComposedChart data={serviceCoverageData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="facility"
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis yAxisId="left" />
+                            <YAxis yAxisId="right" orientation="right" />
+                            <Tooltip />
+                            <Legend />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="coverage_radius"
+                              fill="#3b82f6"
+                              name="Coverage Radius (mi)"
+                            />
+                            <Line
+                              yAxisId="right"
+                              type="monotone"
+                              dataKey="utilization"
+                              stroke="#ef4444"
+                              strokeWidth={3}
+                              name="Utilization %"
+                            />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Geographic Coverage Summary */}
+                      <div>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          Geographic Summary
+                        </h5>
+                        <div style={{ padding: "1rem" }}>
+                          <div
+                            className="grid grid-cols-2"
+                            style={{ gap: "1rem", marginBottom: "1.5rem" }}
+                          >
+                            <div style={{ textAlign: "center" }}>
+                              <div
+                                style={{
+                                  fontSize: "1.5rem",
+                                  fontWeight: "700",
+                                  color: "#3b82f6",
+                                }}
+                              >
+                                3
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Active Facilities
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "center" }}>
+                              <div
+                                style={{
+                                  fontSize: "1.5rem",
+                                  fontWeight: "700",
+                                  color: "#10b981",
+                                }}
+                              >
+                                500
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Avg Coverage (mi)
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: "0.875rem" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              <span>Total Service Area:</span>
+                              <span style={{ fontWeight: "600" }}>
+                                2.1M sq mi
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              <span>Population Covered:</span>
+                              <span style={{ fontWeight: "600" }}>
+                                215M people
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              <span>Avg Distance to Customer:</span>
+                              <span style={{ fontWeight: "600" }}>
+                                542 miles
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <span>Service Level Achievement:</span>
+                              <span
+                                style={{ fontWeight: "600", color: "#10b981" }}
+                              >
+                                96.0%
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              marginTop: "1rem",
+                              padding: "0.75rem",
+                              backgroundColor: "#dcfce7",
+                              borderRadius: "0.5rem",
+                              border: "1px solid #16a34a",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "0.875rem",
+                                fontWeight: "600",
+                                color: "#166534",
+                              }}
+                            >
+                              Optimization Status: Optimal Coverage
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "#15803d",
+                                marginTop: "0.25rem",
+                              }}
+                            >
+                              Current network provides excellent geographic
+                              coverage with minimal overlap
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* KPI Dashboard */}
               <div className="card" style={{ marginTop: "2rem" }}>
                 <h3 style={{ marginBottom: "1.5rem", color: "#111827" }}>
