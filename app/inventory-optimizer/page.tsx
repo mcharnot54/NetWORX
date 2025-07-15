@@ -97,6 +97,8 @@ interface LogEntry {
 }
 
 export default function InventoryOptimizer() {
+  const { getSKUData, setInventoryResults } = useData();
+
   const [activeTab, setActiveTab] = useState<
     "inputs" | "optimization" | "scenarios" | "results"
   >("inputs");
