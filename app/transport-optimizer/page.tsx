@@ -458,17 +458,37 @@ export default function TransportOptimizer() {
     const totalDemand = demandData.reduce((sum, d) => sum + d.demand, 0);
     const totalCapacity = capacityData.reduce((sum, c) => sum + c.capacity, 0);
 
-    // Determine opened facilities (simplified logic)
-    const openFacilities = capacityData
+    // Determine opened facilities (including locked locations)
+    const mandatoryFacilities =
+      currentConfig.facilities.mandatory_facilities || [];
+    const availableFacilities = capacityData.filter(
+      (f) => !mandatoryFacilities.includes(f.facility),
+    );
+
+    addLogEntry(
+      "INFO",
+      `Mandatory facilities: ${mandatoryFacilities.length > 0 ? mandatoryFacilities.join(", ") : "None"}`,
+    );
+
+    // Start with mandatory/locked facilities
+    let openFacilities = [...mandatoryFacilities];
+
+    // Add additional facilities based on optimization
+    const additionalNeeded = Math.max(
+      0,
+      Math.min(
+        currentConfig.facilities.required_facilities -
+          mandatoryFacilities.length,
+        currentConfig.facilities.max_facilities - mandatoryFacilities.length,
+      ),
+    );
+
+    const additionalFacilities = availableFacilities
       .sort((a, b) => b.capacity - a.capacity)
-      .slice(
-        0,
-        Math.min(
-          currentConfig.facilities.required_facilities + 1,
-          currentConfig.facilities.max_facilities,
-        ),
-      )
+      .slice(0, additionalNeeded)
       .map((f) => f.facility);
+
+    openFacilities = [...openFacilities, ...additionalFacilities];
 
     // Generate assignments
     const assignments: NetworkAssignment[] = [];
