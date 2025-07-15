@@ -1116,6 +1116,11 @@ export default function Visualizer() {
                   label: "Financial Analysis",
                   icon: DollarSign,
                 },
+                {
+                  id: "scenarios",
+                  label: "Scenario Management",
+                  icon: Layers,
+                },
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -5520,7 +5525,7 @@ export default function Visualizer() {
                                 ${(metrics.npv / 1000000).toFixed(1)}M
                               </div>
                             </div>
-                            <div style={{ fontSize: "2rem" }}>📈</div>
+                            <div style={{ fontSize: "2rem" }}>���</div>
                           </div>
 
                           <div
