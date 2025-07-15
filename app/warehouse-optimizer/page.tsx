@@ -87,6 +87,9 @@ interface ScenarioConfig {
 }
 
 export default function WarehouseOptimizer() {
+  const { getWarehouseData, getSKUData, setWarehouseResults, fetchMarketData } =
+    useData();
+
   const [activeTab, setActiveTab] = useState("parameters");
   const [warehouseParams, setWarehouseParams] = useState<WarehouseParams>({
     DOH: 250,
