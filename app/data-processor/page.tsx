@@ -1396,9 +1396,43 @@ export default function DataProcessor() {
                           {file.sheets && (
                             <select
                               value={file.selectedSheet}
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const updated = [...files];
                                 updated[index].selectedSheet = e.target.value;
+
+                                // Re-parse the file with the new sheet
+                                if (updated[index].file) {
+                                  try {
+                                    const newData = await parseExcelFile(
+                                      updated[index].file!,
+                                      e.target.value,
+                                    );
+                                    updated[index].parsedData = newData;
+                                    updated[index].columnNames =
+                                      newData.length > 0
+                                        ? Object.keys(newData[0])
+                                        : [];
+
+                                    // Update detected type based on new column structure
+                                    const newDetectedType =
+                                      autoDetectDataTypeFromColumns(
+                                        updated[index].columnNames || [],
+                                      );
+                                    if (newDetectedType !== "unknown") {
+                                      updated[index].detectedType =
+                                        newDetectedType;
+                                    }
+
+                                    addToLog(
+                                      `Re-parsed sheet '${e.target.value}': ${newData.length} rows`,
+                                    );
+                                  } catch (error) {
+                                    addToLog(
+                                      `Error re-parsing sheet '${e.target.value}': ${error}`,
+                                    );
+                                  }
+                                }
+
                                 setFiles(updated);
                               }}
                               style={{
