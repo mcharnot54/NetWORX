@@ -2513,7 +2513,7 @@ export default function Visualizer() {
                           Export Maps
                         </button>
                         <button className="button button-secondary">
-                          <Navigation size={16} />
+                          <NavigationIcon size={16} />
                           View in GIS
                         </button>
                       </div>
