@@ -778,9 +778,10 @@ export default function DataProcessor() {
       "Creating backup copy",
       "Detecting relevant sheets",
       "Loading data into DataFrame",
+      "Mapping columns to standard format (DataConverter)",
+      "Applying data type specific conversions",
       "Cleaning and standardizing data",
-      "Converting to standard format",
-      "Running comprehensive validation",
+      "Running comprehensive validation (DataValidator)",
       "Generating quality metrics",
       "Saving processed data",
     ];
