@@ -439,9 +439,15 @@ export default function DataProcessor() {
     );
 
     if (missingColumns.length > 0) {
-      errors.push(
-        ...missingColumns.map((col) => `Missing required column: ${col}`),
-      );
+      const missingColumnsSuggestion = missingColumns.map((col) => {
+        const mappings = columnMappings[dataType] || {};
+        const possibleNames = mappings[col] || [];
+        if (possibleNames.length > 0) {
+          return `Missing required column '${col}'. Expected one of: ${possibleNames.slice(0, 5).join(", ")}`;
+        }
+        return `Missing required column '${col}'. Please ensure this column exists in your data.`;
+      });
+      errors.push(...missingColumnsSuggestion);
     }
 
     // Validate data types and ranges
@@ -450,8 +456,14 @@ export default function DataProcessor() {
       rules.numericColumns?.forEach((col) => {
         const value = record[col];
         if (value !== undefined && value !== null && isNaN(Number(value))) {
+          const suggestion =
+            typeof value === "string" && value.includes(",")
+              ? " (Try removing commas from numbers)"
+              : typeof value === "string" && value.includes("$")
+                ? " (Try removing currency symbols)"
+                : "";
           errors.push(
-            `Row ${index + 1}: '${col}' must be numeric, got '${value}'`,
+            `Row ${index + 1}: Column '${col}' must be numeric, got '${value}'${suggestion}`,
           );
         }
       });
@@ -460,8 +472,14 @@ export default function DataProcessor() {
       rules.positiveColumns?.forEach((col) => {
         const value = Number(record[col]);
         if (!isNaN(value) && value <= 0) {
+          const suggestion =
+            value === 0
+              ? " (Zero values are not allowed for this field)"
+              : value < 0
+                ? " (Negative values are not allowed for this field)"
+                : "";
           errors.push(
-            `Row ${index + 1}: '${col}' must be positive, got ${value}`,
+            `Row ${index + 1}: Column '${col}' must be positive, got ${value}${suggestion}`,
           );
         }
       });
