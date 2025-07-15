@@ -51,6 +51,8 @@ interface ValidationResult {
   totalRecords: number;
   validRecords: number;
   invalidRecords: number;
+  summary?: string;
+  actionableSteps?: string[];
 }
 
 interface DataQuality {
