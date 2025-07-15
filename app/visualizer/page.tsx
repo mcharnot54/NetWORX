@@ -179,11 +179,17 @@ export default function Visualizer() {
   } = useData();
 
   const [activeTab, setActiveTab] = useState<
-    "analytics" | "outputs" | "reports" | "insights" | "financial"
+    "analytics" | "outputs" | "reports" | "insights" | "financial" | "scenarios"
   >("analytics");
   const [selectedChart, setSelectedChart] = useState("warehouse");
   const [advancedView, setAdvancedView] = useState(false);
   const [dateRange, setDateRange] = useState("1year");
+
+  // Scenario Management State
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
+  const [currentScenarioName, setCurrentScenarioName] = useState("");
+  const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
+  const [scenarioComparisonView, setScenarioComparisonView] = useState("table");
 
   // Output Generation State
   const [generating, setGenerating] = useState(false);
