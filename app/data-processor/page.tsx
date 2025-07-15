@@ -1602,10 +1602,17 @@ export default function DataProcessor() {
   };
 
   const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement> | { target: { files: File[] } },
   ) => {
     const uploadedFiles = Array.from(event.target.files || []);
     setParseError(null);
+
+    if (uploadedFiles.length === 0) {
+      addToLog("No files selected for upload");
+      return;
+    }
+
+    addToLog(`📁 Starting upload of ${uploadedFiles.length} file(s)...`);
 
     const filePromises = uploadedFiles.map(async (file) => {
       try {
