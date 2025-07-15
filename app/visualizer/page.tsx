@@ -1008,6 +1008,13 @@ export default function Visualizer() {
                     <Map size={16} />
                     Geographic Analytics
                   </button>
+                  <button
+                    className={`button ${selectedChart === "inventory" ? "button-primary" : "button-secondary"}`}
+                    onClick={() => setSelectedChart("inventory")}
+                  >
+                    <Package size={16} />
+                    Inventory Analytics
+                  </button>
                 </div>
               </div>
 
