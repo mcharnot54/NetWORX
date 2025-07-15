@@ -192,8 +192,15 @@ a {
     font-size: 0.9rem;
   }
 
-  .powered-by {
+  .powered-by-text {
     font-size: 1rem;
+  }
+
+  .continuum-text {
+    font-size: 1.5rem;
+  }
+
+  .banner-right {
     align-self: flex-end;
   }
 }
