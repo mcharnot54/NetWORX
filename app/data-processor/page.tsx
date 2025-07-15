@@ -1912,6 +1912,14 @@ export default function DataProcessor() {
         );
       }
 
+      // Compile baseline data from all uploaded files
+      if (files.length > 0) {
+        addToLog(
+          "\\n🏗️ Compiling digital twin baseline from uploaded files...",
+        );
+        compileBaselineData();
+      }
+
       addToLog("🎯 Data processing pipeline completed successfully");
     } catch (error) {
       addToLog(`❌ Error during processing: ${error}`);
