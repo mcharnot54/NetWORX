@@ -1660,9 +1660,28 @@ export default function DataProcessor() {
       }
     });
 
-    const fileData = await Promise.all(filePromises);
-    setFiles(fileData);
-    addToLog(`Uploaded and parsed ${fileData.length} file(s)`);
+    const newFileData = await Promise.all(filePromises);
+
+    // Add to existing files instead of replacing (avoid duplicates)
+    setFiles((prev) => {
+      const existingNames = new Set(prev.map((f) => f.name));
+      const uniqueNewFiles = newFileData.filter(
+        (f) => !existingNames.has(f.name),
+      );
+      const updated = [...prev, ...uniqueNewFiles];
+
+      if (uniqueNewFiles.length < newFileData.length) {
+        addToLog(
+          `⚠️ Skipped ${newFileData.length - uniqueNewFiles.length} duplicate file(s)`,
+        );
+      }
+
+      return updated;
+    });
+
+    addToLog(
+      `✅ Successfully uploaded ${newFileData.length} file(s). Total files: ${files.length + newFileData.length}`,
+    );
   };
 
   const addToLog = (message: string) => {
