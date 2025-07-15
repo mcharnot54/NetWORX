@@ -223,6 +223,32 @@ a {
   }
 }
 
+/* Chart selection buttons responsive styles */
+@media (max-width: 1200px) {
+  .content-area .button {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-area .button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .content-area .button {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.7rem;
+    flex: 1;
+    min-width: calc(50% - 0.25rem);
+    justify-content: center;
+  }
+}
+
 .card {
   background: white;
   border-radius: 0.75rem;
