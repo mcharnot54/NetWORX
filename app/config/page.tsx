@@ -1171,6 +1171,438 @@ export default function Configuration() {
             </div>
           )}
 
+          {activeTab === "logging" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                NetworkStrategyLogger System
+              </h3>
+              <div className="grid grid-cols-2">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Logger Configuration
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Log Level</label>
+                    <select
+                      className="form-input"
+                      value={loggingConfig.level}
+                      onChange={(e) =>
+                        setLoggingConfig({
+                          ...loggingConfig,
+                          level: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="DEBUG">
+                        DEBUG - Detailed diagnostic info
+                      </option>
+                      <option value="INFO">INFO - General information</option>
+                      <option value="WARNING">
+                        WARNING - Warning messages
+                      </option>
+                      <option value="ERROR">ERROR - Error messages only</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Log Format</label>
+                    <textarea
+                      className="form-input form-textarea"
+                      value={loggingConfig.format}
+                      onChange={(e) =>
+                        setLoggingConfig({
+                          ...loggingConfig,
+                          format: e.target.value,
+                        })
+                      }
+                      placeholder="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Log Directory</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      defaultValue="logs/"
+                      placeholder="logs/"
+                    />
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Handler Configuration
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        checked={loggingConfig.file_handler}
+                        onChange={(e) =>
+                          setLoggingConfig({
+                            ...loggingConfig,
+                            file_handler: e.target.checked,
+                          })
+                        }
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Enable File Handler (Rotating)
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        checked={loggingConfig.console_handler}
+                        onChange={(e) =>
+                          setLoggingConfig({
+                            ...loggingConfig,
+                            console_handler: e.target.checked,
+                          })
+                        }
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Enable Console Handler
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Max File Size (MB)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={loggingConfig.max_file_size_mb}
+                      onChange={(e) =>
+                        setLoggingConfig({
+                          ...loggingConfig,
+                          max_file_size_mb: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Backup Count</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={loggingConfig.backup_count}
+                      onChange={(e) =>
+                        setLoggingConfig({
+                          ...loggingConfig,
+                          backup_count: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="card" style={{ marginTop: "1rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <h4 style={{ color: "#111827", margin: 0 }}>
+                    Live Log Monitor
+                  </h4>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <select
+                      className="form-input"
+                      value={logLevel}
+                      onChange={(e) => setLogLevel(e.target.value)}
+                      style={{ width: "auto" }}
+                    >
+                      <option value="ALL">All Levels</option>
+                      <option value="ERROR">Errors Only</option>
+                      <option value="WARNING">Warnings+</option>
+                      <option value="INFO">Info+</option>
+                    </select>
+                    <button className="button button-secondary">
+                      <RefreshCw size={16} />
+                      Refresh
+                    </button>
+                    <button className="button button-secondary">
+                      <Download size={16} />
+                      Export Logs
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: "#1f2937",
+                    color: "#f9fafb",
+                    padding: "1rem",
+                    borderRadius: "0.375rem",
+                    fontFamily: "monospace",
+                    fontSize: "0.75rem",
+                    height: "300px",
+                    overflowY: "auto",
+                    border: "1px solid #374151",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#10b981",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <Clock size={12} />
+                    <span>
+                      2024-01-15 14:23:45 -
+                      NetworkStrategyOptimizer.DataProcessor - INFO - Starting
+                      data validation process
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#3b82f6",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <FileText size={12} />
+                    <span>
+                      2024-01-15 14:23:46 -
+                      NetworkStrategyOptimizer.DataProcessor - INFO - Loaded
+                      1,250 records from input file
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#10b981",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <CheckCircle size={12} />
+                    <span>
+                      2024-01-15 14:23:47 - NetworkStrategyOptimizer.Validators
+                      - INFO - Data Quality Rate: 96.8%
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#f59e0b",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <AlertCircle size={12} />
+                    <span>
+                      2024-01-15 14:23:48 - NetworkStrategyOptimizer.Validators
+                      - WARNING - 40 records with missing postal codes
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#10b981",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <Monitor size={12} />
+                    <span>
+                      2024-01-15 14:23:50 -
+                      NetworkStrategyOptimizer.WarehouseOptimizer - INFO -
+                      Function warehouse_optimization executed in 2.34 seconds
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#10b981",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <CheckCircle size={12} />
+                    <span>
+                      2024-01-15 14:23:52 -
+                      NetworkStrategyOptimizer.TransportOptimizer - INFO -
+                      Optimization Status: Optimal, Objective Value: 485,000.00
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#ef4444",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <AlertCircle size={12} />
+                    <span>
+                      2024-01-15 14:23:53 -
+                      NetworkStrategyOptimizer.OutputGenerator - ERROR - Failed
+                      to generate chart: FileNotFoundError
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    <span>
+                      ⚡ Live logging enabled - Real-time updates from
+                      NetworkStrategyLogger
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3" style={{ marginTop: "1rem" }}>
+                <div className="card">
+                  <h4 style={{ marginBottom: "0.75rem", color: "#111827" }}>
+                    Specialized Logging
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Execution Time Logging
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Data Quality Logging
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Optimization Results Logging
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Error Detail Logging
+                    </label>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "0.75rem", color: "#111827" }}>
+                    Log Statistics
+                  </h4>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <span>Today's Logs:</span>
+                    <span style={{ fontWeight: "bold" }}>1,247</span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <span>Errors:</span>
+                    <span style={{ fontWeight: "bold", color: "#ef4444" }}>
+                      3
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <span>Warnings:</span>
+                    <span style={{ fontWeight: "bold", color: "#f59e0b" }}>
+                      12
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <span>File Size:</span>
+                    <span style={{ fontWeight: "bold" }}>2.3 MB</span>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "0.75rem", color: "#111827" }}>
+                    Log Management
+                  </h4>
+                  <button
+                    className="button button-secondary"
+                    style={{ width: "100%", marginBottom: "0.5rem" }}
+                  >
+                    <FileText size={16} />
+                    View Log Files
+                  </button>
+                  <button
+                    className="button button-secondary"
+                    style={{ width: "100%", marginBottom: "0.5rem" }}
+                  >
+                    <Download size={16} />
+                    Archive Old Logs
+                  </button>
+                  <button
+                    className="button button-secondary"
+                    style={{ width: "100%", marginBottom: "0.5rem" }}
+                  >
+                    <RefreshCw size={16} />
+                    Rotate Log Files
+                  </button>
+                  <button
+                    className="button button-secondary"
+                    style={{ width: "100%" }}
+                  >
+                    <Settings size={16} />
+                    Test Logger
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === "import-export" && (
             <div>
               <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
