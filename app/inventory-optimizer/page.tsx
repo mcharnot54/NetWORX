@@ -572,7 +572,11 @@ export default function InventoryOptimizer() {
                   SKU Data Stratification & Analytics
                 </h3>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
-                  <button className="button button-secondary">
+                  <button
+                    className="button button-secondary"
+                    onClick={loadSKUDataFromProcessor}
+                    title="Load SKU data from Data Processor"
+                  >
                     <Upload size={16} />
                     Import SKU Data
                   </button>
