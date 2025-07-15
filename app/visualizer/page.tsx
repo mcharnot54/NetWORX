@@ -57,7 +57,7 @@ import {
   Gauge,
   Eye,
   Map,
-  Navigation,
+  Navigation as NavigationIcon,
   Crosshair,
   Layers as LayersIcon,
 } from "lucide-react";
