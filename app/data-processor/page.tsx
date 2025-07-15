@@ -1282,6 +1282,8 @@ export default function DataProcessor() {
                     style={{
                       opacity: 0,
                       position: "absolute",
+                      top: 0,
+                      left: 0,
                       width: "100%",
                       height: "100%",
                       cursor: "pointer",
@@ -1816,8 +1818,8 @@ export default function DataProcessor() {
                 Data Conversion & Standardization
               </h3>
               <p style={{ marginBottom: "1.5rem", color: "#6b7280" }}>
-                Python DataConverter framework for standardizing different input
-                formats
+                Standardize different input formats with automatic column
+                mapping and data type conversion
               </p>
 
               <div className="grid grid-cols-2">
