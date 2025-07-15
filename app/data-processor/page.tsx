@@ -1501,63 +1501,86 @@ export default function DataProcessor() {
                     </div>
                   </div>
 
-                  <div style={{ overflowX: "auto" }}>
-                    <table
-                      style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      <thead>
-                        <tr style={{ backgroundColor: "#f3f4f6" }}>
-                          <th
+                                    <div style={{ overflowX: "auto" }}>
+                    {(() => {
+                      const fileName = files[selectedFile].name;
+                      const fileData = parsedData[fileName];
+
+                      if (!fileData || fileData.length === 0) {
+                        return (
+                          <div style={{
+                            padding: "2rem",
+                            textAlign: "center",
+                            color: "#6b7280",
+                            backgroundColor: "#f9fafb",
+                            borderRadius: "0.5rem"
+                          }}>
+                            <p>No data available. Please ensure the file was uploaded and processed correctly.</p>
+                            <p style={{ fontSize: "0.875rem", marginTop: "0.5rem" }}>
+                              Try uploading the file again or check the file format.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      const headers = Object.keys(fileData[0]);
+                      const previewRows = fileData.slice(0, 10); // Show first 10 rows
+
+                      return (
+                        <div>
+                          <p style={{ marginBottom: "1rem", fontSize: "0.875rem", color: "#6b7280" }}>
+                            Showing first {previewRows.length} rows of {fileData.length} total rows
+                          </p>
+                          <table
                             style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
+                              width: "100%",
+                              borderCollapse: "collapse",
+                              fontSize: "0.875rem",
                             }}
                           >
-                            City
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            State
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Annual Volume
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Latitude
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Longitude
-                          </th>
-                        </tr>
-                      </thead>
+                            <thead>
+                              <tr style={{ backgroundColor: "#f3f4f6" }}>
+                                {headers.map((header, index) => (
+                                  <th
+                                    key={index}
+                                    style={{
+                                      padding: "0.75rem",
+                                      textAlign: "left",
+                                      border: "1px solid #e5e7eb",
+                                      minWidth: "120px"
+                                    }}
+                                  >
+                                    {header}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {previewRows.map((row, rowIndex) => (
+                                <tr key={rowIndex}>
+                                  {headers.map((header, colIndex) => (
+                                    <td
+                                      key={colIndex}
+                                      style={{
+                                        padding: "0.75rem",
+                                        border: "1px solid #e5e7eb",
+                                        maxWidth: "200px",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap"
+                                      }}
+                                    >
+                                      {row[header] || ''}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+                  </div>
                       <tbody>
                         {[
                           ["New York", "NY", "125,000", "40.7128", "-74.0060"],
