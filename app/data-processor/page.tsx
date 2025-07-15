@@ -1971,8 +1971,9 @@ export default function DataProcessor() {
                   />
                   <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
                     Max file size: {config.maxFileSizeMB}MB | Auto-detects:
-                    forecast, sales volume, inventory/SKU, facility details,
-                    transport costs, network locations
+                    forecast, sales orders, sales volume, inventory/SKU,
+                    warehouse inputs, transportation costs, facility details,
+                    network locations
                   </p>
                 </div>
 
