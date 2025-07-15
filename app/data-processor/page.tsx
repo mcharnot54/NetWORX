@@ -1193,6 +1193,37 @@ export default function DataProcessor() {
   const autoDetectDataTypeFromColumns = (columnNames: string[]): string => {
     const columns = columnNames.join(" ").toLowerCase();
 
+    // Sales Orders Data
+    if (
+      columns.includes("order_id") &&
+      columns.includes("order_date") &&
+      (columns.includes("sku") || columns.includes("product")) &&
+      columns.includes("order_qty")
+    ) {
+      return "sales_orders";
+    }
+
+    // Transportation Costs Data
+    if (
+      columns.includes("facility") &&
+      columns.includes("destination") &&
+      columns.includes("mode") &&
+      columns.includes("direction") &&
+      columns.includes("distance_miles")
+    ) {
+      return "transportation_costs";
+    }
+
+    // Warehouse Inputs Data
+    if (
+      columns.includes("facility") &&
+      columns.includes("capacity_sqft") &&
+      columns.includes("cost_fixed_annual") &&
+      (columns.includes("throughput") || columns.includes("orders_processed"))
+    ) {
+      return "warehouse_inputs";
+    }
+
     // Forecast/Sales Volume Data
     if (
       columns.includes("year") &&
@@ -1227,7 +1258,7 @@ export default function DataProcessor() {
       return "facility";
     }
 
-    // Transportation Cost Data
+    // Transportation Cost Data (legacy format)
     if (
       (columns.includes("origin") && columns.includes("destination")) ||
       (columns.includes("lane") && columns.includes("rate")) ||
