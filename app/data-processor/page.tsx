@@ -89,6 +89,70 @@ export default function DataProcessor() {
   });
   const [dataQuality, setDataQuality] = useState<DataQuality | null>(null);
   const [processingLog, setProcessingLog] = useState<string[]>([]);
+  const [conversionResults, setConversionResults] = useState<any>(null);
+
+  // Column mappings matching Python DataConverter
+  const columnMappings: any = {
+    forecast: {
+      year: ["year", "yr", "period", "time", "fiscal_year", "fy"],
+      annual_units: [
+        "annual_units",
+        "units",
+        "volume",
+        "demand",
+        "quantity",
+        "annual_volume",
+        "yearly_units",
+        "total_units",
+      ],
+    },
+    sku: {
+      sku_id: [
+        "sku_id",
+        "sku",
+        "item_id",
+        "product_id",
+        "part_number",
+        "item_number",
+      ],
+      units_per_case: [
+        "units_per_case",
+        "units_case",
+        "case_pack",
+        "pack_size",
+        "units_per_pack",
+        "each_per_case",
+      ],
+      cases_per_pallet: [
+        "cases_per_pallet",
+        "case_pallet",
+        "pallet_quantity",
+        "cases_per_layer",
+        "case_per_pallet",
+      ],
+      annual_volume: [
+        "annual_volume",
+        "yearly_volume",
+        "annual_units",
+        "total_volume",
+        "volume_per_year",
+      ],
+    },
+    network: {
+      city: [
+        "city",
+        "location",
+        "facility",
+        "destination",
+        "site",
+        "warehouse",
+      ],
+      latitude: ["latitude", "lat", "y_coord", "y_coordinate"],
+      longitude: ["longitude", "lng", "lon", "x_coord", "x_coordinate"],
+      state: ["state", "province", "region"],
+      country: ["country", "nation"],
+    },
+  };
 
   // Validation rules matching Python DataValidator
   const validationRules: { [key: string]: ValidationRules } = {
@@ -356,6 +420,222 @@ export default function DataProcessor() {
     return warnings;
   };
 
+  // DataConverter utilities matching Python implementation
+  const findMatchingColumn = (
+    availableColumns: string[],
+    possibleNames: string[],
+  ): string | null => {
+    const columnsLower = availableColumns.map((col) => col.toLowerCase());
+
+    // Exact match
+    for (const possibleName of possibleNames) {
+      const index = columnsLower.indexOf(possibleName.toLowerCase());
+      if (index !== -1) {
+        return availableColumns[index];
+      }
+    }
+
+    // Partial match
+    for (const possibleName of possibleNames) {
+      for (const col of availableColumns) {
+        if (col.toLowerCase().includes(possibleName.toLowerCase())) {
+          return col;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const convertToStandardFormat = (data: any[], dataType: string): any => {
+    const mappings = columnMappings[dataType] || {};
+    const sampleRecord = data[0] || {};
+    const availableColumns = Object.keys(sampleRecord);
+    const mappedColumns: { [key: string]: string } = {};
+    const unmappedColumns: string[] = [];
+    const conversionLog: string[] = [];
+
+    // Map columns to standard names
+    for (const [standardCol, possibleNames] of Object.entries(mappings)) {
+      const matchedCol = findMatchingColumn(availableColumns, possibleNames);
+      if (matchedCol) {
+        mappedColumns[standardCol] = matchedCol;
+        conversionLog.push(`Mapped '${matchedCol}' to '${standardCol}'`);
+      } else {
+        conversionLog.push(
+          `Warning: No match found for standard column '${standardCol}'`,
+        );
+      }
+    }
+
+    // Find unmapped columns
+    const mappedOriginalCols = Object.values(mappedColumns);
+    unmappedColumns.push(
+      ...availableColumns.filter((col) => !mappedOriginalCols.includes(col)),
+    );
+
+    if (unmappedColumns.length > 0) {
+      conversionLog.push(`Unmapped columns: ${unmappedColumns.join(", ")}`);
+    }
+
+    return {
+      originalColumns: availableColumns,
+      mappedColumns,
+      unmappedColumns,
+      conversionLog,
+    };
+  };
+
+  const convertForecastData = (data: any[]): string[] => {
+    const conversionLog: string[] = [];
+
+    data.forEach((record, index) => {
+      // Convert year to integer
+      if (record.year !== undefined) {
+        const yearStr = String(record.year).replace(/[^0-9]/g, "");
+        const year = parseInt(yearStr);
+        if (!isNaN(year)) {
+          record.year = year;
+        } else {
+          conversionLog.push(
+            `Row ${index + 1}: Invalid year value '${record.year}'`,
+          );
+        }
+      }
+
+      // Convert annual units - clean string values
+      if (record.annual_units !== undefined) {
+        let units = String(record.annual_units);
+        units = units.replace(/[,$()]/g, "").replace(/\((.*)\)/, "-$1");
+        const numericUnits = parseFloat(units);
+        if (!isNaN(numericUnits) && numericUnits >= 0) {
+          record.annual_units = numericUnits;
+        } else {
+          conversionLog.push(
+            `Row ${index + 1}: Invalid annual units value '${record.annual_units}'`,
+          );
+        }
+      }
+    });
+
+    conversionLog.push("Forecast data conversion completed");
+    return conversionLog;
+  };
+
+  const convertSkuData = (data: any[]): string[] => {
+    const conversionLog: string[] = [];
+
+    data.forEach((record, index) => {
+      // Clean SKU ID - standardize to uppercase
+      if (record.sku_id !== undefined) {
+        record.sku_id = String(record.sku_id).trim().toUpperCase();
+      }
+
+      // Convert numeric columns
+      const numericCols = [
+        "units_per_case",
+        "cases_per_pallet",
+        "annual_volume",
+      ];
+
+      numericCols.forEach((col) => {
+        if (record[col] !== undefined) {
+          let value = String(record[col]).replace(/[,$]/g, "");
+          const numericValue = parseFloat(value);
+          if (!isNaN(numericValue) && numericValue > 0) {
+            record[col] = numericValue;
+          } else {
+            conversionLog.push(
+              `Row ${index + 1}: Invalid ${col} value '${record[col]}'`,
+            );
+          }
+        }
+      });
+
+      // Calculate units per pallet if not present
+      if (
+        record.units_per_case &&
+        record.cases_per_pallet &&
+        !record.units_per_pallet
+      ) {
+        record.units_per_pallet =
+          record.units_per_case * record.cases_per_pallet;
+        conversionLog.push(
+          `Row ${index + 1}: Calculated units_per_pallet = ${record.units_per_pallet}`,
+        );
+      }
+    });
+
+    conversionLog.push("SKU data conversion completed");
+    return conversionLog;
+  };
+
+  const convertNetworkData = (data: any[]): string[] => {
+    const conversionLog: string[] = [];
+
+    data.forEach((record, index) => {
+      // Clean city names - title case formatting
+      if (record.city !== undefined) {
+        const cleanCity = String(record.city).trim();
+        record.city = cleanCity
+          .split(" ")
+          .map(
+            (word) =>
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+          )
+          .join(" ");
+
+        if (record.city.length < 2) {
+          conversionLog.push(
+            `Row ${index + 1}: City name '${record.city}' too short`,
+          );
+        }
+      }
+
+      // Convert coordinates to numeric
+      ["latitude", "longitude"].forEach((coord) => {
+        if (record[coord] !== undefined) {
+          const numericCoord = parseFloat(String(record[coord]));
+          if (!isNaN(numericCoord)) {
+            record[coord] = numericCoord;
+
+            // Validate coordinate ranges
+            if (
+              coord === "latitude" &&
+              (numericCoord < -90 || numericCoord > 90)
+            ) {
+              conversionLog.push(
+                `Row ${index + 1}: Latitude ${numericCoord} out of range (-90 to 90)`,
+              );
+            }
+            if (
+              coord === "longitude" &&
+              (numericCoord < -180 || numericCoord > 180)
+            ) {
+              conversionLog.push(
+                `Row ${index + 1}: Longitude ${numericCoord} out of range (-180 to 180)`,
+              );
+            }
+          } else {
+            conversionLog.push(
+              `Row ${index + 1}: Invalid ${coord} value '${record[coord]}'`,
+            );
+          }
+        }
+      });
+
+      // Check for (0,0) coordinates which may indicate missing data
+      if (record.latitude === 0 && record.longitude === 0) {
+        conversionLog.push(
+          `Row ${index + 1}: Warning - (0,0) coordinates may indicate missing data`,
+        );
+      }
+    });
+
+    conversionLog.push("Network data conversion completed");
+    return conversionLog;
+  };
+
   const generateSampleData = (dataType: string): any[] => {
     // Generate realistic sample data for testing validation
     if (dataType === "forecast") {
@@ -498,9 +778,10 @@ export default function DataProcessor() {
       "Creating backup copy",
       "Detecting relevant sheets",
       "Loading data into DataFrame",
+      "Mapping columns to standard format (DataConverter)",
+      "Applying data type specific conversions",
       "Cleaning and standardizing data",
-      "Converting to standard format",
-      "Running comprehensive validation",
+      "Running comprehensive validation (DataValidator)",
       "Generating quality metrics",
       "Saving processed data",
     ];
@@ -635,6 +916,13 @@ export default function DataProcessor() {
               >
                 <Eye size={16} />
                 Data Preview
+              </button>
+              <button
+                className={`button ${activeTab === "conversion" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setActiveTab("conversion")}
+              >
+                <Database size={16} />
+                Data Conversion
               </button>
               <button
                 className={`button ${activeTab === "quality" ? "button-primary" : "button-secondary"}`}
@@ -1119,6 +1407,316 @@ export default function DataProcessor() {
                   }}
                 >
                   Select a file from the upload tab to preview its data
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "conversion" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Data Conversion & Standardization
+              </h3>
+              <p style={{ marginBottom: "1.5rem", color: "#6b7280" }}>
+                Python DataConverter framework for standardizing different input
+                formats
+              </p>
+
+              <div className="grid grid-cols-2">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Column Mapping Configuration
+                  </h4>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Forecast Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      year: {columnMappings.forecast.year.join(", ")}
+                      <br />
+                      annual_units:{" "}
+                      {columnMappings.forecast.annual_units.join(", ")}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      SKU Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      sku_id: {columnMappings.sku.sku_id.join(", ")}
+                      <br />
+                      units_per_case:{" "}
+                      {columnMappings.sku.units_per_case.join(", ")}
+                      <br />
+                      cases_per_pallet:{" "}
+                      {columnMappings.sku.cases_per_pallet.join(", ")}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Network Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      city: {columnMappings.network.city.join(", ")}
+                      <br />
+                      latitude: {columnMappings.network.latitude.join(", ")}
+                      <br />
+                      longitude: {columnMappings.network.longitude.join(", ")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Conversion Rules
+                  </h4>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#10b981",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      ✓ Forecast Conversions:
+                    </h5>
+                    <ul
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        listStyle: "none",
+                        paddingLeft: "1rem",
+                      }}
+                    >
+                      <li>• Convert year to integer format</li>
+                      <li>
+                        • Clean annual units (remove $, commas, parentheses)
+                      </li>
+                      <li>• Handle negative values in parentheses</li>
+                      <li>• Sort data by year ascending</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#3b82f6",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      ✓ SKU Conversions:
+                    </h5>
+                    <ul
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        listStyle: "none",
+                        paddingLeft: "1rem",
+                      }}
+                    >
+                      <li>• Standardize SKU IDs to uppercase</li>
+                      <li>• Clean numeric fields (remove $, commas)</li>
+                      <li>• Calculate units per pallet automatically</li>
+                      <li>• Remove duplicate SKUs (keep first)</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#f59e0b",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      ✓ Network Conversions:
+                    </h5>
+                    <ul
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        listStyle: "none",
+                        paddingLeft: "1rem",
+                      }}
+                    >
+                      <li>• Format city names to Title Case</li>
+                      <li>• Validate coordinate ranges</li>
+                      <li>• Convert coordinates to numeric</li>
+                      <li>• Detect missing location data (0,0)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {conversionResults && (
+                <div className="card" style={{ marginTop: "1rem" }}>
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Conversion Results
+                  </h4>
+
+                  <div className="grid grid-cols-3">
+                    <div>
+                      <h5
+                        style={{
+                          marginBottom: "0.5rem",
+                          color: "#111827",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Original Columns:
+                      </h5>
+                      <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                        {conversionResults.originalColumns.map(
+                          (col: string, index: number) => (
+                            <div
+                              key={index}
+                              style={{
+                                padding: "0.25rem 0.5rem",
+                                backgroundColor: "#f3f4f6",
+                                borderRadius: "0.25rem",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              {col}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5
+                        style={{
+                          marginBottom: "0.5rem",
+                          color: "#111827",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Column Mappings:
+                      </h5>
+                      <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                        {Object.entries(conversionResults.mappedColumns).map(
+                          (
+                            [standard, original]: [string, any],
+                            index: number,
+                          ) => (
+                            <div
+                              key={index}
+                              style={{
+                                padding: "0.25rem 0.5rem",
+                                backgroundColor: "#eff6ff",
+                                borderRadius: "0.25rem",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              {original} → {standard}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5
+                        style={{
+                          marginBottom: "0.5rem",
+                          color: "#111827",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Conversion Log:
+                      </h5>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "#6b7280",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                        }}
+                      >
+                        {conversionResults.conversionLog.map(
+                          (log: string, index: number) => (
+                            <div
+                              key={index}
+                              style={{
+                                padding: "0.25rem 0.5rem",
+                                backgroundColor: log.includes("Warning")
+                                  ? "#fef3c7"
+                                  : "#f0fdf4",
+                                borderRadius: "0.25rem",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              {log}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!conversionResults && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "3rem",
+                    color: "#6b7280",
+                  }}
+                >
+                  Run data processing to see conversion results and column
+                  mappings
                 </div>
               )}
             </div>
