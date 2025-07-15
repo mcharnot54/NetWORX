@@ -791,17 +791,37 @@ export default function DataProcessor() {
       addToLog(steps[i]);
     }
 
-    // Simulate comprehensive validation using actual validation framework
+    // Process uploaded file data for validation
     setTimeout(() => {
+      if (files.length === 0) {
+        addToLog("ERROR: No files uploaded for validation");
+        setProcessing(false);
+        return;
+      }
+
+      const firstFile = files[0];
+      addToLog(`Processing uploaded file: ${firstFile.name}`);
+      addToLog(`Detected type: ${firstFile.detectedType}`);
+      addToLog(`File size: ${formatFileSize(firstFile.size)}`);
+
+      // NOTE: Currently using sample data for demonstration
+      // In production, this would read the actual file content using FileReader API
+      addToLog("⚠️  Currently using sample data for validation demonstration");
+      addToLog(
+        "📝 To process real files, FileReader API integration is needed",
+      );
+
       // Generate sample data based on first file's detected type
       const sampleData = generateSampleData(
-        files[0]?.detectedType || "network",
+        firstFile.detectedType || "network",
       );
+
+      addToLog(`Generated ${sampleData.length} sample records for validation`);
 
       // Run comprehensive validation
       const validationResult = validateDataFrame(
         sampleData,
-        files[0]?.detectedType || "network",
+        firstFile.detectedType || "network",
       );
 
       addToLog(
