@@ -28,39 +28,6 @@ interface FileData {
   file?: File;
   parsedData?: any[];
   columnNames?: string[];
-  processed?: boolean;
-  validationResult?: ValidationResult;
-}
-
-interface BaselineData {
-  inventory: {
-    totalSKUs: number;
-    totalVolume: number;
-    avgUnitsPerCase: number;
-    avgCasesPerPallet: number;
-    topProducts: any[];
-  };
-  warehouse: {
-    totalFacilities: number;
-    totalCapacity: number;
-    avgUtilization: number;
-    totalCosts: number;
-    performanceMetrics: any[];
-  };
-  transportation: {
-    totalLanes: number;
-    avgDistance: number;
-    avgCostPerMile: number;
-    modeDistribution: any[];
-    costAnalysis: any[];
-  };
-  salesOrders: {
-    totalOrders: number;
-    totalVolume: number;
-    avgOrderSize: number;
-    topCustomers: any[];
-    orderPatterns: any[];
-  };
 }
 
 interface ProcessingConfig {
@@ -129,12 +96,6 @@ export default function DataProcessor() {
   const [conversionResults, setConversionResults] = useState<any>(null);
   const [actualFileData, setActualFileData] = useState<any[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [compiledData, setCompiledData] = useState<any[]>([]);
-  const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
-  const [fileUploadProgress, setFileUploadProgress] = useState<{
-    [key: string]: number;
-  }>({});
-  const [digitalTwinValidation, setDigitalTwinValidation] = useState<any>(null);
 
   // Column mappings matching Python DataConverter
   const columnMappings: any = {
@@ -1641,38 +1602,22 @@ export default function DataProcessor() {
   };
 
   const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement> | { target: { files: File[] } },
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const uploadedFiles = Array.from(event.target.files || []);
     setParseError(null);
 
-    if (uploadedFiles.length === 0) {
-      addToLog("No files selected for upload");
-      return;
-    }
-
-    addToLog(`Starting upload of ${uploadedFiles.length} file(s)...`);
-
-    const filePromises = uploadedFiles.map(async (file, index) => {
+    const filePromises = uploadedFiles.map(async (file) => {
       try {
-        // Update progress
-        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
-
         let sheets: string[] | undefined;
         let columnNames: string[] = [];
 
         // For Excel files, detect actual sheets
         if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
-          setFileUploadProgress((prev) => ({ ...prev, [file.name]: 25 }));
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer);
           sheets = workbook.SheetNames;
-          addToLog(
-            `Detected ${sheets.length} sheet(s) in ${file.name}: ${sheets.join(", ")}`,
-          );
         }
-
-        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 50 }));
 
         const fileData: FileData = {
           name: file.name,
@@ -1684,39 +1629,19 @@ export default function DataProcessor() {
           selectedSheet: sheets ? sheets[0] : undefined,
           detectedType: autoDetectDataType(file.name),
           columnNames,
-          processed: false,
         };
-
-        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 75 }));
 
         // Parse the file immediately to get column names
         const parsedData = await parseFileContent(fileData);
         if (parsedData.length > 0) {
           fileData.columnNames = Object.keys(parsedData[0]);
           fileData.parsedData = parsedData;
-
-          // Auto-detect type from columns if not detected from filename
-          const columnBasedType = autoDetectDataTypeFromColumns(
-            fileData.columnNames,
-          );
-          if (
-            columnBasedType !== "unknown" &&
-            fileData.detectedType === "unknown"
-          ) {
-            fileData.detectedType = columnBasedType;
-          }
-
-          addToLog(
-            `Parsed ${file.name}: ${parsedData.length} rows, detected as ${fileData.detectedType}`,
-          );
         }
 
-        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
         return fileData;
       } catch (error) {
         addToLog(`Error processing file ${file.name}: ${error}`);
         setParseError(`Error processing file ${file.name}: ${error}`);
-        setFileUploadProgress((prev) => ({ ...prev, [file.name]: -1 })); // Error state
         return {
           name: file.name,
           size: file.size,
@@ -1724,305 +1649,18 @@ export default function DataProcessor() {
           lastModified: file.lastModified,
           file,
           detectedType: autoDetectDataType(file.name),
-          processed: false,
         };
       }
     });
 
-    const newFileData = await Promise.all(filePromises);
-
-    // Add to existing files instead of replacing
-    setFiles((prev) => {
-      const existingNames = new Set(prev.map((f) => f.name));
-      const uniqueNewFiles = newFileData.filter(
-        (f) => !existingNames.has(f.name),
-      );
-      return [...prev, ...uniqueNewFiles];
-    });
-
-    addToLog(
-      `Successfully uploaded ${newFileData.length} file(s). Total files: ${files.length + newFileData.length}`,
-    );
-
-    // Clear progress after a delay
-    setTimeout(() => {
-      setFileUploadProgress({});
-    }, 2000);
+    const fileData = await Promise.all(filePromises);
+    setFiles(fileData);
+    addToLog(`Uploaded and parsed ${fileData.length} file(s)`);
   };
 
   const addToLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
-  };
-
-  const compileBaselineData = () => {
-    addToLog("🔄 Compiling baseline data for digital twin validation...");
-
-    const processedFiles = files.filter((f) => f.processed && f.parsedData);
-    if (processedFiles.length === 0) {
-      addToLog("⚠️ No processed files available for baseline compilation");
-      return;
-    }
-
-    let compiled: any[] = [];
-    let baseline: BaselineData = {
-      inventory: {
-        totalSKUs: 0,
-        totalVolume: 0,
-        avgUnitsPerCase: 0,
-        avgCasesPerPallet: 0,
-        topProducts: [],
-      },
-      warehouse: {
-        totalFacilities: 0,
-        totalCapacity: 0,
-        avgUtilization: 0,
-        totalCosts: 0,
-        performanceMetrics: [],
-      },
-      transportation: {
-        totalLanes: 0,
-        avgDistance: 0,
-        avgCostPerMile: 0,
-        modeDistribution: [],
-        costAnalysis: [],
-      },
-      salesOrders: {
-        totalOrders: 0,
-        totalVolume: 0,
-        avgOrderSize: 0,
-        topCustomers: [],
-        orderPatterns: [],
-      },
-    };
-
-    // Compile SKU/Inventory Data
-    const skuFiles = processedFiles.filter((f) => f.detectedType === "sku");
-    if (skuFiles.length > 0) {
-      const allSkuData = skuFiles.flatMap((f) => f.parsedData || []);
-      baseline.inventory.totalSKUs = allSkuData.length;
-      baseline.inventory.totalVolume = allSkuData.reduce(
-        (sum, item) => sum + (Number(item.annual_volume) || 0),
-        0,
-      );
-      baseline.inventory.avgUnitsPerCase =
-        allSkuData.reduce(
-          (sum, item) => sum + (Number(item.units_per_case) || 0),
-          0,
-        ) / allSkuData.length;
-      baseline.inventory.avgCasesPerPallet =
-        allSkuData.reduce(
-          (sum, item) => sum + (Number(item.cases_per_pallet) || 0),
-          0,
-        ) / allSkuData.length;
-      baseline.inventory.topProducts = allSkuData
-        .sort(
-          (a, b) =>
-            (Number(b.annual_volume) || 0) - (Number(a.annual_volume) || 0),
-        )
-        .slice(0, 10)
-        .map((item) => ({
-          sku: item.sku_id,
-          volume: Number(item.annual_volume) || 0,
-          unitsPerCase: Number(item.units_per_case) || 0,
-        }));
-      compiled.push(
-        ...allSkuData.map((item) => ({
-          ...item,
-          dataType: "sku",
-          source: "inventory",
-        })),
-      );
-      addToLog(`✓ Compiled ${allSkuData.length} SKU records`);
-    }
-
-    // Compile Warehouse Data
-    const warehouseFiles = processedFiles.filter(
-      (f) => f.detectedType === "warehouse_inputs",
-    );
-    if (warehouseFiles.length > 0) {
-      const allWarehouseData = warehouseFiles.flatMap(
-        (f) => f.parsedData || [],
-      );
-      baseline.warehouse.totalFacilities = allWarehouseData.length;
-      baseline.warehouse.totalCapacity = allWarehouseData.reduce(
-        (sum, item) => sum + (Number(item.capacity_sqft) || 0),
-        0,
-      );
-      baseline.warehouse.totalCosts = allWarehouseData.reduce(
-        (sum, item) => sum + (Number(item.cost_fixed_annual) || 0),
-        0,
-      );
-      baseline.warehouse.avgUtilization =
-        allWarehouseData.reduce((sum, item) => {
-          const utilization =
-            (Number(item.units_processed) || 0) /
-            (Number(item.capacity_sqft) || 1);
-          return sum + utilization;
-        }, 0) / allWarehouseData.length;
-      baseline.warehouse.performanceMetrics = allWarehouseData.map((item) => ({
-        facility: item.facility,
-        capacity: Number(item.capacity_sqft) || 0,
-        throughput: Number(item.throughput_units_per_hr) || 0,
-        efficiency:
-          ((Number(item.units_processed) || 0) /
-            (Number(item.capacity_sqft) || 1)) *
-          100,
-      }));
-      compiled.push(
-        ...allWarehouseData.map((item) => ({
-          ...item,
-          dataType: "warehouse",
-          source: "operations",
-        })),
-      );
-      addToLog(`✓ Compiled ${allWarehouseData.length} warehouse records`);
-    }
-
-    // Compile Transportation Data
-    const transportFiles = processedFiles.filter(
-      (f) => f.detectedType === "transportation_costs",
-    );
-    if (transportFiles.length > 0) {
-      const allTransportData = transportFiles.flatMap(
-        (f) => f.parsedData || [],
-      );
-      baseline.transportation.totalLanes = allTransportData.length;
-      baseline.transportation.avgDistance =
-        allTransportData.reduce(
-          (sum, item) => sum + (Number(item.distance_miles) || 0),
-          0,
-        ) / allTransportData.length;
-      baseline.transportation.avgCostPerMile =
-        allTransportData.reduce(
-          (sum, item) => sum + (Number(item.cost_per_mile) || 0),
-          0,
-        ) / allTransportData.filter((item) => item.cost_per_mile).length;
-
-      const modeGroups = allTransportData.reduce((acc, item) => {
-        const mode = item.mode || "unknown";
-        if (!acc[mode])
-          acc[mode] = { count: 0, totalCost: 0, totalDistance: 0 };
-        acc[mode].count++;
-        acc[mode].totalCost += Number(item.total_lane_cost) || 0;
-        acc[mode].totalDistance += Number(item.distance_miles) || 0;
-        return acc;
-      }, {} as any);
-
-      baseline.transportation.modeDistribution = Object.entries(modeGroups).map(
-        ([mode, data]: [string, any]) => ({
-          mode,
-          count: data.count,
-          percentage: (data.count / allTransportData.length) * 100,
-          avgCost: data.totalCost / data.count,
-          avgDistance: data.totalDistance / data.count,
-        }),
-      );
-
-      compiled.push(
-        ...allTransportData.map((item) => ({
-          ...item,
-          dataType: "transportation",
-          source: "logistics",
-        })),
-      );
-      addToLog(`✓ Compiled ${allTransportData.length} transportation records`);
-    }
-
-    // Compile Sales Orders Data
-    const salesFiles = processedFiles.filter(
-      (f) => f.detectedType === "sales_orders",
-    );
-    if (salesFiles.length > 0) {
-      const allSalesData = salesFiles.flatMap((f) => f.parsedData || []);
-      baseline.salesOrders.totalOrders = allSalesData.length;
-      baseline.salesOrders.totalVolume = allSalesData.reduce(
-        (sum, item) => sum + (Number(item.order_qty) || 0),
-        0,
-      );
-      baseline.salesOrders.avgOrderSize =
-        baseline.salesOrders.totalVolume / baseline.salesOrders.totalOrders;
-
-      const customerGroups = allSalesData.reduce((acc, item) => {
-        const customer = item.ship_to_address || "unknown";
-        if (!acc[customer]) acc[customer] = { orders: 0, volume: 0 };
-        acc[customer].orders++;
-        acc[customer].volume += Number(item.order_qty) || 0;
-        return acc;
-      }, {} as any);
-
-      baseline.salesOrders.topCustomers = Object.entries(customerGroups)
-        .sort(
-          ([, a]: [string, any], [, b]: [string, any]) => b.volume - a.volume,
-        )
-        .slice(0, 10)
-        .map(([customer, data]: [string, any]) => ({
-          customer,
-          orders: data.orders,
-          volume: data.volume,
-        }));
-
-      compiled.push(
-        ...allSalesData.map((item) => ({
-          ...item,
-          dataType: "sales",
-          source: "orders",
-        })),
-      );
-      addToLog(`✓ Compiled ${allSalesData.length} sales order records`);
-    }
-
-    setCompiledData(compiled);
-    setBaselineData(baseline);
-
-    // Create digital twin validation metrics
-    const digitalTwin = {
-      dataCompleteness: {
-        inventory: skuFiles.length > 0,
-        warehouse: warehouseFiles.length > 0,
-        transportation: transportFiles.length > 0,
-        sales: salesFiles.length > 0,
-      },
-      dataQuality: {
-        totalRecords: compiled.length,
-        validationScore:
-          processedFiles.reduce((sum, f) => {
-            const result = f.validationResult;
-            return (
-              sum +
-              (result ? (result.validRecords / result.totalRecords) * 100 : 0)
-            );
-          }, 0) / processedFiles.length,
-        consistency: calculateDataConsistency(compiled),
-      },
-      networkReadiness: {
-        facilitiesConfigured: baseline.warehouse.totalFacilities,
-        transportationLanes: baseline.transportation.totalLanes,
-        productsCatalog: baseline.inventory.totalSKUs,
-        demandPatterns: baseline.salesOrders.totalOrders,
-      },
-    };
-
-    setDigitalTwinValidation(digitalTwin);
-    addToLog(
-      `🎯 Digital twin baseline compiled: ${compiled.length} total records across ${processedFiles.length} files`,
-    );
-  };
-
-  const calculateDataConsistency = (data: any[]): number => {
-    // Simple consistency check - in production would be more sophisticated
-    const skuData = data.filter((item) => item.dataType === "sku");
-    const salesData = data.filter((item) => item.dataType === "sales");
-
-    if (skuData.length === 0 || salesData.length === 0) return 100;
-
-    const skuIds = new Set(skuData.map((item) => item.sku_id));
-    const salesSkuIds = new Set(salesData.map((item) => item.sku));
-
-    const matchingSkus = [...skuIds].filter((id) => salesSkuIds.has(id));
-    return (
-      (matchingSkus.length / Math.max(skuIds.size, salesSkuIds.size)) * 100
-    );
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -2049,96 +1687,54 @@ export default function DataProcessor() {
     }
   };
 
-    const handleProcess = async () => {
-    // Process multiple files or use sample data
+  const handleProcess = async () => {
+    // Allow validation to run with or without uploaded files
     let useUploadedData = files.length > 0;
+    let dataTypeToUse = "network";
 
     if (!useUploadedData) {
-      addToLog("ℹ️  No files uploaded - running validation with sample data for demonstration");
+      addToLog(
+        "ℹ️  No files uploaded - running validation with sample data for demonstration",
+      );
     }
 
     setProcessing(true);
-    addToLog("🚀 Starting comprehensive multi-file data processing pipeline...");
+    addToLog("Starting comprehensive data processing pipeline...");
 
     try {
+      let actualData: any[];
+      let finalDataType: string;
+
       if (useUploadedData) {
-        addToLog(`📊 Processing ${files.length} uploaded file(s)...`);
+        const firstFile = files[0];
+        addToLog(`Processing file: ${firstFile.name}`);
+        addToLog(`File size: ${formatFileSize(firstFile.size)}`);
+        addToLog(`Initial detected type: ${firstFile.detectedType}`);
 
-        // Process each file
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          addToLog(`\n📁 Processing file ${i + 1}/${files.length}: ${file.name}`);
-
-          // Skip if already processed
-          if (file.processed) {
-            addToLog(`✓ File already processed, skipping...`);
-            continue;
-          }
-
-          // Step 1: Validate file
-          addToLog(`✓ Validating file: ${formatFileSize(file.size)}, type: ${file.detectedType}`);
-          if (file.size > config.maxFileSizeMB * 1024 * 1024) {
-            addToLog(`❌ ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`);
-            continue;
-          }
-
-          // Step 2: Parse file content if not already parsed
-          let fileData = file.parsedData;
-          if (!fileData || fileData.length === 0) {
-            addToLog(`📄 Reading and parsing file content...`);
-            fileData = await parseFileContent(file);
-
-            // Update file with parsed data
-            setFiles(prev => prev.map(f =>
-              f.name === file.name
-                ? { ...f, parsedData: fileData, columnNames: fileData.length > 0 ? Object.keys(fileData[0]) : [] }
-                : f
-            ));
-          }
-
-          if (!fileData || fileData.length === 0) {
-            addToLog(`⚠️ WARNING: No data found in file ${file.name}`);
-            continue;
-          }
-
-          addToLog(`✓ Parsed ${fileData.length} records from ${file.name}`);
-
-          // Step 3: Run validation on this file
-          addToLog(`🔍 Running validation on ${file.name}...`);
-          const validationResult = validateDataFrame(fileData, file.detectedType || 'unknown');
-
-          addToLog(
-            `✓ Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`
-          );
-
-          // Step 4: Apply data conversions
-          addToLog(`🔄 Applying data conversions...`);
-          let conversionLog: string[] = [];
-
-          if (file.detectedType === 'forecast') {
-            conversionLog = convertForecastData(fileData);
-          } else if (file.detectedType === 'sku') {
-            conversionLog = convertSkuData(fileData);
-          } else if (file.detectedType === 'network') {
-            conversionLog = convertNetworkData(fileData);
-          }
-
-          conversionLog.forEach(log => addToLog(`  ${log}`));
-
-          // Update file as processed
-          setFiles(prev => prev.map(f =>
-            f.name === file.name
-              ? { ...f, processed: true, validationResult }
-              : f
-          ));
+        // Step 1: Validate file existence and size
+        addToLog("✓ Validating file existence and size");
+        if (firstFile.size > config.maxFileSizeMB * 1024 * 1024) {
+          addToLog(`ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`);
+          setProcessing(false);
+          return;
         }
 
-        // Step 5: Compile baseline data from all processed files
-        addToLog(`\n🏗️ Compiling digital twin baseline data...`);
-        compileBaselineData();
+        // Step 2: Parse file content
+        addToLog("📄 Reading and parsing file content...");
 
-        // Update preview with compiled data (show first 100 records)
-        setActualFileData(compiledData.slice(0, 100));
+        if (firstFile.parsedData && firstFile.parsedData.length > 0) {
+          actualData = firstFile.parsedData;
+          addToLog(`✓ Using pre-parsed data: ${actualData.length} records`);
+        } else {
+          actualData = await parseFileContent(firstFile);
+          addToLog(`✓ Parsed file content: ${actualData.length} records`);
+        }
+
+        if (actualData.length === 0) {
+          addToLog("WARNING: No data found in file");
+          setProcessing(false);
+          return;
+        }
 
         // Step 3: Auto-detect data type from column structure
         const columnBasedType = autoDetectDataTypeFromColumns(
@@ -2324,19 +1920,12 @@ export default function DataProcessor() {
                 <Database size={16} />
                 Data Conversion
               </button>
-                            <button
+              <button
                 className={`button ${activeTab === "quality" ? "button-primary" : "button-secondary"}`}
                 onClick={() => setActiveTab("quality")}
               >
                 <BarChart3 size={16} />
                 Validation Report
-              </button>
-              <button
-                className={`button ${activeTab === "baseline" ? "button-primary" : "button-secondary"}`}
-                onClick={() => setActiveTab("baseline")}
-              >
-                <Database size={16} />
-                Digital Twin Baseline
               </button>
             </div>
           </div>
@@ -2388,54 +1977,28 @@ export default function DataProcessor() {
                   </p>
                 </div>
 
-                                {files.length > 0 && (
+                {files.length > 0 && (
                   <div style={{ marginTop: "1rem" }}>
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "0.5rem"
-                    }}>
-                      <h4 style={{ margin: 0, color: "#111827" }}>
-                        Uploaded Files ({files.length}):
-                      </h4>
-                      <button
-                        onClick={() => setFiles([])}
+                    <h4 style={{ marginBottom: "0.5rem", color: "#111827" }}>
+                      Files with Auto-Detection:
+                    </h4>
+                    {files.map((file, index) => (
+                      <div
+                        key={index}
                         style={{
-                          padding: "0.25rem 0.5rem",
-                          fontSize: "0.75rem",
-                          backgroundColor: "#ef4444",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "0.25rem",
-                          cursor: "pointer"
+                          padding: "0.75rem",
+                          backgroundColor:
+                            selectedFile === index ? "#eff6ff" : "#f9fafb",
+                          borderRadius: "0.375rem",
+                          marginBottom: "0.5rem",
+                          border:
+                            selectedFile === index
+                              ? "1px solid #3b82f6"
+                              : "1px solid #e5e7eb",
+                          cursor: "pointer",
                         }}
+                        onClick={() => setSelectedFile(index)}
                       >
-                        Clear All
-                      </button>
-                    </div>
-                    {files.map((file, index) => {
-                      const progress = fileUploadProgress[file.name];
-                      const hasProgress = progress !== undefined;
-                      const isError = progress === -1;
-
-                      return (
-                        <div
-                          key={index}
-                          style={{
-                            padding: "0.75rem",
-                            backgroundColor:
-                              selectedFile === index ? "#eff6ff" : "#f9fafb",
-                            borderRadius: "0.375rem",
-                            marginBottom: "0.5rem",
-                            border:
-                              selectedFile === index
-                                ? "1px solid #3b82f6"
-                                : "1px solid #e5e7eb",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => setSelectedFile(index)}
-                        >
                         <div
                           style={{
                             display: "flex",
