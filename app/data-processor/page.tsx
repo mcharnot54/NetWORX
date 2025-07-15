@@ -77,6 +77,8 @@ interface ValidationRules {
 }
 
 export default function DataProcessor() {
+  const { setProcessedData } = useData();
+
   const [files, setFiles] = useState<FileData[]>([]);
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState("upload");
