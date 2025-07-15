@@ -910,7 +910,7 @@ export default function DataProcessor() {
             >
               {processing && <div className="loading-spinner"></div>}
               <Play size={16} />
-              {processing ? "Processing..." : "Run Validation"}
+              {processing ? "Processing..." : "Run Validation (Sample Data)"}
             </button>
           </div>
 
