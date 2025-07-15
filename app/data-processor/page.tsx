@@ -2049,20 +2049,16 @@ export default function DataProcessor() {
     }
   };
 
-  const handleProcess = async () => {
+    const handleProcess = async () => {
     // Process multiple files or use sample data
     let useUploadedData = files.length > 0;
 
     if (!useUploadedData) {
-      addToLog(
-        "ℹ️  No files uploaded - running validation with sample data for demonstration",
-      );
+      addToLog("ℹ️  No files uploaded - running validation with sample data for demonstration");
     }
 
     setProcessing(true);
-    addToLog(
-      "🚀 Starting comprehensive multi-file data processing pipeline...",
-    );
+    addToLog("🚀 Starting comprehensive multi-file data processing pipeline...");
 
     try {
       if (useUploadedData) {
@@ -2071,9 +2067,7 @@ export default function DataProcessor() {
         // Process each file
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          addToLog(
-            `\n📁 Processing file ${i + 1}/${files.length}: ${file.name}`,
-          );
+          addToLog(`\n📁 Processing file ${i + 1}/${files.length}: ${file.name}`);
 
           // Skip if already processed
           if (file.processed) {
@@ -2082,13 +2076,9 @@ export default function DataProcessor() {
           }
 
           // Step 1: Validate file
-          addToLog(
-            `✓ Validating file: ${formatFileSize(file.size)}, type: ${file.detectedType}`,
-          );
+          addToLog(`✓ Validating file: ${formatFileSize(file.size)}, type: ${file.detectedType}`);
           if (file.size > config.maxFileSizeMB * 1024 * 1024) {
-            addToLog(
-              `❌ ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`,
-            );
+            addToLog(`❌ ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`);
             continue;
           }
 
@@ -2099,18 +2089,11 @@ export default function DataProcessor() {
             fileData = await parseFileContent(file);
 
             // Update file with parsed data
-            setFiles((prev) =>
-              prev.map((f) =>
-                f.name === file.name
-                  ? {
-                      ...f,
-                      parsedData: fileData,
-                      columnNames:
-                        fileData.length > 0 ? Object.keys(fileData[0]) : [],
-                    }
-                  : f,
-              ),
-            );
+            setFiles(prev => prev.map(f =>
+              f.name === file.name
+                ? { ...f, parsedData: fileData, columnNames: fileData.length > 0 ? Object.keys(fileData[0]) : [] }
+                : f
+            ));
           }
 
           if (!fileData || fileData.length === 0) {
@@ -2122,37 +2105,32 @@ export default function DataProcessor() {
 
           // Step 3: Run validation on this file
           addToLog(`🔍 Running validation on ${file.name}...`);
-          const validationResult = validateDataFrame(
-            fileData,
-            file.detectedType || "unknown",
-          );
+          const validationResult = validateDataFrame(fileData, file.detectedType || 'unknown');
 
           addToLog(
-            `✓ Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`,
+            `✓ Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`
           );
 
           // Step 4: Apply data conversions
           addToLog(`🔄 Applying data conversions...`);
           let conversionLog: string[] = [];
 
-          if (file.detectedType === "forecast") {
+          if (file.detectedType === 'forecast') {
             conversionLog = convertForecastData(fileData);
-          } else if (file.detectedType === "sku") {
+          } else if (file.detectedType === 'sku') {
             conversionLog = convertSkuData(fileData);
-          } else if (file.detectedType === "network") {
+          } else if (file.detectedType === 'network') {
             conversionLog = convertNetworkData(fileData);
           }
 
-          conversionLog.forEach((log) => addToLog(`  ${log}`));
+          conversionLog.forEach(log => addToLog(`  ${log}`));
 
           // Update file as processed
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.name === file.name
-                ? { ...f, processed: true, validationResult }
-                : f,
-            ),
-          );
+          setFiles(prev => prev.map(f =>
+            f.name === file.name
+              ? { ...f, processed: true, validationResult }
+              : f
+          ));
         }
 
         // Step 5: Compile baseline data from all processed files
@@ -2346,7 +2324,7 @@ export default function DataProcessor() {
                 <Database size={16} />
                 Data Conversion
               </button>
-              <button
+                            <button
                 className={`button ${activeTab === "quality" ? "button-primary" : "button-secondary"}`}
                 onClick={() => setActiveTab("quality")}
               >
@@ -2410,28 +2388,54 @@ export default function DataProcessor() {
                   </p>
                 </div>
 
-                {files.length > 0 && (
+                                {files.length > 0 && (
                   <div style={{ marginTop: "1rem" }}>
-                    <h4 style={{ marginBottom: "0.5rem", color: "#111827" }}>
-                      Files with Auto-Detection:
-                    </h4>
-                    {files.map((file, index) => (
-                      <div
-                        key={index}
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "0.5rem"
+                    }}>
+                      <h4 style={{ margin: 0, color: "#111827" }}>
+                        Uploaded Files ({files.length}):
+                      </h4>
+                      <button
+                        onClick={() => setFiles([])}
                         style={{
-                          padding: "0.75rem",
-                          backgroundColor:
-                            selectedFile === index ? "#eff6ff" : "#f9fafb",
-                          borderRadius: "0.375rem",
-                          marginBottom: "0.5rem",
-                          border:
-                            selectedFile === index
-                              ? "1px solid #3b82f6"
-                              : "1px solid #e5e7eb",
-                          cursor: "pointer",
+                          padding: "0.25rem 0.5rem",
+                          fontSize: "0.75rem",
+                          backgroundColor: "#ef4444",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "0.25rem",
+                          cursor: "pointer"
                         }}
-                        onClick={() => setSelectedFile(index)}
                       >
+                        Clear All
+                      </button>
+                    </div>
+                    {files.map((file, index) => {
+                      const progress = fileUploadProgress[file.name];
+                      const hasProgress = progress !== undefined;
+                      const isError = progress === -1;
+
+                      return (
+                        <div
+                          key={index}
+                          style={{
+                            padding: "0.75rem",
+                            backgroundColor:
+                              selectedFile === index ? "#eff6ff" : "#f9fafb",
+                            borderRadius: "0.375rem",
+                            marginBottom: "0.5rem",
+                            border:
+                              selectedFile === index
+                                ? "1px solid #3b82f6"
+                                : "1px solid #e5e7eb",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => setSelectedFile(index)}
+                        >
                         <div
                           style={{
                             display: "flex",
