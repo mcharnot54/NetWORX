@@ -565,9 +565,29 @@ export default function DataProcessor() {
       // Check SKU ID format
       const skuId = String(record.sku_id || "");
       if (skuId.length < 3) {
+        const suggestion =
+          skuId.length === 0
+            ? " (SKU ID appears to be empty - check your data source)"
+            : skuId.length === 1 || skuId.length === 2
+              ? " (SKU ID is too short - consider adding a prefix or using a more detailed identifier)"
+              : "";
         errors.push(
-          `Row ${index + 1}: SKU ID '${skuId}' should have at least 3 characters`,
+          `Row ${index + 1}: SKU ID '${skuId}' should have at least 3 characters${suggestion}`,
         );
+      }
+
+      // Check for valid SKU ID format (basic patterns)
+      if (skuId.length >= 3) {
+        if (/^\s+|\s+$/.test(skuId)) {
+          errors.push(
+            `Row ${index + 1}: SKU ID '${skuId}' has leading or trailing spaces (consider trimming)`,
+          );
+        }
+        if (/[^a-zA-Z0-9\-_]/.test(skuId)) {
+          errors.push(
+            `Row ${index + 1}: SKU ID '${skuId}' contains special characters that may cause issues`,
+          );
+        }
       }
 
       // Check units per pallet calculation
@@ -579,13 +599,40 @@ export default function DataProcessor() {
 
         if (unitsPerPallet > 10000) {
           errors.push(
-            `Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) exceeds 10,000`,
+            `Row ${index + 1}: Calculated units per pallet (${unitsPerCase} × ${casesPerPallet} = ${unitsPerPallet}) exceeds 10,000 - please verify your pack sizes`,
           );
         }
 
         if (unitsPerPallet < 1) {
           errors.push(
-            `Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) is less than 1`,
+            `Row ${index + 1}: Calculated units per pallet (${unitsPerCase} × ${casesPerPallet} = ${unitsPerPallet}) is less than 1 - check your units_per_case and cases_per_pallet values`,
+          );
+        }
+      } else {
+        // Provide specific guidance for missing pack size data
+        if (isNaN(unitsPerCase) && record.units_per_case !== undefined) {
+          errors.push(
+            `Row ${index + 1}: units_per_case '${record.units_per_case}' is not a valid number`,
+          );
+        }
+        if (isNaN(casesPerPallet) && record.cases_per_pallet !== undefined) {
+          errors.push(
+            `Row ${index + 1}: cases_per_pallet '${record.cases_per_pallet}' is not a valid number`,
+          );
+        }
+      }
+
+      // Check annual volume reasonableness
+      const annualVolume = Number(record.annual_volume);
+      if (!isNaN(annualVolume)) {
+        if (annualVolume > 10000000) {
+          errors.push(
+            `Row ${index + 1}: Annual volume ${annualVolume.toLocaleString()} seems extremely high - please verify this value`,
+          );
+        }
+        if (annualVolume === 0) {
+          errors.push(
+            `Row ${index + 1}: Annual volume is zero - consider if this SKU should be included in optimization`,
           );
         }
       }
