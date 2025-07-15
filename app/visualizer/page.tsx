@@ -3391,6 +3391,708 @@ export default function Visualizer() {
                 </div>
               )}
 
+              {/* Inventory Analytics */}
+              {selectedChart === "inventory" && (
+                <div>
+                  <div style={{ marginBottom: "2rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <h3 style={{ color: "#111827" }}>
+                        Inventory Management Analytics
+                      </h3>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button className="button button-secondary">
+                          <Download size={16} />
+                          Export Inventory Report
+                        </button>
+                        <button className="button button-secondary">
+                          <RefreshCw size={16} />
+                          Refresh Metrics
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Inventory KPI Cards */}
+                  <div
+                    className="grid grid-cols-4"
+                    style={{ gap: "1.5rem", marginBottom: "2rem" }}
+                  >
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#fef3c7",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #f59e0b",
+                      }}
+                    >
+                      <DollarSign
+                        size={32}
+                        style={{
+                          color: "#92400e",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#92400e",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        $1.6M
+                      </div>
+                      <div
+                        style={{
+                          color: "#78350f",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Total Inventory Value
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#a16207" }}>
+                        Optimized Investment
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#dcfce7",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #16a34a",
+                      }}
+                    >
+                      <Target
+                        size={32}
+                        style={{
+                          color: "#15803d",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#15803d",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        6.5x
+                      </div>
+                      <div
+                        style={{
+                          color: "#166534",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Avg Inventory Turns
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#16a34a" }}>
+                        Target: 6.0x+
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#dbeafe",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #2563eb",
+                      }}
+                    >
+                      <CheckCircle
+                        size={32}
+                        style={{
+                          color: "#1d4ed8",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#1d4ed8",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        96.2%
+                      </div>
+                      <div
+                        style={{
+                          color: "#1e40af",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Avg Fill Rate
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#2563eb" }}>
+                        Service Level Achievement
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#f3e8ff",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #9333ea",
+                      }}
+                    >
+                      <Activity
+                        size={32}
+                        style={{
+                          color: "#7c3aed",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#7c3aed",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        65
+                      </div>
+                      <div
+                        style={{
+                          color: "#6b21a8",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Avg Days on Hand
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#8b5cf6" }}>
+                        Inventory Velocity
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Inventory Charts */}
+                  <div
+                    className="grid grid-cols-2"
+                    style={{ gap: "2rem", marginBottom: "2rem" }}
+                  >
+                    {/* ABC Analysis */}
+                    <div className="card">
+                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        ABC Analysis - Value Distribution
+                      </h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ComposedChart data={inventoryData.abcAnalysis}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="class" />
+                          <YAxis yAxisId="left" />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip />
+                          <Legend />
+                          <Bar
+                            yAxisId="left"
+                            dataKey="total_value"
+                            fill="#3b82f6"
+                            name="Total Value ($)"
+                          />
+                          <Bar
+                            yAxisId="left"
+                            dataKey="sku_count"
+                            fill="#8b5cf6"
+                            name="SKU Count"
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="avg_turns"
+                            stroke="#ef4444"
+                            strokeWidth={3}
+                            name="Avg Turns"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                      <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <span>A-Class SKUs:</span>
+                          <span style={{ fontWeight: "600", color: "#10b981" }}>
+                            2 SKUs, 72% of value
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Total Annual Value:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            $
+                            {inventoryData.abcAnalysis
+                              .reduce((sum, item) => sum + item.total_value, 0)
+                              .toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Inventory Turns vs Service Level */}
+                    <div className="card">
+                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Inventory Performance Matrix
+                      </h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ScatterChart data={inventoryData.skuMetrics}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="inventory_turns"
+                            name="Inventory Turns"
+                            type="number"
+                            domain={[0, 12]}
+                          />
+                          <YAxis
+                            dataKey="fill_rate"
+                            name="Fill Rate"
+                            type="number"
+                            domain={[85, 100]}
+                          />
+                          <Tooltip
+                            formatter={(value, name) => [
+                              name === "inventory_turns"
+                                ? `${value.toFixed(1)}x`
+                                : `${value.toFixed(1)}%`,
+                              name === "inventory_turns"
+                                ? "Inventory Turns"
+                                : "Fill Rate",
+                            ]}
+                            labelFormatter={(label) => `SKU: ${label}`}
+                          />
+                          <Scatter
+                            name="SKUs"
+                            dataKey="total_value"
+                            fill="#10b981"
+                          />
+                          <ReferenceLine
+                            x={6}
+                            stroke="#f59e0b"
+                            strokeDasharray="5 5"
+                            label="Target Turns"
+                          />
+                          <ReferenceLine
+                            y={95}
+                            stroke="#ef4444"
+                            strokeDasharray="5 5"
+                            label="Min Fill Rate"
+                          />
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div
+                    className="grid grid-cols-2"
+                    style={{ gap: "2rem", marginBottom: "2rem" }}
+                  >
+                    {/* Service Level by Category */}
+                    <div className="card">
+                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Service Level by Category
+                      </h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ComposedChart data={inventoryData.serviceLevelData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="category"
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                          />
+                          <YAxis yAxisId="left" domain={[85, 100]} />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip />
+                          <Legend />
+                          <Bar
+                            yAxisId="right"
+                            dataKey="safety_stock_investment"
+                            fill="#8b5cf6"
+                            name="Safety Stock Investment ($)"
+                          />
+                          <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="service_level"
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            name="Service Level %"
+                          />
+                          <ReferenceLine
+                            yAxisId="left"
+                            y={95}
+                            stroke="#ef4444"
+                            strokeDasharray="5 5"
+                            label="Target"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Carrying Cost Analysis */}
+                    <div className="card">
+                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        5-Year Carrying Cost Projection
+                      </h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={inventoryData.carryingCostAnalysis}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="year" />
+                          <YAxis />
+                          <Tooltip
+                            formatter={(value: any) => [`$${value}M`, ""]}
+                          />
+                          <Legend />
+                          <Area
+                            type="monotone"
+                            dataKey="inventory_value"
+                            stackId="1"
+                            stroke="#3b82f6"
+                            fill="#3b82f6"
+                            fillOpacity={0.6}
+                            name="Inventory Value"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="carrying_cost"
+                            stackId="2"
+                            stroke="#ef4444"
+                            fill="#ef4444"
+                            fillOpacity={0.6}
+                            name="Carrying Cost"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="turns"
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            name="Inventory Turns"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Detailed SKU Metrics Table */}
+                  <div className="card">
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      SKU Performance Analysis
+                    </h4>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", fontSize: "0.875rem" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "#f9fafb" }}>
+                            <th
+                              style={{
+                                padding: "0.75rem",
+                                textAlign: "left",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              SKU
+                            </th>
+                            <th
+                              style={{
+                                padding: "0.75rem",
+                                textAlign: "center",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              ABC Class
+                            </th>
+                            <th
+                              style={{
+                                padding: "0.75rem",
+                                textAlign: "right",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              Inventory Turns
+                            </th>
+                            <th
+                              style={{
+                                padding: "0.75rem",
+                                textAlign: "right",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              Days on Hand
+                            </th>
+                            <th
+                              style={{
+                                padding: "0.75rem",
+                                textAlign: "right",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              Fill Rate (%)
+                            </th>
+                            <th
+                              style={{
+                                padding: "0.75rem",
+                                textAlign: "right",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              Safety Stock
+                            </th>
+                            <th
+                              style={{
+                                padding: "0.75rem",
+                                textAlign: "right",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              Total Value
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inventoryData.skuMetrics.map((sku, index) => (
+                            <tr key={index}>
+                              <td
+                                style={{
+                                  padding: "0.75rem",
+                                  border: "1px solid #e5e7eb",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {sku.sku}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.75rem",
+                                  border: "1px solid #e5e7eb",
+                                  textAlign: "center",
+                                  backgroundColor:
+                                    sku.abc_class === "A"
+                                      ? "#dcfce7"
+                                      : sku.abc_class === "B"
+                                        ? "#fef3c7"
+                                        : "#fecaca",
+                                  color:
+                                    sku.abc_class === "A"
+                                      ? "#166534"
+                                      : sku.abc_class === "B"
+                                        ? "#92400e"
+                                        : "#991b1b",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {sku.abc_class}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.75rem",
+                                  border: "1px solid #e5e7eb",
+                                  textAlign: "right",
+                                  color:
+                                    sku.inventory_turns > 6
+                                      ? "#10b981"
+                                      : sku.inventory_turns > 4
+                                        ? "#f59e0b"
+                                        : "#ef4444",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {sku.inventory_turns.toFixed(1)}x
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.75rem",
+                                  border: "1px solid #e5e7eb",
+                                  textAlign: "right",
+                                }}
+                              >
+                                {sku.days_on_hand}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.75rem",
+                                  border: "1px solid #e5e7eb",
+                                  textAlign: "right",
+                                  color:
+                                    sku.fill_rate > 97
+                                      ? "#10b981"
+                                      : sku.fill_rate > 95
+                                        ? "#f59e0b"
+                                        : "#ef4444",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {sku.fill_rate.toFixed(1)}%
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.75rem",
+                                  border: "1px solid #e5e7eb",
+                                  textAlign: "right",
+                                }}
+                              >
+                                {sku.safety_stock}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.75rem",
+                                  border: "1px solid #e5e7eb",
+                                  textAlign: "right",
+                                }}
+                              >
+                                ${sku.total_value.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Inventory Optimization Recommendations */}
+                  <div className="card">
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Inventory Optimization Recommendations
+                    </h4>
+                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
+                      <div>
+                        <h5
+                          style={{ marginBottom: "0.75rem", color: "#374151" }}
+                        >
+                          Immediate Optimizations
+                        </h5>
+                        <div style={{ fontSize: "0.875rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <CheckCircle
+                              size={16}
+                              style={{ color: "#10b981" }}
+                            />
+                            <span>
+                              Reduce safety stock for SKU_005 (C-class, low
+                              turns)
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <CheckCircle
+                              size={16}
+                              style={{ color: "#10b981" }}
+                            />
+                            <span>Implement risk pooling for A-class SKUs</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <CheckCircle
+                              size={16}
+                              style={{ color: "#10b981" }}
+                            />
+                            <span>Review reorder points for high CV items</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h5
+                          style={{ marginBottom: "0.75rem", color: "#374151" }}
+                        >
+                          Strategic Initiatives
+                        </h5>
+                        <div style={{ fontSize: "0.875rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <AlertTriangle
+                              size={16}
+                              style={{ color: "#f59e0b" }}
+                            />
+                            <span>
+                              Consider supplier lead time negotiations
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <AlertTriangle
+                              size={16}
+                              style={{ color: "#f59e0b" }}
+                            />
+                            <span>Evaluate postponement opportunities</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <AlertTriangle
+                              size={16}
+                              style={{ color: "#f59e0b" }}
+                            />
+                            <span>Implement multi-echelon optimization</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* KPI Dashboard */}
               <div className="card" style={{ marginTop: "2rem" }}>
                 <h3 style={{ marginBottom: "1.5rem", color: "#111827" }}>
