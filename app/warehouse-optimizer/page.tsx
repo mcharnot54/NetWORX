@@ -468,7 +468,16 @@ export default function WarehouseOptimizer() {
         },
       };
 
+      // Fetch market data for optimization locations if available
+      if (result.yearly_results && result.yearly_results.length > 0) {
+        const locations = ["Chicago, IL", "Dallas, TX", "Los Angeles, CA"]; // Mock locations - can be enhanced
+        addToLog("Fetching market data for optimization locations...");
+        await fetchMarketData(locations);
+      }
+
       setResults(result);
+      // Store results in context for integration with other components
+      setWarehouseResults(result);
       addToLog(`✓ Optimization completed successfully`);
       addToLog(
         `Status: ${result.status}, Objective Value: $${result.objective_value.toLocaleString()}`,
