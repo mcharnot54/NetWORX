@@ -670,6 +670,14 @@ export default function DataProcessor() {
         { year: "invalid", annual_units: 140000 }, // Invalid year for testing
         { year: 2028, annual_units: -5000 }, // Negative units for testing
       ];
+    } else if (dataType === "sales_volume") {
+      return [
+        { year: 2024, sales_volume: 1250000, region: "Northeast" },
+        { year: 2025, sales_volume: 1300000, region: "Northeast" },
+        { year: 2024, sales_volume: 980000, region: "Midwest" },
+        { year: 2025, sales_volume: 1020000, region: "Midwest" },
+        { year: "invalid", sales_volume: 850000, region: "South" }, // Invalid year
+      ];
     } else if (dataType === "sku") {
       return [
         {
@@ -702,6 +710,61 @@ export default function DataProcessor() {
           cases_per_pallet: 40,
           annual_volume: 45000,
         }, // Zero units per case
+      ];
+    } else if (dataType === "facility") {
+      return [
+        {
+          facility_id: "DC001",
+          facility_name: "Chicago Distribution Center",
+          capacity: 500000,
+          fixed_cost: 1200000,
+          variable_cost: 2.5,
+        },
+        {
+          facility_id: "DC002",
+          facility_name: "Atlanta Warehouse",
+          capacity: 350000,
+          fixed_cost: 950000,
+          variable_cost: 2.8,
+        },
+        {
+          facility_id: "DC003",
+          facility_name: "Los Angeles Hub",
+          capacity: 0, // Invalid capacity
+          fixed_cost: 1500000,
+          variable_cost: 3.2,
+        },
+      ];
+    } else if (dataType === "transport_cost") {
+      return [
+        {
+          origin: "Chicago",
+          destination: "New York",
+          rate: 2.5,
+          distance: 790,
+          mode: "Truck",
+        },
+        {
+          origin: "Atlanta",
+          destination: "Miami",
+          rate: 1.85,
+          distance: 660,
+          mode: "Truck",
+        },
+        {
+          origin: "Los Angeles",
+          destination: "Phoenix",
+          rate: 0, // Invalid rate
+          distance: 370,
+          mode: "Truck",
+        },
+        {
+          origin: "", // Missing origin
+          destination: "Dallas",
+          rate: 2.15,
+          distance: 450,
+          mode: "Rail",
+        },
       ];
     } else {
       // network
@@ -1252,7 +1315,10 @@ export default function DataProcessor() {
   const getDataTypeColor = (type: string) => {
     const colors: any = {
       forecast: "#3b82f6",
+      sales_volume: "#06b6d4",
       sku: "#10b981",
+      facility: "#8b5cf6",
+      transport_cost: "#ef4444",
       network: "#f59e0b",
       cost: "#ef4444",
       capacity: "#8b5cf6",
