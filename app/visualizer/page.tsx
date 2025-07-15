@@ -60,6 +60,7 @@ import {
   Navigation as NavigationIcon,
   Crosshair,
   Layers as LayersIcon,
+  Package,
 } from "lucide-react";
 
 // Comprehensive Result Data Structures
