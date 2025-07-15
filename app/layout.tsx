@@ -14,14 +14,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
         <div className="main-container">
           <header className="banner">
-            <h1 className="banner-title">NetWORX Essentials</h1>
-            <p className="banner-subtitle">
-              Network Strategy Optimizer - Warehouse Space Optimization &
-              Freight Cost Minimization
-            </p>
+            <div className="banner-content">
+              <div className="banner-left">
+                <h1 className="banner-title">NetWORX Essentials</h1>
+                <p className="banner-subtitle">
+                  Network Strategy Optimizer - Warehouse Space Optimization &
+                  Freight Cost Minimization
+                </p>
+              </div>
+              <div className="banner-right">
+                <span className="powered-by">powered by CONTINUUM</span>
+              </div>
+            </div>
           </header>
           {children}
         </div>
