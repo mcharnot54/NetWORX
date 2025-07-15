@@ -5986,6 +5986,16 @@ export default function Visualizer() {
                           >
                             Location
                           </th>
+                                                    <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Straight Labor Rate
+                          </th>
                           <th
                             style={{
                               padding: "0.75rem",
@@ -5994,7 +6004,7 @@ export default function Visualizer() {
                               fontWeight: "600",
                             }}
                           >
-                            Labor Cost/Hour
+                            Fully Burdened Rate
                           </th>
                           <th
                             style={{
