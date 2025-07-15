@@ -214,8 +214,12 @@ a {
     font-size: 0.85rem;
   }
 
-  .powered-by {
+  .powered-by-text {
     font-size: 0.9rem;
+  }
+
+  .continuum-text {
+    font-size: 1.35rem;
   }
 }
 
