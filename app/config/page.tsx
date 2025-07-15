@@ -164,7 +164,7 @@ export default function Configuration() {
 
   const handleSave = async () => {
     setSaving(true);
-    // Simulate API call
+    // Simulate API call to save configuration
     setTimeout(() => {
       setSaving(false);
       setSaved(true);
@@ -176,6 +176,7 @@ export default function Configuration() {
     if (
       confirm("Are you sure you want to reset all settings to default values?")
     ) {
+      // Reset all configurations to default values from Python ConfigManager
       setWarehouseConfig({
         DOH: 250,
         operating_days: 240,
@@ -205,7 +206,6 @@ export default function Configuration() {
         labor_cost_per_hour: 18.0,
         equipment_cost_per_sqft: 15.0,
       });
-      // Reset other configs similarly...
     }
   };
 
@@ -225,8 +225,8 @@ export default function Configuration() {
             <div>
               <h2 className="card-title">Configuration Management</h2>
               <p style={{ color: "#6b7280", margin: 0 }}>
-                Manage system settings, validation schemas, and output
-                templates.
+                Manage warehouse, transportation, and optimization parameters
+                based on Python ConfigManager.
               </p>
             </div>
             <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -244,7 +244,7 @@ export default function Configuration() {
               >
                 {saving && <div className="loading-spinner"></div>}
                 {saved ? <CheckCircle size={16} /> : <Save size={16} />}
-                {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
+                {saving ? "Saving..." : saved ? "Saved!" : "Save Configuration"}
               </button>
             </div>
           </div>
@@ -284,380 +284,923 @@ export default function Configuration() {
             </div>
           </div>
 
-          {activeTab === "system" && (
-            <div className="grid grid-cols-2">
-              <div>
-                <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  General Settings
-                </h3>
-
-                <div className="form-group">
-                  <label className="form-label">Maximum File Size (MB)</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={systemConfig.maxFileSize}
-                    onChange={(e) =>
-                      setSystemConfig({
-                        ...systemConfig,
-                        maxFileSize: parseInt(e.target.value),
-                      })
-                    }
-                  />
+          {activeTab === "warehouse" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Warehouse Configuration Parameters
+              </h3>
+              <div className="grid grid-cols-3">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Basic Parameters
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Days of Holding (DOH)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={warehouseConfig.DOH}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          DOH: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Operating Days</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={warehouseConfig.operating_days}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          operating_days: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Max Utilization</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={warehouseConfig.max_utilization}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          max_utilization: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Aisle Factor</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={warehouseConfig.aisle_factor}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          aisle_factor: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Default Currency</label>
-                  <select
-                    className="form-input"
-                    value={systemConfig.defaultCurrency}
-                    onChange={(e) =>
-                      setSystemConfig({
-                        ...systemConfig,
-                        defaultCurrency: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="USD">US Dollar (USD)</option>
-                    <option value="EUR">Euro (EUR)</option>
-                    <option value="GBP">British Pound (GBP)</option>
-                    <option value="CAD">Canadian Dollar (CAD)</option>
-                  </select>
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Physical Dimensions (inches)
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Pallet Length</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={warehouseConfig.pallet_length_inches}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          pallet_length_inches: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Pallet Width</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={warehouseConfig.pallet_width_inches}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          pallet_width_inches: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Rack Height</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={warehouseConfig.rack_height_inches}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          rack_height_inches: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Ceiling Height</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={warehouseConfig.ceiling_height_inches}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          ceiling_height_inches: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Distance Unit</label>
-                  <select
-                    className="form-input"
-                    value={systemConfig.distanceUnit}
-                    onChange={(e) =>
-                      setSystemConfig({
-                        ...systemConfig,
-                        distanceUnit: e.target.value as any,
-                      })
-                    }
-                  >
-                    <option value="km">Kilometers</option>
-                    <option value="miles">Miles</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Weight Unit</label>
-                  <select
-                    className="form-input"
-                    value={systemConfig.weightUnit}
-                    onChange={(e) =>
-                      setSystemConfig({
-                        ...systemConfig,
-                        weightUnit: e.target.value as any,
-                      })
-                    }
-                  >
-                    <option value="kg">Kilograms</option>
-                    <option value="lbs">Pounds</option>
-                  </select>
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Cost Parameters
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Cost per Sq Ft (Annual) $
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={warehouseConfig.cost_per_sqft_annual}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          cost_per_sqft_annual: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Labor Cost per Hour $</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={warehouseConfig.labor_cost_per_hour}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          labor_cost_per_hour: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Equipment Cost per Sq Ft $
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={warehouseConfig.equipment_cost_per_sqft}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          equipment_cost_per_sqft: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Facility Lease Years</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={warehouseConfig.facility_lease_years}
+                      onChange={(e) =>
+                        setWarehouseConfig({
+                          ...warehouseConfig,
+                          facility_lease_years: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  System Preferences
-                </h3>
+              <div className="grid grid-cols-2" style={{ marginTop: "1rem" }}>
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Area Requirements (sq ft)
+                  </h4>
+                  <div className="grid grid-cols-2" style={{ gap: "0.75rem" }}>
+                    <div className="form-group">
+                      <label className="form-label">Min Office</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.min_office}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            min_office: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Min Battery</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.min_battery}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            min_battery: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Min Packing</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.min_packing}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            min_packing: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Min Conveyor</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.min_conveyor}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            min_conveyor: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Each Pick Area Fixed</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.each_pick_area_fixed}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            each_pick_area_fixed: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Case Pick Area Fixed</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.case_pick_area_fixed}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            case_pick_area_fixed: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
 
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Dock & Facility Configuration
+                  </h4>
+                  <div className="grid grid-cols-2" style={{ gap: "0.75rem" }}>
+                    <div className="form-group">
+                      <label className="form-label">Max Outbound Doors</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.max_outbound_doors}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            max_outbound_doors: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Max Inbound Doors</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.max_inbound_doors}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            max_inbound_doors: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Number of Facilities</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.num_facilities}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            num_facilities: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Initial Facility Area
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.initial_facility_area}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            initial_facility_area: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Facility Design Area</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={warehouseConfig.facility_design_area}
+                        onChange={(e) =>
+                          setWarehouseConfig({
+                            ...warehouseConfig,
+                            facility_design_area: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "transportation" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Transportation Configuration Parameters
+              </h3>
+              <div className="grid grid-cols-2">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Facility Parameters
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Required Facilities</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={transportationConfig.required_facilities}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          required_facilities: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Max Facilities</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={transportationConfig.max_facilities}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          max_facilities: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Service Level Requirement
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={transportationConfig.service_level_requirement}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          service_level_requirement: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Max Capacity per Facility
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={transportationConfig.max_capacity_per_facility}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          max_capacity_per_facility: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Cost Parameters
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Cost per Mile ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={transportationConfig.cost_per_mile}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          cost_per_mile: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Fixed Cost per Facility ($)
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={transportationConfig.fixed_cost_per_facility}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          fixed_cost_per_facility: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Variable Cost per Unit ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={transportationConfig.variable_cost_per_unit}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          variable_cost_per_unit: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Max Distance (miles)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={transportationConfig.max_distance_miles}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          max_distance_miles: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Third Party Options
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Third Party Cost per Sq Ft ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={transportationConfig.thirdparty_cost_per_sqft}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          thirdparty_cost_per_sqft: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Third Party Handling Cost ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={transportationConfig.thirdparty_handling_cost}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          thirdparty_handling_cost: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Third Party Service Level
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={transportationConfig.thirdparty_service_level}
+                      onChange={(e) =>
+                        setTransportationConfig({
+                          ...transportationConfig,
+                          thirdparty_service_level: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "optimization" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Optimization Configuration
+              </h3>
+              <div className="grid grid-cols-2">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Solver Parameters
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Solver</label>
+                    <select
+                      className="form-input"
+                      value={optimizationConfig.solver}
+                      onChange={(e) =>
+                        setOptimizationConfig({
+                          ...optimizationConfig,
+                          solver: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="PULP_CBC_CMD">PULP CBC CMD</option>
+                      <option value="GUROBI_CMD">Gurobi</option>
+                      <option value="CPLEX_CMD">CPLEX</option>
+                      <option value="SCIP_CMD">SCIP</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Time Limit (seconds)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={optimizationConfig.time_limit_seconds}
+                      onChange={(e) =>
+                        setOptimizationConfig({
+                          ...optimizationConfig,
+                          time_limit_seconds: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Gap Tolerance</label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      className="form-input"
+                      value={optimizationConfig.gap_tolerance}
+                      onChange={(e) =>
+                        setOptimizationConfig({
+                          ...optimizationConfig,
+                          gap_tolerance: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Threads</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={optimizationConfig.threads}
+                      onChange={(e) =>
+                        setOptimizationConfig({
+                          ...optimizationConfig,
+                          threads: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Objective Weights
+                  </h4>
+                  <p
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "#6b7280",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    Weights should sum to 1.0 for balanced optimization
+                  </p>
+                  <div className="form-group">
+                    <label className="form-label">Cost Weight</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={optimizationConfig.weights.cost}
+                      onChange={(e) =>
+                        setOptimizationConfig({
+                          ...optimizationConfig,
+                          weights: {
+                            ...optimizationConfig.weights,
+                            cost: parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Service Level Weight</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={optimizationConfig.weights.service_level}
+                      onChange={(e) =>
+                        setOptimizationConfig({
+                          ...optimizationConfig,
+                          weights: {
+                            ...optimizationConfig.weights,
+                            service_level: parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Utilization Weight</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={optimizationConfig.weights.utilization}
+                      onChange={(e) =>
+                        setOptimizationConfig({
+                          ...optimizationConfig,
+                          weights: {
+                            ...optimizationConfig.weights,
+                            utilization: parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div
+                    style={{
+                      padding: "0.75rem",
+                      backgroundColor: "#f9fafb",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                    }}
+                  >
+                    Total Weight:{" "}
+                    {(
+                      optimizationConfig.weights.cost +
+                      optimizationConfig.weights.service_level +
+                      optimizationConfig.weights.utilization
+                    ).toFixed(1)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "output" && (
+            <div className="grid grid-cols-2">
+              <div className="card">
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Output Configuration
+                </h4>
                 <div className="form-group">
                   <label className="form-label">
                     <input
                       type="checkbox"
-                      checked={systemConfig.autoSave}
+                      checked={outputConfig.generate_charts}
                       onChange={(e) =>
-                        setSystemConfig({
-                          ...systemConfig,
-                          autoSave: e.target.checked,
+                        setOutputConfig({
+                          ...outputConfig,
+                          generate_charts: e.target.checked,
                         })
                       }
                       style={{ marginRight: "0.5rem" }}
                     />
-                    Enable Auto-Save
+                    Generate Charts
                   </label>
                 </div>
-
                 <div className="form-group">
                   <label className="form-label">
                     <input
                       type="checkbox"
-                      checked={systemConfig.enableLogging}
+                      checked={outputConfig.include_executive_summary}
                       onChange={(e) =>
-                        setSystemConfig({
-                          ...systemConfig,
-                          enableLogging: e.target.checked,
+                        setOutputConfig({
+                          ...outputConfig,
+                          include_executive_summary: e.target.checked,
                         })
                       }
                       style={{ marginRight: "0.5rem" }}
                     />
-                    Enable System Logging
+                    Include Executive Summary
                   </label>
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Chart Formats</label>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.25rem" }}
+                      />
+                      PNG
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.25rem" }}
+                      />
+                      SVG
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        style={{ marginRight: "0.25rem" }}
+                      />
+                      PDF
+                    </label>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Report Formats</label>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.25rem" }}
+                      />
+                      CSV
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.25rem" }}
+                      />
+                      JSON
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        style={{ marginRight: "0.25rem" }}
+                      />
+                      Excel
+                    </label>
+                  </div>
+                </div>
+              </div>
 
+              <div className="card">
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Logging Configuration
+                </h4>
                 <div className="form-group">
                   <label className="form-label">Log Level</label>
                   <select
                     className="form-input"
-                    value={systemConfig.logLevel}
+                    value={loggingConfig.level}
                     onChange={(e) =>
-                      setSystemConfig({
-                        ...systemConfig,
-                        logLevel: e.target.value as any,
+                      setLoggingConfig({
+                        ...loggingConfig,
+                        level: e.target.value,
                       })
                     }
-                    disabled={!systemConfig.enableLogging}
                   >
-                    <option value="debug">Debug</option>
-                    <option value="info">Info</option>
-                    <option value="warning">Warning</option>
-                    <option value="error">Error</option>
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
                   </select>
                 </div>
-
-                <div
-                  className="card"
-                  style={{ backgroundColor: "#f9fafb", marginTop: "1rem" }}
-                >
-                  <h4 style={{ marginBottom: "0.75rem", color: "#111827" }}>
-                    Performance Settings
-                  </h4>
-                  <div className="form-group">
-                    <label className="form-label">
-                      <input
-                        type="checkbox"
-                        style={{ marginRight: "0.5rem" }}
-                      />
-                      Enable Parallel Processing
-                    </label>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">
-                      <input
-                        type="checkbox"
-                        style={{ marginRight: "0.5rem" }}
-                      />
-                      Cache Optimization Results
-                    </label>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">
+                    <input
+                      type="checkbox"
+                      checked={loggingConfig.file_handler}
+                      onChange={(e) =>
+                        setLoggingConfig({
+                          ...loggingConfig,
+                          file_handler: e.target.checked,
+                        })
+                      }
+                      style={{ marginRight: "0.5rem" }}
+                    />
+                    Enable File Logging
+                  </label>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "validation" && (
-            <div>
-              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                Data Validation Rules
-              </h3>
-
-              <div className="grid grid-cols-2">
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Warehouse Validation
-                  </h4>
-                  <div className="form-group">
-                    <label className="form-label">Minimum Capacity</label>
+                <div className="form-group">
+                  <label className="form-label">
                     <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.warehouseCapacity.min}
+                      type="checkbox"
+                      checked={loggingConfig.console_handler}
                       onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          warehouseCapacity: {
-                            ...validationSchema.warehouseCapacity,
-                            min: parseInt(e.target.value),
-                          },
+                        setLoggingConfig({
+                          ...loggingConfig,
+                          console_handler: e.target.checked,
                         })
                       }
+                      style={{ marginRight: "0.5rem" }}
                     />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Maximum Capacity</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.warehouseCapacity.max}
-                      onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          warehouseCapacity: {
-                            ...validationSchema.warehouseCapacity,
-                            max: parseInt(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
+                    Enable Console Logging
+                  </label>
                 </div>
-
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Transport Validation
-                  </h4>
-                  <div className="form-group">
-                    <label className="form-label">Minimum Distance</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.transportDistance.min}
-                      onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          transportDistance: {
-                            ...validationSchema.transportDistance,
-                            min: parseInt(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Maximum Distance</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.transportDistance.max}
-                      onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          transportDistance: {
-                            ...validationSchema.transportDistance,
-                            max: parseInt(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Max File Size (MB)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={loggingConfig.max_file_size_mb}
+                    onChange={(e) =>
+                      setLoggingConfig({
+                        ...loggingConfig,
+                        max_file_size_mb: parseInt(e.target.value),
+                      })
+                    }
+                  />
                 </div>
-
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Cost Thresholds
-                  </h4>
-                  <div className="form-group">
-                    <label className="form-label">Warning Threshold ($)</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.costThresholds.warning}
-                      onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          costThresholds: {
-                            ...validationSchema.costThresholds,
-                            warning: parseInt(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Error Threshold ($)</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.costThresholds.error}
-                      onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          costThresholds: {
-                            ...validationSchema.costThresholds,
-                            error: parseInt(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Utilization Limits
-                  </h4>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Minimum Utilization (%)
-                    </label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.utilizationLimits.min}
-                      onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          utilizationLimits: {
-                            ...validationSchema.utilizationLimits,
-                            min: parseInt(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Maximum Utilization (%)
-                    </label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={validationSchema.utilizationLimits.max}
-                      onChange={(e) =>
-                        setValidationSchema({
-                          ...validationSchema,
-                          utilizationLimits: {
-                            ...validationSchema.utilizationLimits,
-                            max: parseInt(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "templates" && (
-            <div>
-              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                Output Templates
-              </h3>
-              <div className="grid grid-cols-1">
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Report Template Configuration
-                  </h4>
-                  <div className="form-group">
-                    <label className="form-label">Report Title Template</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="NetWORX Optimization Report - {date}"
-                      defaultValue="NetWORX Optimization Report - {date}"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Header Information</label>
-                    <textarea
-                      className="form-input form-textarea"
-                      placeholder="Include company info, analysis period, etc."
-                      defaultValue="Generated by NetWORX Essentials&#10;Analysis Period: {start_date} to {end_date}&#10;Report Generated: {current_date}"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Footer Information</label>
-                    <textarea
-                      className="form-input form-textarea"
-                      placeholder="Disclaimer, contact info, etc."
-                      defaultValue="This report is generated automatically and contains confidential information.&#10;For questions, contact: support@networx-essentials.com"
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Backup Count</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={loggingConfig.backup_count}
+                    onChange={(e) =>
+                      setLoggingConfig({
+                        ...loggingConfig,
+                        backup_count: parseInt(e.target.value),
+                      })
+                    }
+                  />
                 </div>
               </div>
             </div>
@@ -674,12 +1217,12 @@ export default function Configuration() {
                     Export Configuration
                   </h4>
                   <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-                    Export current settings to a JSON file for backup or
-                    sharing.
+                    Export current configuration as YAML file (matching Python
+                    ConfigManager format).
                   </p>
                   <button className="button button-primary">
                     <Download size={16} />
-                    Export Settings
+                    Export as YAML
                   </button>
                 </div>
 
@@ -688,7 +1231,8 @@ export default function Configuration() {
                     Import Configuration
                   </h4>
                   <p style={{ marginBottom: "1rem", color: "#6b7280" }}>
-                    Import settings from a previously exported JSON file.
+                    Import configuration from YAML file generated by Python
+                    ConfigManager.
                   </p>
                   <div className="file-upload" style={{ marginBottom: "1rem" }}>
                     <Upload
@@ -696,11 +1240,11 @@ export default function Configuration() {
                       style={{ color: "#6b7280", margin: "0 auto 0.5rem" }}
                     />
                     <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                      Click to upload configuration file
+                      Click to upload config.yaml
                     </p>
                     <input
                       type="file"
-                      accept=".json"
+                      accept=".yaml,.yml"
                       style={{
                         opacity: 0,
                         position: "absolute",
