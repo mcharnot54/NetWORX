@@ -22,24 +22,26 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <div className="main-container">
-          <header className="banner">
-            <div className="banner-content">
-              <div className="banner-left">
-                <h1 className="banner-title">NetWORX Essentials</h1>
-                <p className="banner-subtitle">
-                  Network Strategy Optimizer - Warehouse Space Optimization &
-                  Freight Cost Minimization
-                </p>
+        <DataProvider>
+          <div className="main-container">
+            <header className="banner">
+              <div className="banner-content">
+                <div className="banner-left">
+                  <h1 className="banner-title">NetWORX Essentials</h1>
+                  <p className="banner-subtitle">
+                    Network Strategy Optimizer - Warehouse Space Optimization &
+                    Freight Cost Minimization
+                  </p>
+                </div>
+                <div className="banner-right">
+                  <span className="powered-by-text">powered by </span>
+                  <span className="continuum-text">&nbsp;CONTINUUM</span>
+                </div>
               </div>
-              <div className="banner-right">
-                <span className="powered-by-text">powered by </span>
-                <span className="continuum-text">&nbsp;CONTINUUM</span>
-              </div>
-            </div>
-          </header>
-          {children}
-        </div>
+            </header>
+            {children}
+          </div>
+        </DataProvider>
       </body>
     </html>
   );
