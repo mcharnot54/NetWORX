@@ -128,17 +128,143 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // API function to fetch market data for proposed locations
   const fetchMarketData = async (locations: string[]) => {
     try {
-      // Mock API call - replace with actual API endpoint
-      const mockMarketData: MarketData[] = locations.map((location) => ({
-        location,
-        state: location.split(", ")[1] || "",
-        laborCostPerHour: 15 + Math.random() * 10, // $15-25/hour
-        leaseRatePerSqFt: 8 + Math.random() * 7, // $8-15/sqft
-        threePLCostPerUnit: 2 + Math.random() * 3, // $2-5/unit
-        lastUpdated: new Date().toISOString(),
-      }));
+      // Enhanced mock API with realistic location-based data
+      // In production, this would call actual APIs like BLS, real estate APIs, etc.
+
+      const marketDataBase: { [key: string]: Partial<MarketData> } = {
+        // Major metropolitan areas with realistic cost data
+        "Chicago, IL": {
+          laborCostPerHour: 18.5,
+          leaseRatePerSqFt: 12.25,
+          threePLCostPerUnit: 3.8,
+        },
+        "Dallas, TX": {
+          laborCostPerHour: 16.75,
+          leaseRatePerSqFt: 8.9,
+          threePLCostPerUnit: 3.2,
+        },
+        "Los Angeles, CA": {
+          laborCostPerHour: 22.3,
+          leaseRatePerSqFt: 18.5,
+          threePLCostPerUnit: 4.6,
+        },
+        "Atlanta, GA": {
+          laborCostPerHour: 17.2,
+          leaseRatePerSqFt: 9.8,
+          threePLCostPerUnit: 3.4,
+        },
+        "Phoenix, AZ": {
+          laborCostPerHour: 17.8,
+          leaseRatePerSqFt: 10.2,
+          threePLCostPerUnit: 3.5,
+        },
+        "Memphis, TN": {
+          laborCostPerHour: 15.9,
+          leaseRatePerSqFt: 7.6,
+          threePLCostPerUnit: 2.9,
+        },
+        "Indianapolis, IN": {
+          laborCostPerHour: 16.4,
+          leaseRatePerSqFt: 8.2,
+          threePLCostPerUnit: 3.1,
+        },
+        "Columbus, OH": {
+          laborCostPerHour: 17.1,
+          leaseRatePerSqFt: 9.4,
+          threePLCostPerUnit: 3.25,
+        },
+        "Kansas City, MO": {
+          laborCostPerHour: 16.6,
+          leaseRatePerSqFt: 8.7,
+          threePLCostPerUnit: 3.0,
+        },
+        "Nashville, TN": {
+          laborCostPerHour: 17.0,
+          leaseRatePerSqFt: 9.2,
+          threePLCostPerUnit: 3.15,
+        },
+        "Denver, CO": {
+          laborCostPerHour: 19.2,
+          leaseRatePerSqFt: 11.8,
+          threePLCostPerUnit: 3.7,
+        },
+        "Seattle, WA": {
+          laborCostPerHour: 21.5,
+          leaseRatePerSqFt: 16.4,
+          threePLCostPerUnit: 4.3,
+        },
+        "New York, NY": {
+          laborCostPerHour: 24.8,
+          leaseRatePerSqFt: 22.5,
+          threePLCostPerUnit: 5.2,
+        },
+        "Miami, FL": {
+          laborCostPerHour: 18.9,
+          leaseRatePerSqFt: 13.7,
+          threePLCostPerUnit: 4.1,
+        },
+        "Houston, TX": {
+          laborCostPerHour: 17.6,
+          leaseRatePerSqFt: 9.5,
+          threePLCostPerUnit: 3.3,
+        },
+      };
+
+      // Simulate API delay
+      await new Promise((resolve) =>
+        setTimeout(resolve, 500 + Math.random() * 1000),
+      );
+
+      const mockMarketData: MarketData[] = locations.map((location) => {
+        const baseData = marketDataBase[location];
+        const state = location.split(", ")[1] || "";
+
+        // If location not in our database, generate realistic regional data
+        let laborCost = baseData?.laborCostPerHour || 15 + Math.random() * 8;
+        let leaseRate = baseData?.leaseRatePerSqFt || 8 + Math.random() * 6;
+        let threePLCost =
+          baseData?.threePLCostPerUnit || 2.5 + Math.random() * 2.5;
+
+        // Apply regional adjustments if no specific data
+        if (!baseData) {
+          // West Coast premium
+          if (["CA", "WA", "OR"].includes(state)) {
+            laborCost *= 1.25;
+            leaseRate *= 1.4;
+            threePLCost *= 1.2;
+          }
+          // Northeast premium
+          else if (["NY", "NJ", "CT", "MA"].includes(state)) {
+            laborCost *= 1.3;
+            leaseRate *= 1.5;
+            threePLCost *= 1.25;
+          }
+          // Southeast discount
+          else if (["AL", "MS", "SC", "AR", "KY"].includes(state)) {
+            laborCost *= 0.85;
+            leaseRate *= 0.75;
+            threePLCost *= 0.85;
+          }
+          // Midwest moderate
+          else if (["OH", "IN", "MI", "WI", "IA"].includes(state)) {
+            laborCost *= 0.95;
+            leaseRate *= 0.9;
+            threePLCost *= 0.9;
+          }
+        }
+
+        return {
+          location,
+          state,
+          laborCostPerHour: Math.round(laborCost * 100) / 100,
+          leaseRatePerSqFt: Math.round(leaseRate * 100) / 100,
+          threePLCostPerUnit: Math.round(threePLCost * 100) / 100,
+          lastUpdated: new Date().toISOString(),
+        };
+      });
 
       setMarketData(mockMarketData);
+      console.log("Market data fetched for locations:", locations);
     } catch (error) {
       console.error("Failed to fetch market data:", error);
     }
