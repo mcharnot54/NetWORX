@@ -765,61 +765,104 @@ export function DataProvider({ children }: { children: ReactNode }) {
         },
       };
 
-      // Simulate API delay
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500 + Math.random() * 1000),
+      // Fetch data from Perplexity API for each location in parallel
+      const perplexityPromises = locations.map((location) =>
+        fetchMarketDataFromPerplexity(location).catch((error) => {
+          console.warn(`Perplexity API failed for ${location}:`, error);
+          return {};
+        }),
       );
 
-      const mockMarketData: MarketData[] = locations.map((location) => {
-        const baseData = marketDataBase[location];
+      // Wait for all API calls to complete (with timeout)
+      const perplexityResults = await Promise.allSettled(
+        perplexityPromises.map((promise) =>
+          Promise.race([
+            promise,
+            new Promise(
+              (_, reject) =>
+                setTimeout(() => reject(new Error("Timeout")), 10000), // 10 second timeout
+            ),
+          ]),
+        ),
+      );
+
+      const marketData: MarketData[] = locations.map((location, index) => {
         const state = location.split(", ")[1] || "";
+        const baseData = marketDataBase[location];
 
-        // If location not in our database, generate realistic regional data
-        let laborCost = baseData?.laborCostPerHour || 15 + Math.random() * 8;
-        let leaseRate = baseData?.leaseRatePerSqFt || 8 + Math.random() * 6;
+        // Get Perplexity data if available
+        const perplexityResult = perplexityResults[index];
+        const perplexityData =
+          perplexityResult.status === "fulfilled" ? perplexityResult.value : {};
+
+        // Determine final values (Perplexity API first, then fallback, then regional estimates)
+        let straightLaborRate =
+          perplexityData.straightLaborRate || baseData?.straightLaborRate;
+        let fullyBurdendedLaborRate =
+          perplexityData.fullyBurdendedLaborRate ||
+          baseData?.fullyBurdendedLaborRate;
+        let leaseRate =
+          perplexityData.leaseRatePerSqFt || baseData?.leaseRatePerSqFt;
         let threePLCost =
-          baseData?.threePLCostPerUnit || 2.5 + Math.random() * 2.5;
+          perplexityData.threePLCostPerUnit || baseData?.threePLCostPerUnit;
 
-        // Apply regional adjustments if no specific data
-        if (!baseData) {
-          // West Coast premium
+        // If no data available, generate realistic regional estimates
+        if (
+          !straightLaborRate ||
+          !fullyBurdendedLaborRate ||
+          !leaseRate ||
+          !threePLCost
+        ) {
+          const baseStraightRate = 15;
+          const baseLeaseRate = 8;
+          const baseThreePLCost = 2.5;
+
+          // Apply regional adjustments
+          let regionalMultiplier = 1.0;
           if (["CA", "WA", "OR"].includes(state)) {
-            laborCost *= 1.25;
-            leaseRate *= 1.4;
-            threePLCost *= 1.2;
+            regionalMultiplier = 1.25; // West Coast premium
+          } else if (["NY", "NJ", "CT", "MA"].includes(state)) {
+            regionalMultiplier = 1.3; // Northeast premium
+          } else if (["AL", "MS", "SC", "AR", "KY"].includes(state)) {
+            regionalMultiplier = 0.85; // Southeast discount
+          } else if (["OH", "IN", "MI", "WI", "IA"].includes(state)) {
+            regionalMultiplier = 0.95; // Midwest moderate
           }
-          // Northeast premium
-          else if (["NY", "NJ", "CT", "MA"].includes(state)) {
-            laborCost *= 1.3;
-            leaseRate *= 1.5;
-            threePLCost *= 1.25;
-          }
-          // Southeast discount
-          else if (["AL", "MS", "SC", "AR", "KY"].includes(state)) {
-            laborCost *= 0.85;
-            leaseRate *= 0.75;
-            threePLCost *= 0.85;
-          }
-          // Midwest moderate
-          else if (["OH", "IN", "MI", "WI", "IA"].includes(state)) {
-            laborCost *= 0.95;
-            leaseRate *= 0.9;
-            threePLCost *= 0.9;
-          }
+
+          straightLaborRate =
+            straightLaborRate ||
+            Math.round(baseStraightRate * regionalMultiplier * 100) / 100;
+          fullyBurdendedLaborRate =
+            fullyBurdendedLaborRate ||
+            Math.round(straightLaborRate * 1.4 * 100) / 100;
+          leaseRate =
+            leaseRate ||
+            Math.round(baseLeaseRate * regionalMultiplier * 1.2 * 100) / 100;
+          threePLCost =
+            threePLCost ||
+            Math.round(baseThreePLCost * regionalMultiplier * 100) / 100;
         }
 
         return {
           location,
           state,
-          laborCostPerHour: Math.round(laborCost * 100) / 100,
-          leaseRatePerSqFt: Math.round(leaseRate * 100) / 100,
-          threePLCostPerUnit: Math.round(threePLCost * 100) / 100,
+          straightLaborRate: straightLaborRate!,
+          fullyBurdendedLaborRate: fullyBurdendedLaborRate!,
+          leaseRatePerSqFt: leaseRate!,
+          threePLCostPerUnit: threePLCost!,
+          laborCostPerHour: fullyBurdendedLaborRate!, // For backward compatibility
           lastUpdated: new Date().toISOString(),
         };
       });
 
-      setMarketData(mockMarketData);
-      console.log("Market data fetched for locations:", locations);
+      setMarketData(marketData);
+
+      const perplexitySuccessCount = perplexityResults.filter(
+        (r) => r.status === "fulfilled",
+      ).length;
+      console.log(
+        `Market data fetched for ${locations.length} locations. Perplexity API: ${perplexitySuccessCount}/${locations.length} successful.`,
+      );
     } catch (error) {
       console.error("Failed to fetch market data:", error);
     }
