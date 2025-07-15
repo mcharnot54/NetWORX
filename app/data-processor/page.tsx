@@ -3179,6 +3179,403 @@ export default function DataProcessor() {
               )}
             </div>
           )}
+
+          {activeTab === "baseline" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Digital Twin Baseline Data
+              </h3>
+              <p style={{ marginBottom: "1.5rem", color: "#6b7280" }}>
+                Compiled data from multiple sources for network optimization
+                digital twin validation
+              </p>
+
+              {actualFileData.length > 0 ? (
+                <div>
+                  {/* Baseline Summary */}
+                  <div
+                    className="grid grid-cols-4"
+                    style={{ marginBottom: "1.5rem" }}
+                  >
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "1rem",
+                        backgroundColor: "#f0f9ff",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #e0f2fe",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#3b82f6",
+                        }}
+                      >
+                        {files.length}
+                      </div>
+                      <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                        Data Sources
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "1rem",
+                        backgroundColor: "#f0fdf4",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #dcfce7",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#10b981",
+                        }}
+                      >
+                        {actualFileData.length}
+                      </div>
+                      <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                        Total Records
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "1rem",
+                        backgroundColor: "#fefbf3",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #fed7aa",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#f59e0b",
+                        }}
+                      >
+                        {
+                          new Set(actualFileData.map((item) => item._dataType))
+                            .size
+                        }
+                      </div>
+                      <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                        Data Types
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "1rem",
+                        backgroundColor: "#fdf2f8",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #fce7f3",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#ec4899",
+                        }}
+                      >
+                        {Math.round(
+                          (actualFileData.length /
+                            (actualFileData.length + 1)) *
+                            100,
+                        )}
+                        %
+                      </div>
+                      <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                        Data Quality
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Data Type Breakdown */}
+                  <div style={{ marginBottom: "1.5rem" }}>
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Data Type Distribution
+                    </h4>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(200px, 1fr))",
+                        gap: "1rem",
+                      }}
+                    >
+                      {Object.entries(
+                        actualFileData.reduce((acc, item) => {
+                          const type = item._dataType || "unknown";
+                          acc[type] = (acc[type] || 0) + 1;
+                          return acc;
+                        }, {} as any),
+                      ).map(([type, count]: [string, any]) => (
+                        <div
+                          key={type}
+                          style={{
+                            padding: "1rem",
+                            backgroundColor: "#f9fafb",
+                            borderRadius: "0.5rem",
+                            border: "1px solid #e5e7eb",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderRadius: "50%",
+                                backgroundColor: getDataTypeColor(type),
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontWeight: "500",
+                                textTransform: "capitalize",
+                              }}
+                            >
+                              {type.replace("_", " ")}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "1.25rem",
+                              fontWeight: "bold",
+                              color: "#111827",
+                            }}
+                          >
+                            {count}
+                          </div>
+                          <div
+                            style={{ fontSize: "0.75rem", color: "#6b7280" }}
+                          >
+                            {Math.round((count / actualFileData.length) * 100)}%
+                            of total
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Source Files */}
+                  <div style={{ marginBottom: "1.5rem" }}>
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Source Files
+                    </h4>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(300px, 1fr))",
+                        gap: "1rem",
+                      }}
+                    >
+                      {files.map((file, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            padding: "1rem",
+                            backgroundColor: "#f9fafb",
+                            borderRadius: "0.5rem",
+                            border: "1px solid #e5e7eb",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <FileText size={16} style={{ color: "#6b7280" }} />
+                            <span
+                              style={{
+                                fontWeight: "500",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {file.name}
+                            </span>
+                          </div>
+                          <div
+                            style={{ fontSize: "0.75rem", color: "#6b7280" }}
+                          >
+                            Type: {file.detectedType || "unknown"} | Size:{" "}
+                            {formatFileSize(file.size)} | Records:{" "}
+                            {file.parsedData?.length || 0}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Compiled Data Preview */}
+                  <div>
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Compiled Data Preview (First 10 Records)
+                    </h4>
+                    <div style={{ overflowX: "auto" }}>
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        <thead>
+                          <tr style={{ backgroundColor: "#f3f4f6" }}>
+                            <th
+                              style={{
+                                padding: "0.5rem",
+                                textAlign: "left",
+                                border: "1px solid #e5e7eb",
+                                fontWeight: "600",
+                              }}
+                            >
+                              Source
+                            </th>
+                            <th
+                              style={{
+                                padding: "0.5rem",
+                                textAlign: "left",
+                                border: "1px solid #e5e7eb",
+                                fontWeight: "600",
+                              }}
+                            >
+                              Data Type
+                            </th>
+                            {actualFileData.length > 0 &&
+                              Object.keys(actualFileData[0])
+                                .filter((key) => !key.startsWith("_"))
+                                .slice(0, 6)
+                                .map((key) => (
+                                  <th
+                                    key={key}
+                                    style={{
+                                      padding: "0.5rem",
+                                      textAlign: "left",
+                                      border: "1px solid #e5e7eb",
+                                      fontWeight: "600",
+                                    }}
+                                  >
+                                    {key}
+                                  </th>
+                                ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {actualFileData.slice(0, 10).map((row, index) => (
+                            <tr key={index}>
+                              <td
+                                style={{
+                                  padding: "0.5rem",
+                                  border: "1px solid #e5e7eb",
+                                  fontSize: "0.7rem",
+                                }}
+                              >
+                                {row._source}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "0.5rem",
+                                  border: "1px solid #e5e7eb",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    padding: "0.125rem 0.375rem",
+                                    borderRadius: "0.25rem",
+                                    backgroundColor: getDataTypeColor(
+                                      row._dataType,
+                                    ),
+                                    color: "white",
+                                    fontSize: "0.6rem",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  {row._dataType}
+                                </span>
+                              </td>
+                              {Object.keys(row)
+                                .filter((key) => !key.startsWith("_"))
+                                .slice(0, 6)
+                                .map((key) => (
+                                  <td
+                                    key={key}
+                                    style={{
+                                      padding: "0.5rem",
+                                      border: "1px solid #e5e7eb",
+                                    }}
+                                  >
+                                    {row[key] !== null && row[key] !== undefined
+                                      ? String(row[key])
+                                      : ""}
+                                  </td>
+                                ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {actualFileData.length > 10 && (
+                      <div
+                        style={{
+                          padding: "1rem",
+                          textAlign: "center",
+                          color: "#6b7280",
+                          fontSize: "0.875rem",
+                          backgroundColor: "#f9fafb",
+                          borderTop: "1px solid #e5e7eb",
+                        }}
+                      >
+                        Showing first 10 records of {actualFileData.length}{" "}
+                        total compiled records
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "3rem",
+                    color: "#6b7280",
+                    backgroundColor: "#f9fafb",
+                    borderRadius: "0.5rem",
+                    border: "2px dashed #d1d5db",
+                  }}
+                >
+                  <Database
+                    size={48}
+                    style={{ margin: "0 auto 1rem", color: "#9ca3af" }}
+                  />
+                  <p style={{ margin: 0, fontSize: "1rem" }}>
+                    No baseline data compiled
+                  </p>
+                  <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
+                    Upload multiple files and run validation to compile digital
+                    twin baseline data
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </>
