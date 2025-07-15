@@ -356,6 +356,222 @@ export default function DataProcessor() {
     return warnings;
   };
 
+  // DataConverter utilities matching Python implementation
+  const findMatchingColumn = (
+    availableColumns: string[],
+    possibleNames: string[],
+  ): string | null => {
+    const columnsLower = availableColumns.map((col) => col.toLowerCase());
+
+    // Exact match
+    for (const possibleName of possibleNames) {
+      const index = columnsLower.indexOf(possibleName.toLowerCase());
+      if (index !== -1) {
+        return availableColumns[index];
+      }
+    }
+
+    // Partial match
+    for (const possibleName of possibleNames) {
+      for (const col of availableColumns) {
+        if (col.toLowerCase().includes(possibleName.toLowerCase())) {
+          return col;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const convertToStandardFormat = (data: any[], dataType: string): any => {
+    const mappings = columnMappings[dataType] || {};
+    const sampleRecord = data[0] || {};
+    const availableColumns = Object.keys(sampleRecord);
+    const mappedColumns: { [key: string]: string } = {};
+    const unmappedColumns: string[] = [];
+    const conversionLog: string[] = [];
+
+    // Map columns to standard names
+    for (const [standardCol, possibleNames] of Object.entries(mappings)) {
+      const matchedCol = findMatchingColumn(availableColumns, possibleNames);
+      if (matchedCol) {
+        mappedColumns[standardCol] = matchedCol;
+        conversionLog.push(`Mapped '${matchedCol}' to '${standardCol}'`);
+      } else {
+        conversionLog.push(
+          `Warning: No match found for standard column '${standardCol}'`,
+        );
+      }
+    }
+
+    // Find unmapped columns
+    const mappedOriginalCols = Object.values(mappedColumns);
+    unmappedColumns.push(
+      ...availableColumns.filter((col) => !mappedOriginalCols.includes(col)),
+    );
+
+    if (unmappedColumns.length > 0) {
+      conversionLog.push(`Unmapped columns: ${unmappedColumns.join(", ")}`);
+    }
+
+    return {
+      originalColumns: availableColumns,
+      mappedColumns,
+      unmappedColumns,
+      conversionLog,
+    };
+  };
+
+  const convertForecastData = (data: any[]): string[] => {
+    const conversionLog: string[] = [];
+
+    data.forEach((record, index) => {
+      // Convert year to integer
+      if (record.year !== undefined) {
+        const yearStr = String(record.year).replace(/[^0-9]/g, "");
+        const year = parseInt(yearStr);
+        if (!isNaN(year)) {
+          record.year = year;
+        } else {
+          conversionLog.push(
+            `Row ${index + 1}: Invalid year value '${record.year}'`,
+          );
+        }
+      }
+
+      // Convert annual units - clean string values
+      if (record.annual_units !== undefined) {
+        let units = String(record.annual_units);
+        units = units.replace(/[,$()]/g, "").replace(/\((.*)\)/, "-$1");
+        const numericUnits = parseFloat(units);
+        if (!isNaN(numericUnits) && numericUnits >= 0) {
+          record.annual_units = numericUnits;
+        } else {
+          conversionLog.push(
+            `Row ${index + 1}: Invalid annual units value '${record.annual_units}'`,
+          );
+        }
+      }
+    });
+
+    conversionLog.push("Forecast data conversion completed");
+    return conversionLog;
+  };
+
+  const convertSkuData = (data: any[]): string[] => {
+    const conversionLog: string[] = [];
+
+    data.forEach((record, index) => {
+      // Clean SKU ID - standardize to uppercase
+      if (record.sku_id !== undefined) {
+        record.sku_id = String(record.sku_id).trim().toUpperCase();
+      }
+
+      // Convert numeric columns
+      const numericCols = [
+        "units_per_case",
+        "cases_per_pallet",
+        "annual_volume",
+      ];
+
+      numericCols.forEach((col) => {
+        if (record[col] !== undefined) {
+          let value = String(record[col]).replace(/[,$]/g, "");
+          const numericValue = parseFloat(value);
+          if (!isNaN(numericValue) && numericValue > 0) {
+            record[col] = numericValue;
+          } else {
+            conversionLog.push(
+              `Row ${index + 1}: Invalid ${col} value '${record[col]}'`,
+            );
+          }
+        }
+      });
+
+      // Calculate units per pallet if not present
+      if (
+        record.units_per_case &&
+        record.cases_per_pallet &&
+        !record.units_per_pallet
+      ) {
+        record.units_per_pallet =
+          record.units_per_case * record.cases_per_pallet;
+        conversionLog.push(
+          `Row ${index + 1}: Calculated units_per_pallet = ${record.units_per_pallet}`,
+        );
+      }
+    });
+
+    conversionLog.push("SKU data conversion completed");
+    return conversionLog;
+  };
+
+  const convertNetworkData = (data: any[]): string[] => {
+    const conversionLog: string[] = [];
+
+    data.forEach((record, index) => {
+      // Clean city names - title case formatting
+      if (record.city !== undefined) {
+        const cleanCity = String(record.city).trim();
+        record.city = cleanCity
+          .split(" ")
+          .map(
+            (word) =>
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+          )
+          .join(" ");
+
+        if (record.city.length < 2) {
+          conversionLog.push(
+            `Row ${index + 1}: City name '${record.city}' too short`,
+          );
+        }
+      }
+
+      // Convert coordinates to numeric
+      ["latitude", "longitude"].forEach((coord) => {
+        if (record[coord] !== undefined) {
+          const numericCoord = parseFloat(String(record[coord]));
+          if (!isNaN(numericCoord)) {
+            record[coord] = numericCoord;
+
+            // Validate coordinate ranges
+            if (
+              coord === "latitude" &&
+              (numericCoord < -90 || numericCoord > 90)
+            ) {
+              conversionLog.push(
+                `Row ${index + 1}: Latitude ${numericCoord} out of range (-90 to 90)`,
+              );
+            }
+            if (
+              coord === "longitude" &&
+              (numericCoord < -180 || numericCoord > 180)
+            ) {
+              conversionLog.push(
+                `Row ${index + 1}: Longitude ${numericCoord} out of range (-180 to 180)`,
+              );
+            }
+          } else {
+            conversionLog.push(
+              `Row ${index + 1}: Invalid ${coord} value '${record[coord]}'`,
+            );
+          }
+        }
+      });
+
+      // Check for (0,0) coordinates which may indicate missing data
+      if (record.latitude === 0 && record.longitude === 0) {
+        conversionLog.push(
+          `Row ${index + 1}: Warning - (0,0) coordinates may indicate missing data`,
+        );
+      }
+    });
+
+    conversionLog.push("Network data conversion completed");
+    return conversionLog;
+  };
+
   const generateSampleData = (dataType: string): any[] => {
     // Generate realistic sample data for testing validation
     if (dataType === "forecast") {
