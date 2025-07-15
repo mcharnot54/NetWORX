@@ -824,7 +824,7 @@ export default function Visualizer() {
       component,
     };
     setOutputLogs((prev) => [...prev.slice(-49), entry]);
-  };
+    };
 
   // Scenario Management Functions
   const saveCurrentScenario = () => {
@@ -839,12 +839,10 @@ export default function Visualizer() {
 
     for (let i = 0; i < 8; i++) {
       const year = currentYear + i;
-      const growthFactor = 1 + i * 0.15; // 15% annual growth
+      const growthFactor = 1 + (i * 0.15); // 15% annual growth
 
-      const baseTransportCost =
-        transportResults?.network_metrics?.total_transportation_cost || 2000000;
-      const baseWarehouseCost =
-        warehouseResultsFromContext?.objective_value || 3000000;
+      const baseTransportCost = transportResults?.network_metrics?.total_transportation_cost || 2000000;
+      const baseWarehouseCost = warehouseResultsFromContext?.objective_value || 3000000;
       const baseInventoryCost = inventoryResults?.totalValue || 1500000;
 
       yearlyBreakdown.push({
@@ -858,16 +856,7 @@ export default function Visualizer() {
           technology: Math.round(300000 * growthFactor),
           overhead: Math.round(400000 * growthFactor),
         },
-        totalCost: Math.round(
-          (baseTransportCost +
-            baseWarehouseCost +
-            baseInventoryCost +
-            500000 +
-            800000 +
-            300000 +
-            400000) *
-            growthFactor,
-        ),
+        totalCost: Math.round((baseTransportCost + baseWarehouseCost + baseInventoryCost + 500000 + 800000 + 300000 + 400000) * growthFactor),
         costChange: i === 0 ? 0 : 15, // 15% growth
       });
     }
@@ -878,17 +867,9 @@ export default function Visualizer() {
     const financialMetrics = calculateFinancialMetrics();
     let viability: "High" | "Medium" | "Low" = "Medium";
 
-    if (
-      financialMetrics.roic > 20 &&
-      financialMetrics.npv > 0 &&
-      financialMetrics.paybackPeriod < 3
-    ) {
+    if (financialMetrics.roic > 20 && financialMetrics.npv > 0 && financialMetrics.paybackPeriod < 3) {
       viability = "High";
-    } else if (
-      financialMetrics.roic < 10 ||
-      financialMetrics.npv < 0 ||
-      financialMetrics.paybackPeriod > 5
-    ) {
+    } else if (financialMetrics.roic < 10 || financialMetrics.npv < 0 || financialMetrics.paybackPeriod > 5) {
       viability = "Low";
     }
 
@@ -902,9 +883,7 @@ export default function Visualizer() {
       weaknesses.push("Service level below target");
     }
 
-    if (
-      warehouseResultsFromContext?.performance_metrics?.avg_utilization > 80
-    ) {
+    if (warehouseResultsFromContext?.performance_metrics?.avg_utilization > 80) {
       strengths.push("Optimal warehouse utilization");
     } else {
       weaknesses.push("Low warehouse utilization");
@@ -938,52 +917,42 @@ export default function Visualizer() {
       weaknesses,
     };
 
-    setSavedScenarios((prev) => [...prev, newScenario]);
+    setSavedScenarios(prev => [...prev, newScenario]);
     setCurrentScenarioName("");
     alert(`Scenario "${newScenario.name}" saved successfully!`);
   };
 
   const deleteScenario = (scenarioId: string) => {
     if (confirm("Are you sure you want to delete this scenario?")) {
-      setSavedScenarios((prev) => prev.filter((s) => s.id !== scenarioId));
-      setSelectedScenarios((prev) => prev.filter((id) => id !== scenarioId));
+      setSavedScenarios(prev => prev.filter(s => s.id !== scenarioId));
+      setSelectedScenarios(prev => prev.filter(id => id !== scenarioId));
     }
   };
 
   const toggleScenarioSelection = (scenarioId: string) => {
-    setSelectedScenarios((prev) =>
+    setSelectedScenarios(prev =>
       prev.includes(scenarioId)
-        ? prev.filter((id) => id !== scenarioId)
-        : [...prev, scenarioId],
+        ? prev.filter(id => id !== scenarioId)
+        : [...prev, scenarioId]
     );
   };
 
   const getScenarioComparisonData = () => {
-    const selectedScenarioData = savedScenarios.filter((s) =>
-      selectedScenarios.includes(s.id),
-    );
+    const selectedScenarioData = savedScenarios.filter(s => selectedScenarios.includes(s.id));
 
     // Prepare data for multi-scenario chart
-    const years = Array.from(
-      { length: 8 },
-      (_, i) => new Date().getFullYear() + i,
-    );
+    const years = Array.from({length: 8}, (_, i) => new Date().getFullYear() + i);
 
-    return years.map((year) => {
+    return years.map(year => {
       const yearData: any = { year };
 
-      selectedScenarioData.forEach((scenario) => {
-        const yearBreakdown = scenario.yearlyBreakdown.find(
-          (yb) => yb.year === year,
-        );
+      selectedScenarioData.forEach(scenario => {
+        const yearBreakdown = scenario.yearlyBreakdown.find(yb => yb.year === year);
         if (yearBreakdown) {
           yearData[`${scenario.name}_Total`] = yearBreakdown.totalCost;
-          yearData[`${scenario.name}_Transport`] =
-            yearBreakdown.categories.transportation;
-          yearData[`${scenario.name}_Warehouse`] =
-            yearBreakdown.categories.warehousing;
-          yearData[`${scenario.name}_Inventory`] =
-            yearBreakdown.categories.inventory;
+          yearData[`${scenario.name}_Transport`] = yearBreakdown.categories.transportation;
+          yearData[`${scenario.name}_Warehouse`] = yearBreakdown.categories.warehousing;
+          yearData[`${scenario.name}_Inventory`] = yearBreakdown.categories.inventory;
         }
       });
 
@@ -6092,6 +6061,366 @@ export default function Visualizer() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+            </div>
+                    )}
+
+          {/* Scenario Management Tab */}
+          {activeTab === "scenarios" && (
+            <div>
+              <h3 style={{ marginBottom: "2rem", color: "#111827" }}>
+                Scenario Management & Comparison
+              </h3>
+
+              {/* Save Current Scenario */}
+              <div className="card" style={{ marginBottom: "2rem" }}>
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Save Current Scenario
+                </h4>
+                <div style={{ display: "flex", gap: "1rem", alignItems: "end" }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">Scenario Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={currentScenarioName}
+                      onChange={(e) => setCurrentScenarioName(e.target.value)}
+                      placeholder="Enter scenario name (e.g., 'Baseline 2024', 'Expansion East Coast')"
+                    />
+                  </div>
+                  <button
+                    onClick={saveCurrentScenario}
+                    disabled={!currentScenarioName.trim()}
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      backgroundColor: currentScenarioName.trim() ? "#10b981" : "#9ca3af",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      cursor: currentScenarioName.trim() ? "pointer" : "not-allowed"
+                    }}
+                  >
+                    Save Scenario
+                  </button>
+                </div>
+              </div>
+
+              {/* Saved Scenarios Overview */}
+              <div className="card" style={{ marginBottom: "2rem" }}>
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Saved Scenarios ({savedScenarios.length})
+                </h4>
+                {savedScenarios.length === 0 ? (
+                  <p style={{ color: "#6b7280", textAlign: "center", padding: "2rem" }}>
+                    No scenarios saved yet. Save your current optimization results as a scenario to begin comparison analysis.
+                  </p>
+                ) : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ backgroundColor: "#f9fafb" }}>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedScenarios(savedScenarios.map(s => s.id));
+                                } else {
+                                  setSelectedScenarios([]);
+                                }
+                              }}
+                              checked={selectedScenarios.length === savedScenarios.length && savedScenarios.length > 0}
+                            />
+                          </th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Scenario</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Viability</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Total Cost (Year 1)</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Cost Projection (Year 8)</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Saved At</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {savedScenarios.map((scenario, index) => (
+                          <tr key={scenario.id} style={{ borderTop: "1px solid #e5e7eb" }}>
+                            <td style={{ padding: "0.75rem" }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedScenarios.includes(scenario.id)}
+                                onChange={() => toggleScenarioSelection(scenario.id)}
+                              />
+                            </td>
+                            <td style={{ padding: "0.75rem" }}>
+                              <div>
+                                <div style={{ fontWeight: "600", fontSize: "0.875rem" }}>{scenario.name}</div>
+                                <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{scenario.description}</div>
+                              </div>
+                            </td>
+                            <td style={{ padding: "0.75rem" }}>
+                              <span style={{
+                                padding: "0.25rem 0.5rem",
+                                borderRadius: "0.25rem",
+                                fontSize: "0.75rem",
+                                fontWeight: "600",
+                                backgroundColor: scenario.viability === "High" ? "#dcfce7" : scenario.viability === "Medium" ? "#fef3c7" : "#fee2e2",
+                                color: scenario.viability === "High" ? "#166534" : scenario.viability === "Medium" ? "#92400e" : "#991b1b"
+                              }}>
+                                {scenario.viability}
+                              </span>
+                            </td>
+                            <td style={{ padding: "0.75rem", fontSize: "0.875rem", fontWeight: "600" }}>
+                              ${(scenario.yearlyBreakdown[0]?.totalCost || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: "0.75rem", fontSize: "0.875rem" }}>
+                              ${(scenario.yearlyBreakdown[7]?.totalCost || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: "0.75rem", fontSize: "0.875rem", color: "#6b7280" }}>
+                              {new Date(scenario.savedAt).toLocaleDateString()}
+                            </td>
+                            <td style={{ padding: "0.75rem" }}>
+                              <button
+                                onClick={() => deleteScenario(scenario.id)}
+                                style={{
+                                  padding: "0.25rem 0.5rem",
+                                  backgroundColor: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "0.25rem",
+                                  fontSize: "0.75rem",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Scenario Comparison */}
+              {selectedScenarios.length > 1 && (
+                <div>
+                  <div className="card" style={{ marginBottom: "2rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                      <h4 style={{ color: "#111827" }}>
+                        Scenario Comparison ({selectedScenarios.length} scenarios)
+                      </h4>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button
+                          onClick={() => setScenarioComparisonView("table")}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            backgroundColor: scenarioComparisonView === "table" ? "#3b82f6" : "#f3f4f6",
+                            color: scenarioComparisonView === "table" ? "white" : "#374151",
+                            border: "none",
+                            borderRadius: "0.375rem",
+                            fontSize: "0.875rem",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Table View
+                        </button>
+                        <button
+                          onClick={() => setScenarioComparisonView("chart")}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            backgroundColor: scenarioComparisonView === "chart" ? "#3b82f6" : "#f3f4f6",
+                            color: scenarioComparisonView === "chart" ? "white" : "#374151",
+                            border: "none",
+                            borderRadius: "0.375rem",
+                            fontSize: "0.875rem",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Chart View
+                        </button>
+                      </div>
+                    </div>
+
+                    {scenarioComparisonView === "table" && (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+                          <thead>
+                            <tr style={{ backgroundColor: "#f9fafb" }}>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Scenario</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Strengths</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Viability</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Reason</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>2025 Cost</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>2032 Cost</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario) => (
+                              <tr key={scenario.id} style={{ borderTop: "1px solid #e5e7eb" }}>
+                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>{scenario.name}</td>
+                                <td style={{ padding: "0.75rem" }}>
+                                  <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                                    {scenario.strengths.map((strength, idx) => (
+                                      <span key={idx} style={{
+                                        padding: "0.125rem 0.375rem",
+                                        backgroundColor: "#dcfce7",
+                                        color: "#166534",
+                                        borderRadius: "0.25rem",
+                                        fontSize: "0.75rem"
+                                      }}>
+                                        ✓
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td style={{ padding: "0.75rem" }}>
+                                  <span style={{
+                                    padding: "0.25rem 0.5rem",
+                                    borderRadius: "0.25rem",
+                                    fontSize: "0.75rem",
+                                    fontWeight: "600",
+                                    backgroundColor: scenario.viability === "High" ? "#dcfce7" : scenario.viability === "Medium" ? "#fef3c7" : "#fee2e2",
+                                    color: scenario.viability === "High" ? "#166534" : scenario.viability === "Medium" ? "#92400e" : "#991b1b"
+                                  }}>
+                                    {scenario.viability}
+                                  </span>
+                                </td>
+                                <td style={{ padding: "0.75rem" }}>
+                                  {scenario.viability === "High" ? "Optimal Cost and Service" :
+                                   scenario.viability === "Medium" ? "Acceptable Trade-offs" :
+                                   "High Risk or Cost"}
+                                </td>
+                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>
+                                  ${(scenario.yearlyBreakdown[1]?.totalCost || 0).toLocaleString()}
+                                </td>
+                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>
+                                  ${(scenario.yearlyBreakdown[7]?.totalCost || 0).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {scenarioComparisonView === "chart" && (
+                      <div>
+                        <ResponsiveContainer width="100%" height={400}>
+                          <ComposedChart data={getScenarioComparisonData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="year" />
+                            <YAxis />
+                            <Tooltip
+                              formatter={(value: any, name: string) => [
+                                `$${value?.toLocaleString()}`,
+                                name.replace('_Total', '').replace('_', ' ')
+                              ]}
+                            />
+                            <Legend />
+                            {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario, index) => {
+                              const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+                              return (
+                                <Line
+                                  key={scenario.id}
+                                  type="monotone"
+                                  dataKey={`${scenario.name}_Total`}
+                                  stroke={colors[index % colors.length]}
+                                  strokeWidth={3}
+                                  dot={{ fill: colors[index % colors.length], strokeWidth: 2, r: 4 }}
+                                />
+                              );
+                            })}
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Yearly Breakdown by Category */}
+                  <div className="card">
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Yearly Cost Breakdown by Category
+                    </h4>
+                    {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario) => (
+                      <div key={scenario.id} style={{ marginBottom: "2rem" }}>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          {scenario.name} - Detailed Breakdown
+                        </h5>
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+                            <thead>
+                              <tr style={{ backgroundColor: "#f9fafb" }}>
+                                <th style={{ padding: "0.5rem", textAlign: "left", fontWeight: "600" }}>Year</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Transportation</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Warehousing</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Inventory</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Labor</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Facilities</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Technology</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Overhead</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600", backgroundColor: "#e5e7eb" }}>Total Cost</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Change %</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scenario.yearlyBreakdown.map((year, index) => (
+                                <tr key={year.year} style={{ borderTop: "1px solid #e5e7eb" }}>
+                                  <td style={{ padding: "0.5rem", fontWeight: "600" }}>{year.year}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.transportation.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.warehousing.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.inventory.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.labor.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.facilities.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.technology.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.overhead.toLocaleString()}</td>
+                                  <td style={{
+                                    padding: "0.5rem",
+                                    textAlign: "right",
+                                    fontWeight: "600",
+                                    backgroundColor: "#f3f4f6"
+                                  }}>
+                                    ${year.totalCost.toLocaleString()}
+                                  </td>
+                                  <td style={{
+                                    padding: "0.5rem",
+                                    textAlign: "right",
+                                    color: year.costChange > 0 ? "#ef4444" : year.costChange < 0 ? "#10b981" : "#6b7280"
+                                  }}>
+                                    {year.costChange > 0 ? '+' : ''}{year.costChange}%
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              )}
+
+              {selectedScenarios.length === 1 && (
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Select multiple scenarios to enable comparison analysis
+                  </h4>
+                  <p style={{ color: "#6b7280" }}>
+                    Check the boxes next to 2 or more scenarios above to compare their performance over time.
+                  </p>
+                </div>
+              )}
+
+              {selectedScenarios.length === 0 && savedScenarios.length > 0 && (
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Select scenarios to compare
+                  </h4>
+                  <p style={{ color: "#6b7280" }}>
+                    Check the boxes next to scenarios above to analyze and compare their performance.
+                  </p>
                 </div>
               )}
             </div>
