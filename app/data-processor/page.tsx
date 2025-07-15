@@ -1131,6 +1131,110 @@ export default function DataProcessor() {
     return warnings;
   };
 
+  // Enhanced field mapping functions for comprehensive data processing
+  const mapFieldsToStandard = (
+    inputHeaders: string[],
+    fieldSynonyms: any,
+  ): any => {
+    let headerMap: any = {};
+    for (const [canonical, synonyms] of Object.entries(fieldSynonyms)) {
+      const match = inputHeaders.find((h) =>
+        (synonyms as string[]).some((syn) =>
+          h
+            .toLowerCase()
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .includes(syn.toLowerCase().replace(/[^a-zA-Z0-9]/g, "")),
+        ),
+      );
+      if (match) headerMap[canonical] = match;
+    }
+    return headerMap;
+  };
+
+  const normalizeAndValidateRow = (
+    row: any,
+    headerMap: any,
+    validationRules: any,
+  ): any => {
+    let output: any = {};
+    let errors: string[] = [];
+
+    for (const [canonical, original] of Object.entries(headerMap)) {
+      let value = row[original];
+      const rule = validationRules[canonical];
+
+      if (rule?.type === "numeric") {
+        value = parseFloat(value?.toString().replace(/[^0-9.-]/g, ""));
+        if (
+          isNaN(value) ||
+          (rule.min != null && value < rule.min) ||
+          (rule.max != null && value > rule.max)
+        ) {
+          const rangeMsg =
+            rule.min != null && rule.max != null
+              ? `between ${rule.min} and ${rule.max}`
+              : rule.min != null
+                ? `≥ ${rule.min}`
+                : `≤ ${rule.max}`;
+          errors.push(
+            `Column '${canonical}' must be numeric and ${rangeMsg}, got '${row[original]}'`,
+          );
+          value = null;
+        }
+      }
+
+      if (
+        rule?.type === "enum" &&
+        !rule.allowed.includes((value || "").toLowerCase())
+      ) {
+        errors.push(
+          `Column '${canonical}' must be one of [${rule.allowed.join(", ")}], got '${value}'`,
+        );
+        value = null;
+      }
+
+      if (
+        rule?.type === "string" &&
+        rule.minLength &&
+        (!value || value.length < rule.minLength)
+      ) {
+        errors.push(
+          `Column '${canonical}' must be a string of at least ${rule.minLength} chars, got '${value}'`,
+        );
+        value = null;
+      }
+
+      if (rule?.required && (value == null || value === "")) {
+        errors.push(`Column '${canonical}' is required but missing`);
+      }
+
+      output[canonical] = value;
+    }
+
+    // Preserve unmapped fields for extensibility
+    Object.keys(row).forEach((col) => {
+      if (!Object.values(headerMap).includes(col)) output[col] = row[col];
+    });
+
+    output.rowErrors = errors;
+    return output;
+  };
+
+  const convertTableWithSynonyms = (
+    csvRows: any[],
+    synonyms: any,
+    validationRules: any,
+  ): any[] => {
+    if (!csvRows || csvRows.length === 0) return [];
+
+    const headers = Object.keys(csvRows[0]);
+    const headerMap = mapFieldsToStandard(headers, synonyms);
+
+    return csvRows.map((row) =>
+      normalizeAndValidateRow(row, headerMap, validationRules),
+    );
+  };
+
   // Enhanced DataConverter utilities with intelligent column matching
   const findMatchingColumn = (
     availableColumns: string[],
