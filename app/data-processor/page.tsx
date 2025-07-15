@@ -917,6 +917,13 @@ export default function DataProcessor() {
                 Data Preview
               </button>
               <button
+                className={`button ${activeTab === "conversion" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setActiveTab("conversion")}
+              >
+                <Database size={16} />
+                Data Conversion
+              </button>
+              <button
                 className={`button ${activeTab === "quality" ? "button-primary" : "button-secondary"}`}
                 onClick={() => setActiveTab("quality")}
               >
