@@ -5310,6 +5310,585 @@ export default function Visualizer() {
               </div>
             </div>
           )}
+
+          {/* Financial Analysis Tab */}
+          {activeTab === "financial" && (
+            <div>
+              <h3 style={{ marginBottom: "2rem", color: "#111827" }}>
+                Financial Analysis & ROI
+              </h3>
+
+              {/* Financial Parameters */}
+              <div className="card" style={{ marginBottom: "2rem" }}>
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Financial Parameters
+                </h4>
+                <div className="grid grid-cols-4" style={{ gap: "1rem" }}>
+                  <div className="form-group">
+                    <label className="form-label">Discount Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={financialParams.discountRate * 100}
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          discountRate: parseFloat(e.target.value) / 100,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Analysis Period (Years)
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={financialParams.analysisYears}
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          analysisYears: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Current State Cost ($M)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={
+                        financialParams.currentStateBaseline.totalCost / 1000000
+                      }
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          currentStateBaseline: {
+                            ...financialParams.currentStateBaseline,
+                            totalCost: parseFloat(e.target.value) * 1000000,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Future State Investment ($M)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={
+                        financialParams.futureStateProjections.totalInvestment /
+                        1000000
+                      }
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          futureStateProjections: {
+                            ...financialParams.futureStateProjections,
+                            totalInvestment:
+                              parseFloat(e.target.value) * 1000000,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Metrics */}
+              <div
+                className="grid grid-cols-2"
+                style={{ gap: "2rem", marginBottom: "2rem" }}
+              >
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Investment Analysis
+                  </h4>
+                  <div>
+                    {(() => {
+                      const metrics = calculateFinancialMetrics();
+                      return (
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: "1rem",
+                              padding: "1rem",
+                              backgroundColor: "#f0f9ff",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Return on Invested Capital
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.roic > 15 ? "#10b981" : "#ef4444",
+                                }}
+                              >
+                                {metrics.roic.toFixed(1)}%
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>💰</div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: "1rem",
+                              padding: "1rem",
+                              backgroundColor: "#f0fdf4",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Net Present Value
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.npv > 0 ? "#10b981" : "#ef4444",
+                                }}
+                              >
+                                ${(metrics.npv / 1000000).toFixed(1)}M
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>📈</div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: "1rem",
+                              padding: "1rem",
+                              backgroundColor: "#fefce8",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Internal Rate of Return
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.irr >
+                                    financialParams.discountRate * 100
+                                      ? "#10b981"
+                                      : "#ef4444",
+                                }}
+                              >
+                                {metrics.irr.toFixed(1)}%
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>⚡</div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "1rem",
+                              backgroundColor: "#fdf2f8",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Payback Period
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.paybackPeriod < 3
+                                      ? "#10b981"
+                                      : "#ef4444",
+                                }}
+                              >
+                                {metrics.paybackPeriod.toFixed(1)} years
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>⏱️</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Cost Comparison
+                  </h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={[
+                        {
+                          scenario: "Current State",
+                          totalCost:
+                            financialParams.currentStateBaseline.totalCost /
+                            1000000,
+                          investment:
+                            financialParams.currentStateBaseline
+                              .totalInvestment / 1000000,
+                        },
+                        {
+                          scenario: "Future State",
+                          totalCost:
+                            financialParams.futureStateProjections.totalCost /
+                            1000000,
+                          investment:
+                            financialParams.futureStateProjections
+                              .totalInvestment / 1000000,
+                        },
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="scenario" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`$${value}M`, ""]} />
+                      <Legend />
+                      <Bar
+                        dataKey="totalCost"
+                        fill="#3b82f6"
+                        name="Annual Operating Cost"
+                      />
+                      <Bar
+                        dataKey="investment"
+                        fill="#10b981"
+                        name="Investment Required"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Optimizer Results Integration */}
+              <div
+                className="grid grid-cols-3"
+                style={{ gap: "2rem", marginBottom: "2rem" }}
+              >
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Transportation Optimization Impact
+                  </h4>
+                  {transportResults ? (
+                    <div>
+                      <div
+                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Facilities Opened:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {transportResults.open_facilities?.length || 0}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Total Transportation Cost:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            $
+                            {(
+                              transportResults.network_metrics
+                                ?.total_transportation_cost || 0
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Service Level:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {(
+                              (transportResults.network_metrics
+                                ?.service_level_achievement || 0) * 100
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                      Run Transportation Optimizer to see cost impact
+                    </p>
+                  )}
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Warehouse Optimization Impact
+                  </h4>
+                  {warehouseResultsFromContext ? (
+                    <div>
+                      <div
+                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Facilities Added:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {warehouseResultsFromContext.optimization_summary
+                              ?.total_facilities_added || 0}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Annual Cost:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            $
+                            {(
+                              warehouseResultsFromContext.objective_value || 0
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Volume CAGR:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {(
+                              (warehouseResultsFromContext.performance_metrics
+                                ?.volume_cagr || 0) * 100
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                      Run Warehouse Optimizer to see cost impact
+                    </p>
+                  )}
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Optimization Impact
+                  </h4>
+                  {inventoryResults ? (
+                    <div>
+                      <div
+                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>SKUs Analyzed:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {inventoryResults.skuData?.length || 0}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Total Inventory Value:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            $
+                            {(
+                              inventoryResults.totalValue || 0
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>A-Class SKUs:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {inventoryResults.abcDistribution?.a_class || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                      Run Inventory Optimizer to see cost impact
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Market Data */}
+              {marketData && marketData.length > 0 && (
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Market Data Analysis
+                  </h4>
+                  <div style={{ overflowX: "auto" }}>
+                    <table
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
+                      <thead>
+                        <tr style={{ backgroundColor: "#f9fafb" }}>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Location
+                          </th>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Labor Cost/Hour
+                          </th>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Lease Rate/SqFt
+                          </th>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            3PL Cost/Unit
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {marketData.map((market, index) => (
+                          <tr
+                            key={index}
+                            style={{ borderTop: "1px solid #e5e7eb" }}
+                          >
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {market.location}
+                            </td>
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.laborCostPerHour.toFixed(2)}
+                            </td>
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.leaseRatePerSqFt.toFixed(2)}
+                            </td>
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.threePLCostPerUnit.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </>
