@@ -342,6 +342,231 @@ export default function Visualizer() {
     open_facilities: ["Chicago, IL", "Dallas, TX", "Los Angeles, CA"],
   });
 
+  // Geographic data for centers of gravity and heat maps
+  const geographicData = {
+    facilities: [
+      {
+        name: "Chicago, IL",
+        lat: 41.8781,
+        lng: -87.6298,
+        demand: 20000,
+        utilization: 80,
+        region: "Midwest",
+        coverage: 500,
+      },
+      {
+        name: "Dallas, TX",
+        lat: 32.7767,
+        lng: -96.797,
+        demand: 8000,
+        utilization: 40,
+        region: "South",
+        coverage: 400,
+      },
+      {
+        name: "Los Angeles, CA",
+        lat: 34.0522,
+        lng: -118.2437,
+        demand: 18000,
+        utilization: 60,
+        region: "West",
+        coverage: 600,
+      },
+    ],
+    destinations: [
+      {
+        name: "New York, NY",
+        lat: 40.7128,
+        lng: -74.006,
+        demand: 15000,
+        priority: "High",
+        served_by: "Chicago, IL",
+      },
+      {
+        name: "Los Angeles, CA",
+        lat: 34.0522,
+        lng: -118.2437,
+        demand: 12000,
+        priority: "High",
+        served_by: "Los Angeles, CA",
+      },
+      {
+        name: "Houston, TX",
+        lat: 29.7604,
+        lng: -95.3698,
+        demand: 8000,
+        priority: "Medium",
+        served_by: "Dallas, TX",
+      },
+      {
+        name: "Phoenix, AZ",
+        lat: 33.4484,
+        lng: -112.074,
+        demand: 6000,
+        priority: "Medium",
+        served_by: "Los Angeles, CA",
+      },
+      {
+        name: "Philadelphia, PA",
+        lat: 39.9526,
+        lng: -75.1652,
+        demand: 5000,
+        priority: "Low",
+        served_by: "Chicago, IL",
+      },
+    ],
+    centerOfGravity: {
+      demand_weighted: { lat: 36.2048, lng: -95.9928, total_demand: 46000 },
+      geographic: { lat: 36.1627, lng: -100.7785 },
+      cost_optimal: { lat: 35.8914, lng: -94.719 },
+    },
+    scenarios: [
+      {
+        name: "Cost Focused",
+        facilities: [
+          {
+            name: "Kansas City, MO",
+            lat: 39.0997,
+            lng: -94.5786,
+            coverage: 800,
+            cost_benefit: 0.85,
+          },
+          {
+            name: "Memphis, TN",
+            lat: 35.1495,
+            lng: -90.049,
+            coverage: 600,
+            cost_benefit: 0.78,
+          },
+        ],
+        center_of_gravity: { lat: 37.1249, lng: -92.6373 },
+      },
+      {
+        name: "Service Focused",
+        facilities: [
+          {
+            name: "Atlanta, GA",
+            lat: 33.749,
+            lng: -84.388,
+            coverage: 400,
+            cost_benefit: 0.92,
+          },
+          {
+            name: "Denver, CO",
+            lat: 39.7392,
+            lng: -104.9903,
+            coverage: 500,
+            cost_benefit: 0.88,
+          },
+          {
+            name: "Seattle, WA",
+            lat: 47.6062,
+            lng: -122.3321,
+            coverage: 350,
+            cost_benefit: 0.95,
+          },
+        ],
+        center_of_gravity: { lat: 40.0648, lng: -103.8679 },
+      },
+      {
+        name: "Balanced Approach",
+        facilities: [
+          {
+            name: "Indianapolis, IN",
+            lat: 39.7684,
+            lng: -86.1581,
+            coverage: 550,
+            cost_benefit: 0.9,
+          },
+          {
+            name: "Phoenix, AZ",
+            lat: 33.4484,
+            lng: -112.074,
+            coverage: 450,
+            cost_benefit: 0.87,
+          },
+        ],
+        center_of_gravity: { lat: 36.6084, lng: -99.1161 },
+      },
+    ],
+    heatmapData: [
+      {
+        region: "Northeast",
+        intensity: 85,
+        facilities: 1,
+        demand: 20000,
+        lat: 42.0,
+        lng: -75.0,
+      },
+      {
+        region: "Southeast",
+        intensity: 60,
+        facilities: 0,
+        demand: 8000,
+        lat: 33.0,
+        lng: -84.0,
+      },
+      {
+        region: "Midwest",
+        intensity: 95,
+        facilities: 1,
+        demand: 20000,
+        lat: 42.0,
+        lng: -87.0,
+      },
+      {
+        region: "Southwest",
+        intensity: 70,
+        facilities: 1,
+        demand: 14000,
+        lat: 33.0,
+        lng: -111.0,
+      },
+      {
+        region: "West",
+        intensity: 80,
+        facilities: 1,
+        demand: 18000,
+        lat: 37.0,
+        lng: -119.0,
+      },
+      {
+        region: "Northwest",
+        intensity: 45,
+        facilities: 0,
+        demand: 3000,
+        lat: 47.0,
+        lng: -120.0,
+      },
+      {
+        region: "Mountain",
+        intensity: 55,
+        facilities: 0,
+        demand: 6000,
+        lat: 39.0,
+        lng: -105.0,
+      },
+      {
+        region: "Plains",
+        intensity: 40,
+        facilities: 0,
+        demand: 4000,
+        lat: 41.0,
+        lng: -100.0,
+      },
+    ],
+  };
+
+  // Create service coverage circles data for visualization
+  const serviceCoverageData = geographicData.facilities.map((facility) => ({
+    facility: facility.name,
+    coverage_radius: facility.coverage,
+    lat: facility.lat,
+    lng: facility.lng,
+    utilization: facility.utilization,
+    demand_served: facility.demand,
+  }));
+
   // Chart data derived from results
   const warehouseChartData = warehouseResults.results_df.map((row) => ({
     year: row.Year.toString(),
