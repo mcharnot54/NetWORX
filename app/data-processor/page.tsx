@@ -160,12 +160,18 @@ export default function DataProcessor() {
     },
   };
 
-  // Validation rules matching Python DataValidator
+  // Validation rules for comprehensive business data types
   const validationRules: { [key: string]: ValidationRules } = {
     forecast: {
       requiredColumns: ["year", "annual_units"],
       numericColumns: ["year", "annual_units"],
       positiveColumns: ["annual_units"],
+      yearRange: [2020, 2050],
+    },
+    sales_volume: {
+      requiredColumns: ["year", "sales_volume"],
+      numericColumns: ["year", "sales_volume"],
+      positiveColumns: ["sales_volume"],
       yearRange: [2020, 2050],
     },
     sku: {
@@ -178,6 +184,18 @@ export default function DataProcessor() {
       numericColumns: ["units_per_case", "cases_per_pallet", "annual_volume"],
       positiveColumns: ["units_per_case", "cases_per_pallet", "annual_volume"],
       stringColumns: ["sku_id"],
+    },
+    facility: {
+      requiredColumns: ["facility_id", "capacity", "fixed_cost"],
+      numericColumns: ["capacity", "fixed_cost", "variable_cost"],
+      positiveColumns: ["capacity", "fixed_cost"],
+      stringColumns: ["facility_id", "facility_name"],
+    },
+    transport_cost: {
+      requiredColumns: ["origin", "destination", "rate"],
+      numericColumns: ["rate", "distance", "transit_time"],
+      positiveColumns: ["rate"],
+      stringColumns: ["origin", "destination", "mode"],
     },
     network: {
       requiredColumns: ["city", "latitude", "longitude"],
@@ -1265,7 +1283,7 @@ export default function DataProcessor() {
             <button
               className="button button-primary"
               onClick={handleProcess}
-              disabled={files.length === 0 || processing}
+              disabled={processing}
             >
               {processing && <div className="loading-spinner"></div>}
               <Play size={16} />
