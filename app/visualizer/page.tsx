@@ -568,6 +568,149 @@ export default function Visualizer() {
     demand_served: facility.demand,
   }));
 
+  // Inventory Analytics Data
+  const inventoryData = {
+    skuMetrics: [
+      {
+        sku: "SKU_001",
+        abc_class: "A",
+        inventory_turns: 8.2,
+        days_on_hand: 44,
+        fill_rate: 98.5,
+        safety_stock: 75,
+        total_value: 12500,
+      },
+      {
+        sku: "SKU_002",
+        abc_class: "B",
+        inventory_turns: 6.1,
+        days_on_hand: 60,
+        fill_rate: 96.2,
+        safety_stock: 45,
+        total_value: 8750,
+      },
+      {
+        sku: "SKU_003",
+        abc_class: "A",
+        inventory_turns: 9.8,
+        days_on_hand: 37,
+        fill_rate: 99.1,
+        safety_stock: 25,
+        total_value: 5200,
+      },
+      {
+        sku: "SKU_004",
+        abc_class: "B",
+        inventory_turns: 5.4,
+        days_on_hand: 68,
+        fill_rate: 95.8,
+        safety_stock: 85,
+        total_value: 15600,
+      },
+      {
+        sku: "SKU_005",
+        abc_class: "C",
+        inventory_turns: 3.2,
+        days_on_hand: 114,
+        fill_rate: 91.4,
+        safety_stock: 35,
+        total_value: 4200,
+      },
+    ],
+    abcAnalysis: [
+      {
+        class: "A",
+        sku_count: 2,
+        total_value: 17700,
+        percentage: 72,
+        avg_turns: 9.0,
+      },
+      {
+        class: "B",
+        sku_count: 2,
+        total_value: 24350,
+        percentage: 23,
+        avg_turns: 5.8,
+      },
+      {
+        class: "C",
+        sku_count: 1,
+        total_value: 4200,
+        percentage: 5,
+        avg_turns: 3.2,
+      },
+    ],
+    serviceLevelData: [
+      {
+        category: "Pharma",
+        service_level: 98.5,
+        cv: 0.2,
+        safety_stock_investment: 15200,
+      },
+      {
+        category: "Apparel",
+        service_level: 96.2,
+        cv: 0.8,
+        safety_stock_investment: 8900,
+      },
+      {
+        category: "Consumer",
+        service_level: 99.1,
+        cv: 0.08,
+        safety_stock_investment: 5100,
+      },
+      {
+        category: "Electronics",
+        service_level: 95.8,
+        cv: 0.5,
+        safety_stock_investment: 12800,
+      },
+      {
+        category: "Industrial",
+        service_level: 91.4,
+        cv: 0.8,
+        safety_stock_investment: 6200,
+      },
+    ],
+    carryingCostAnalysis: [
+      {
+        year: "2024",
+        inventory_value: 1.2,
+        carrying_cost: 0.3,
+        turns: 6.8,
+        stockout_cost: 0.15,
+      },
+      {
+        year: "2025",
+        inventory_value: 1.4,
+        carrying_cost: 0.35,
+        turns: 7.2,
+        stockout_cost: 0.12,
+      },
+      {
+        year: "2026",
+        inventory_value: 1.6,
+        carrying_cost: 0.4,
+        turns: 7.8,
+        stockout_cost: 0.1,
+      },
+      {
+        year: "2027",
+        inventory_value: 1.8,
+        carrying_cost: 0.45,
+        turns: 8.1,
+        stockout_cost: 0.08,
+      },
+      {
+        year: "2028",
+        inventory_value: 2.0,
+        carrying_cost: 0.5,
+        turns: 8.5,
+        stockout_cost: 0.06,
+      },
+    ],
+  };
+
   // Chart data derived from results
   const warehouseChartData = warehouseResults.results_df.map((row) => ({
     year: row.Year.toString(),
