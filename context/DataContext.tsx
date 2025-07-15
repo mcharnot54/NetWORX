@@ -127,11 +127,138 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return processedData.sku_data || [];
   };
 
+  // Perplexity API integration for real-time warehouse cost data
+  const fetchMarketDataFromPerplexity = async (
+    location: string,
+  ): Promise<Partial<MarketData>> => {
+    try {
+      const apiKey =
+        process.env.NEXT_PUBLIC_PERPLEXITY_API_KEY ||
+        process.env.PERPLEXITY_API_KEY;
+
+      if (!apiKey) {
+        console.warn("Perplexity API key not found, using fallback data");
+        return {};
+      }
+
+      const query = `Current warehouse labor costs and industrial lease rates for ${location}:
+
+      Please provide specific data for:
+      1. Straight warehouse labor rate (base hourly wage for warehouse workers)
+      2. Fully burdened warehouse labor rate (including benefits, taxes, worker's comp, overhead - typically 1.3-1.6x base rate)
+      3. Industrial warehouse lease rates per square foot annually
+      4. 3PL fulfillment costs per unit/shipment
+
+      Focus on 2024 current market rates for distribution and fulfillment operations. Provide numerical values in USD.`;
+
+      const response = await fetch(
+        "https://api.perplexity.ai/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-sonar-small-128k-online",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a warehouse cost analytics expert. Provide current, accurate cost data for warehouse operations. Return specific numerical values for labor rates, lease costs, and 3PL pricing.",
+              },
+              {
+                role: "user",
+                content: query,
+              },
+            ],
+            max_tokens: 1000,
+            temperature: 0.1,
+            top_p: 0.9,
+            search_domain_filter: ["perplexity.ai"],
+            return_images: false,
+            return_related_questions: false,
+            search_recency_filter: "month",
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Perplexity API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "";
+
+      // Parse the response to extract numerical values
+      const parseRateFromText = (
+        text: string,
+        patterns: string[],
+      ): number | null => {
+        for (const pattern of patterns) {
+          const regex = new RegExp(pattern, "i");
+          const match = text.match(regex);
+          if (match) {
+            const value = parseFloat(match[1]);
+            if (!isNaN(value)) return value;
+          }
+        }
+        return null;
+      };
+
+      // Extract straight labor rate
+      const straightLaborRate = parseRateFromText(content, [
+        /straight.*?labor.*?rate.*?\$?(\d+\.?\d*)/,
+        /base.*?wage.*?\$?(\d+\.?\d*)/,
+        /hourly.*?wage.*?\$?(\d+\.?\d*)/,
+        /warehouse.*?worker.*?\$?(\d+\.?\d*)/,
+      ]);
+
+      // Extract fully burdened labor rate
+      const fullyBurdendedLaborRate = parseRateFromText(content, [
+        /fully.*?burdened.*?\$?(\d+\.?\d*)/,
+        /total.*?labor.*?cost.*?\$?(\d+\.?\d*)/,
+        /burdened.*?rate.*?\$?(\d+\.?\d*)/,
+        /fully.*?loaded.*?\$?(\d+\.?\d*)/,
+      ]);
+
+      // Extract lease rate
+      const leaseRate = parseRateFromText(content, [
+        /lease.*?rate.*?\$?(\d+\.?\d*)/,
+        /industrial.*?lease.*?\$?(\d+\.?\d*)/,
+        /warehouse.*?rent.*?\$?(\d+\.?\d*)/,
+        /per.*?square.*?foot.*?\$?(\d+\.?\d*)/,
+      ]);
+
+      // Extract 3PL costs
+      const threePLCost = parseRateFromText(content, [
+        /3pl.*?cost.*?\$?(\d+\.?\d*)/,
+        /fulfillment.*?cost.*?\$?(\d+\.?\d*)/,
+        /per.*?unit.*?\$?(\d+\.?\d*)/,
+        /per.*?shipment.*?\$?(\d+\.?\d*)/,
+      ]);
+
+      return {
+        straightLaborRate: straightLaborRate || undefined,
+        fullyBurdendedLaborRate:
+          fullyBurdendedLaborRate ||
+          (straightLaborRate ? straightLaborRate * 1.4 : undefined),
+        leaseRatePerSqFt: leaseRate || undefined,
+        threePLCostPerUnit: threePLCost || undefined,
+        laborCostPerHour:
+          fullyBurdendedLaborRate ||
+          (straightLaborRate ? straightLaborRate * 1.4 : undefined),
+      };
+    } catch (error) {
+      console.error(`Failed to fetch Perplexity data for ${location}:`, error);
+      return {};
+    }
+  };
+
   // API function to fetch market data for proposed locations
   const fetchMarketData = async (locations: string[]) => {
     try {
-      // Enhanced mock API with realistic location-based data
-      // In production, this would call actual APIs like BLS, real estate APIs, etc.
+      console.log("Fetching real-time market data from Perplexity API...");
 
       const marketDataBase: { [key: string]: Partial<MarketData> } = {
         // Major metropolitan areas with realistic cost data
