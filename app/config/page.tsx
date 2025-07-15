@@ -9,6 +9,10 @@ import {
   Upload,
   Download,
   CheckCircle,
+  FileText,
+  Monitor,
+  AlertCircle,
+  Clock,
 } from "lucide-react";
 
 interface WarehouseConfig {
@@ -87,6 +91,8 @@ export default function Configuration() {
   const [activeTab, setActiveTab] = useState("warehouse");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logLevel, setLogLevel] = useState("INFO");
 
   const [warehouseConfig, setWarehouseConfig] = useState<WarehouseConfig>({
     DOH: 250,
@@ -273,7 +279,13 @@ export default function Configuration() {
                 className={`button ${activeTab === "output" ? "button-primary" : "button-secondary"}`}
                 onClick={() => setActiveTab("output")}
               >
-                Output & Logging
+                Output Config
+              </button>
+              <button
+                className={`button ${activeTab === "logging" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setActiveTab("logging")}
+              >
+                Logging System
               </button>
               <button
                 className={`button ${activeTab === "import-export" ? "button-primary" : "button-secondary"}`}
