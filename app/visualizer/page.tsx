@@ -65,6 +65,37 @@ import {
 } from "lucide-react";
 
 // Comprehensive Result Data Structures
+interface SavedScenario {
+  id: string;
+  name: string;
+  description: string;
+  savedAt: string;
+  transportResults?: any;
+  warehouseResults?: any;
+  inventoryResults?: any;
+  financialMetrics?: any;
+  yearlyBreakdown: YearlyBreakdown[];
+  totalCost: number;
+  viability: "High" | "Medium" | "Low";
+  strengths: string[];
+  weaknesses: string[];
+}
+
+interface YearlyBreakdown {
+  year: number;
+  categories: {
+    transportation: number;
+    warehousing: number;
+    inventory: number;
+    labor: number;
+    facilities: number;
+    technology: number;
+    overhead: number;
+  };
+  totalCost: number;
+  costChange: number;
+}
+
 interface WarehouseResults {
   results_df: Array<{
     Year: number;
