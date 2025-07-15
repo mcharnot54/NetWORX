@@ -1037,182 +1037,135 @@ export default function Configuration() {
           )}
 
           {activeTab === "output" && (
-            <div className="grid grid-cols-2">
-              <div className="card">
-                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  Output Configuration
-                </h4>
-                <div className="form-group">
-                  <label className="form-label">
-                    <input
-                      type="checkbox"
-                      checked={outputConfig.generate_charts}
-                      onChange={(e) =>
-                        setOutputConfig({
-                          ...outputConfig,
-                          generate_charts: e.target.checked,
-                        })
-                      }
-                      style={{ marginRight: "0.5rem" }}
-                    />
-                    Generate Charts
-                  </label>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    <input
-                      type="checkbox"
-                      checked={outputConfig.include_executive_summary}
-                      onChange={(e) =>
-                        setOutputConfig({
-                          ...outputConfig,
-                          include_executive_summary: e.target.checked,
-                        })
-                      }
-                      style={{ marginRight: "0.5rem" }}
-                    />
-                    Include Executive Summary
-                  </label>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Chart Formats</label>
-                  <div style={{ display: "flex", gap: "1rem" }}>
-                    <label>
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Output Configuration
+              </h3>
+              <div className="grid grid-cols-2">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Report Generation
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">
                       <input
                         type="checkbox"
-                        defaultChecked
-                        style={{ marginRight: "0.25rem" }}
+                        checked={outputConfig.generate_charts}
+                        onChange={(e) =>
+                          setOutputConfig({
+                            ...outputConfig,
+                            generate_charts: e.target.checked,
+                          })
+                        }
+                        style={{ marginRight: "0.5rem" }}
                       />
-                      PNG
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        defaultChecked
-                        style={{ marginRight: "0.25rem" }}
-                      />
-                      SVG
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        style={{ marginRight: "0.25rem" }}
-                      />
-                      PDF
+                      Generate Charts
                     </label>
                   </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Report Formats</label>
-                  <div style={{ display: "flex", gap: "1rem" }}>
-                    <label>
+                  <div className="form-group">
+                    <label className="form-label">
                       <input
                         type="checkbox"
-                        defaultChecked
-                        style={{ marginRight: "0.25rem" }}
+                        checked={outputConfig.include_executive_summary}
+                        onChange={(e) =>
+                          setOutputConfig({
+                            ...outputConfig,
+                            include_executive_summary: e.target.checked,
+                          })
+                        }
+                        style={{ marginRight: "0.5rem" }}
                       />
-                      CSV
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        defaultChecked
-                        style={{ marginRight: "0.25rem" }}
-                      />
-                      JSON
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        style={{ marginRight: "0.25rem" }}
-                      />
-                      Excel
+                      Include Executive Summary
                     </label>
                   </div>
+                  <div className="form-group">
+                    <label className="form-label">Chart Formats</label>
+                    <div style={{ display: "flex", gap: "1rem" }}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          defaultChecked
+                          style={{ marginRight: "0.25rem" }}
+                        />
+                        PNG
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          defaultChecked
+                          style={{ marginRight: "0.25rem" }}
+                        />
+                        SVG
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          style={{ marginRight: "0.25rem" }}
+                        />
+                        PDF
+                      </label>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Report Formats</label>
+                    <div style={{ display: "flex", gap: "1rem" }}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          defaultChecked
+                          style={{ marginRight: "0.25rem" }}
+                        />
+                        CSV
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          defaultChecked
+                          style={{ marginRight: "0.25rem" }}
+                        />
+                        JSON
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          style={{ marginRight: "0.25rem" }}
+                        />
+                        Excel
+                      </label>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="card">
-                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  Logging Configuration
-                </h4>
-                <div className="form-group">
-                  <label className="form-label">Log Level</label>
-                  <select
-                    className="form-input"
-                    value={loggingConfig.level}
-                    onChange={(e) =>
-                      setLoggingConfig({
-                        ...loggingConfig,
-                        level: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="DEBUG">DEBUG</option>
-                    <option value="INFO">INFO</option>
-                    <option value="WARNING">WARNING</option>
-                    <option value="ERROR">ERROR</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Output Paths & Templates
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Output Directory</label>
                     <input
-                      type="checkbox"
-                      checked={loggingConfig.file_handler}
-                      onChange={(e) =>
-                        setLoggingConfig({
-                          ...loggingConfig,
-                          file_handler: e.target.checked,
-                        })
-                      }
-                      style={{ marginRight: "0.5rem" }}
+                      type="text"
+                      className="form-input"
+                      defaultValue="data/output/"
+                      placeholder="data/output/"
                     />
-                    Enable File Logging
-                  </label>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Temp Directory</label>
                     <input
-                      type="checkbox"
-                      checked={loggingConfig.console_handler}
-                      onChange={(e) =>
-                        setLoggingConfig({
-                          ...loggingConfig,
-                          console_handler: e.target.checked,
-                        })
-                      }
-                      style={{ marginRight: "0.5rem" }}
+                      type="text"
+                      className="form-input"
+                      defaultValue="data/temp/"
+                      placeholder="data/temp/"
                     />
-                    Enable Console Logging
-                  </label>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Max File Size (MB)</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={loggingConfig.max_file_size_mb}
-                    onChange={(e) =>
-                      setLoggingConfig({
-                        ...loggingConfig,
-                        max_file_size_mb: parseInt(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Backup Count</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={loggingConfig.backup_count}
-                    onChange={(e) =>
-                      setLoggingConfig({
-                        ...loggingConfig,
-                        backup_count: parseInt(e.target.value),
-                      })
-                    }
-                  />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Report Template</label>
+                    <textarea
+                      className="form-input form-textarea"
+                      placeholder="NetWORX Optimization Report - {date}"
+                      defaultValue="NetWORX Optimization Report - {date}\nGenerated: {timestamp}\nAnalysis Period: {start_date} to {end_date}"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
