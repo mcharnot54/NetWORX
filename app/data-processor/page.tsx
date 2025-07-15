@@ -3183,6 +3183,181 @@ export default function DataProcessor() {
                 </div>
               )}
 
+              {conversionResults &&
+                (conversionResults.suggestions ||
+                  conversionResults.unmappedColumns?.length > 0) && (
+                  <div
+                    className="card"
+                    style={{ marginTop: "1rem", border: "1px solid #f59e0b" }}
+                  >
+                    <h4 style={{ marginBottom: "1rem", color: "#d97706" }}>
+                      🔗 Column Mapping Assistance
+                    </h4>
+
+                    {Object.keys(conversionResults.suggestions || {}).length >
+                      0 && (
+                      <div style={{ marginBottom: "1rem" }}>
+                        <h5
+                          style={{
+                            marginBottom: "0.5rem",
+                            color: "#111827",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Suggested Mappings (Click to apply):
+                        </h5>
+                        {Object.entries(
+                          conversionResults.suggestions || {},
+                        ).map(([standardCol, suggestions]: [string, any]) => (
+                          <div
+                            key={standardCol}
+                            style={{
+                              marginBottom: "0.75rem",
+                              padding: "0.5rem",
+                              backgroundColor: "#fffbeb",
+                              borderRadius: "0.375rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontWeight: "600",
+                                fontSize: "0.8rem",
+                                color: "#92400e",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              Missing: {standardCol}
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "0.5rem",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              {suggestions.map(
+                                (suggestion: string, idx: number) => (
+                                  <button
+                                    key={idx}
+                                    style={{
+                                      padding: "0.25rem 0.5rem",
+                                      backgroundColor: "#3b82f6",
+                                      color: "white",
+                                      border: "none",
+                                      borderRadius: "0.25rem",
+                                      fontSize: "0.75rem",
+                                      cursor: "pointer",
+                                      transition: "background-color 0.2s",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.backgroundColor =
+                                        "#2563eb")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.backgroundColor =
+                                        "#3b82f6")
+                                    }
+                                    onClick={() => {
+                                      // Apply the suggested mapping
+                                      const newMappedColumns = {
+                                        ...conversionResults.mappedColumns,
+                                        [standardCol]: suggestion,
+                                      };
+
+                                      // Remove from suggestions
+                                      const newSuggestions = {
+                                        ...conversionResults.suggestions,
+                                      };
+                                      delete newSuggestions[standardCol];
+
+                                      // Update conversion results
+                                      setConversionResults({
+                                        ...conversionResults,
+                                        mappedColumns: newMappedColumns,
+                                        suggestions: newSuggestions,
+                                        conversionLog: [
+                                          ...conversionResults.conversionLog,
+                                          `✓ Manual mapping applied: '${suggestion}' → '${standardCol}'`,
+                                        ],
+                                      });
+
+                                      // Re-apply column mapping to data
+                                      if (actualFileData?.length > 0) {
+                                        const updatedData = actualFileData.map(
+                                          (record) => ({
+                                            ...record,
+                                            [standardCol]: record[suggestion],
+                                          }),
+                                        );
+                                        setActualFileData(updatedData);
+                                      }
+
+                                      addToLog(
+                                        `Applied manual mapping: '${suggestion}' → '${standardCol}'`,
+                                      );
+                                    }}
+                                  >
+                                    Map "{suggestion}"
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {conversionResults.unmappedColumns?.length > 0 && (
+                      <div>
+                        <h5
+                          style={{
+                            marginBottom: "0.5rem",
+                            color: "#111827",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Unmapped Columns:
+                        </h5>
+                        <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "0.5rem",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {conversionResults.unmappedColumns.map(
+                              (col: string, index: number) => (
+                                <span
+                                  key={index}
+                                  style={{
+                                    padding: "0.25rem 0.5rem",
+                                    backgroundColor: "#f3f4f6",
+                                    borderRadius: "0.25rem",
+                                    border: "1px solid #d1d5db",
+                                  }}
+                                >
+                                  {col}
+                                </span>
+                              ),
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              marginTop: "0.5rem",
+                              fontSize: "0.7rem",
+                              color: "#9ca3af",
+                            }}
+                          >
+                            These columns were not mapped to any standard format
+                            and will be preserved as-is.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
               {!conversionResults && (
                 <div
                   style={{
