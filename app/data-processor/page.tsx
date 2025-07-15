@@ -845,8 +845,8 @@ export default function DataProcessor() {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
+          const buffer = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(buffer, { type: "array" });
 
           if (!workbook.SheetNames.includes(sheetName)) {
             sheetName = workbook.SheetNames[0];
