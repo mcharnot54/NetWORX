@@ -1206,8 +1206,7 @@ export default function DataProcessor() {
             <div>
               <h2 className="card-title">Advanced Data Processor</h2>
               <p style={{ color: "#6b7280", margin: 0 }}>
-                Excel/CSV processing with comprehensive Python DataValidator
-                framework integration.
+                Excel/CSV processing with comprehensive validation framework.
               </p>
             </div>
             <button
@@ -1217,7 +1216,7 @@ export default function DataProcessor() {
             >
               {processing && <div className="loading-spinner"></div>}
               <Play size={16} />
-              {processing ? "Processing..." : "Run Validation (Sample Data)"}
+              {processing ? "Processing..." : "Run Validation"}
             </button>
           </div>
 
@@ -1435,39 +1434,43 @@ export default function DataProcessor() {
 
           {activeTab === "config" && (
             <div>
-              {/* Development Notice */}
-              <div
-                style={{
-                  backgroundColor: "#fef3c7",
-                  border: "1px solid #f59e0b",
-                  borderRadius: "0.5rem",
-                  padding: "1rem",
-                  marginBottom: "1.5rem",
-                }}
-              >
+              {parseError && (
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    marginBottom: "0.5rem",
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #ef4444",
+                    borderRadius: "0.5rem",
+                    padding: "1rem",
+                    marginBottom: "1.5rem",
                   }}
                 >
-                  <AlertCircle size={20} style={{ color: "#f59e0b" }} />
-                  <span style={{ fontWeight: "600", color: "#92400e" }}>
-                    Development Notice
-                  </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <AlertCircle size={20} style={{ color: "#ef4444" }} />
+                    <span style={{ fontWeight: "600", color: "#dc2626" }}>
+                      File Processing Error
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "#dc2626",
+                      margin: 0,
+                    }}
+                  >
+                    {parseError}
+                  </p>
                 </div>
-                <p
-                  style={{ fontSize: "0.875rem", color: "#92400e", margin: 0 }}
-                >
-                  Currently using sample data for validation demonstration. Real
-                  file parsing with FileReader API needed for production use.
-                </p>
-              </div>
+              )}
 
               <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                Validation Configuration (Python DataValidator Rules)
+                Validation Configuration
               </h3>
               <div className="grid grid-cols-3">
                 <div className="card">
@@ -1629,37 +1632,41 @@ export default function DataProcessor() {
                 Data Preview
               </h3>
 
-              {/* Sample Data Notice */}
-              <div
-                style={{
-                  backgroundColor: "#e0f2fe",
-                  border: "1px solid #0ea5e9",
-                  borderRadius: "0.5rem",
-                  padding: "1rem",
-                  marginBottom: "1.5rem",
-                }}
-              >
+              {actualFileData.length > 0 && (
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    marginBottom: "0.5rem",
+                    backgroundColor: "#f0fdf4",
+                    border: "1px solid #10b981",
+                    borderRadius: "0.5rem",
+                    padding: "1rem",
+                    marginBottom: "1.5rem",
                   }}
                 >
-                  <Database size={20} style={{ color: "#0284c7" }} />
-                  <span style={{ fontWeight: "600", color: "#0c4a6e" }}>
-                    Sample Data Preview
-                  </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <CheckCircle size={20} style={{ color: "#10b981" }} />
+                    <span style={{ fontWeight: "600", color: "#065f46" }}>
+                      Real File Data Preview
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "#065f46",
+                      margin: 0,
+                    }}
+                  >
+                    Showing actual parsed data from your uploaded file.{" "}
+                    {actualFileData.length} records loaded.
+                  </p>
                 </div>
-                <p
-                  style={{ fontSize: "0.875rem", color: "#0c4a6e", margin: 0 }}
-                >
-                  Showing sample data structure based on detected file type. In
-                  production, this would display actual file content after
-                  parsing.
-                </p>
-              </div>
+              )}
               {selectedFile !== null && files[selectedFile] ? (
                 <div>
                   <div
