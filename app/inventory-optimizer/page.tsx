@@ -118,8 +118,8 @@ export default function InventoryOptimizer() {
     multi_echelon_enabled: false,
   });
 
-  // Sample SKU Data
-  const [skuData] = useState<SKUData[]>([
+  // SKU Data (can be loaded from Data Processor)
+  const [skuData, setSkuData] = useState<SKUData[]>([
     {
       sku: "SKU_001",
       avg_demand: 100,
