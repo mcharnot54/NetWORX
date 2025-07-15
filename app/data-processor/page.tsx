@@ -1425,6 +1425,10 @@ export default function DataProcessor() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  style={{
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
                 >
                   <Upload
                     size={48}
@@ -1446,6 +1450,7 @@ export default function DataProcessor() {
                       width: "100%",
                       height: "100%",
                       cursor: "pointer",
+                      zIndex: 1,
                     }}
                   />
                   <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
