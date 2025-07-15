@@ -1074,6 +1074,11 @@ export default function Visualizer() {
                 { id: "outputs", label: "Output Generation", icon: Database },
                 { id: "reports", label: "Generated Reports", icon: FileText },
                 { id: "insights", label: "Strategic Insights", icon: Target },
+                {
+                  id: "financial",
+                  label: "Financial Analysis",
+                  icon: DollarSign,
+                },
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
