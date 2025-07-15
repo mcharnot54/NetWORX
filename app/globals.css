@@ -63,11 +63,20 @@ a {
   margin: 0;
 }
 
-.powered-by {
+.powered-by-text {
+  font-family: "Raleway", sans-serif;
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.continuum-text {
   font-family: "Raleway", sans-serif;
   font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: 0.05em;
+  font-size: 1.65rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.95;
   white-space: nowrap;
