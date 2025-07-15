@@ -769,14 +769,15 @@ export default function DataProcessor() {
     return warnings;
   };
 
-  // DataConverter utilities matching Python implementation
+  // Enhanced DataConverter utilities with intelligent column matching
   const findMatchingColumn = (
     availableColumns: string[],
     possibleNames: string[],
   ): string | null => {
     const columnsLower = availableColumns.map((col) => col.toLowerCase());
+    const cleanColumns = availableColumns.map((col) => cleanColumnName(col));
 
-    // Exact match
+    // Priority 1: Exact match (case-insensitive)
     for (const possibleName of possibleNames) {
       const index = columnsLower.indexOf(possibleName.toLowerCase());
       if (index !== -1) {
@@ -784,7 +785,27 @@ export default function DataProcessor() {
       }
     }
 
-    // Partial match
+    // Priority 2: Exact match after cleaning (remove spaces, underscores, etc.)
+    for (const possibleName of possibleNames) {
+      const cleanPossible = cleanColumnName(possibleName);
+      const index = cleanColumns.indexOf(cleanPossible);
+      if (index !== -1) {
+        return availableColumns[index];
+      }
+    }
+
+    // Priority 3: Semantic matching - check if column contains key semantic parts
+    for (const possibleName of possibleNames) {
+      const semanticParts = getSemanticParts(possibleName);
+      for (let i = 0; i < availableColumns.length; i++) {
+        const columnParts = getSemanticParts(availableColumns[i]);
+        if (hasSemanticMatch(semanticParts, columnParts)) {
+          return availableColumns[i];
+        }
+      }
+    }
+
+    // Priority 4: Partial match (contains)
     for (const possibleName of possibleNames) {
       for (const col of availableColumns) {
         if (col.toLowerCase().includes(possibleName.toLowerCase())) {
@@ -793,7 +814,97 @@ export default function DataProcessor() {
       }
     }
 
-    return null;
+    // Priority 5: Fuzzy match with similarity scoring
+    let bestMatch: string | null = null;
+    let bestScore = 0;
+    const threshold = 0.7; // Minimum similarity threshold
+
+    for (const possibleName of possibleNames) {
+      for (const col of availableColumns) {
+        const score = calculateSimilarity(
+          possibleName.toLowerCase(),
+          col.toLowerCase(),
+        );
+        if (score > threshold && score > bestScore) {
+          bestScore = score;
+          bestMatch = col;
+        }
+      }
+    }
+
+    return bestMatch;
+  };
+
+  // Helper function to extract semantic parts from column names
+  const getSemanticParts = (columnName: string): string[] => {
+    return cleanColumnName(columnName)
+      .split(/[_\s-]+/)
+      .filter((part) => part.length > 0)
+      .map((part) => part.toLowerCase());
+  };
+
+  // Check if two sets of semantic parts have meaningful overlap
+  const hasSemanticMatch = (parts1: string[], parts2: string[]): boolean => {
+    const commonWords = parts1.filter((part) => parts2.includes(part));
+    // Need at least 50% overlap and minimum 1 meaningful word
+    return (
+      commonWords.length >= 1 &&
+      commonWords.length / Math.max(parts1.length, parts2.length) >= 0.5
+    );
+  };
+
+  // Calculate similarity score between two strings (Jaro-Winkler approximation)
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    if (str1 === str2) return 1.0;
+    if (str1.length === 0 || str2.length === 0) return 0.0;
+
+    const match_distance =
+      Math.floor(Math.max(str1.length, str2.length) / 2) - 1;
+    const str1_matches = new Array(str1.length).fill(false);
+    const str2_matches = new Array(str2.length).fill(false);
+
+    let matches = 0;
+    let transpositions = 0;
+
+    // Identify matches
+    for (let i = 0; i < str1.length; i++) {
+      const start = Math.max(0, i - match_distance);
+      const end = Math.min(i + match_distance + 1, str2.length);
+
+      for (let j = start; j < end; j++) {
+        if (str2_matches[j] || str1[i] !== str2[j]) continue;
+        str1_matches[i] = true;
+        str2_matches[j] = true;
+        matches++;
+        break;
+      }
+    }
+
+    if (matches === 0) return 0.0;
+
+    // Count transpositions
+    let k = 0;
+    for (let i = 0; i < str1.length; i++) {
+      if (!str1_matches[i]) continue;
+      while (!str2_matches[k]) k++;
+      if (str1[i] !== str2[k]) transpositions++;
+      k++;
+    }
+
+    const jaro =
+      (matches / str1.length +
+        matches / str2.length +
+        (matches - transpositions / 2) / matches) /
+      3;
+
+    // Add Winkler prefix bonus
+    let prefix = 0;
+    for (let i = 0; i < Math.min(str1.length, str2.length, 4); i++) {
+      if (str1[i] === str2[i]) prefix++;
+      else break;
+    }
+
+    return jaro + 0.1 * prefix * (1 - jaro);
   };
 
   const convertToStandardFormat = (data: any[], dataType: string): any => {
@@ -803,19 +914,61 @@ export default function DataProcessor() {
     const mappedColumns: { [key: string]: string } = {};
     const unmappedColumns: string[] = [];
     const conversionLog: string[] = [];
+    const suggestions: { [key: string]: string[] } = {};
 
-    // Map columns to standard names
+    // Map columns to standard names with intelligent matching
     for (const [standardCol, possibleNames] of Object.entries(mappings)) {
       const matchedCol = findMatchingColumn(availableColumns, possibleNames);
       if (matchedCol) {
         mappedColumns[standardCol] = matchedCol;
-        conversionLog.push(`Mapped '${matchedCol}' to '${standardCol}'`);
+        conversionLog.push(`✓ Mapped '${matchedCol}' → '${standardCol}'`);
       } else {
-        conversionLog.push(
-          `Warning: No match found for standard column '${standardCol}'`,
-        );
+        // Suggest potential matches for manual mapping
+        const potentialMatches = availableColumns
+          .map((col) => ({
+            column: col,
+            score: Math.max(
+              ...possibleNames.map((name) =>
+                calculateSimilarity(name.toLowerCase(), col.toLowerCase()),
+              ),
+            ),
+          }))
+          .filter((match) => match.score > 0.4)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .map((match) => match.column);
+
+        if (potentialMatches.length > 0) {
+          suggestions[standardCol] = potentialMatches;
+          conversionLog.push(
+            `⚠️  No exact match for '${standardCol}'. Suggestions: ${potentialMatches.join(", ")}`,
+          );
+        } else {
+          conversionLog.push(
+            `❌ No match found for required column '${standardCol}'`,
+          );
+        }
       }
     }
+
+    // Apply column mapping to the actual data
+    const mappedData = data.map((record) => {
+      const newRecord: any = {};
+
+      // Map known columns to standard names
+      Object.entries(mappedColumns).forEach(([standardName, originalName]) => {
+        newRecord[standardName] = record[originalName];
+      });
+
+      // Keep unmapped columns with their original names
+      availableColumns.forEach((col) => {
+        if (!Object.values(mappedColumns).includes(col)) {
+          newRecord[col] = record[col];
+        }
+      });
+
+      return newRecord;
+    });
 
     // Find unmapped columns
     const mappedOriginalCols = Object.values(mappedColumns);
@@ -824,14 +977,16 @@ export default function DataProcessor() {
     );
 
     if (unmappedColumns.length > 0) {
-      conversionLog.push(`Unmapped columns: ${unmappedColumns.join(", ")}`);
+      conversionLog.push(`📋 Unmapped columns: ${unmappedColumns.join(", ")}`);
     }
 
     return {
       originalColumns: availableColumns,
       mappedColumns,
       unmappedColumns,
+      suggestions,
       conversionLog,
+      mappedData, // Return the transformed data
     };
   };
 
