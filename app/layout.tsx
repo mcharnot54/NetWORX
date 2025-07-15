@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { DataProvider } from "@/context/DataContext";
 
 export const metadata: Metadata = {
   title: "NetWORX Essentials",
