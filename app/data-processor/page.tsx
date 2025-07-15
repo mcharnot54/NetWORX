@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as XLSX from "xlsx";
 import Navigation from "@/components/Navigation";
 import {
   Upload,
@@ -24,6 +25,9 @@ interface FileData {
   sheets?: string[];
   selectedSheet?: string;
   detectedType?: string;
+  file?: File;
+  parsedData?: any[];
+  columnNames?: string[];
 }
 
 interface ProcessingConfig {
@@ -90,6 +94,8 @@ export default function DataProcessor() {
   const [dataQuality, setDataQuality] = useState<DataQuality | null>(null);
   const [processingLog, setProcessingLog] = useState<string[]>([]);
   const [conversionResults, setConversionResults] = useState<any>(null);
+  const [actualFileData, setActualFileData] = useState<any[]>([]);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   // Column mappings matching Python DataConverter
   const columnMappings: any = {
@@ -739,26 +745,61 @@ export default function DataProcessor() {
     return "unknown";
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const uploadedFiles = Array.from(event.target.files || []);
-    const fileData = uploadedFiles.map((file, index) => {
-      const sheets =
-        file.name.endsWith(".xlsx") || file.name.endsWith(".xls")
-          ? ["Sheet1", "Data", "Forecast", "SKU_Data", "Network"]
-          : undefined;
+    setParseError(null);
 
-      return {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-        sheets,
-        selectedSheet: sheets ? sheets[0] : undefined,
-        detectedType: autoDetectDataType(file.name),
-      };
+    const filePromises = uploadedFiles.map(async (file) => {
+      try {
+        let sheets: string[] | undefined;
+        let columnNames: string[] = [];
+
+        // For Excel files, detect actual sheets
+        if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer);
+          sheets = workbook.SheetNames;
+        }
+
+        const fileData: FileData = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+          file,
+          sheets,
+          selectedSheet: sheets ? sheets[0] : undefined,
+          detectedType: autoDetectDataType(file.name),
+          columnNames,
+        };
+
+        // Parse the file immediately to get column names
+        const parsedData = await parseFileContent(fileData);
+        if (parsedData.length > 0) {
+          fileData.columnNames = Object.keys(parsedData[0]);
+          fileData.parsedData = parsedData;
+        }
+
+        return fileData;
+      } catch (error) {
+        addToLog(`Error processing file ${file.name}: ${error}`);
+        setParseError(`Error processing file ${file.name}: ${error}`);
+        return {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+          file,
+          detectedType: autoDetectDataType(file.name),
+        };
+      }
     });
+
+    const fileData = await Promise.all(filePromises);
     setFiles(fileData);
-    addToLog(`Uploaded ${fileData.length} file(s)`);
+    addToLog(`Uploaded and parsed ${fileData.length} file(s)`);
   };
 
   const addToLog = (message: string) => {
@@ -1854,7 +1895,7 @@ export default function DataProcessor() {
                             : "#ef4444",
                         }}
                       >
-                        {dataQuality.validationResult.isValid ? "✓" : "✗"}
+                        {dataQuality.validationResult.isValid ? "��" : "✗"}
                       </div>
                       <div style={{ color: "#6b7280" }}>Validation Status</div>
                     </div>
