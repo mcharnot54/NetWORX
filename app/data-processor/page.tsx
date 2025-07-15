@@ -90,6 +90,10 @@ export default function DataProcessor() {
   const [dataQuality, setDataQuality] = useState<DataQuality | null>(null);
   const [processingLog, setProcessingLog] = useState<string[]>([]);
   const [conversionResults, setConversionResults] = useState<any>(null);
+  const [fileContents, setFileContents] = useState<{ [key: string]: any[][] }>(
+    {},
+  );
+  const [parsedData, setParsedData] = useState<{ [key: string]: any[] }>({});
 
   // Column mappings matching Python DataConverter
   const columnMappings: any = {
