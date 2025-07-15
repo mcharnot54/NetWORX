@@ -1382,58 +1382,78 @@ export default function DataProcessor() {
     const conversionLog: string[] = [];
     const suggestions: { [key: string]: string[] } = {};
 
-    // Map columns to standard names with intelligent matching
-    for (const [standardCol, possibleNames] of Object.entries(mappings)) {
-      const matchedCol = findMatchingColumn(availableColumns, possibleNames);
-      if (matchedCol) {
-        mappedColumns[standardCol] = matchedCol;
-        conversionLog.push(`✓ Mapped '${matchedCol}' → '${standardCol}'`);
-      } else {
-        // Suggest potential matches for manual mapping
-        const potentialMatches = availableColumns
-          .map((col) => ({
-            column: col,
-            score: Math.max(
-              ...possibleNames.map((name) =>
-                calculateSimilarity(name.toLowerCase(), col.toLowerCase()),
-              ),
-            ),
-          }))
-          .filter((match) => match.score > 0.4)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3)
-          .map((match) => match.column);
+    // Use comprehensive field synonyms mapping first
+    const headerMap = mapFieldsToStandard(availableColumns, FIELD_SYNONYMS);
 
-        if (potentialMatches.length > 0) {
-          suggestions[standardCol] = potentialMatches;
+    // Apply comprehensive FIELD_SYNONYMS mapping
+    Object.entries(headerMap).forEach(([canonical, original]) => {
+      mappedColumns[canonical] = original;
+      conversionLog.push(
+        `✓ Auto-mapped '${original}' → '${canonical}' (comprehensive)`,
+      );
+    });
+
+    // Then, try legacy column mappings for any unmapped required fields
+    for (const [standardCol, possibleNames] of Object.entries(mappings)) {
+      if (!mappedColumns[standardCol]) {
+        const matchedCol = findMatchingColumn(availableColumns, possibleNames);
+        if (matchedCol) {
+          mappedColumns[standardCol] = matchedCol;
           conversionLog.push(
-            `⚠️  No exact match for '${standardCol}'. Suggestions: ${potentialMatches.join(", ")}`,
+            `✓ Mapped '${matchedCol}' → '${standardCol}' (legacy)`,
           );
         } else {
-          conversionLog.push(
-            `❌ No match found for required column '${standardCol}'`,
-          );
+          // Suggest potential matches for manual mapping
+          const potentialMatches = availableColumns
+            .filter((col) => !Object.values(mappedColumns).includes(col))
+            .map((col) => ({
+              column: col,
+              score: Math.max(
+                ...(possibleNames as string[]).map((name) =>
+                  calculateSimilarity(name.toLowerCase(), col.toLowerCase()),
+                ),
+              ),
+            }))
+            .filter((match) => match.score > 0.4)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
+            .map((match) => match.column);
+
+          if (potentialMatches.length > 0) {
+            suggestions[standardCol] = potentialMatches;
+            conversionLog.push(
+              `⚠️  No exact match for '${standardCol}'. Suggestions: ${potentialMatches.join(", ")}`,
+            );
+          } else {
+            conversionLog.push(
+              `❌ No match found for required column '${standardCol}'`,
+            );
+          }
         }
       }
     }
 
-    // Apply column mapping to the actual data
-    const mappedData = data.map((record) => {
-      const newRecord: any = {};
+    // Apply comprehensive validation and normalization
+    const processedData = convertTableWithSynonyms(
+      data,
+      FIELD_SYNONYMS,
+      VALIDATION_RULES,
+    );
 
-      // Map known columns to standard names
-      Object.entries(mappedColumns).forEach(([standardName, originalName]) => {
-        newRecord[standardName] = record[originalName];
-      });
+    // Extract validation errors
+    const allRowErrors: string[] = [];
+    processedData.forEach((row, index) => {
+      if (row.rowErrors && row.rowErrors.length > 0) {
+        row.rowErrors.forEach((error: string) => {
+          allRowErrors.push(`Row ${index + 1}: ${error}`);
+        });
+      }
+    });
 
-      // Keep unmapped columns with their original names
-      availableColumns.forEach((col) => {
-        if (!Object.values(mappedColumns).includes(col)) {
-          newRecord[col] = record[col];
-        }
-      });
-
-      return newRecord;
+    // Clean processed data (remove rowErrors field)
+    const mappedData = processedData.map((row) => {
+      const { rowErrors, ...cleanRow } = row;
+      return cleanRow;
     });
 
     // Find unmapped columns
