@@ -826,6 +826,171 @@ export default function Visualizer() {
     setOutputLogs((prev) => [...prev.slice(-49), entry]);
   };
 
+  // Scenario Management Functions
+  const saveCurrentScenario = () => {
+    if (!currentScenarioName.trim()) {
+      alert("Please enter a scenario name");
+      return;
+    }
+
+    // Generate yearly breakdown data
+    const yearlyBreakdown: YearlyBreakdown[] = [];
+    const currentYear = new Date().getFullYear();
+
+    for (let i = 0; i < 8; i++) {
+      const year = currentYear + i;
+      const growthFactor = 1 + i * 0.15; // 15% annual growth
+
+      const baseTransportCost =
+        transportResults?.network_metrics?.total_transportation_cost || 2000000;
+      const baseWarehouseCost =
+        warehouseResultsFromContext?.objective_value || 3000000;
+      const baseInventoryCost = inventoryResults?.totalValue || 1500000;
+
+      yearlyBreakdown.push({
+        year,
+        categories: {
+          transportation: Math.round(baseTransportCost * growthFactor),
+          warehousing: Math.round(baseWarehouseCost * growthFactor),
+          inventory: Math.round(baseInventoryCost * growthFactor),
+          labor: Math.round(500000 * growthFactor),
+          facilities: Math.round(800000 * growthFactor),
+          technology: Math.round(300000 * growthFactor),
+          overhead: Math.round(400000 * growthFactor),
+        },
+        totalCost: Math.round(
+          (baseTransportCost +
+            baseWarehouseCost +
+            baseInventoryCost +
+            500000 +
+            800000 +
+            300000 +
+            400000) *
+            growthFactor,
+        ),
+        costChange: i === 0 ? 0 : 15, // 15% growth
+      });
+    }
+
+    const totalCost = yearlyBreakdown[0]?.totalCost || 0;
+
+    // Determine viability based on financial metrics
+    const financialMetrics = calculateFinancialMetrics();
+    let viability: "High" | "Medium" | "Low" = "Medium";
+
+    if (
+      financialMetrics.roic > 20 &&
+      financialMetrics.npv > 0 &&
+      financialMetrics.paybackPeriod < 3
+    ) {
+      viability = "High";
+    } else if (
+      financialMetrics.roic < 10 ||
+      financialMetrics.npv < 0 ||
+      financialMetrics.paybackPeriod > 5
+    ) {
+      viability = "Low";
+    }
+
+    // Generate strengths and weaknesses based on results
+    const strengths: string[] = [];
+    const weaknesses: string[] = [];
+
+    if (transportResults?.network_metrics?.service_level_achievement > 0.95) {
+      strengths.push("High service level achievement");
+    } else {
+      weaknesses.push("Service level below target");
+    }
+
+    if (
+      warehouseResultsFromContext?.performance_metrics?.avg_utilization > 80
+    ) {
+      strengths.push("Optimal warehouse utilization");
+    } else {
+      weaknesses.push("Low warehouse utilization");
+    }
+
+    if (financialMetrics.roic > 15) {
+      strengths.push("Strong return on investment");
+    } else {
+      weaknesses.push("Below target ROI");
+    }
+
+    if (financialMetrics.paybackPeriod < 4) {
+      strengths.push("Fast payback period");
+    } else {
+      weaknesses.push("Extended payback period");
+    }
+
+    const newScenario: SavedScenario = {
+      id: `scenario_${Date.now()}`,
+      name: currentScenarioName,
+      description: `Saved scenario with ${transportResults?.open_facilities?.length || 0} transport facilities and ${warehouseResultsFromContext?.optimization_summary?.total_facilities_added || 0} warehouse facilities`,
+      savedAt: new Date().toISOString(),
+      transportResults,
+      warehouseResults: warehouseResultsFromContext,
+      inventoryResults,
+      financialMetrics,
+      yearlyBreakdown,
+      totalCost,
+      viability,
+      strengths,
+      weaknesses,
+    };
+
+    setSavedScenarios((prev) => [...prev, newScenario]);
+    setCurrentScenarioName("");
+    alert(`Scenario "${newScenario.name}" saved successfully!`);
+  };
+
+  const deleteScenario = (scenarioId: string) => {
+    if (confirm("Are you sure you want to delete this scenario?")) {
+      setSavedScenarios((prev) => prev.filter((s) => s.id !== scenarioId));
+      setSelectedScenarios((prev) => prev.filter((id) => id !== scenarioId));
+    }
+  };
+
+  const toggleScenarioSelection = (scenarioId: string) => {
+    setSelectedScenarios((prev) =>
+      prev.includes(scenarioId)
+        ? prev.filter((id) => id !== scenarioId)
+        : [...prev, scenarioId],
+    );
+  };
+
+  const getScenarioComparisonData = () => {
+    const selectedScenarioData = savedScenarios.filter((s) =>
+      selectedScenarios.includes(s.id),
+    );
+
+    // Prepare data for multi-scenario chart
+    const years = Array.from(
+      { length: 8 },
+      (_, i) => new Date().getFullYear() + i,
+    );
+
+    return years.map((year) => {
+      const yearData: any = { year };
+
+      selectedScenarioData.forEach((scenario) => {
+        const yearBreakdown = scenario.yearlyBreakdown.find(
+          (yb) => yb.year === year,
+        );
+        if (yearBreakdown) {
+          yearData[`${scenario.name}_Total`] = yearBreakdown.totalCost;
+          yearData[`${scenario.name}_Transport`] =
+            yearBreakdown.categories.transportation;
+          yearData[`${scenario.name}_Warehouse`] =
+            yearBreakdown.categories.warehousing;
+          yearData[`${scenario.name}_Inventory`] =
+            yearBreakdown.categories.inventory;
+        }
+      });
+
+      return yearData;
+    });
+  };
+
   // Generate Executive Summary
   const generateExecutiveSummary = (): ExecutiveSummary => {
     const totalCost =
