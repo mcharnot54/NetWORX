@@ -582,6 +582,45 @@ export default function WarehouseOptimizer() {
                 WarehouseOptimizer class
               </p>
 
+              {/* Data Integration Section */}
+              <div
+                className="card"
+                style={{ marginBottom: "2rem", backgroundColor: "#f8fafc" }}
+              >
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Data Integration
+                </h4>
+                <div
+                  style={{ display: "flex", gap: "1rem", alignItems: "center" }}
+                >
+                  <button
+                    onClick={loadAllData}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.75rem 1rem",
+                      backgroundColor: "#3b82f6",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Package size={16} />
+                    Load Warehouse & SKU Data
+                  </button>
+                  <p
+                    style={{ fontSize: "0.75rem", color: "#6b7280", margin: 0 }}
+                  >
+                    Import warehouse capacity data and SKU information from Data
+                    Processor to auto-configure parameters
+                  </p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-3">
                 <div className="card">
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
