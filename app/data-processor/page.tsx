@@ -1,81 +1,69 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import Navigation from "@/components/Navigation";
-import {
-  Upload,
-  FileText,
-  CheckCircle,
-  AlertCircle,
-  Database,
-  Settings,
-  Play,
-  Eye,
-  Download,
-  RefreshCw,
-  BarChart3,
-} from "lucide-react";
+import { useState } from 'react'
+import Navigation from '@/components/Navigation'
+import { Upload, FileText, CheckCircle, AlertCircle, Database, Settings, Play, Eye, Download, RefreshCw, BarChart3 } from 'lucide-react'
 
 interface FileData {
-  name: string;
-  size: number;
-  type: string;
-  lastModified: number;
-  sheets?: string[];
-  selectedSheet?: string;
-  detectedType?: string;
+  name: string
+  size: number
+  type: string
+  lastModified: number
+  sheets?: string[]
+  selectedSheet?: string
+  detectedType?: string
 }
 
 interface ProcessingConfig {
-  dataType: string;
-  autoDetectType: boolean;
-  validateSchema: boolean;
-  convertUnits: boolean;
-  fillMissingValues: boolean;
-  removeOutliers: boolean;
-  cleanColumnNames: boolean;
-  backupOriginal: boolean;
-  outputFormat: "excel" | "csv" | "json";
-  csvEncoding: "utf-8" | "latin-1" | "cp1252";
-  maxFileSizeMB: number;
+  dataType: string
+  autoDetectType: boolean
+  validateSchema: boolean
+  convertUnits: boolean
+  fillMissingValues: boolean
+  removeOutliers: boolean
+  cleanColumnNames: boolean
+  backupOriginal: boolean
+  outputFormat: 'excel' | 'csv' | 'json'
+  csvEncoding: 'utf-8' | 'latin-1' | 'cp1252'
+  maxFileSizeMB: number
 }
 
 interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-  totalRecords: number;
-  validRecords: number;
-  invalidRecords: number;
+  isValid: boolean
+  errors: string[]
+  warnings: string[]
+  totalRecords: number
+  validRecords: number
+  invalidRecords: number
 }
 
 interface DataQuality {
-  totalRecords: number;
-  validRecords: number;
-  invalidRecords: number;
-  qualityRate: number;
-  errors: string[];
-  warnings: string[];
-  columnStats: any[];
-  validationResult: ValidationResult;
+  totalRecords: number
+  validRecords: number
+  invalidRecords: number
+  qualityRate: number
+  errors: string[]
+  warnings: string[]
+  columnStats: any[]
+  validationResult: ValidationResult
 }
 
 interface ValidationRules {
-  requiredColumns: string[];
-  numericColumns: string[];
-  positiveColumns: string[];
-  stringColumns?: string[];
-  yearRange?: [number, number];
-  coordinateRanges?: { [key: string]: [number, number] };
+  requiredColumns: string[]
+  numericColumns: string[]
+  positiveColumns: string[]
+  stringColumns?: string[]
+  yearRange?: [number, number]
+  coordinateRanges?: { [key: string]: [number, number] }
 }
 
 export default function DataProcessor() {
-  const [files, setFiles] = useState<FileData[]>([]);
-  const [processing, setProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState("upload");
-  const [selectedFile, setSelectedFile] = useState<number | null>(null);
+  const [files, setFiles] = useState<FileData[]>([])
+  const [processing, setProcessing] = useState(false)
+  const [activeTab, setActiveTab] = useState('upload')
+  const [selectedFile, setSelectedFile] = useState<number | null>(null)
   const [config, setConfig] = useState<ProcessingConfig>({
-    dataType: "auto",
+    dataType: 'auto',
     autoDetectType: true,
     validateSchema: true,
     convertUnits: true,
@@ -83,21 +71,20 @@ export default function DataProcessor() {
     removeOutliers: false,
     cleanColumnNames: true,
     backupOriginal: true,
-    outputFormat: "csv",
-    csvEncoding: "utf-8",
-    maxFileSizeMB: 100,
-  });
-  const [dataQuality, setDataQuality] = useState<DataQuality | null>(null);
-  const [processingLog, setProcessingLog] = useState<string[]>([]);
+    outputFormat: 'csv',
+    csvEncoding: 'utf-8',
+    maxFileSizeMB: 100
+  })
+  const [dataQuality, setDataQuality] = useState<DataQuality | null>(null)
+  const [processingLog, setProcessingLog] = useState<string[]>([])
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFiles = Array.from(event.target.files || []);
+    const uploadedFiles = Array.from(event.target.files || [])
     const fileData = uploadedFiles.map((file, index) => {
-      const sheets =
-        file.name.endsWith(".xlsx") || file.name.endsWith(".xls")
-          ? ["Sheet1", "Data", "Forecast", "SKU_Data", "Network"]
-          : undefined;
-
+      const sheets = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') 
+        ? ['Sheet1', 'Data', 'Forecast', 'SKU_Data', 'Network'] 
+        : undefined
+      
       return {
         name: file.name,
         size: file.size,
@@ -105,59 +92,50 @@ export default function DataProcessor() {
         lastModified: file.lastModified,
         sheets,
         selectedSheet: sheets ? sheets[0] : undefined,
-        detectedType: autoDetectDataType(file.name),
-      };
-    });
-    setFiles(fileData);
-    addToLog(`Uploaded ${fileData.length} file(s)`);
-  };
+        detectedType: autoDetectDataType(file.name)
+      }
+    })
+    setFiles(fileData)
+    addToLog(`Uploaded ${fileData.length} file(s)`)
+  }
 
-  // Validation rules matching Python DataValidator
+    // Validation rules matching Python DataValidator
   const validationRules: { [key: string]: ValidationRules } = {
     forecast: {
-      requiredColumns: ["year", "annual_units"],
-      numericColumns: ["year", "annual_units"],
-      positiveColumns: ["annual_units"],
-      yearRange: [2020, 2050],
+      requiredColumns: ['year', 'annual_units'],
+      numericColumns: ['year', 'annual_units'],
+      positiveColumns: ['annual_units'],
+      yearRange: [2020, 2050]
     },
     sku: {
-      requiredColumns: [
-        "sku_id",
-        "units_per_case",
-        "cases_per_pallet",
-        "annual_volume",
-      ],
-      numericColumns: ["units_per_case", "cases_per_pallet", "annual_volume"],
-      positiveColumns: ["units_per_case", "cases_per_pallet", "annual_volume"],
-      stringColumns: ["sku_id"],
+      requiredColumns: ['sku_id', 'units_per_case', 'cases_per_pallet', 'annual_volume'],
+      numericColumns: ['units_per_case', 'cases_per_pallet', 'annual_volume'],
+      positiveColumns: ['units_per_case', 'cases_per_pallet', 'annual_volume'],
+      stringColumns: ['sku_id']
     },
     network: {
-      requiredColumns: ["city", "latitude", "longitude"],
-      numericColumns: ["latitude", "longitude"],
-      stringColumns: ["city"],
+      requiredColumns: ['city', 'latitude', 'longitude'],
+      numericColumns: ['latitude', 'longitude'],
+      stringColumns: ['city'],
       coordinateRanges: {
         latitude: [-90, 90],
-        longitude: [-180, 180],
-      },
-    },
-  };
+        longitude: [-180, 180]
+      }
+    }
+  }
 
   const autoDetectDataType = (filename: string): string => {
-    const name = filename.toLowerCase();
-    if (name.includes("forecast") || name.includes("demand")) return "forecast";
-    if (name.includes("sku") || name.includes("product")) return "sku";
-    if (name.includes("network") || name.includes("location")) return "network";
-    if (name.includes("cost") || name.includes("rate")) return "cost";
-    if (name.includes("capacity") || name.includes("warehouse"))
-      return "capacity";
-    return "unknown";
-  };
+    const name = filename.toLowerCase()
+    if (name.includes('forecast') || name.includes('demand')) return 'forecast'
+    if (name.includes('sku') || name.includes('product')) return 'sku'
+    if (name.includes('network') || name.includes('location')) return 'network'
+    if (name.includes('cost') || name.includes('rate')) return 'cost'
+    if (name.includes('capacity') || name.includes('warehouse')) return 'capacity'
+    return 'unknown'
+  }
 
-  const validateDataFrame = (
-    data: any[],
-    dataType: string,
-  ): ValidationResult => {
-    const rules = validationRules[dataType];
+  const validateDataFrame = (data: any[], dataType: string): ValidationResult => {
+    const rules = validationRules[dataType]
     if (!rules) {
       return {
         isValid: false,
@@ -165,80 +143,70 @@ export default function DataProcessor() {
         warnings: [],
         totalRecords: data.length,
         validRecords: 0,
-        invalidRecords: data.length,
-      };
+        invalidRecords: data.length
+      }
     }
 
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const totalRecords = data.length;
+    const errors: string[] = []
+    const warnings: string[] = []
+    const totalRecords = data.length
 
     // Check required columns
-    const sampleRecord = data[0] || {};
-    const availableColumns = Object.keys(sampleRecord).map((col) =>
-      col.toLowerCase(),
-    );
+    const sampleRecord = data[0] || {}
+    const availableColumns = Object.keys(sampleRecord).map(col => col.toLowerCase())
 
-    const missingColumns = rules.requiredColumns.filter(
-      (col) => !availableColumns.includes(col.toLowerCase()),
-    );
+    const missingColumns = rules.requiredColumns.filter(col =>
+      !availableColumns.includes(col.toLowerCase())
+    )
 
     if (missingColumns.length > 0) {
-      errors.push(
-        ...missingColumns.map((col) => `Missing required column: ${col}`),
-      );
+      errors.push(...missingColumns.map(col => `Missing required column: ${col}`))
     }
 
     // Validate data types and ranges
     data.forEach((record, index) => {
       // Check numeric columns
-      rules.numericColumns?.forEach((col) => {
-        const value = record[col];
+      rules.numericColumns?.forEach(col => {
+        const value = record[col]
         if (value !== undefined && value !== null && isNaN(Number(value))) {
-          errors.push(
-            `Row ${index + 1}: '${col}' must be numeric, got '${value}'`,
-          );
+          errors.push(`Row ${index + 1}: '${col}' must be numeric, got '${value}'`)
         }
-      });
+      })
 
       // Check positive columns
-      rules.positiveColumns?.forEach((col) => {
-        const value = Number(record[col]);
+      rules.positiveColumns?.forEach(col => {
+        const value = Number(record[col])
         if (!isNaN(value) && value <= 0) {
-          errors.push(
-            `Row ${index + 1}: '${col}' must be positive, got ${value}`,
-          );
+          errors.push(`Row ${index + 1}: '${col}' must be positive, got ${value}`)
         }
-      });
+      })
 
       // Check coordinate ranges
       if (rules.coordinateRanges) {
         Object.entries(rules.coordinateRanges).forEach(([col, [min, max]]) => {
-          const value = Number(record[col]);
+          const value = Number(record[col])
           if (!isNaN(value) && (value < min || value > max)) {
-            errors.push(
-              `Row ${index + 1}: '${col}' must be between ${min} and ${max}, got ${value}`,
-            );
+            errors.push(`Row ${index + 1}: '${col}' must be between ${min} and ${max}, got ${value}`)
           }
-        });
+        })
       }
-    });
+    })
 
     // Data type specific validations
-    if (dataType === "forecast") {
-      errors.push(...validateForecastData(data));
-    } else if (dataType === "sku") {
-      errors.push(...validateSkuData(data));
-    } else if (dataType === "network") {
-      errors.push(...validateNetworkData(data));
+    if (dataType === 'forecast') {
+      errors.push(...validateForecastData(data))
+    } else if (dataType === 'sku') {
+      errors.push(...validateSkuData(data))
+    } else if (dataType === 'network') {
+      errors.push(...validateNetworkData(data))
     }
 
     // Check for duplicates and missing values
-    warnings.push(...checkDuplicates(data, dataType));
-    warnings.push(...checkMissingValues(data, rules.requiredColumns));
+    warnings.push(...checkDuplicates(data, dataType))
+    warnings.push(...checkMissingValues(data, rules.requiredColumns))
 
-    const validRecords = Math.max(0, totalRecords - errors.length);
-    const invalidRecords = totalRecords - validRecords;
+    const validRecords = Math.max(0, totalRecords - errors.length)
+    const invalidRecords = totalRecords - validRecords
 
     return {
       isValid: errors.length === 0,
@@ -246,256 +214,280 @@ export default function DataProcessor() {
       warnings,
       totalRecords,
       validRecords,
-      invalidRecords,
-    };
-  };
+      invalidRecords
+    }
+  }
 
   const validateForecastData = (data: any[]): string[] => {
-    const errors: string[] = [];
-    const currentYear = new Date().getFullYear();
+    const errors: string[] = []
+    const currentYear = new Date().getFullYear()
 
     data.forEach((record, index) => {
-      const year = Number(record.year);
+      const year = Number(record.year)
 
       // Check reasonable year range
-      if (
-        !isNaN(year) &&
-        (year < currentYear - 10 || year > currentYear + 30)
-      ) {
-        errors.push(
-          `Row ${index + 1}: Year ${year} outside reasonable range (${currentYear - 10}-${currentYear + 30})`,
-        );
+      if (!isNaN(year) && (year < currentYear - 10 || year > currentYear + 30)) {
+        errors.push(`Row ${index + 1}: Year ${year} outside reasonable range (${currentYear - 10}-${currentYear + 30})`)
       }
 
       // Check for extreme volume values
-      const volume = Number(record.annual_units);
+      const volume = Number(record.annual_units)
       if (!isNaN(volume) && volume > 1000000) {
-        errors.push(
-          `Row ${index + 1}: Annual units ${volume} seems unusually high`,
-        );
+        errors.push(`Row ${index + 1}: Annual units ${volume} seems unusually high`)
       }
-    });
+    })
 
-    return errors;
-  };
+    return errors
+  }
 
   const validateSkuData = (data: any[]): string[] => {
-    const errors: string[] = [];
+    const errors: string[] = []
 
     data.forEach((record, index) => {
       // Check SKU ID format
-      const skuId = String(record.sku_id || "");
+      const skuId = String(record.sku_id || '')
       if (skuId.length < 3) {
-        errors.push(
-          `Row ${index + 1}: SKU ID '${skuId}' should have at least 3 characters`,
-        );
+        errors.push(`Row ${index + 1}: SKU ID '${skuId}' should have at least 3 characters`)
       }
 
       // Check units per pallet calculation
-      const unitsPerCase = Number(record.units_per_case);
-      const casesPerPallet = Number(record.cases_per_pallet);
+      const unitsPerCase = Number(record.units_per_case)
+      const casesPerPallet = Number(record.cases_per_pallet)
 
       if (!isNaN(unitsPerCase) && !isNaN(casesPerPallet)) {
-        const unitsPerPallet = unitsPerCase * casesPerPallet;
+        const unitsPerPallet = unitsPerCase * casesPerPallet
 
         if (unitsPerPallet > 10000) {
-          errors.push(
-            `Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) exceeds 10,000`,
-          );
+          errors.push(`Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) exceeds 10,000`)
         }
 
         if (unitsPerPallet < 1) {
-          errors.push(
-            `Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) is less than 1`,
-          );
+          errors.push(`Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) is less than 1`)
         }
       }
-    });
+    })
 
-    return errors;
-  };
+    return errors
+  }
 
   const validateNetworkData = (data: any[]): string[] => {
-    const errors: string[] = [];
+    const errors: string[] = []
 
     data.forEach((record, index) => {
       // Check city name format
-      const city = String(record.city || "");
+      const city = String(record.city || '')
       if (city.length < 2) {
-        errors.push(
-          `Row ${index + 1}: City name '${city}' should have at least 2 characters`,
-        );
+        errors.push(`Row ${index + 1}: City name '${city}' should have at least 2 characters`)
       }
 
       // Check for (0,0) coordinates
-      const lat = Number(record.latitude);
-      const lng = Number(record.longitude);
+      const lat = Number(record.latitude)
+      const lng = Number(record.longitude)
 
       if (lat === 0 && lng === 0) {
-        errors.push(
-          `Row ${index + 1}: Coordinates (0,0) likely indicate missing location data`,
-        );
+        errors.push(`Row ${index + 1}: Coordinates (0,0) likely indicate missing location data`)
       }
-    });
+    })
 
-    return errors;
-  };
+    return errors
+  }
 
   const checkDuplicates = (data: any[], dataType: string): string[] => {
-    const warnings: string[] = [];
+    const warnings: string[] = []
 
-    if (dataType === "forecast") {
-      const years = data.map((r) => r.year).filter((y) => y !== undefined);
-      const uniqueYears = new Set(years);
+    if (dataType === 'forecast') {
+      const years = data.map(r => r.year).filter(y => y !== undefined)
+      const uniqueYears = new Set(years)
       if (years.length !== uniqueYears.size) {
-        warnings.push("Duplicate years found in forecast data");
+        warnings.push('Duplicate years found in forecast data')
       }
-    } else if (dataType === "sku") {
-      const skuIds = data.map((r) => r.sku_id).filter((id) => id !== undefined);
-      const uniqueSkuIds = new Set(skuIds);
+    } else if (dataType === 'sku') {
+      const skuIds = data.map(r => r.sku_id).filter(id => id !== undefined)
+      const uniqueSkuIds = new Set(skuIds)
       if (skuIds.length !== uniqueSkuIds.size) {
-        warnings.push("Duplicate SKU IDs found");
+        warnings.push('Duplicate SKU IDs found')
       }
-    } else if (dataType === "network") {
-      const cities = data.map((r) => r.city).filter((c) => c !== undefined);
-      const uniqueCities = new Set(cities);
+    } else if (dataType === 'network') {
+      const cities = data.map(r => r.city).filter(c => c !== undefined)
+      const uniqueCities = new Set(cities)
       if (cities.length !== uniqueCities.size) {
-        warnings.push("Duplicate cities found in network data");
+        warnings.push('Duplicate cities found in network data')
       }
     }
 
-    return warnings;
-  };
+    return warnings
+  }
 
-  const checkMissingValues = (
-    data: any[],
-    requiredColumns: string[],
-  ): string[] => {
-    const warnings: string[] = [];
+  const checkMissingValues = (data: any[], requiredColumns: string[]): string[] => {
+    const warnings: string[] = []
 
-    requiredColumns.forEach((col) => {
-      const missingCount = data.filter(
-        (record) =>
-          record[col] === undefined ||
-          record[col] === null ||
-          record[col] === "",
-      ).length;
+    requiredColumns.forEach(col => {
+      const missingCount = data.filter(record =>
+        record[col] === undefined || record[col] === null || record[col] === ''
+      ).length
 
       if (missingCount > 0) {
-        warnings.push(`Column '${col}' has ${missingCount} missing values`);
+        warnings.push(`Column '${col}' has ${missingCount} missing values`)
       }
-    });
+    })
 
-    return warnings;
-  };
+    return warnings
+  }
 
   const addToLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
-  };
+    const timestamp = new Date().toLocaleTimeString()
+    setProcessingLog(prev => [...prev, `[${timestamp}] ${message}`])
+  }
 
   const handleProcess = async () => {
-    if (files.length === 0) return;
-
-    setProcessing(true);
-    addToLog("Starting data processing pipeline...");
-
+    if (files.length === 0) return
+    
+    setProcessing(true)
+    addToLog('Starting data processing pipeline...')
+    
     // Simulate processing steps matching Python DataProcessor
     const steps = [
-      "Validating file existence and size",
-      "Creating backup copy",
-      "Detecting relevant sheets",
-      "Loading data into DataFrame",
-      "Cleaning and standardizing data",
-      "Converting to standard format",
-      "Running data validation",
-      "Generating quality metrics",
-      "Saving processed data",
-    ];
+      'Validating file existence and size',
+      'Creating backup copy',
+      'Detecting relevant sheets',
+      'Loading data into DataFrame',
+      'Cleaning and standardizing data',
+      'Converting to standard format',
+      'Running data validation',
+      'Generating quality metrics',
+      'Saving processed data'
+    ]
 
     for (let i = 0; i < steps.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      addToLog(steps[i]);
+      await new Promise(resolve => setTimeout(resolve, 500))
+      addToLog(steps[i])
     }
 
-    // Simulate data quality results
+        // Simulate comprehensive validation using actual validation framework
     setTimeout(() => {
+      // Generate sample data based on first file's detected type
+      const sampleData = generateSampleData(files[0]?.detectedType || 'network')
+
+      // Run comprehensive validation
+      const validationResult = validateDataFrame(sampleData, files[0]?.detectedType || 'network')
+
+      addToLog(`Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`)
+
+      const qualityRate = validationResult.totalRecords > 0
+        ? (validationResult.validRecords / validationResult.totalRecords) * 100
+        : 0
+
       setDataQuality({
-        totalRecords: 1250,
-        validRecords: 1210,
-        invalidRecords: 40,
-        qualityRate: 96.8,
-        errors: [
-          "Missing postal code in row 45",
-          "Invalid latitude value in row 123",
-          "Duplicate SKU found in row 234",
-        ],
-        warnings: [
-          "City name formatting inconsistent",
-          "Units per case seems unusually high",
-          "Some distance values may be in wrong units",
-        ],
-        columnStats: [
-          { name: "city", type: "string", missing: 2, unique: 45 },
-          {
-            name: "annual_volume",
-            type: "numeric",
-            missing: 0,
-            min: 1000,
-            max: 50000,
-          },
-          {
-            name: "latitude",
-            type: "numeric",
-            missing: 3,
-            min: 25.2,
-            max: 48.7,
-          },
-        ],
-      });
-      addToLog("Data processing completed successfully");
-      setProcessing(false);
-    }, 4500);
-  };
+        totalRecords: validationResult.totalRecords,
+        validRecords: validationResult.validRecords,
+        invalidRecords: validationResult.invalidRecords,
+        qualityRate: Math.round(qualityRate * 10) / 10,
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
+        validationResult,
+        columnStats: generateColumnStats(sampleData, files[0]?.detectedType || 'network')
+      })
+
+      if (validationResult.isValid) {
+        addToLog('✓ All validation checks passed - Data is ready for processing')
+      } else {
+        addToLog(`⚠ Validation found ${validationResult.errors.length} critical issues that need attention`)
+      }
+
+      addToLog('Data processing pipeline completed')
+      setProcessing(false)
+    }, 4500)
+  }
+
+  const generateSampleData = (dataType: string): any[] => {
+    // Generate realistic sample data for testing validation
+    if (dataType === 'forecast') {
+      return [
+        { year: 2024, annual_units: 125000 },
+        { year: 2025, annual_units: 130000 },
+        { year: 2026, annual_units: 135000 },
+        { year: 'invalid', annual_units: 140000 }, // Invalid year for testing
+        { year: 2028, annual_units: -5000 }, // Negative units for testing
+      ]
+    } else if (dataType === 'sku') {
+      return [
+        { sku_id: 'ABC123', units_per_case: 24, cases_per_pallet: 40, annual_volume: 50000 },
+        { sku_id: 'DEF456', units_per_case: 12, cases_per_pallet: 80, annual_volume: 75000 },
+        { sku_id: 'GH', units_per_case: 6, cases_per_pallet: 120, annual_volume: 30000 }, // Short SKU ID
+        { sku_id: 'IJK789', units_per_case: 500, cases_per_pallet: 25, annual_volume: 60000 }, // High units per pallet
+        { sku_id: 'LMN012', units_per_case: 0, cases_per_pallet: 40, annual_volume: 45000 }, // Zero units per case
+      ]
+    } else { // network
+      return [
+        { city: 'New York', latitude: 40.7128, longitude: -74.0060 },
+        { city: 'Chicago', latitude: 41.8781, longitude: -87.6298 },
+        { city: 'Los Angeles', latitude: 34.0522, longitude: -118.2437 },
+        { city: 'X', latitude: 29.7604, longitude: -95.3698 }, // Short city name
+        { city: 'Houston', latitude: 0, longitude: 0 }, // Invalid coordinates
+        { city: 'Phoenix', latitude: 91, longitude: -112.0740 }, // Invalid latitude
+      ]
+    }
+  }
+
+  const generateColumnStats = (data: any[], dataType: string): any[] => {
+    if (data.length === 0) return []
+
+    const sampleRecord = data[0]
+    const columns = Object.keys(sampleRecord)
+
+    return columns.map(col => {
+      const values = data.map(record => record[col]).filter(val => val !== undefined && val !== null && val !== '')
+      const numericValues = values.filter(val => !isNaN(Number(val))).map(val => Number(val))
+      const missing = data.length - values.length
+
+      const stats: any = {
+        name: col,
+        type: numericValues.length === values.length ? 'numeric' : 'string',
+        missing,
+        unique: new Set(values).size
+      }
+
+      if (numericValues.length > 0) {
+        stats.min = Math.min(...numericValues)
+        stats.max = Math.max(...numericValues)
+        stats.avg = Math.round((numericValues.reduce((a, b) => a + b, 0) / numericValues.length) * 100) / 100
+      }
+
+      return stats
+    })
+  }
+  }
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
 
   const getDataTypeColor = (type: string) => {
     const colors: any = {
-      forecast: "#3b82f6",
-      sku: "#10b981",
-      network: "#f59e0b",
-      cost: "#ef4444",
-      capacity: "#8b5cf6",
-      unknown: "#6b7280",
-    };
-    return colors[type] || "#6b7280";
-  };
+      forecast: '#3b82f6',
+      sku: '#10b981',
+      network: '#f59e0b',
+      cost: '#ef4444',
+      capacity: '#8b5cf6',
+      unknown: '#6b7280'
+    }
+    return colors[type] || '#6b7280'
+  }
 
   return (
     <>
       <Navigation />
       <main className="content-area">
         <div className="card">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1.5rem",
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
               <h2 className="card-title">Advanced Data Processor</h2>
-              <p style={{ color: "#6b7280", margin: 0 }}>
-                Excel/CSV processing with comprehensive validation,
-                auto-detection, and quality metrics.
+              <p style={{ color: '#6b7280', margin: 0 }}>
+                Excel/CSV processing with comprehensive validation, auto-detection, and quality metrics.
               </p>
             </div>
             <button
@@ -505,36 +497,36 @@ export default function DataProcessor() {
             >
               {processing && <div className="loading-spinner"></div>}
               <Play size={16} />
-              {processing ? "Processing..." : "Process All Files"}
+              {processing ? 'Processing...' : 'Process All Files'}
             </button>
           </div>
 
-          <div style={{ marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
-                className={`button ${activeTab === "upload" ? "button-primary" : "button-secondary"}`}
-                onClick={() => setActiveTab("upload")}
+                className={`button ${activeTab === 'upload' ? 'button-primary' : 'button-secondary'}`}
+                onClick={() => setActiveTab('upload')}
               >
                 <Upload size={16} />
                 File Upload
               </button>
               <button
-                className={`button ${activeTab === "config" ? "button-primary" : "button-secondary"}`}
-                onClick={() => setActiveTab("config")}
+                className={`button ${activeTab === 'config' ? 'button-primary' : 'button-secondary'}`}
+                onClick={() => setActiveTab('config')}
               >
                 <Settings size={16} />
                 Processing Config
               </button>
               <button
-                className={`button ${activeTab === "preview" ? "button-primary" : "button-secondary"}`}
-                onClick={() => setActiveTab("preview")}
+                className={`button ${activeTab === 'preview' ? 'button-primary' : 'button-secondary'}`}
+                onClick={() => setActiveTab('preview')}
               >
                 <Eye size={16} />
                 Data Preview
               </button>
               <button
-                className={`button ${activeTab === "quality" ? "button-primary" : "button-secondary"}`}
-                onClick={() => setActiveTab("quality")}
+                className={`button ${activeTab === 'quality' ? 'button-primary' : 'button-secondary'}`}
+                onClick={() => setActiveTab('quality')}
               >
                 <BarChart3 size={16} />
                 Quality Report
@@ -542,18 +534,13 @@ export default function DataProcessor() {
             </div>
           </div>
 
-          {activeTab === "upload" && (
+          {activeTab === 'upload' && (
             <div className="grid grid-cols-2">
               <div>
-                <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  File Upload & Detection
-                </h3>
+                <h3 style={{ marginBottom: '1rem', color: '#111827' }}>File Upload & Detection</h3>
                 <div className="file-upload">
-                  <Upload
-                    size={48}
-                    style={{ color: "#6b7280", margin: "0 auto 1rem" }}
-                  />
-                  <p style={{ marginBottom: "1rem", color: "#374151" }}>
+                  <Upload size={48} style={{ color: '#6b7280', margin: '0 auto 1rem' }} />
+                  <p style={{ marginBottom: '1rem', color: '#374151' }}>
                     Drop Excel/CSV files here or click to upload
                   </p>
                   <input
@@ -561,107 +548,65 @@ export default function DataProcessor() {
                     multiple
                     accept=".xlsx,.xls,.csv"
                     onChange={handleFileUpload}
-                    style={{
-                      opacity: 0,
-                      position: "absolute",
-                      width: "100%",
-                      height: "100%",
-                      cursor: "pointer",
+                    style={{ 
+                      opacity: 0, 
+                      position: 'absolute', 
+                      width: '100%', 
+                      height: '100%', 
+                      cursor: 'pointer' 
                     }}
                   />
-                  <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                    Max file size: {config.maxFileSizeMB}MB | Supported: Excel
-                    (.xlsx, .xls), CSV
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                    Max file size: {config.maxFileSizeMB}MB | Supported: Excel (.xlsx, .xls), CSV
                   </p>
                 </div>
 
                 {files.length > 0 && (
-                  <div style={{ marginTop: "1rem" }}>
-                    <h4 style={{ marginBottom: "0.5rem", color: "#111827" }}>
-                      Uploaded Files:
-                    </h4>
+                  <div style={{ marginTop: '1rem' }}>
+                    <h4 style={{ marginBottom: '0.5rem', color: '#111827' }}>Uploaded Files:</h4>
                     {files.map((file, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          padding: "0.75rem",
-                          backgroundColor:
-                            selectedFile === index ? "#eff6ff" : "#f9fafb",
-                          borderRadius: "0.375rem",
-                          marginBottom: "0.5rem",
-                          border:
-                            selectedFile === index
-                              ? "1px solid #3b82f6"
-                              : "1px solid #e5e7eb",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => setSelectedFile(index)}
+                      <div key={index} style={{ 
+                        padding: '0.75rem',
+                        backgroundColor: selectedFile === index ? '#eff6ff' : '#f9fafb',
+                        borderRadius: '0.375rem',
+                        marginBottom: '0.5rem',
+                        border: selectedFile === index ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setSelectedFile(index)}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <FileText size={16} style={{ color: "#6b7280" }} />
-                          <span
-                            style={{
-                              flex: 1,
-                              fontSize: "0.875rem",
-                              fontWeight: "500",
-                            }}
-                          >
-                            {file.name}
-                          </span>
-                          <span
-                            style={{ fontSize: "0.75rem", color: "#6b7280" }}
-                          >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                          <FileText size={16} style={{ color: '#6b7280' }} />
+                          <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: '500' }}>{file.name}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                             {formatFileSize(file.size)}
                           </span>
                         </div>
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.75rem",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          <span
-                            style={{
-                              padding: "0.25rem 0.5rem",
-                              borderRadius: "0.25rem",
-                              backgroundColor: getDataTypeColor(
-                                file.detectedType || "unknown",
-                              ),
-                              color: "white",
-                              fontSize: "0.6rem",
-                            }}
-                          >
-                            {file.detectedType?.toUpperCase() || "UNKNOWN"}
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem' }}>
+                          <span style={{ 
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            backgroundColor: getDataTypeColor(file.detectedType || 'unknown'),
+                            color: 'white',
+                            fontSize: '0.6rem'
+                          }}>
+                            {file.detectedType?.toUpperCase() || 'UNKNOWN'}
                           </span>
-
+                          
                           {file.sheets && (
                             <select
                               value={file.selectedSheet}
                               onChange={(e) => {
-                                const updated = [...files];
-                                updated[index].selectedSheet = e.target.value;
-                                setFiles(updated);
+                                const updated = [...files]
+                                updated[index].selectedSheet = e.target.value
+                                setFiles(updated)
                               }}
-                              style={{
-                                fontSize: "0.75rem",
-                                padding: "0.25rem",
-                              }}
+                              style={{ fontSize: '0.75rem', padding: '0.25rem' }}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {file.sheets.map((sheet) => (
-                                <option key={sheet} value={sheet}>
-                                  {sheet}
-                                </option>
+                              {file.sheets.map(sheet => (
+                                <option key={sheet} value={sheet}>{sheet}</option>
                               ))}
                             </select>
                           )}
@@ -673,60 +618,39 @@ export default function DataProcessor() {
               </div>
 
               <div>
-                <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  Processing Log
-                </h3>
-                <div
-                  style={{
-                    backgroundColor: "#1f2937",
-                    color: "#f9fafb",
-                    padding: "1rem",
-                    borderRadius: "0.375rem",
-                    fontFamily: "monospace",
-                    fontSize: "0.75rem",
-                    height: "300px",
-                    overflowY: "auto",
-                    border: "1px solid #374151",
-                  }}
-                >
+                <h3 style={{ marginBottom: '1rem', color: '#111827' }}>Processing Log</h3>
+                <div style={{ 
+                  backgroundColor: '#1f2937', 
+                  color: '#f9fafb', 
+                  padding: '1rem', 
+                  borderRadius: '0.375rem',
+                  fontFamily: 'monospace',
+                  fontSize: '0.75rem',
+                  height: '300px',
+                  overflowY: 'auto',
+                  border: '1px solid #374151'
+                }}>
                   {processingLog.length === 0 ? (
-                    <div
-                      style={{
-                        color: "#6b7280",
-                        textAlign: "center",
-                        padding: "2rem",
-                      }}
-                    >
+                    <div style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>
                       Processing log will appear here...
                     </div>
                   ) : (
                     processingLog.map((log, index) => (
-                      <div
-                        key={index}
-                        style={{ marginBottom: "0.25rem", color: "#10b981" }}
-                      >
+                      <div key={index} style={{ marginBottom: '0.25rem', color: '#10b981' }}>
                         {log}
                       </div>
                     ))
                   )}
                 </div>
 
-                <div style={{ marginTop: "1rem" }}>
-                  <h4 style={{ marginBottom: "0.5rem", color: "#111827" }}>
-                    Quick Actions
-                  </h4>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button
-                      className="button button-secondary"
-                      style={{ fontSize: "0.75rem" }}
-                    >
+                <div style={{ marginTop: '1rem' }}>
+                  <h4 style={{ marginBottom: '0.5rem', color: '#111827' }}>Quick Actions</h4>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="button button-secondary" style={{ fontSize: '0.75rem' }}>
                       <RefreshCw size={12} />
                       Clear Log
                     </button>
-                    <button
-                      className="button button-secondary"
-                      style={{ fontSize: "0.75rem" }}
-                    >
+                    <button className="button button-secondary" style={{ fontSize: '0.75rem' }}>
                       <Download size={12} />
                       Export Log
                     </button>
@@ -736,28 +660,19 @@ export default function DataProcessor() {
             </div>
           )}
 
-          {activeTab === "config" && (
+          {activeTab === 'config' && (
             <div>
-              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                Processing Configuration
-              </h3>
+              <h3 style={{ marginBottom: '1rem', color: '#111827' }}>Processing Configuration</h3>
               <div className="grid grid-cols-3">
                 <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Data Type Detection
-                  </h4>
+                  <h4 style={{ marginBottom: '1rem', color: '#111827' }}>Data Type Detection</h4>
                   <div className="form-group">
                     <label className="form-label">
                       <input
                         type="checkbox"
                         checked={config.autoDetectType}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            autoDetectType: e.target.checked,
-                          })
-                        }
-                        style={{ marginRight: "0.5rem" }}
+                        onChange={(e) => setConfig({...config, autoDetectType: e.target.checked})}
+                        style={{ marginRight: '0.5rem' }}
                       />
                       Auto-Detect Data Type
                     </label>
@@ -767,9 +682,7 @@ export default function DataProcessor() {
                     <select
                       className="form-input"
                       value={config.dataType}
-                      onChange={(e) =>
-                        setConfig({ ...config, dataType: e.target.value })
-                      }
+                      onChange={(e) => setConfig({...config, dataType: e.target.value})}
                       disabled={config.autoDetectType}
                     >
                       <option value="auto">Auto-Detect</option>
@@ -780,33 +693,20 @@ export default function DataProcessor() {
                       <option value="capacity">Capacity Data</option>
                     </select>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#6b7280",
-                      marginTop: "0.5rem",
-                    }}
-                  >
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
                     Auto-detection uses filename patterns and column analysis
                   </div>
                 </div>
 
                 <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Data Cleaning
-                  </h4>
+                  <h4 style={{ marginBottom: '1rem', color: '#111827' }}>Data Cleaning</h4>
                   <div className="form-group">
                     <label className="form-label">
                       <input
                         type="checkbox"
                         checked={config.cleanColumnNames}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            cleanColumnNames: e.target.checked,
-                          })
-                        }
-                        style={{ marginRight: "0.5rem" }}
+                        onChange={(e) => setConfig({...config, cleanColumnNames: e.target.checked})}
+                        style={{ marginRight: '0.5rem' }}
                       />
                       Clean Column Names
                     </label>
@@ -816,13 +716,8 @@ export default function DataProcessor() {
                       <input
                         type="checkbox"
                         checked={config.fillMissingValues}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            fillMissingValues: e.target.checked,
-                          })
-                        }
-                        style={{ marginRight: "0.5rem" }}
+                        onChange={(e) => setConfig({...config, fillMissingValues: e.target.checked})}
+                        style={{ marginRight: '0.5rem' }}
                       />
                       Fill Missing Values
                     </label>
@@ -832,13 +727,8 @@ export default function DataProcessor() {
                       <input
                         type="checkbox"
                         checked={config.removeOutliers}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            removeOutliers: e.target.checked,
-                          })
-                        }
-                        style={{ marginRight: "0.5rem" }}
+                        onChange={(e) => setConfig({...config, removeOutliers: e.target.checked})}
+                        style={{ marginRight: '0.5rem' }}
                       />
                       Remove Statistical Outliers
                     </label>
@@ -848,13 +738,8 @@ export default function DataProcessor() {
                       <input
                         type="checkbox"
                         checked={config.convertUnits}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            convertUnits: e.target.checked,
-                          })
-                        }
-                        style={{ marginRight: "0.5rem" }}
+                        onChange={(e) => setConfig({...config, convertUnits: e.target.checked})}
+                        style={{ marginRight: '0.5rem' }}
                       />
                       Standardize Units
                     </label>
@@ -862,21 +747,14 @@ export default function DataProcessor() {
                 </div>
 
                 <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Output & Backup
-                  </h4>
+                  <h4 style={{ marginBottom: '1rem', color: '#111827' }}>Output & Backup</h4>
                   <div className="form-group">
                     <label className="form-label">
                       <input
                         type="checkbox"
                         checked={config.backupOriginal}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            backupOriginal: e.target.checked,
-                          })
-                        }
-                        style={{ marginRight: "0.5rem" }}
+                        onChange={(e) => setConfig({...config, backupOriginal: e.target.checked})}
+                        style={{ marginRight: '0.5rem' }}
                       />
                       Backup Original Files
                     </label>
@@ -886,12 +764,7 @@ export default function DataProcessor() {
                     <select
                       className="form-input"
                       value={config.outputFormat}
-                      onChange={(e) =>
-                        setConfig({
-                          ...config,
-                          outputFormat: e.target.value as any,
-                        })
-                      }
+                      onChange={(e) => setConfig({...config, outputFormat: e.target.value as any})}
                     >
                       <option value="csv">CSV</option>
                       <option value="excel">Excel (.xlsx)</option>
@@ -903,12 +776,7 @@ export default function DataProcessor() {
                     <select
                       className="form-input"
                       value={config.csvEncoding}
-                      onChange={(e) =>
-                        setConfig({
-                          ...config,
-                          csvEncoding: e.target.value as any,
-                        })
-                      }
+                      onChange={(e) => setConfig({...config, csvEncoding: e.target.value as any})}
                     >
                       <option value="utf-8">UTF-8</option>
                       <option value="latin-1">Latin-1</option>
@@ -921,12 +789,7 @@ export default function DataProcessor() {
                       type="number"
                       className="form-input"
                       value={config.maxFileSizeMB}
-                      onChange={(e) =>
-                        setConfig({
-                          ...config,
-                          maxFileSizeMB: parseInt(e.target.value),
-                        })
-                      }
+                      onChange={(e) => setConfig({...config, maxFileSizeMB: parseInt(e.target.value)})}
                     />
                   </div>
                 </div>
@@ -934,122 +797,42 @@ export default function DataProcessor() {
             </div>
           )}
 
-          {activeTab === "preview" && (
+          {activeTab === 'preview' && (
             <div>
-              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                Data Preview
-              </h3>
+              <h3 style={{ marginBottom: '1rem', color: '#111827' }}>Data Preview</h3>
               {selectedFile !== null && files[selectedFile] ? (
                 <div>
-                  <div
-                    style={{
-                      marginBottom: "1rem",
-                      padding: "1rem",
-                      backgroundColor: "#f9fafb",
-                      borderRadius: "0.375rem",
-                    }}
-                  >
-                    <h4 style={{ marginBottom: "0.5rem" }}>
-                      File: {files[selectedFile].name}
-                    </h4>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "1rem",
-                        fontSize: "0.875rem",
-                        color: "#6b7280",
-                      }}
-                    >
+                  <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.375rem' }}>
+                    <h4 style={{ marginBottom: '0.5rem' }}>File: {files[selectedFile].name}</h4>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
                       <span>Type: {files[selectedFile].detectedType}</span>
-                      <span>
-                        Sheet: {files[selectedFile].selectedSheet || "N/A"}
-                      </span>
-                      <span>
-                        Size: {formatFileSize(files[selectedFile].size)}
-                      </span>
+                      <span>Sheet: {files[selectedFile].selectedSheet || 'N/A'}</span>
+                      <span>Size: {formatFileSize(files[selectedFile].size)}</span>
                     </div>
                   </div>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table
-                      style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        fontSize: "0.875rem",
-                      }}
-                    >
+                  
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                       <thead>
-                        <tr style={{ backgroundColor: "#f3f4f6" }}>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            City
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            State
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Annual Volume
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Latitude
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Longitude
-                          </th>
+                        <tr style={{ backgroundColor: '#f3f4f6' }}>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #e5e7eb' }}>City</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #e5e7eb' }}>State</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #e5e7eb' }}>Annual Volume</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #e5e7eb' }}>Latitude</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', border: '1px solid #e5e7eb' }}>Longitude</th>
                         </tr>
                       </thead>
                       <tbody>
                         {[
-                          ["New York", "NY", "125,000", "40.7128", "-74.0060"],
-                          ["Chicago", "IL", "98,500", "41.8781", "-87.6298"],
-                          [
-                            "Los Angeles",
-                            "CA",
-                            "156,200",
-                            "34.0522",
-                            "-118.2437",
-                          ],
-                          ["Houston", "TX", "89,300", "29.7604", "-95.3698"],
-                          ["Phoenix", "AZ", "67,800", "33.4484", "-112.0740"],
+                          ['New York', 'NY', '125,000', '40.7128', '-74.0060'],
+                          ['Chicago', 'IL', '98,500', '41.8781', '-87.6298'],
+                          ['Los Angeles', 'CA', '156,200', '34.0522', '-118.2437'],
+                          ['Houston', 'TX', '89,300', '29.7604', '-95.3698'],
+                          ['Phoenix', 'AZ', '67,800', '33.4484', '-112.0740']
                         ].map((row, index) => (
                           <tr key={index}>
                             {row.map((cell, cellIndex) => (
-                              <td
-                                key={cellIndex}
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                }}
-                              >
+                              <td key={cellIndex} style={{ padding: '0.75rem', border: '1px solid #e5e7eb' }}>
                                 {cell}
                               </td>
                             ))}
@@ -1060,154 +843,74 @@ export default function DataProcessor() {
                   </div>
                 </div>
               ) : (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "3rem",
-                    color: "#6b7280",
-                  }}
-                >
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
                   Select a file from the upload tab to preview its data
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === "quality" && (
+          {activeTab === 'quality' && (
             <div>
-              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                Data Quality Report
-              </h3>
+              <h3 style={{ marginBottom: '1rem', color: '#111827' }}>Data Quality Report</h3>
               {dataQuality ? (
                 <div>
-                  <div
-                    className="grid grid-cols-3"
-                    style={{ marginBottom: "1.5rem" }}
-                  >
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "1rem",
-                        backgroundColor: "#f0f9ff",
-                        borderRadius: "0.5rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#3b82f6",
-                        }}
-                      >
+                  <div className="grid grid-cols-3" style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#f0f9ff', borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>
                         {dataQuality.totalRecords.toLocaleString()}
                       </div>
-                      <div style={{ color: "#6b7280" }}>Total Records</div>
+                      <div style={{ color: '#6b7280' }}>Total Records</div>
                     </div>
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "1rem",
-                        backgroundColor: "#f0fdf4",
-                        borderRadius: "0.5rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#10b981",
-                        }}
-                      >
+                    <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
                         {dataQuality.qualityRate}%
                       </div>
-                      <div style={{ color: "#6b7280" }}>Quality Rate</div>
+                      <div style={{ color: '#6b7280' }}>Quality Rate</div>
                     </div>
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "1rem",
-                        backgroundColor: "#fef2f2",
-                        borderRadius: "0.5rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#ef4444",
-                        }}
-                      >
+                    <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#fef2f2', borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ef4444' }}>
                         {dataQuality.errors.length}
                       </div>
-                      <div style={{ color: "#6b7280" }}>Critical Errors</div>
+                      <div style={{ color: '#6b7280' }}>Critical Errors</div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2">
                     <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Validation Issues
-                      </h4>
-                      <div style={{ marginBottom: "1rem" }}>
-                        <h5
-                          style={{
-                            color: "#ef4444",
-                            fontSize: "0.875rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          Errors ({dataQuality.errors.length})
-                        </h5>
+                      <h4 style={{ marginBottom: '1rem', color: '#111827' }}>Validation Issues</h4>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <h5 style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Errors ({dataQuality.errors.length})</h5>
                         {dataQuality.errors.map((error, index) => (
-                          <div
-                            key={index}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              padding: "0.5rem",
-                              backgroundColor: "#fef2f2",
-                              borderRadius: "0.25rem",
-                              marginBottom: "0.25rem",
-                              fontSize: "0.875rem",
-                            }}
-                          >
-                            <AlertCircle
-                              size={16}
-                              style={{ color: "#ef4444" }}
-                            />
+                          <div key={index} style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.5rem',
+                            padding: '0.5rem',
+                            backgroundColor: '#fef2f2',
+                            borderRadius: '0.25rem',
+                            marginBottom: '0.25rem',
+                            fontSize: '0.875rem'
+                          }}>
+                            <AlertCircle size={16} style={{ color: '#ef4444' }} />
                             {error}
                           </div>
                         ))}
                       </div>
                       <div>
-                        <h5
-                          style={{
-                            color: "#f59e0b",
-                            fontSize: "0.875rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          Warnings ({dataQuality.warnings.length})
-                        </h5>
+                        <h5 style={{ color: '#f59e0b', fontSize: '0.875rem', marginBottom: '0.5rem' }}>Warnings ({dataQuality.warnings.length})</h5>
                         {dataQuality.warnings.map((warning, index) => (
-                          <div
-                            key={index}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              padding: "0.5rem",
-                              backgroundColor: "#fffbeb",
-                              borderRadius: "0.25rem",
-                              marginBottom: "0.25rem",
-                              fontSize: "0.875rem",
-                            }}
-                          >
-                            <AlertCircle
-                              size={16}
-                              style={{ color: "#f59e0b" }}
-                            />
+                          <div key={index} style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.5rem',
+                            padding: '0.5rem',
+                            backgroundColor: '#fffbeb',
+                            borderRadius: '0.25rem',
+                            marginBottom: '0.25rem',
+                            fontSize: '0.875rem'
+                          }}>
+                            <AlertCircle size={16} style={{ color: '#f59e0b' }} />
                             {warning}
                           </div>
                         ))}
@@ -1215,53 +918,23 @@ export default function DataProcessor() {
                     </div>
 
                     <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Column Statistics
-                      </h4>
-                      <div style={{ overflowY: "auto", maxHeight: "300px" }}>
+                      <h4 style={{ marginBottom: '1rem', color: '#111827' }}>Column Statistics</h4>
+                      <div style={{ overflowY: 'auto', maxHeight: '300px' }}>
                         {dataQuality.columnStats.map((col, index) => (
-                          <div
-                            key={index}
-                            style={{
-                              padding: "0.75rem",
-                              backgroundColor: "#f9fafb",
-                              borderRadius: "0.375rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                marginBottom: "0.25rem",
-                              }}
-                            >
-                              <span style={{ fontWeight: "500" }}>
-                                {col.name}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                {col.type}
-                              </span>
+                          <div key={index} style={{ 
+                            padding: '0.75rem',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '0.375rem',
+                            marginBottom: '0.5rem'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                              <span style={{ fontWeight: '500' }}>{col.name}</span>
+                              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{col.type}</span>
                             </div>
-                            <div
-                              style={{ fontSize: "0.75rem", color: "#6b7280" }}
-                            >
-                              {col.missing > 0 && (
-                                <span>Missing: {col.missing} | </span>
-                              )}
-                              {col.unique && (
-                                <span>Unique: {col.unique} | </span>
-                              )}
-                              {col.min !== undefined && (
-                                <span>
-                                  Range: {col.min} - {col.max}
-                                </span>
-                              )}
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                              {col.missing > 0 && <span>Missing: {col.missing} | </span>}
+                              {col.unique && <span>Unique: {col.unique} | </span>}
+                              {col.min !== undefined && <span>Range: {col.min} - {col.max}</span>}
                             </div>
                           </div>
                         ))}
@@ -1270,13 +943,7 @@ export default function DataProcessor() {
                   </div>
                 </div>
               ) : (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "3rem",
-                    color: "#6b7280",
-                  }}
-                >
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
                   Process files to view data quality report
                 </div>
               )}
@@ -1285,5 +952,5 @@ export default function DataProcessor() {
         </div>
       </main>
     </>
-  );
+  )
 }
