@@ -1846,8 +1846,11 @@ export default function DataProcessor() {
     const colors: any = {
       forecast: "#3b82f6",
       sales_volume: "#06b6d4",
+      sales_orders: "#0891b2",
       sku: "#10b981",
       facility: "#8b5cf6",
+      warehouse_inputs: "#7c3aed",
+      transportation_costs: "#dc2626",
       transport_cost: "#ef4444",
       network: "#f59e0b",
       cost: "#ef4444",
