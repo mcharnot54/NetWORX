@@ -1755,6 +1755,276 @@ export default function DataProcessor() {
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
   };
 
+  const compileBaselineData = () => {
+    addToLog("🔄 Compiling baseline data for digital twin validation...");
+
+    const processedFiles = files.filter((f) => f.processed && f.parsedData);
+    if (processedFiles.length === 0) {
+      addToLog("⚠️ No processed files available for baseline compilation");
+      return;
+    }
+
+    let compiled: any[] = [];
+    let baseline: BaselineData = {
+      inventory: {
+        totalSKUs: 0,
+        totalVolume: 0,
+        avgUnitsPerCase: 0,
+        avgCasesPerPallet: 0,
+        topProducts: [],
+      },
+      warehouse: {
+        totalFacilities: 0,
+        totalCapacity: 0,
+        avgUtilization: 0,
+        totalCosts: 0,
+        performanceMetrics: [],
+      },
+      transportation: {
+        totalLanes: 0,
+        avgDistance: 0,
+        avgCostPerMile: 0,
+        modeDistribution: [],
+        costAnalysis: [],
+      },
+      salesOrders: {
+        totalOrders: 0,
+        totalVolume: 0,
+        avgOrderSize: 0,
+        topCustomers: [],
+        orderPatterns: [],
+      },
+    };
+
+    // Compile SKU/Inventory Data
+    const skuFiles = processedFiles.filter((f) => f.detectedType === "sku");
+    if (skuFiles.length > 0) {
+      const allSkuData = skuFiles.flatMap((f) => f.parsedData || []);
+      baseline.inventory.totalSKUs = allSkuData.length;
+      baseline.inventory.totalVolume = allSkuData.reduce(
+        (sum, item) => sum + (Number(item.annual_volume) || 0),
+        0,
+      );
+      baseline.inventory.avgUnitsPerCase =
+        allSkuData.reduce(
+          (sum, item) => sum + (Number(item.units_per_case) || 0),
+          0,
+        ) / allSkuData.length;
+      baseline.inventory.avgCasesPerPallet =
+        allSkuData.reduce(
+          (sum, item) => sum + (Number(item.cases_per_pallet) || 0),
+          0,
+        ) / allSkuData.length;
+      baseline.inventory.topProducts = allSkuData
+        .sort(
+          (a, b) =>
+            (Number(b.annual_volume) || 0) - (Number(a.annual_volume) || 0),
+        )
+        .slice(0, 10)
+        .map((item) => ({
+          sku: item.sku_id,
+          volume: Number(item.annual_volume) || 0,
+          unitsPerCase: Number(item.units_per_case) || 0,
+        }));
+      compiled.push(
+        ...allSkuData.map((item) => ({
+          ...item,
+          dataType: "sku",
+          source: "inventory",
+        })),
+      );
+      addToLog(`✓ Compiled ${allSkuData.length} SKU records`);
+    }
+
+    // Compile Warehouse Data
+    const warehouseFiles = processedFiles.filter(
+      (f) => f.detectedType === "warehouse_inputs",
+    );
+    if (warehouseFiles.length > 0) {
+      const allWarehouseData = warehouseFiles.flatMap(
+        (f) => f.parsedData || [],
+      );
+      baseline.warehouse.totalFacilities = allWarehouseData.length;
+      baseline.warehouse.totalCapacity = allWarehouseData.reduce(
+        (sum, item) => sum + (Number(item.capacity_sqft) || 0),
+        0,
+      );
+      baseline.warehouse.totalCosts = allWarehouseData.reduce(
+        (sum, item) => sum + (Number(item.cost_fixed_annual) || 0),
+        0,
+      );
+      baseline.warehouse.avgUtilization =
+        allWarehouseData.reduce((sum, item) => {
+          const utilization =
+            (Number(item.units_processed) || 0) /
+            (Number(item.capacity_sqft) || 1);
+          return sum + utilization;
+        }, 0) / allWarehouseData.length;
+      baseline.warehouse.performanceMetrics = allWarehouseData.map((item) => ({
+        facility: item.facility,
+        capacity: Number(item.capacity_sqft) || 0,
+        throughput: Number(item.throughput_units_per_hr) || 0,
+        efficiency:
+          ((Number(item.units_processed) || 0) /
+            (Number(item.capacity_sqft) || 1)) *
+          100,
+      }));
+      compiled.push(
+        ...allWarehouseData.map((item) => ({
+          ...item,
+          dataType: "warehouse",
+          source: "operations",
+        })),
+      );
+      addToLog(`✓ Compiled ${allWarehouseData.length} warehouse records`);
+    }
+
+    // Compile Transportation Data
+    const transportFiles = processedFiles.filter(
+      (f) => f.detectedType === "transportation_costs",
+    );
+    if (transportFiles.length > 0) {
+      const allTransportData = transportFiles.flatMap(
+        (f) => f.parsedData || [],
+      );
+      baseline.transportation.totalLanes = allTransportData.length;
+      baseline.transportation.avgDistance =
+        allTransportData.reduce(
+          (sum, item) => sum + (Number(item.distance_miles) || 0),
+          0,
+        ) / allTransportData.length;
+      baseline.transportation.avgCostPerMile =
+        allTransportData.reduce(
+          (sum, item) => sum + (Number(item.cost_per_mile) || 0),
+          0,
+        ) / allTransportData.filter((item) => item.cost_per_mile).length;
+
+      const modeGroups = allTransportData.reduce((acc, item) => {
+        const mode = item.mode || "unknown";
+        if (!acc[mode])
+          acc[mode] = { count: 0, totalCost: 0, totalDistance: 0 };
+        acc[mode].count++;
+        acc[mode].totalCost += Number(item.total_lane_cost) || 0;
+        acc[mode].totalDistance += Number(item.distance_miles) || 0;
+        return acc;
+      }, {} as any);
+
+      baseline.transportation.modeDistribution = Object.entries(modeGroups).map(
+        ([mode, data]: [string, any]) => ({
+          mode,
+          count: data.count,
+          percentage: (data.count / allTransportData.length) * 100,
+          avgCost: data.totalCost / data.count,
+          avgDistance: data.totalDistance / data.count,
+        }),
+      );
+
+      compiled.push(
+        ...allTransportData.map((item) => ({
+          ...item,
+          dataType: "transportation",
+          source: "logistics",
+        })),
+      );
+      addToLog(`✓ Compiled ${allTransportData.length} transportation records`);
+    }
+
+    // Compile Sales Orders Data
+    const salesFiles = processedFiles.filter(
+      (f) => f.detectedType === "sales_orders",
+    );
+    if (salesFiles.length > 0) {
+      const allSalesData = salesFiles.flatMap((f) => f.parsedData || []);
+      baseline.salesOrders.totalOrders = allSalesData.length;
+      baseline.salesOrders.totalVolume = allSalesData.reduce(
+        (sum, item) => sum + (Number(item.order_qty) || 0),
+        0,
+      );
+      baseline.salesOrders.avgOrderSize =
+        baseline.salesOrders.totalVolume / baseline.salesOrders.totalOrders;
+
+      const customerGroups = allSalesData.reduce((acc, item) => {
+        const customer = item.ship_to_address || "unknown";
+        if (!acc[customer]) acc[customer] = { orders: 0, volume: 0 };
+        acc[customer].orders++;
+        acc[customer].volume += Number(item.order_qty) || 0;
+        return acc;
+      }, {} as any);
+
+      baseline.salesOrders.topCustomers = Object.entries(customerGroups)
+        .sort(
+          ([, a]: [string, any], [, b]: [string, any]) => b.volume - a.volume,
+        )
+        .slice(0, 10)
+        .map(([customer, data]: [string, any]) => ({
+          customer,
+          orders: data.orders,
+          volume: data.volume,
+        }));
+
+      compiled.push(
+        ...allSalesData.map((item) => ({
+          ...item,
+          dataType: "sales",
+          source: "orders",
+        })),
+      );
+      addToLog(`✓ Compiled ${allSalesData.length} sales order records`);
+    }
+
+    setCompiledData(compiled);
+    setBaselineData(baseline);
+
+    // Create digital twin validation metrics
+    const digitalTwin = {
+      dataCompleteness: {
+        inventory: skuFiles.length > 0,
+        warehouse: warehouseFiles.length > 0,
+        transportation: transportFiles.length > 0,
+        sales: salesFiles.length > 0,
+      },
+      dataQuality: {
+        totalRecords: compiled.length,
+        validationScore:
+          processedFiles.reduce((sum, f) => {
+            const result = f.validationResult;
+            return (
+              sum +
+              (result ? (result.validRecords / result.totalRecords) * 100 : 0)
+            );
+          }, 0) / processedFiles.length,
+        consistency: calculateDataConsistency(compiled),
+      },
+      networkReadiness: {
+        facilitiesConfigured: baseline.warehouse.totalFacilities,
+        transportationLanes: baseline.transportation.totalLanes,
+        productsCatalog: baseline.inventory.totalSKUs,
+        demandPatterns: baseline.salesOrders.totalOrders,
+      },
+    };
+
+    setDigitalTwinValidation(digitalTwin);
+    addToLog(
+      `🎯 Digital twin baseline compiled: ${compiled.length} total records across ${processedFiles.length} files`,
+    );
+  };
+
+  const calculateDataConsistency = (data: any[]): number => {
+    // Simple consistency check - in production would be more sophisticated
+    const skuData = data.filter((item) => item.dataType === "sku");
+    const salesData = data.filter((item) => item.dataType === "sales");
+
+    if (skuData.length === 0 || salesData.length === 0) return 100;
+
+    const skuIds = new Set(skuData.map((item) => item.sku_id));
+    const salesSkuIds = new Set(salesData.map((item) => item.sku));
+
+    const matchingSkus = [...skuIds].filter((id) => salesSkuIds.has(id));
+    return (
+      (matchingSkus.length / Math.max(skuIds.size, salesSkuIds.size)) * 100
+    );
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
