@@ -408,6 +408,68 @@ export default function DataProcessor() {
     },
   };
 
+  // Helper function to categorize and enhance error messages
+  const categorizeErrors = (
+    errors: string[],
+    dataType: string,
+  ): { errors: string[]; summary: string; actionableSteps: string[] } => {
+    const categories = {
+      missingColumns: errors.filter((e) =>
+        e.includes("Missing required column"),
+      ),
+      formatErrors: errors.filter(
+        (e) => e.includes("must be numeric") || e.includes("must be positive"),
+      ),
+      dataQuality: errors.filter(
+        (e) =>
+          e.includes("should have at least") ||
+          e.includes("outside") ||
+          e.includes("exceeds"),
+      ),
+      businessLogic: errors.filter(
+        (e) =>
+          e.includes("Calculated") ||
+          e.includes("seems") ||
+          e.includes("suspicious"),
+      ),
+    };
+
+    const actionableSteps = [];
+    let summary = "";
+
+    if (categories.missingColumns.length > 0) {
+      summary += `${categories.missingColumns.length} missing required columns. `;
+      actionableSteps.push(
+        "Review column mapping and ensure all required fields are present",
+      );
+    }
+
+    if (categories.formatErrors.length > 0) {
+      summary += `${categories.formatErrors.length} data format issues. `;
+      actionableSteps.push(
+        "Clean numeric fields (remove commas, currency symbols, ensure positive values)",
+      );
+    }
+
+    if (categories.dataQuality.length > 0) {
+      summary += `${categories.dataQuality.length} data quality issues. `;
+      actionableSteps.push("Validate data ranges and formats in source system");
+    }
+
+    if (categories.businessLogic.length > 0) {
+      summary += `${categories.businessLogic.length} business logic warnings. `;
+      actionableSteps.push(
+        "Review calculations and verify business rules alignment",
+      );
+    }
+
+    return {
+      errors,
+      summary: summary || "Data validation completed successfully",
+      actionableSteps,
+    };
+  };
+
   const validateDataFrame = (
     data: any[],
     dataType: string,
