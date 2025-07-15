@@ -1166,11 +1166,27 @@ export default function DataProcessor() {
   const autoDetectDataType = (filename: string): string => {
     const name = filename.toLowerCase();
     if (name.includes("forecast") || name.includes("demand")) return "forecast";
-    if (name.includes("sku") || name.includes("product")) return "sku";
+    if (name.includes("sales") && name.includes("order")) return "sales_orders";
+    if (name.includes("sales") && name.includes("volume"))
+      return "sales_volume";
+    if (
+      name.includes("sku") ||
+      name.includes("product") ||
+      name.includes("inventory")
+    )
+      return "sku";
+    if (
+      name.includes("transportation") ||
+      name.includes("transport_cost") ||
+      name.includes("freight")
+    )
+      return "transportation_costs";
+    if (name.includes("warehouse") && name.includes("input"))
+      return "warehouse_inputs";
     if (name.includes("network") || name.includes("location")) return "network";
-    if (name.includes("cost") || name.includes("rate")) return "cost";
-    if (name.includes("capacity") || name.includes("warehouse"))
-      return "capacity";
+    if (name.includes("cost") || name.includes("rate")) return "transport_cost";
+    if (name.includes("capacity") || name.includes("facility"))
+      return "facility";
     return "unknown";
   };
 
