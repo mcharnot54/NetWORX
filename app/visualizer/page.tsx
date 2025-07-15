@@ -168,8 +168,18 @@ interface LogEntry {
 }
 
 export default function Visualizer() {
+  const {
+    transportResults,
+    warehouseResults: warehouseResultsFromContext,
+    inventoryResults,
+    marketData,
+    financialParams,
+    setFinancialParams,
+    calculateFinancialMetrics,
+  } = useData();
+
   const [activeTab, setActiveTab] = useState<
-    "analytics" | "outputs" | "reports" | "insights"
+    "analytics" | "outputs" | "reports" | "insights" | "financial"
   >("analytics");
   const [selectedChart, setSelectedChart] = useState("warehouse");
   const [advancedView, setAdvancedView] = useState(false);
