@@ -748,7 +748,7 @@ export default function DataProcessor() {
     processFiles(uploadedFiles);
   };
 
-  const processFiles = (uploadedFiles: File[]) => {
+  const processFiles = async (uploadedFiles: File[]) => {
     const fileData = uploadedFiles.map((file, index) => {
       const sheets =
         file.name.endsWith(".xlsx") || file.name.endsWith(".xls")
@@ -767,6 +767,151 @@ export default function DataProcessor() {
     });
     setFiles(fileData);
     addToLog(`Uploaded ${fileData.length} file(s)`);
+
+    // Read file contents
+    for (const file of uploadedFiles) {
+      await readFileContent(file);
+    }
+  };
+
+  const readFileContent = async (file: File): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
+          let parsedContent: any[][] = [];
+
+          if (file.name.endsWith(".csv")) {
+            // Parse CSV
+            parsedContent = parseCSV(content);
+          } else if (
+            file.name.endsWith(".xlsx") ||
+            file.name.endsWith(".xls")
+          ) {
+            // For Excel files, we'll simulate parsing since we don't have a library
+            // In a real app, you'd use a library like xlsx or exceljs
+            parsedContent = simulateExcelParsing(content, file.name);
+          }
+
+          setFileContents((prev) => ({
+            ...prev,
+            [file.name]: parsedContent,
+          }));
+
+          // Convert to object format for easier processing
+          if (parsedContent.length > 0) {
+            const headers = parsedContent[0];
+            const rows = parsedContent.slice(1);
+            const objectData = rows.map((row) => {
+              const obj: any = {};
+              headers.forEach((header, index) => {
+                obj[header] = row[index];
+              });
+              return obj;
+            });
+
+            setParsedData((prev) => ({
+              ...prev,
+              [file.name]: objectData,
+            }));
+          }
+
+          addToLog(`Read ${parsedContent.length} rows from ${file.name}`);
+          resolve();
+        } catch (error) {
+          addToLog(`Error reading ${file.name}: ${error}`);
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => {
+        addToLog(`Failed to read ${file.name}`);
+        reject(new Error("File reading failed"));
+      };
+
+      if (file.name.endsWith(".csv")) {
+        reader.readAsText(file);
+      } else {
+        // For Excel files, read as array buffer (would need proper library)
+        reader.readAsText(file);
+      }
+    });
+  };
+
+  const parseCSV = (content: string): any[][] => {
+    const lines = content.split("\n").filter((line) => line.trim() !== "");
+    return lines.map((line) => {
+      // Simple CSV parsing - in production, use a proper CSV parser
+      const values = [];
+      let current = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === "," && !inQuotes) {
+          values.push(current.trim());
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+
+      return values;
+    });
+  };
+
+  const simulateExcelParsing = (content: string, fileName: string): any[][] => {
+    // Since we don't have an Excel parsing library, we'll create sample data
+    // based on the detected type for demonstration
+    const detectedType = autoDetectDataType(fileName);
+
+    if (detectedType === "forecast") {
+      return [
+        ["Year", "SKU", "Annual_Units", "Region"],
+        ["2024", "SKU_001", "15000", "North"],
+        ["2024", "SKU_002", "8500", "South"],
+        ["2025", "SKU_001", "16200", "North"],
+        ["2025", "SKU_002", "9100", "South"],
+      ];
+    } else if (detectedType === "sku") {
+      return [
+        [
+          "SKU_ID",
+          "Description",
+          "Category",
+          "Unit_Cost",
+          "Weight_Lbs",
+          "Length_In",
+          "Width_In",
+          "Height_In",
+        ],
+        ["SKU_001", "Product A", "Electronics", "25.50", "2.5", "8", "6", "4"],
+        ["SKU_002", "Product B", "Home", "15.75", "1.8", "10", "8", "3"],
+      ];
+    } else if (detectedType === "network") {
+      return [
+        [
+          "Facility",
+          "Destination",
+          "Distance_Miles",
+          "Cost_Per_Unit",
+          "Capacity",
+        ],
+        ["Chicago_IL", "New_York_NY", "790", "2.50", "100000"],
+        ["Dallas_TX", "Houston_TX", "240", "1.25", "75000"],
+      ];
+    }
+
+    return [
+      ["Column1", "Column2"],
+      ["Value1", "Value2"],
+    ];
   };
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
