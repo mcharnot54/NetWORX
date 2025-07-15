@@ -1411,6 +1411,316 @@ export default function DataProcessor() {
             </div>
           )}
 
+          {activeTab === "conversion" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Data Conversion & Standardization
+              </h3>
+              <p style={{ marginBottom: "1.5rem", color: "#6b7280" }}>
+                Python DataConverter framework for standardizing different input
+                formats
+              </p>
+
+              <div className="grid grid-cols-2">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Column Mapping Configuration
+                  </h4>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Forecast Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      year: {columnMappings.forecast.year.join(", ")}
+                      <br />
+                      annual_units:{" "}
+                      {columnMappings.forecast.annual_units.join(", ")}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      SKU Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      sku_id: {columnMappings.sku.sku_id.join(", ")}
+                      <br />
+                      units_per_case:{" "}
+                      {columnMappings.sku.units_per_case.join(", ")}
+                      <br />
+                      cases_per_pallet:{" "}
+                      {columnMappings.sku.cases_per_pallet.join(", ")}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Network Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      city: {columnMappings.network.city.join(", ")}
+                      <br />
+                      latitude: {columnMappings.network.latitude.join(", ")}
+                      <br />
+                      longitude: {columnMappings.network.longitude.join(", ")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Conversion Rules
+                  </h4>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#10b981",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      ✓ Forecast Conversions:
+                    </h5>
+                    <ul
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        listStyle: "none",
+                        paddingLeft: "1rem",
+                      }}
+                    >
+                      <li>• Convert year to integer format</li>
+                      <li>
+                        • Clean annual units (remove $, commas, parentheses)
+                      </li>
+                      <li>• Handle negative values in parentheses</li>
+                      <li>• Sort data by year ascending</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#3b82f6",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      ✓ SKU Conversions:
+                    </h5>
+                    <ul
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        listStyle: "none",
+                        paddingLeft: "1rem",
+                      }}
+                    >
+                      <li>• Standardize SKU IDs to uppercase</li>
+                      <li>• Clean numeric fields (remove $, commas)</li>
+                      <li>• Calculate units per pallet automatically</li>
+                      <li>• Remove duplicate SKUs (keep first)</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#f59e0b",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      ✓ Network Conversions:
+                    </h5>
+                    <ul
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        listStyle: "none",
+                        paddingLeft: "1rem",
+                      }}
+                    >
+                      <li>• Format city names to Title Case</li>
+                      <li>• Validate coordinate ranges</li>
+                      <li>• Convert coordinates to numeric</li>
+                      <li>• Detect missing location data (0,0)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {conversionResults && (
+                <div className="card" style={{ marginTop: "1rem" }}>
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Conversion Results
+                  </h4>
+
+                  <div className="grid grid-cols-3">
+                    <div>
+                      <h5
+                        style={{
+                          marginBottom: "0.5rem",
+                          color: "#111827",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Original Columns:
+                      </h5>
+                      <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                        {conversionResults.originalColumns.map(
+                          (col: string, index: number) => (
+                            <div
+                              key={index}
+                              style={{
+                                padding: "0.25rem 0.5rem",
+                                backgroundColor: "#f3f4f6",
+                                borderRadius: "0.25rem",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              {col}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5
+                        style={{
+                          marginBottom: "0.5rem",
+                          color: "#111827",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Column Mappings:
+                      </h5>
+                      <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                        {Object.entries(conversionResults.mappedColumns).map(
+                          (
+                            [standard, original]: [string, any],
+                            index: number,
+                          ) => (
+                            <div
+                              key={index}
+                              style={{
+                                padding: "0.25rem 0.5rem",
+                                backgroundColor: "#eff6ff",
+                                borderRadius: "0.25rem",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              {original} → {standard}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5
+                        style={{
+                          marginBottom: "0.5rem",
+                          color: "#111827",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Conversion Log:
+                      </h5>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "#6b7280",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                        }}
+                      >
+                        {conversionResults.conversionLog.map(
+                          (log: string, index: number) => (
+                            <div
+                              key={index}
+                              style={{
+                                padding: "0.25rem 0.5rem",
+                                backgroundColor: log.includes("Warning")
+                                  ? "#fef3c7"
+                                  : "#f0fdf4",
+                                borderRadius: "0.25rem",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              {log}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!conversionResults && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "3rem",
+                    color: "#6b7280",
+                  }}
+                >
+                  Run data processing to see conversion results and column
+                  mappings
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "quality" && (
             <div>
               <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
