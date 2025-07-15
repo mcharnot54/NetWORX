@@ -879,6 +879,147 @@ export default function DataProcessor() {
           variable_cost: 3.2,
         },
       ];
+    } else if (dataType === "transportation_costs") {
+      return [
+        {
+          facility: "DC_Chicago",
+          destination: "New_York",
+          mode: "truck",
+          direction: "outbound",
+          distance_miles: 790,
+          shipment_weight_lbs: 45000,
+          cost_per_mile: 2.5,
+          cost_per_cwt: 15.2,
+          total_lane_cost: 1975,
+        },
+        {
+          facility: "DC_Atlanta",
+          destination: "Miami",
+          mode: "truck",
+          direction: "outbound",
+          distance_miles: 660,
+          cost_per_mile: 2.25,
+          total_lane_cost: 1485,
+        },
+        {
+          facility: "DC_LA",
+          destination: "Phoenix",
+          mode: "rail",
+          direction: "inbound",
+          distance_miles: 370,
+          cost_per_mile: 0, // Invalid rate for testing
+          total_lane_cost: 850,
+        },
+        {
+          facility: "", // Missing facility for testing
+          destination: "Dallas",
+          mode: "air",
+          direction: "outbound",
+          distance_miles: 450,
+          cost_per_cwt: 45.5,
+          total_lane_cost: 2025,
+        },
+      ];
+    } else if (dataType === "sales_orders") {
+      return [
+        {
+          order_id: "ORD001",
+          order_date: "2024-01-15",
+          sku: "ABC123",
+          order_qty: 500,
+          ship_to_address: "123 Main St, Chicago, IL",
+          required_date: "2024-01-20",
+        },
+        {
+          order_id: "ORD002",
+          order_date: "2024-01-16",
+          sku: "DEF456",
+          order_qty: 250,
+          ship_to_address: "456 Oak Ave, Atlanta, GA",
+          required_date: "2024-01-18", // Required date before order date for testing
+        },
+        {
+          order_id: "ORD003",
+          order_date: "2024-01-17",
+          sku: "GHI789",
+          order_qty: 0, // Invalid quantity for testing
+          ship_to_address: "789 Pine St, Dallas, TX",
+          required_date: "2024-01-22",
+        },
+        {
+          order_id: "ORD001", // Duplicate order_id for testing
+          order_date: "2024-01-15",
+          sku: "ABC123",
+          order_qty: 300,
+          ship_to_address: "321 Elm St, Phoenix, AZ",
+          required_date: "2024-01-25",
+        },
+      ];
+    } else if (dataType === "warehouse_inputs") {
+      return [
+        {
+          facility: "DC_Chicago",
+          city: "Chicago",
+          state: "IL",
+          reporting_period: "2024-Q1",
+          capacity_sqft: 500000,
+          ceiling_height_ft: 28,
+          num_docks: 24,
+          type: "Distribution_Center",
+          cost_fixed_annual: 2400000,
+          cost_variable_per_unit: 1.25,
+          labor_cost_per_hour: 18.5,
+          employees_total: 85,
+          cost_per_line: 2.45,
+          orders_processed: 45000,
+          lines_processed: 125000,
+          units_processed: 2500000,
+          cartons_processed: 180000,
+          pallets_processed: 12500,
+          throughput_units_per_hr: 850,
+          lines_per_hr: 42,
+          cartons_per_hr: 65,
+          orders_per_hr: 15,
+          avg_unit_cost: 1.85,
+          avg_line_cost: 4.2,
+          truck_shipments: 8500,
+          avg_truck_fill: 85.2,
+          avg_cartons_per_truck: 21,
+          avg_weight_per_truck_lbs: 42500,
+          turnover_days_inventory: 18.5,
+        },
+        {
+          facility: "DC_Atlanta",
+          city: "Atlanta",
+          state: "GA",
+          reporting_period: "2024-Q1",
+          capacity_sqft: 0, // Invalid capacity for testing
+          ceiling_height_ft: 32,
+          num_docks: 18,
+          type: "Warehouse",
+          cost_fixed_annual: 1800000,
+          cost_variable_per_unit: 1.1,
+          labor_cost_per_hour: 16.25,
+          employees_total: 65,
+          cost_per_line: 2.2,
+          orders_processed: 32000,
+          lines_processed: 89000,
+          units_processed: 1850000,
+          cartons_processed: 125000,
+          pallets_processed: 8900,
+          throughput_units_per_hr: 625,
+          lines_per_hr: 38,
+          cartons_per_hr: 52,
+          orders_per_hr: 12,
+          avg_unit_cost: 1.65,
+          avg_line_cost: 3.85,
+          truck_shipments: 6200,
+          avg_truck_fill: 78.5,
+          avg_cartons_per_truck: 20,
+          avg_weight_per_truck_lbs: 38500,
+          turnover_days_inventory: 22.3,
+        },
+      ];
     } else if (dataType === "transport_cost") {
       return [
         {
