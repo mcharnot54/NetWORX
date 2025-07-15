@@ -546,6 +546,181 @@ export default function DataProcessor() {
     return errors;
   };
 
+  const validateTransportationCostsData = (data: any[]): string[] => {
+    const errors: string[] = [];
+    const rules = validationRules.transportation_costs;
+
+    data.forEach((record, index) => {
+      // Check allowed modes
+      if (
+        record.mode &&
+        !rules.allowedModes.includes(record.mode.toLowerCase())
+      ) {
+        errors.push(
+          `Row ${index + 1}: Mode '${record.mode}' not in allowed values: ${rules.allowedModes.join(", ")}`,
+        );
+      }
+
+      // Check allowed directions
+      if (
+        record.direction &&
+        !rules.allowedDirection.includes(record.direction.toLowerCase())
+      ) {
+        errors.push(
+          `Row ${index + 1}: Direction '${record.direction}' not in allowed values: ${rules.allowedDirection.join(", ")}`,
+        );
+      }
+
+      // Check ranges
+      Object.entries(rules.ranges).forEach(([field, [min, max]]) => {
+        const value = Number(record[field]);
+        if (!isNaN(value) && (value < min || value > max)) {
+          errors.push(
+            `Row ${index + 1}: ${field} value ${value} outside valid range [${min}, ${max}]`,
+          );
+        }
+      });
+
+      // Check at least one cost field is provided
+      const hasAtLeastOneCost = rules.atLeastOneCost.some(
+        (field) =>
+          record[field] !== undefined &&
+          record[field] !== null &&
+          record[field] !== "",
+      );
+      if (!hasAtLeastOneCost) {
+        errors.push(
+          `Row ${index + 1}: At least one cost field required: ${rules.atLeastOneCost.join(", ")}`,
+        );
+      }
+    });
+
+    // Check unique key constraints
+    const uniqueKeys = new Set();
+    data.forEach((record, index) => {
+      const keyValues = rules.uniqueKey.map((field) => record[field]).join("|");
+      if (uniqueKeys.has(keyValues)) {
+        errors.push(
+          `Row ${index + 1}: Duplicate combination of ${rules.uniqueKey.join(", ")}`,
+        );
+      }
+      uniqueKeys.add(keyValues);
+    });
+
+    return errors;
+  };
+
+  const validateSalesOrdersData = (data: any[]): string[] => {
+    const errors: string[] = [];
+    const rules = validationRules.sales_orders;
+
+    data.forEach((record, index) => {
+      // Check date logic: required_date >= order_date
+      if (record.order_date && record.required_date) {
+        const orderDate = new Date(record.order_date);
+        const requiredDate = new Date(record.required_date);
+
+        if (requiredDate < orderDate) {
+          errors.push(
+            `Row ${index + 1}: Required date (${record.required_date}) cannot be before order date (${record.order_date})`,
+          );
+        }
+      }
+
+      // Check order quantity range
+      const qty = Number(record.order_qty);
+      if (!isNaN(qty)) {
+        const [min, max] = rules.ranges.order_qty;
+        if (qty < min || qty > max) {
+          errors.push(
+            `Row ${index + 1}: Order quantity ${qty} outside valid range [${min}, ${max}]`,
+          );
+        }
+      }
+
+      // Check date formats
+      rules.dateColumns.forEach((dateCol) => {
+        if (record[dateCol]) {
+          const date = new Date(record[dateCol]);
+          if (isNaN(date.getTime())) {
+            errors.push(
+              `Row ${index + 1}: Invalid date format in ${dateCol}: '${record[dateCol]}'`,
+            );
+          }
+        }
+      });
+    });
+
+    // Check unique key constraints
+    const uniqueKeys = new Set();
+    data.forEach((record, index) => {
+      const keyValues = rules.uniqueKey.map((field) => record[field]).join("|");
+      if (uniqueKeys.has(keyValues)) {
+        errors.push(
+          `Row ${index + 1}: Duplicate combination of ${rules.uniqueKey.join(", ")}`,
+        );
+      }
+      uniqueKeys.add(keyValues);
+    });
+
+    return errors;
+  };
+
+  const validateWarehouseInputsData = (data: any[]): string[] => {
+    const errors: string[] = [];
+    const rules = validationRules.warehouse_inputs;
+
+    data.forEach((record, index) => {
+      // Check ranges
+      Object.entries(rules.ranges).forEach(([field, [min, max]]) => {
+        const value = Number(record[field]);
+        if (!isNaN(value) && (value < min || value > max)) {
+          errors.push(
+            `Row ${index + 1}: ${field} value ${value} outside valid range [${min}, ${max}]`,
+          );
+        }
+      });
+
+      // Check integer fields are actually integers
+      rules.integerColumns.forEach((field) => {
+        const value = record[field];
+        if (value !== undefined && value !== null && value !== "") {
+          const numValue = Number(value);
+          if (!isNaN(numValue) && !Number.isInteger(numValue)) {
+            errors.push(
+              `Row ${index + 1}: ${field} must be an integer, got ${value}`,
+            );
+          }
+        }
+      });
+
+      // Check logical consistency
+      if (record.avg_truck_fill && record.avg_truck_fill > 100) {
+        errors.push(
+          `Row ${index + 1}: Average truck fill (${record.avg_truck_fill}%) cannot exceed 100%`,
+        );
+      }
+
+      // Check throughput consistency
+      if (
+        record.throughput_units_per_hr &&
+        record.units_processed &&
+        record.employees_total
+      ) {
+        const expectedHours =
+          record.units_processed / record.throughput_units_per_hr;
+        if (expectedHours > 8760) {
+          // More than hours in a year
+          errors.push(
+            `Row ${index + 1}: Throughput rates seem inconsistent with total units processed`,
+          );
+        }
+      }
+    });
+
+    return errors;
+  };
+
   const checkDuplicates = (data: any[], dataType: string): string[] => {
     const warnings: string[] = [];
 
