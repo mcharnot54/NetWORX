@@ -33,7 +33,7 @@ export default function RootLayout({
               </div>
               <div className="banner-right">
                 <span className="powered-by-text">powered by </span>
-                <span className="continuum-text">CONTINUUM</span>
+                <span className="continuum-text">&nbsp;CONTINUUM</span>
               </div>
             </div>
           </header>
