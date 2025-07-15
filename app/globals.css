@@ -59,19 +59,24 @@ a {
 
 .nav-list {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   list-style: none;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .nav-item {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
   cursor: pointer;
   transition: all 0.2s;
   color: #374151;
   font-weight: 500;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-item:hover {
