@@ -1706,94 +1706,95 @@ export default function DataProcessor() {
                     </div>
                   </div>
 
-                  <div style={{ overflowX: "auto" }}>
-                    <table
+                  {actualFileData.length > 0 ? (
+                    <div style={{ overflowX: "auto" }}>
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <thead>
+                          <tr style={{ backgroundColor: "#f3f4f6" }}>
+                            {Object.keys(actualFileData[0]).map(
+                              (header, index) => (
+                                <th
+                                  key={index}
+                                  style={{
+                                    padding: "0.75rem",
+                                    textAlign: "left",
+                                    border: "1px solid #e5e7eb",
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  {header}
+                                </th>
+                              ),
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {actualFileData.slice(0, 10).map((row, rowIndex) => (
+                            <tr key={rowIndex}>
+                              {Object.values(row).map(
+                                (cell: any, cellIndex) => (
+                                  <td
+                                    key={cellIndex}
+                                    style={{
+                                      padding: "0.75rem",
+                                      border: "1px solid #e5e7eb",
+                                    }}
+                                  >
+                                    {cell !== null && cell !== undefined
+                                      ? String(cell)
+                                      : ""}
+                                  </td>
+                                ),
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {actualFileData.length > 10 && (
+                        <div
+                          style={{
+                            padding: "1rem",
+                            textAlign: "center",
+                            color: "#6b7280",
+                            fontSize: "0.875rem",
+                            backgroundColor: "#f9fafb",
+                            borderTop: "1px solid #e5e7eb",
+                          }}
+                        >
+                          Showing first 10 rows of {actualFileData.length} total
+                          records
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
                       style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        fontSize: "0.875rem",
+                        textAlign: "center",
+                        padding: "3rem",
+                        color: "#6b7280",
+                        backgroundColor: "#f9fafb",
+                        borderRadius: "0.5rem",
+                        border: "2px dashed #d1d5db",
                       }}
                     >
-                      <thead>
-                        <tr style={{ backgroundColor: "#f3f4f6" }}>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            City
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            State
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Annual Volume
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Latitude
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              border: "1px solid #e5e7eb",
-                            }}
-                          >
-                            Longitude
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          ["New York", "NY", "125,000", "40.7128", "-74.0060"],
-                          ["Chicago", "IL", "98,500", "41.8781", "-87.6298"],
-                          [
-                            "Los Angeles",
-                            "CA",
-                            "156,200",
-                            "34.0522",
-                            "-118.2437",
-                          ],
-                          ["Houston", "TX", "89,300", "29.7604", "-95.3698"],
-                          ["Phoenix", "AZ", "67,800", "33.4484", "-112.0740"],
-                        ].map((row, index) => (
-                          <tr key={index}>
-                            {row.map((cell, cellIndex) => (
-                              <td
-                                key={cellIndex}
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                }}
-                              >
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      <Database
+                        size={48}
+                        style={{ margin: "0 auto 1rem", color: "#9ca3af" }}
+                      />
+                      <p style={{ margin: 0, fontSize: "1rem" }}>
+                        No data available
+                      </p>
+                      <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
+                        Upload a file and run validation to see parsed data
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div
