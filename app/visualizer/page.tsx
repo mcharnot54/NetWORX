@@ -25,6 +25,10 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
+  ComposedChart,
+  ReferenceLine,
+  Brush,
+  ReferenceArea,
 } from "recharts";
 import {
   Download,
@@ -45,6 +49,13 @@ import {
   Users,
   Target,
   Zap,
+  Activity,
+  Layers,
+  TrendingDown,
+  DollarSign,
+  MapPin,
+  Gauge,
+  Eye,
 } from "lucide-react";
 
 // Comprehensive Result Data Structures
@@ -155,6 +166,7 @@ export default function Visualizer() {
     "analytics" | "outputs" | "reports" | "insights"
   >("analytics");
   const [selectedChart, setSelectedChart] = useState("warehouse");
+  const [advancedView, setAdvancedView] = useState(false);
   const [dateRange, setDateRange] = useState("1year");
 
   // Output Generation State
@@ -744,6 +756,20 @@ export default function Visualizer() {
                   >
                     <Globe size={16} />
                     Network Performance
+                  </button>
+                  <button
+                    className={`button ${selectedChart === "advanced" ? "button-primary" : "button-secondary"}`}
+                    onClick={() => setSelectedChart("advanced")}
+                  >
+                    <Activity size={16} />
+                    Advanced Analytics
+                  </button>
+                  <button
+                    className={`button ${selectedChart === "executive" ? "button-primary" : "button-secondary"}`}
+                    onClick={() => setSelectedChart("executive")}
+                  >
+                    <Eye size={16} />
+                    Executive Dashboard
                   </button>
                 </div>
               </div>
