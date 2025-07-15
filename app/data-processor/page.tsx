@@ -430,6 +430,12 @@ export default function DataProcessor() {
       errors.push(...validateSkuData(data));
     } else if (dataType === "network") {
       errors.push(...validateNetworkData(data));
+    } else if (dataType === "transportation_costs") {
+      errors.push(...validateTransportationCostsData(data));
+    } else if (dataType === "sales_orders") {
+      errors.push(...validateSalesOrdersData(data));
+    } else if (dataType === "warehouse_inputs") {
+      errors.push(...validateWarehouseInputsData(data));
     }
 
     // Check for duplicates and missing values
@@ -1609,7 +1615,7 @@ export default function DataProcessor() {
       const validationResult = validateDataFrame(actualData, finalDataType);
 
       addToLog(
-        `✓ Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`,
+        `�� Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`,
       );
 
       // Step 7: Generate quality metrics
