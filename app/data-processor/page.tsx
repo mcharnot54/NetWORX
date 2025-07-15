@@ -961,7 +961,12 @@ export default function DataProcessor() {
                 <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
                   File Upload & Auto-Detection
                 </h3>
-                <div className="file-upload">
+                <div
+                  className="file-upload"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <Upload
                     size={48}
                     style={{ color: "#6b7280", margin: "0 auto 1rem" }}
@@ -977,6 +982,8 @@ export default function DataProcessor() {
                     style={{
                       opacity: 0,
                       position: "absolute",
+                      top: 0,
+                      left: 0,
                       width: "100%",
                       height: "100%",
                       cursor: "pointer",
