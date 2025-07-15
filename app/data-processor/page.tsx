@@ -1641,22 +1641,38 @@ export default function DataProcessor() {
   };
 
   const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement> | { target: { files: File[] } },
   ) => {
     const uploadedFiles = Array.from(event.target.files || []);
     setParseError(null);
 
-    const filePromises = uploadedFiles.map(async (file) => {
+    if (uploadedFiles.length === 0) {
+      addToLog("No files selected for upload");
+      return;
+    }
+
+    addToLog(`Starting upload of ${uploadedFiles.length} file(s)...`);
+
+    const filePromises = uploadedFiles.map(async (file, index) => {
       try {
+        // Update progress
+        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+
         let sheets: string[] | undefined;
         let columnNames: string[] = [];
 
         // For Excel files, detect actual sheets
         if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+          setFileUploadProgress((prev) => ({ ...prev, [file.name]: 25 }));
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer);
           sheets = workbook.SheetNames;
+          addToLog(
+            `Detected ${sheets.length} sheet(s) in ${file.name}: ${sheets.join(", ")}`,
+          );
         }
+
+        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 50 }));
 
         const fileData: FileData = {
           name: file.name,
@@ -1668,19 +1684,39 @@ export default function DataProcessor() {
           selectedSheet: sheets ? sheets[0] : undefined,
           detectedType: autoDetectDataType(file.name),
           columnNames,
+          processed: false,
         };
+
+        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 75 }));
 
         // Parse the file immediately to get column names
         const parsedData = await parseFileContent(fileData);
         if (parsedData.length > 0) {
           fileData.columnNames = Object.keys(parsedData[0]);
           fileData.parsedData = parsedData;
+
+          // Auto-detect type from columns if not detected from filename
+          const columnBasedType = autoDetectDataTypeFromColumns(
+            fileData.columnNames,
+          );
+          if (
+            columnBasedType !== "unknown" &&
+            fileData.detectedType === "unknown"
+          ) {
+            fileData.detectedType = columnBasedType;
+          }
+
+          addToLog(
+            `Parsed ${file.name}: ${parsedData.length} rows, detected as ${fileData.detectedType}`,
+          );
         }
 
+        setFileUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
         return fileData;
       } catch (error) {
         addToLog(`Error processing file ${file.name}: ${error}`);
         setParseError(`Error processing file ${file.name}: ${error}`);
+        setFileUploadProgress((prev) => ({ ...prev, [file.name]: -1 })); // Error state
         return {
           name: file.name,
           size: file.size,
@@ -1688,13 +1724,30 @@ export default function DataProcessor() {
           lastModified: file.lastModified,
           file,
           detectedType: autoDetectDataType(file.name),
+          processed: false,
         };
       }
     });
 
-    const fileData = await Promise.all(filePromises);
-    setFiles(fileData);
-    addToLog(`Uploaded and parsed ${fileData.length} file(s)`);
+    const newFileData = await Promise.all(filePromises);
+
+    // Add to existing files instead of replacing
+    setFiles((prev) => {
+      const existingNames = new Set(prev.map((f) => f.name));
+      const uniqueNewFiles = newFileData.filter(
+        (f) => !existingNames.has(f.name),
+      );
+      return [...prev, ...uniqueNewFiles];
+    });
+
+    addToLog(
+      `Successfully uploaded ${newFileData.length} file(s). Total files: ${files.length + newFileData.length}`,
+    );
+
+    // Clear progress after a delay
+    setTimeout(() => {
+      setFileUploadProgress({});
+    }, 2000);
   };
 
   const addToLog = (message: string) => {
