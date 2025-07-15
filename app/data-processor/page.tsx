@@ -581,13 +581,18 @@ export default function DataProcessor() {
     const validRecords = Math.max(0, totalRecords - errors.length);
     const invalidRecords = totalRecords - validRecords;
 
+    // Categorize and enhance errors for better user guidance
+    const enhancedErrors = categorizeErrors(errors, dataType);
+
     return {
       isValid: errors.length === 0,
-      errors,
+      errors: enhancedErrors.errors,
       warnings,
       totalRecords,
       validRecords,
       invalidRecords,
+      summary: enhancedErrors.summary,
+      actionableSteps: enhancedErrors.actionableSteps,
     };
   };
 
