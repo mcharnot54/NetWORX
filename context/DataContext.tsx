@@ -20,9 +20,11 @@ interface ProcessedData {
 interface MarketData {
   location: string;
   state: string;
-  laborCostPerHour: number;
+  straightLaborRate: number; // Base hourly wage
+  fullyBurdendedLaborRate: number; // Including benefits, taxes, overhead
   leaseRatePerSqFt: number;
   threePLCostPerUnit: number;
+  laborCostPerHour: number; // Legacy field for backward compatibility
   lastUpdated: string;
 }
 
