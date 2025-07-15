@@ -3631,6 +3631,81 @@ export default function DataProcessor() {
                       <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
                         Validation Issues
                       </h4>
+
+                      {dataQuality.summary && (
+                        <div
+                          style={{
+                            marginBottom: "1rem",
+                            padding: "0.75rem",
+                            backgroundColor: "#f3f4f6",
+                            borderRadius: "0.375rem",
+                            borderLeft: "4px solid #3b82f6",
+                          }}
+                        >
+                          <h6
+                            style={{
+                              fontSize: "0.8rem",
+                              fontWeight: "600",
+                              marginBottom: "0.25rem",
+                              color: "#1f2937",
+                            }}
+                          >
+                            Validation Summary
+                          </h6>
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#4b5563",
+                              margin: 0,
+                            }}
+                          >
+                            {dataQuality.summary}
+                          </p>
+                        </div>
+                      )}
+
+                      {dataQuality.actionableSteps &&
+                        dataQuality.actionableSteps.length > 0 && (
+                          <div
+                            style={{
+                              marginBottom: "1rem",
+                              padding: "0.75rem",
+                              backgroundColor: "#ecfdf5",
+                              borderRadius: "0.375rem",
+                              border: "1px solid #a7f3d0",
+                            }}
+                          >
+                            <h6
+                              style={{
+                                fontSize: "0.8rem",
+                                fontWeight: "600",
+                                marginBottom: "0.5rem",
+                                color: "#065f46",
+                              }}
+                            >
+                              🎯 Recommended Actions
+                            </h6>
+                            <ul
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "#047857",
+                                margin: 0,
+                                paddingLeft: "1rem",
+                              }}
+                            >
+                              {dataQuality.actionableSteps.map(
+                                (step, index) => (
+                                  <li
+                                    key={index}
+                                    style={{ marginBottom: "0.25rem" }}
+                                  >
+                                    {step}
+                                  </li>
+                                ),
+                              )}
+                            </ul>
+                          </div>
+                        )}
                       <div style={{ marginBottom: "1rem" }}>
                         <h5
                           style={{
