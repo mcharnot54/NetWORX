@@ -1175,54 +1175,71 @@ export default function DataProcessor() {
   };
 
   const handleProcess = async () => {
-    if (files.length === 0) {
-      addToLog("ERROR: No files uploaded for validation");
-      return;
+    // Allow validation to run with or without uploaded files
+    let useUploadedData = files.length > 0;
+    let dataTypeToUse = "network";
+
+    if (!useUploadedData) {
+      addToLog(
+        "ℹ️  No files uploaded - running validation with sample data for demonstration",
+      );
     }
 
     setProcessing(true);
     addToLog("Starting comprehensive data processing pipeline...");
 
     try {
-      const firstFile = files[0];
-      addToLog(`Processing file: ${firstFile.name}`);
-      addToLog(`File size: ${formatFileSize(firstFile.size)}`);
-      addToLog(`Initial detected type: ${firstFile.detectedType}`);
-
-      // Step 1: Validate file existence and size
-      addToLog("✓ Validating file existence and size");
-      if (firstFile.size > config.maxFileSizeMB * 1024 * 1024) {
-        addToLog(`ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`);
-        setProcessing(false);
-        return;
-      }
-
-      // Step 2: Parse file content
-      addToLog("📄 Reading and parsing file content...");
       let actualData: any[];
+      let finalDataType: string;
 
-      if (firstFile.parsedData && firstFile.parsedData.length > 0) {
-        actualData = firstFile.parsedData;
-        addToLog(`✓ Using pre-parsed data: ${actualData.length} records`);
+      if (useUploadedData) {
+        const firstFile = files[0];
+        addToLog(`Processing file: ${firstFile.name}`);
+        addToLog(`File size: ${formatFileSize(firstFile.size)}`);
+        addToLog(`Initial detected type: ${firstFile.detectedType}`);
+
+        // Step 1: Validate file existence and size
+        addToLog("✓ Validating file existence and size");
+        if (firstFile.size > config.maxFileSizeMB * 1024 * 1024) {
+          addToLog(`ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`);
+          setProcessing(false);
+          return;
+        }
+
+        // Step 2: Parse file content
+        addToLog("📄 Reading and parsing file content...");
+
+        if (firstFile.parsedData && firstFile.parsedData.length > 0) {
+          actualData = firstFile.parsedData;
+          addToLog(`✓ Using pre-parsed data: ${actualData.length} records`);
+        } else {
+          actualData = await parseFileContent(firstFile);
+          addToLog(`✓ Parsed file content: ${actualData.length} records`);
+        }
+
+        if (actualData.length === 0) {
+          addToLog("WARNING: No data found in file");
+          setProcessing(false);
+          return;
+        }
+
+        // Step 3: Auto-detect data type from column structure
+        const columnBasedType = autoDetectDataTypeFromColumns(
+          Object.keys(actualData[0]),
+        );
+        finalDataType =
+          columnBasedType !== "unknown"
+            ? columnBasedType
+            : firstFile.detectedType || "network";
       } else {
-        actualData = await parseFileContent(firstFile);
-        addToLog(`✓ Parsed file content: ${actualData.length} records`);
+        // Use sample data for demonstration
+        addToLog("🎯 Generating sample data for validation demonstration...");
+        finalDataType = dataTypeToUse;
+        actualData = generateSampleData(finalDataType);
+        addToLog(
+          `✓ Generated ${actualData.length} sample records of type: ${finalDataType}`,
+        );
       }
-
-      if (actualData.length === 0) {
-        addToLog("WARNING: No data found in file");
-        setProcessing(false);
-        return;
-      }
-
-      // Step 3: Auto-detect data type from column structure
-      const columnBasedType = autoDetectDataTypeFromColumns(
-        Object.keys(actualData[0]),
-      );
-      const finalDataType =
-        columnBasedType !== "unknown"
-          ? columnBasedType
-          : firstFile.detectedType || "network";
       addToLog(
         `✓ Data type detection: ${finalDataType} (from ${columnBasedType !== "unknown" ? "columns" : "filename"})`,
       );
@@ -1242,7 +1259,7 @@ export default function DataProcessor() {
       );
 
       // Step 5: Apply data conversions
-      addToLog("🧹 Applying data type specific conversions...");
+      addToLog("���� Applying data type specific conversions...");
       let conversionLog: string[] = [];
 
       if (finalDataType === "forecast") {
