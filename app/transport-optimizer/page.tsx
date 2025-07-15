@@ -869,6 +869,121 @@ export default function TransportOptimizer() {
                   </div>
                 </div>
               </div>
+
+              {/* Data Loading and Location Management */}
+              <div style={{ marginTop: "2rem" }}>
+                <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
+                  {/* Data Loading */}
+                  <div className="card">
+                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Data Integration
+                    </h3>
+                    <button
+                      onClick={loadTransportationData}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.75rem 1rem",
+                        backgroundColor: "#3b82f6",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Upload size={16} />
+                      Load Data from Data Processor
+                    </button>
+                    <p
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        marginTop: "0.5rem",
+                      }}
+                    >
+                      Import transportation cost data, facilities, and demand
+                      information from processed files
+                    </p>
+                  </div>
+
+                  {/* Location Locking */}
+                  <div className="card">
+                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Locked Locations
+                    </h3>
+                    <div style={{ marginBottom: "1rem" }}>
+                      {capacityData.map((facility, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "0.5rem",
+                            backgroundColor: lockedLocations.includes(
+                              facility.facility,
+                            )
+                              ? "#ecfdf5"
+                              : "#f9fafb",
+                            border: lockedLocations.includes(facility.facility)
+                              ? "1px solid #10b981"
+                              : "1px solid #d1d5db",
+                            borderRadius: "0.375rem",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "0.875rem",
+                              color: lockedLocations.includes(facility.facility)
+                                ? "#065f46"
+                                : "#374151",
+                              fontWeight: lockedLocations.includes(
+                                facility.facility,
+                              )
+                                ? "600"
+                                : "400",
+                            }}
+                          >
+                            {facility.facility}
+                          </span>
+                          <button
+                            onClick={() =>
+                              toggleLocationLock(facility.facility)
+                            }
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              backgroundColor: lockedLocations.includes(
+                                facility.facility,
+                              )
+                                ? "#10b981"
+                                : "#6b7280",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "0.25rem",
+                              fontSize: "0.75rem",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {lockedLocations.includes(facility.facility)
+                              ? "🔒 Locked"
+                              : "🔓 Lock"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      Locked locations will always be included in optimization
+                      scenarios
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
