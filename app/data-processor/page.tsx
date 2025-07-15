@@ -1259,7 +1259,7 @@ export default function DataProcessor() {
       );
 
       // Step 5: Apply data conversions
-      addToLog("���� Applying data type specific conversions...");
+      addToLog("🧹 Applying data type specific conversions...");
       let conversionLog: string[] = [];
 
       if (finalDataType === "forecast") {
@@ -1450,7 +1450,8 @@ export default function DataProcessor() {
                   />
                   <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
                     Max file size: {config.maxFileSizeMB}MB | Auto-detects:
-                    forecast, sku, network, cost, capacity
+                    forecast, sales volume, inventory/SKU, facility details,
+                    transport costs, network locations
                   </p>
                 </div>
 
