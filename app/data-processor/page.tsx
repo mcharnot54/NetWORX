@@ -1041,66 +1041,97 @@ export default function DataProcessor() {
   };
 
   const handleProcess = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      addToLog("ERROR: No files uploaded for validation");
+      return;
+    }
 
     setProcessing(true);
     addToLog("Starting comprehensive data processing pipeline...");
 
-    // Simulate processing steps matching Python DataProcessor
-    const steps = [
-      "Validating file existence and size",
-      "Creating backup copy",
-      "Detecting relevant sheets",
-      "Loading data into DataFrame",
-      "Mapping columns to standard format (DataConverter)",
-      "Applying data type specific conversions",
-      "Cleaning and standardizing data",
-      "Running comprehensive validation (DataValidator)",
-      "Generating quality metrics",
-      "Saving processed data",
-    ];
+    try {
+      const firstFile = files[0];
+      addToLog(`Processing file: ${firstFile.name}`);
+      addToLog(`File size: ${formatFileSize(firstFile.size)}`);
+      addToLog(`Initial detected type: ${firstFile.detectedType}`);
 
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      addToLog(steps[i]);
-    }
-
-    // Process uploaded file data for validation
-    setTimeout(() => {
-      if (files.length === 0) {
-        addToLog("ERROR: No files uploaded for validation");
+      // Step 1: Validate file existence and size
+      addToLog("✓ Validating file existence and size");
+      if (firstFile.size > config.maxFileSizeMB * 1024 * 1024) {
+        addToLog(`ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`);
         setProcessing(false);
         return;
       }
 
-      const firstFile = files[0];
-      addToLog(`Processing uploaded file: ${firstFile.name}`);
-      addToLog(`Detected type: ${firstFile.detectedType}`);
-      addToLog(`File size: ${formatFileSize(firstFile.size)}`);
+      // Step 2: Parse file content
+      addToLog("📄 Reading and parsing file content...");
+      let actualData: any[];
 
-      // NOTE: Currently using sample data for demonstration
-      // In production, this would read the actual file content using FileReader API
-      addToLog("⚠️  Currently using sample data for validation demonstration");
+      if (firstFile.parsedData && firstFile.parsedData.length > 0) {
+        actualData = firstFile.parsedData;
+        addToLog(`✓ Using pre-parsed data: ${actualData.length} records`);
+      } else {
+        actualData = await parseFileContent(firstFile);
+        addToLog(`✓ Parsed file content: ${actualData.length} records`);
+      }
+
+      if (actualData.length === 0) {
+        addToLog("WARNING: No data found in file");
+        setProcessing(false);
+        return;
+      }
+
+      // Step 3: Auto-detect data type from column structure
+      const columnBasedType = autoDetectDataTypeFromColumns(
+        Object.keys(actualData[0]),
+      );
+      const finalDataType =
+        columnBasedType !== "unknown"
+          ? columnBasedType
+          : firstFile.detectedType || "network";
       addToLog(
-        "📝 To process real files, FileReader API integration is needed",
+        `✓ Data type detection: ${finalDataType} (from ${columnBasedType !== "unknown" ? "columns" : "filename"})`,
       );
 
-      // Generate sample data based on first file's detected type
-      const sampleData = generateSampleData(
-        firstFile.detectedType || "network",
+      // Update actual data for use in preview
+      setActualFileData(actualData);
+
+      // Step 4: Column mapping and standardization
+      addToLog("🔄 Mapping columns to standard format (DataConverter)...");
+      const conversionResult = convertToStandardFormat(
+        actualData,
+        finalDataType,
+      );
+      setConversionResults(conversionResult);
+      addToLog(
+        `✓ Column mapping completed: ${Object.keys(conversionResult.mappedColumns).length} columns mapped`,
       );
 
-      addToLog(`Generated ${sampleData.length} sample records for validation`);
+      // Step 5: Apply data conversions
+      addToLog("🧹 Applying data type specific conversions...");
+      let conversionLog: string[] = [];
 
-      // Run comprehensive validation
-      const validationResult = validateDataFrame(
-        sampleData,
-        firstFile.detectedType || "network",
-      );
+      if (finalDataType === "forecast") {
+        conversionLog = convertForecastData(actualData);
+      } else if (finalDataType === "sku") {
+        conversionLog = convertSkuData(actualData);
+      } else if (finalDataType === "network") {
+        conversionLog = convertNetworkData(actualData);
+      }
+
+      conversionLog.forEach((log) => addToLog(`  ${log}`));
+
+      // Step 6: Run comprehensive validation
+      addToLog("🔍 Running comprehensive validation (DataValidator)...");
+      const validationResult = validateDataFrame(actualData, finalDataType);
 
       addToLog(
-        `Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`,
+        `✓ Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`,
       );
+
+      // Step 7: Generate quality metrics
+      addToLog("📊 Generating quality metrics...");
+      const columnStats = generateColumnStats(actualData, finalDataType);
 
       const qualityRate =
         validationResult.totalRecords > 0
@@ -1116,25 +1147,27 @@ export default function DataProcessor() {
         errors: validationResult.errors,
         warnings: validationResult.warnings,
         validationResult,
-        columnStats: generateColumnStats(
-          sampleData,
-          files[0]?.detectedType || "network",
-        ),
+        columnStats,
       });
 
+      // Step 8: Summary
       if (validationResult.isValid) {
         addToLog(
-          "✓ All validation checks passed - Data is ready for processing",
+          "✅ All validation checks passed - Data is ready for processing",
         );
       } else {
         addToLog(
-          `⚠ Validation found ${validationResult.errors.length} critical issues that need attention`,
+          `⚠️  Validation found ${validationResult.errors.length} critical issues that need attention`,
         );
       }
 
-      addToLog("Data processing pipeline completed");
+      addToLog("🎯 Data processing pipeline completed successfully");
+    } catch (error) {
+      addToLog(`❌ Error during processing: ${error}`);
+      setParseError(`Processing failed: ${error}`);
+    } finally {
       setProcessing(false);
-    }, 4500);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
