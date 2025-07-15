@@ -1403,6 +1403,859 @@ export default function Visualizer() {
                 </div>
               )}
 
+              {/* Advanced Analytics */}
+              {selectedChart === "advanced" && (
+                <div>
+                  <div
+                    className="grid grid-cols-2"
+                    style={{ gap: "2rem", marginBottom: "2rem" }}
+                  >
+                    {/* Capacity Growth Over Time */}
+                    <div className="card">
+                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Capacity Growth Analysis
+                      </h3>
+                      <ResponsiveContainer width="100%" height={350}>
+                        <ComposedChart data={warehouseChartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="year" />
+                          <YAxis yAxisId="left" />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip />
+                          <Legend />
+                          <Area
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="area"
+                            stackId="1"
+                            stroke="#3b82f6"
+                            fill="#3b82f6"
+                            fillOpacity={0.6}
+                            name="Gross Area (K sq ft)"
+                          />
+                          <Area
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="thirdparty"
+                            stackId="1"
+                            stroke="#ef4444"
+                            fill="#ef4444"
+                            fillOpacity={0.6}
+                            name="3PL Area (K sq ft)"
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="facilities"
+                            stroke="#f59e0b"
+                            strokeWidth={3}
+                            name="Facilities Count"
+                          />
+                          <ReferenceLine
+                            yAxisId="left"
+                            y={80}
+                            stroke="red"
+                            strokeDasharray="5 5"
+                            label="Target"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Cost Analysis with Trends */}
+                    <div className="card">
+                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Integrated Cost Analysis
+                      </h3>
+                      <ResponsiveContainer width="100%" height={350}>
+                        <ComposedChart data={warehouseChartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="year" />
+                          <YAxis yAxisId="left" />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip
+                            formatter={(value: any, name: string) => [
+                              name.includes("Cost")
+                                ? `$${value.toFixed(1)}M`
+                                : `${value.toFixed(1)}%`,
+                              name,
+                            ]}
+                          />
+                          <Legend />
+                          <Bar
+                            yAxisId="left"
+                            dataKey="cost"
+                            fill="#8b5cf6"
+                            name="Warehouse Cost ($M)"
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="utilization"
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            name="Utilization %"
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="growth"
+                            stroke="#f59e0b"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            name="Growth Rate %"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div
+                    className="grid grid-cols-2"
+                    style={{ gap: "2rem", marginBottom: "2rem" }}
+                  >
+                    {/* Distance Distribution Analysis */}
+                    <div className="card">
+                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Transportation Distance Distribution
+                      </h3>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart
+                          data={[
+                            { range: "0-250 mi", count: 2, percentage: 40 },
+                            { range: "251-500 mi", count: 1, percentage: 20 },
+                            { range: "501-750 mi", count: 1, percentage: 20 },
+                            { range: "751-1000 mi", count: 1, percentage: 20 },
+                            { range: "1000+ mi", count: 0, percentage: 0 },
+                          ]}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="range"
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                          />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar
+                            dataKey="count"
+                            fill="#06b6d4"
+                            name="Route Count"
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <div
+                        style={{
+                          marginTop: "1rem",
+                          fontSize: "0.875rem",
+                          color: "#6b7280",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Average Distance:</span>
+                          <span style={{ fontWeight: "600" }}>542.3 miles</span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Within Service Limit (1000mi):</span>
+                          <span style={{ fontWeight: "600", color: "#10b981" }}>
+                            100%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Facility Load Distribution */}
+                    <div className="card">
+                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Facility Load Distribution
+                      </h3>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ComposedChart data={networkPerformanceData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="facility" />
+                          <YAxis yAxisId="left" />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip />
+                          <Legend />
+                          <Bar
+                            yAxisId="left"
+                            dataKey="totalDemand"
+                            fill="#f59e0b"
+                            name="Total Demand (K units)"
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="utilization"
+                            stroke="#ef4444"
+                            strokeWidth={3}
+                            name="Utilization %"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* ROI Analysis */}
+                  <div className="card">
+                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      ROI Analysis & Break-even Projection
+                    </h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <ComposedChart
+                        data={[
+                          {
+                            year: 2024,
+                            investment: 2.85,
+                            benefits: 0,
+                            cumInvestment: 2.85,
+                            cumBenefits: 0,
+                            netValue: -2.85,
+                          },
+                          {
+                            year: 2025,
+                            investment: 3.42,
+                            benefits: 1.2,
+                            cumInvestment: 6.27,
+                            cumBenefits: 1.2,
+                            netValue: -5.07,
+                          },
+                          {
+                            year: 2026,
+                            investment: 4.18,
+                            benefits: 2.8,
+                            cumInvestment: 10.45,
+                            cumBenefits: 4.0,
+                            netValue: -6.45,
+                          },
+                          {
+                            year: 2027,
+                            investment: 5.02,
+                            benefits: 4.5,
+                            cumInvestment: 15.47,
+                            cumBenefits: 8.5,
+                            netValue: -6.97,
+                          },
+                          {
+                            year: 2028,
+                            investment: 5.95,
+                            benefits: 6.8,
+                            cumInvestment: 21.42,
+                            cumBenefits: 15.3,
+                            netValue: -6.12,
+                          },
+                        ]}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="year" />
+                        <YAxis />
+                        <Tooltip
+                          formatter={(value: any) => [`$${value}M`, ""]}
+                        />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="cumInvestment"
+                          stackId="1"
+                          stroke="#ef4444"
+                          fill="#ef4444"
+                          fillOpacity={0.6}
+                          name="Cumulative Investment"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="cumBenefits"
+                          stackId="2"
+                          stroke="#10b981"
+                          fill="#10b981"
+                          fillOpacity={0.6}
+                          name="Cumulative Benefits"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="netValue"
+                          stroke="#8b5cf6"
+                          strokeWidth={3}
+                          name="Net Value"
+                        />
+                        <ReferenceLine
+                          y={0}
+                          stroke="#000"
+                          strokeDasharray="2 2"
+                        />
+                        <ReferenceLine
+                          x={2027}
+                          stroke="#f59e0b"
+                          strokeDasharray="5 5"
+                          label="Break-even"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                    <div style={{ marginTop: "1rem" }}>
+                      <div className="grid grid-cols-3" style={{ gap: "2rem" }}>
+                        <div style={{ textAlign: "center" }}>
+                          <div
+                            style={{
+                              fontSize: "1.5rem",
+                              fontWeight: "700",
+                              color: "#ef4444",
+                            }}
+                          >
+                            2027
+                          </div>
+                          <div
+                            style={{ fontSize: "0.875rem", color: "#6b7280" }}
+                          >
+                            Break-even Year
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "center" }}>
+                          <div
+                            style={{
+                              fontSize: "1.5rem",
+                              fontWeight: "700",
+                              color: "#10b981",
+                            }}
+                          >
+                            $21.4M
+                          </div>
+                          <div
+                            style={{ fontSize: "0.875rem", color: "#6b7280" }}
+                          >
+                            Total Investment
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "center" }}>
+                          <div
+                            style={{
+                              fontSize: "1.5rem",
+                              fontWeight: "700",
+                              color: "#8b5cf6",
+                            }}
+                          >
+                            $15.3M
+                          </div>
+                          <div
+                            style={{ fontSize: "0.875rem", color: "#6b7280" }}
+                          >
+                            Projected Benefits
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Executive Dashboard */}
+              {selectedChart === "executive" && (
+                <div>
+                  <div style={{ marginBottom: "2rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <h3 style={{ color: "#111827" }}>
+                        Executive Performance Dashboard
+                      </h3>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button className="button button-secondary">
+                          <Download size={16} />
+                          Export Dashboard
+                        </button>
+                        <button className="button button-secondary">
+                          <RefreshCw size={16} />
+                          Refresh Data
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KPI Summary Cards */}
+                  <div
+                    className="grid grid-cols-4"
+                    style={{ gap: "1.5rem", marginBottom: "2rem" }}
+                  >
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#fef3c7",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #f59e0b",
+                      }}
+                    >
+                      <DollarSign
+                        size={32}
+                        style={{
+                          color: "#92400e",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#92400e",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        $21.4M
+                      </div>
+                      <div
+                        style={{
+                          color: "#78350f",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Total Investment
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#a16207" }}>
+                        5-Year Horizon
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#dcfce7",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #16a34a",
+                      }}
+                    >
+                      <Gauge
+                        size={32}
+                        style={{
+                          color: "#15803d",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#15803d",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        84.6%
+                      </div>
+                      <div
+                        style={{
+                          color: "#166534",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Avg Utilization
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#16a34a" }}>
+                        ↑ Target: 80-90%
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#dbeafe",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #2563eb",
+                      }}
+                    >
+                      <Target
+                        size={32}
+                        style={{
+                          color: "#1d4ed8",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#1d4ed8",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        96.0%
+                      </div>
+                      <div
+                        style={{
+                          color: "#1e40af",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Service Level
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#2563eb" }}>
+                        Target: 95%+
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem 1rem",
+                        backgroundColor: "#f3e8ff",
+                        borderRadius: "0.75rem",
+                        border: "2px solid #9333ea",
+                      }}
+                    >
+                      <TrendingUp
+                        size={32}
+                        style={{
+                          color: "#7c3aed",
+                          marginBottom: "0.5rem",
+                          margin: "0 auto",
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: "bold",
+                          color: "#7c3aed",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        14.8%
+                      </div>
+                      <div
+                        style={{
+                          color: "#6b21a8",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Volume CAGR
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#8b5cf6" }}>
+                        5-year projection
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Executive Charts */}
+                  <div
+                    className="grid grid-cols-2"
+                    style={{ gap: "2rem", marginBottom: "2rem" }}
+                  >
+                    {/* Network Efficiency Trends */}
+                    <div className="card">
+                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Network Efficiency Trends
+                      </h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ComposedChart data={warehouseChartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="year" />
+                          <YAxis yAxisId="left" domain={[0, 100]} />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip />
+                          <Legend />
+                          <Area
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="utilization"
+                            stroke="#10b981"
+                            fill="#10b981"
+                            fillOpacity={0.3}
+                            name="Utilization %"
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="cost"
+                            stroke="#ef4444"
+                            strokeWidth={3}
+                            name="Cost ($M)"
+                          />
+                          <ReferenceLine
+                            yAxisId="left"
+                            y={85}
+                            stroke="#f59e0b"
+                            strokeDasharray="5 5"
+                            label="Target"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Risk Assessment Matrix */}
+                    <div className="card">
+                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                        Risk Assessment Matrix
+                      </h4>
+                      <div style={{ padding: "1rem" }}>
+                        <div style={{ marginBottom: "1.5rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.75rem",
+                              marginBottom: "0.75rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                backgroundColor: "#ef4444",
+                                borderRadius: "50%",
+                              }}
+                            ></div>
+                            <span
+                              style={{
+                                fontSize: "0.875rem",
+                                fontWeight: "600",
+                              }}
+                            >
+                              High Risk
+                            </span>
+                          </div>
+                          <ul
+                            style={{
+                              margin: 0,
+                              paddingLeft: "1.5rem",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            <li>
+                              High volume growth (14.8% CAGR) may strain
+                              capacity
+                            </li>
+                            <li>
+                              3PL dependency at 24% creates operational risk
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div style={{ marginBottom: "1.5rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.75rem",
+                              marginBottom: "0.75rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                backgroundColor: "#f59e0b",
+                                borderRadius: "50%",
+                              }}
+                            ></div>
+                            <span
+                              style={{
+                                fontSize: "0.875rem",
+                                fontWeight: "600",
+                              }}
+                            >
+                              Medium Risk
+                            </span>
+                          </div>
+                          <ul
+                            style={{
+                              margin: 0,
+                              paddingLeft: "1.5rem",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            <li>Network utilization optimization needed</li>
+                            <li>Transportation cost per unit monitoring</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.75rem",
+                              marginBottom: "0.75rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                backgroundColor: "#10b981",
+                                borderRadius: "50%",
+                              }}
+                            ></div>
+                            <span
+                              style={{
+                                fontSize: "0.875rem",
+                                fontWeight: "600",
+                              }}
+                            >
+                              Low Risk
+                            </span>
+                          </div>
+                          <ul
+                            style={{
+                              margin: 0,
+                              paddingLeft: "1.5rem",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            <li>Service level achievement exceeds target</li>
+                            <li>
+                              Optimization status: Optimal solutions achieved
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Strategic Recommendations */}
+                  <div className="card">
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Strategic Recommendations
+                    </h4>
+                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
+                      <div>
+                        <h5
+                          style={{ marginBottom: "0.75rem", color: "#374151" }}
+                        >
+                          Immediate Actions (0-6 months)
+                        </h5>
+                        <div style={{ fontSize: "0.875rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <CheckCircle
+                              size={16}
+                              style={{ color: "#10b981" }}
+                            />
+                            <span>
+                              Monitor utilization trends for early warning
+                              signals
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <CheckCircle
+                              size={16}
+                              style={{ color: "#10b981" }}
+                            />
+                            <span>
+                              Evaluate 3PL contracts for cost optimization
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <CheckCircle
+                              size={16}
+                              style={{ color: "#10b981" }}
+                            />
+                            <span>
+                              Implement transportation route optimization
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h5
+                          style={{ marginBottom: "0.75rem", color: "#374151" }}
+                        >
+                          Long-term Strategy (6+ months)
+                        </h5>
+                        <div style={{ fontSize: "0.875rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <AlertTriangle
+                              size={16}
+                              style={{ color: "#f59e0b" }}
+                            />
+                            <span>
+                              Plan for phased capacity expansion by 2026
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <AlertTriangle
+                              size={16}
+                              style={{ color: "#f59e0b" }}
+                            />
+                            <span>
+                              Consider building additional internal capacity
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <AlertTriangle
+                              size={16}
+                              style={{ color: "#f59e0b" }}
+                            />
+                            <span>
+                              Develop contingency plans for demand volatility
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* KPI Dashboard */}
               <div className="card" style={{ marginTop: "2rem" }}>
                 <h3 style={{ marginBottom: "1.5rem", color: "#111827" }}>
