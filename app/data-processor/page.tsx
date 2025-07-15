@@ -1466,13 +1466,20 @@ export default function DataProcessor() {
       conversionLog.push(`📋 Unmapped columns: ${unmappedColumns.join(", ")}`);
     }
 
+    if (allRowErrors.length > 0) {
+      conversionLog.push(
+        `⚠️ ${allRowErrors.length} validation issues found in data`,
+      );
+    }
+
     return {
       originalColumns: availableColumns,
       mappedColumns,
       unmappedColumns,
       suggestions,
       conversionLog,
-      mappedData, // Return the transformed data
+      mappedData,
+      validationErrors: allRowErrors,
     };
   };
 
