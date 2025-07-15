@@ -366,7 +366,7 @@ export default function WarehouseOptimizer() {
     }
 
     // Simulate comprehensive results matching Python WarehouseOptimizer
-    setTimeout(() => {
+    setTimeout(async () => {
       // Generate sample yearly data
       const yearlyResults = [];
       const years = [2024, 2025, 2026, 2027, 2028];
