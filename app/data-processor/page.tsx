@@ -2057,7 +2057,7 @@ export default function DataProcessor() {
 
       // Step 7: Generate quality metrics
       addToLog("📊 Generating quality metrics...");
-      const columnStats = generateColumnStats(actualData, finalDataType);
+      const columnStats = generateColumnStats(mappedData, finalDataType);
 
       const qualityRate =
         validationResult.totalRecords > 0
