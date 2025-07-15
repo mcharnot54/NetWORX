@@ -2389,6 +2389,61 @@ export default function DataProcessor() {
 
     setActualFileData(allData);
 
+    // Organize data by type for optimizer integration
+    const organizedData: any = {
+      lastProcessed: new Date().toISOString(),
+      dataQuality: dataQuality,
+      conversionResults: conversionResults,
+    };
+
+    // Group data by detected type
+    filesWithData.forEach((file) => {
+      const dataType = file.detectedType || "unknown";
+      const data = file.parsedData || [];
+
+      switch (dataType) {
+        case "transportation_costs":
+          organizedData.transportation_costs = (
+            organizedData.transportation_costs || []
+          ).concat(data);
+          break;
+        case "warehouse_inputs":
+          organizedData.warehouse_inputs = (
+            organizedData.warehouse_inputs || []
+          ).concat(data);
+          break;
+        case "sku":
+          organizedData.sku_data = (organizedData.sku_data || []).concat(data);
+          break;
+        case "sales_orders":
+          organizedData.sales_orders = (
+            organizedData.sales_orders || []
+          ).concat(data);
+          break;
+        case "network":
+          organizedData.network_data = (
+            organizedData.network_data || []
+          ).concat(data);
+          break;
+        case "forecast":
+          organizedData.forecast_data = (
+            organizedData.forecast_data || []
+          ).concat(data);
+          break;
+        default:
+          if (!organizedData.other_data) organizedData.other_data = [];
+          organizedData.other_data = organizedData.other_data.concat(
+            data.map((record: any) => ({
+              ...record,
+              _originalType: dataType,
+            })),
+          );
+      }
+    });
+
+    // Store processed data in context for optimizers
+    setProcessedData(organizedData);
+
     addToLog(`✅ Baseline compilation complete:`);
     addToLog(`  📊 Total records: ${stats.totalRecords}`);
     addToLog(
@@ -2397,6 +2452,7 @@ export default function DataProcessor() {
         .join(", ")}`,
     );
     addToLog(`  🎯 Data quality: ${stats.dataQuality}%`);
+    addToLog(`  🔗 Data stored in context for optimizer integration`);
 
     return stats;
   };
