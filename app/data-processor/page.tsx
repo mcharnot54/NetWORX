@@ -2081,9 +2081,36 @@ export default function DataProcessor() {
 
                 {files.length > 0 && (
                   <div style={{ marginTop: "1rem" }}>
-                    <h4 style={{ marginBottom: "0.5rem", color: "#111827" }}>
-                      Files with Auto-Detection:
-                    </h4>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "0.5rem",
+                      }}
+                    >
+                      <h4 style={{ margin: 0, color: "#111827" }}>
+                        Uploaded Files ({files.length}):
+                      </h4>
+                      <button
+                        onClick={() => {
+                          setFiles([]);
+                          setActualFileData([]);
+                          addToLog("🗑️ Cleared all uploaded files");
+                        }}
+                        style={{
+                          padding: "0.25rem 0.5rem",
+                          fontSize: "0.75rem",
+                          backgroundColor: "#ef4444",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "0.25rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Clear All
+                      </button>
+                    </div>
                     {files.map((file, index) => (
                       <div
                         key={index}
