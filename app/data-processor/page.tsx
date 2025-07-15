@@ -1321,6 +1321,38 @@ export default function DataProcessor() {
               <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
                 Data Preview
               </h3>
+
+              {/* Sample Data Notice */}
+              <div
+                style={{
+                  backgroundColor: "#e0f2fe",
+                  border: "1px solid #0ea5e9",
+                  borderRadius: "0.5rem",
+                  padding: "1rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <Database size={20} style={{ color: "#0284c7" }} />
+                  <span style={{ fontWeight: "600", color: "#0c4a6e" }}>
+                    Sample Data Preview
+                  </span>
+                </div>
+                <p
+                  style={{ fontSize: "0.875rem", color: "#0c4a6e", margin: 0 }}
+                >
+                  Showing sample data structure based on detected file type. In
+                  production, this would display actual file content after
+                  parsing.
+                </p>
+              </div>
               {selectedFile !== null && files[selectedFile] ? (
                 <div>
                   <div
