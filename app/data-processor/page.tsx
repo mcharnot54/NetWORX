@@ -741,6 +741,10 @@ export default function DataProcessor() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
+    processFiles(uploadedFiles);
+  };
+
+  const processFiles = (uploadedFiles: File[]) => {
     const fileData = uploadedFiles.map((file, index) => {
       const sheets =
         file.name.endsWith(".xlsx") || file.name.endsWith(".xls")
@@ -759,6 +763,23 @@ export default function DataProcessor() {
     });
     setFiles(fileData);
     addToLog(`Uploaded ${fileData.length} file(s)`);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.classList.add("active");
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.classList.remove("active");
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.classList.remove("active");
+    const droppedFiles = Array.from(event.dataTransfer.files);
+    processFiles(droppedFiles);
   };
 
   const addToLog = (message: string) => {
