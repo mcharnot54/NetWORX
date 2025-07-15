@@ -429,6 +429,25 @@ export default function InventoryOptimizer() {
       );
 
       calculateInventoryMetrics();
+
+      // Store results in context for integration with other components
+      const optimizationResults = {
+        skuData,
+        inventoryMetrics,
+        config,
+        totalValue: inventoryMetrics.reduce((sum, m) => sum + m.total_value, 0),
+        totalInventoryPosition: inventoryMetrics.reduce(
+          (sum, m) => sum + m.reorder_point,
+          0,
+        ),
+        abcDistribution: {
+          a_class: skuData.filter((s) => s.abc_class === "A").length,
+          b_class: skuData.filter((s) => s.abc_class === "B").length,
+          c_class: skuData.filter((s) => s.abc_class === "C").length,
+        },
+      };
+
+      setInventoryResults(optimizationResults);
     } catch (error) {
       addLogEntry("ERROR", `Error during optimization: ${error}`);
     } finally {
@@ -1583,7 +1602,7 @@ export default function InventoryOptimizer() {
                             borderRadius: "0.25rem",
                           }}
                         >
-                          Pooled_SS = Original_SS / √(n_locations)
+                          Pooled_SS = Original_SS / ��(n_locations)
                         </div>
                       </div>
 
