@@ -227,6 +227,118 @@ export default function WarehouseOptimizer() {
     };
   };
 
+  // Load warehouse data from Data Processor
+  const loadWarehouseData = () => {
+    const warehouseData = getWarehouseData();
+
+    if (warehouseData && warehouseData.length > 0) {
+      addToLog(
+        `Loading ${warehouseData.length} warehouse records from Data Processor`,
+      );
+
+      // Aggregate warehouse metrics
+      const totalCapacity = warehouseData.reduce((sum: number, record: any) => {
+        return sum + (record.capacity_sqft || 0);
+      }, 0);
+
+      const avgLaborCost =
+        warehouseData.reduce((sum: number, record: any) => {
+          return sum + (record.labor_cost_per_hour || 0);
+        }, 0) / warehouseData.length;
+
+      const avgCostPerSqft =
+        warehouseData.reduce((sum: number, record: any) => {
+          return (
+            sum + (record.cost_fixed_annual || 0) / (record.capacity_sqft || 1)
+          );
+        }, 0) / warehouseData.length;
+
+      // Update warehouse parameters with loaded data
+      setWarehouseParams((prev) => ({
+        ...prev,
+        initial_facility_area:
+          totalCapacity / warehouseData.length || prev.initial_facility_area,
+        cost_per_sqft_annual: avgCostPerSqft || prev.cost_per_sqft_annual,
+        labor_cost_per_hour: avgLaborCost || prev.labor_cost_per_hour,
+        num_facilities: warehouseData.length || prev.num_facilities,
+      }));
+
+      addToLog(
+        `Updated parameters from warehouse data: ${warehouseData.length} facilities, avg ${Math.round(totalCapacity / warehouseData.length).toLocaleString()} sqft`,
+      );
+    } else {
+      addToLog("No warehouse data available from Data Processor");
+    }
+  };
+
+  // Load SKU data from Data Processor
+  const loadSKUData = () => {
+    const skuData = getSKUData();
+
+    if (skuData && skuData.length > 0) {
+      addToLog(`Loading ${skuData.length} SKU records from Data Processor`);
+
+      // Calculate total annual volume and average pallet requirements
+      const totalAnnualVolume = skuData.reduce((sum: number, record: any) => {
+        return sum + (record.annual_volume || 0);
+      }, 0);
+
+      const avgUnitsPerCase =
+        skuData.reduce((sum: number, record: any) => {
+          return sum + (record.units_per_case || 0);
+        }, 0) / skuData.length;
+
+      const avgCasesPerPallet =
+        skuData.reduce((sum: number, record: any) => {
+          return sum + (record.cases_per_pallet || 0);
+        }, 0) / skuData.length;
+
+      // Calculate required storage based on SKU data
+      const totalPallets =
+        totalAnnualVolume / (avgUnitsPerCase * avgCasesPerPallet) || 0;
+      const dailyPallets = totalPallets / 365;
+      const adjustedDOH = Math.max(30, (totalPallets / dailyPallets) * 7); // Adjust DOH based on volume
+
+      // Update warehouse parameters with SKU-driven calculations
+      setWarehouseParams((prev) => ({
+        ...prev,
+        DOH: Math.round(adjustedDOH) || prev.DOH,
+        // Adjust facility size based on volume requirements
+        facility_design_area: Math.max(
+          prev.facility_design_area,
+          totalPallets * 50,
+        ), // 50 sqft per pallet position
+      }));
+
+      addToLog(
+        `Updated parameters from SKU data: ${skuData.length} SKUs, ${totalAnnualVolume.toLocaleString()} annual volume`,
+      );
+    } else {
+      addToLog("No SKU data available from Data Processor");
+    }
+  };
+
+  // Load all available data
+  const loadAllData = () => {
+    addToLog("Loading data from Data Processor...");
+    loadWarehouseData();
+    loadSKUData();
+    addToLog("Data loading completed");
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    const warehouseData = getWarehouseData();
+    const skuData = getSKUData();
+
+    if (
+      (warehouseData && warehouseData.length > 0) ||
+      (skuData && skuData.length > 0)
+    ) {
+      loadAllData();
+    }
+  }, [getWarehouseData, getSKUData]);
+
   const runOptimization = async () => {
     setOptimizing(true);
     addToLog(
