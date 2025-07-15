@@ -40,6 +40,15 @@ interface ProcessingConfig {
   maxFileSizeMB: number;
 }
 
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  totalRecords: number;
+  validRecords: number;
+  invalidRecords: number;
+}
+
 interface DataQuality {
   totalRecords: number;
   validRecords: number;
@@ -48,6 +57,16 @@ interface DataQuality {
   errors: string[];
   warnings: string[];
   columnStats: any[];
+  validationResult: ValidationResult;
+}
+
+interface ValidationRules {
+  requiredColumns: string[];
+  numericColumns: string[];
+  positiveColumns: string[];
+  stringColumns?: string[];
+  yearRange?: [number, number];
+  coordinateRanges?: { [key: string]: [number, number] };
 }
 
 export default function DataProcessor() {
@@ -93,6 +112,36 @@ export default function DataProcessor() {
     addToLog(`Uploaded ${fileData.length} file(s)`);
   };
 
+  // Validation rules matching Python DataValidator
+  const validationRules: { [key: string]: ValidationRules } = {
+    forecast: {
+      requiredColumns: ["year", "annual_units"],
+      numericColumns: ["year", "annual_units"],
+      positiveColumns: ["annual_units"],
+      yearRange: [2020, 2050],
+    },
+    sku: {
+      requiredColumns: [
+        "sku_id",
+        "units_per_case",
+        "cases_per_pallet",
+        "annual_volume",
+      ],
+      numericColumns: ["units_per_case", "cases_per_pallet", "annual_volume"],
+      positiveColumns: ["units_per_case", "cases_per_pallet", "annual_volume"],
+      stringColumns: ["sku_id"],
+    },
+    network: {
+      requiredColumns: ["city", "latitude", "longitude"],
+      numericColumns: ["latitude", "longitude"],
+      stringColumns: ["city"],
+      coordinateRanges: {
+        latitude: [-90, 90],
+        longitude: [-180, 180],
+      },
+    },
+  };
+
   const autoDetectDataType = (filename: string): string => {
     const name = filename.toLowerCase();
     if (name.includes("forecast") || name.includes("demand")) return "forecast";
@@ -102,6 +151,242 @@ export default function DataProcessor() {
     if (name.includes("capacity") || name.includes("warehouse"))
       return "capacity";
     return "unknown";
+  };
+
+  const validateDataFrame = (
+    data: any[],
+    dataType: string,
+  ): ValidationResult => {
+    const rules = validationRules[dataType];
+    if (!rules) {
+      return {
+        isValid: false,
+        errors: [`Unknown data type: ${dataType}`],
+        warnings: [],
+        totalRecords: data.length,
+        validRecords: 0,
+        invalidRecords: data.length,
+      };
+    }
+
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const totalRecords = data.length;
+
+    // Check required columns
+    const sampleRecord = data[0] || {};
+    const availableColumns = Object.keys(sampleRecord).map((col) =>
+      col.toLowerCase(),
+    );
+
+    const missingColumns = rules.requiredColumns.filter(
+      (col) => !availableColumns.includes(col.toLowerCase()),
+    );
+
+    if (missingColumns.length > 0) {
+      errors.push(
+        ...missingColumns.map((col) => `Missing required column: ${col}`),
+      );
+    }
+
+    // Validate data types and ranges
+    data.forEach((record, index) => {
+      // Check numeric columns
+      rules.numericColumns?.forEach((col) => {
+        const value = record[col];
+        if (value !== undefined && value !== null && isNaN(Number(value))) {
+          errors.push(
+            `Row ${index + 1}: '${col}' must be numeric, got '${value}'`,
+          );
+        }
+      });
+
+      // Check positive columns
+      rules.positiveColumns?.forEach((col) => {
+        const value = Number(record[col]);
+        if (!isNaN(value) && value <= 0) {
+          errors.push(
+            `Row ${index + 1}: '${col}' must be positive, got ${value}`,
+          );
+        }
+      });
+
+      // Check coordinate ranges
+      if (rules.coordinateRanges) {
+        Object.entries(rules.coordinateRanges).forEach(([col, [min, max]]) => {
+          const value = Number(record[col]);
+          if (!isNaN(value) && (value < min || value > max)) {
+            errors.push(
+              `Row ${index + 1}: '${col}' must be between ${min} and ${max}, got ${value}`,
+            );
+          }
+        });
+      }
+    });
+
+    // Data type specific validations
+    if (dataType === "forecast") {
+      errors.push(...validateForecastData(data));
+    } else if (dataType === "sku") {
+      errors.push(...validateSkuData(data));
+    } else if (dataType === "network") {
+      errors.push(...validateNetworkData(data));
+    }
+
+    // Check for duplicates and missing values
+    warnings.push(...checkDuplicates(data, dataType));
+    warnings.push(...checkMissingValues(data, rules.requiredColumns));
+
+    const validRecords = Math.max(0, totalRecords - errors.length);
+    const invalidRecords = totalRecords - validRecords;
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      totalRecords,
+      validRecords,
+      invalidRecords,
+    };
+  };
+
+  const validateForecastData = (data: any[]): string[] => {
+    const errors: string[] = [];
+    const currentYear = new Date().getFullYear();
+
+    data.forEach((record, index) => {
+      const year = Number(record.year);
+
+      // Check reasonable year range
+      if (
+        !isNaN(year) &&
+        (year < currentYear - 10 || year > currentYear + 30)
+      ) {
+        errors.push(
+          `Row ${index + 1}: Year ${year} outside reasonable range (${currentYear - 10}-${currentYear + 30})`,
+        );
+      }
+
+      // Check for extreme volume values
+      const volume = Number(record.annual_units);
+      if (!isNaN(volume) && volume > 1000000) {
+        errors.push(
+          `Row ${index + 1}: Annual units ${volume} seems unusually high`,
+        );
+      }
+    });
+
+    return errors;
+  };
+
+  const validateSkuData = (data: any[]): string[] => {
+    const errors: string[] = [];
+
+    data.forEach((record, index) => {
+      // Check SKU ID format
+      const skuId = String(record.sku_id || "");
+      if (skuId.length < 3) {
+        errors.push(
+          `Row ${index + 1}: SKU ID '${skuId}' should have at least 3 characters`,
+        );
+      }
+
+      // Check units per pallet calculation
+      const unitsPerCase = Number(record.units_per_case);
+      const casesPerPallet = Number(record.cases_per_pallet);
+
+      if (!isNaN(unitsPerCase) && !isNaN(casesPerPallet)) {
+        const unitsPerPallet = unitsPerCase * casesPerPallet;
+
+        if (unitsPerPallet > 10000) {
+          errors.push(
+            `Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) exceeds 10,000`,
+          );
+        }
+
+        if (unitsPerPallet < 1) {
+          errors.push(
+            `Row ${index + 1}: Calculated units per pallet (${unitsPerPallet}) is less than 1`,
+          );
+        }
+      }
+    });
+
+    return errors;
+  };
+
+  const validateNetworkData = (data: any[]): string[] => {
+    const errors: string[] = [];
+
+    data.forEach((record, index) => {
+      // Check city name format
+      const city = String(record.city || "");
+      if (city.length < 2) {
+        errors.push(
+          `Row ${index + 1}: City name '${city}' should have at least 2 characters`,
+        );
+      }
+
+      // Check for (0,0) coordinates
+      const lat = Number(record.latitude);
+      const lng = Number(record.longitude);
+
+      if (lat === 0 && lng === 0) {
+        errors.push(
+          `Row ${index + 1}: Coordinates (0,0) likely indicate missing location data`,
+        );
+      }
+    });
+
+    return errors;
+  };
+
+  const checkDuplicates = (data: any[], dataType: string): string[] => {
+    const warnings: string[] = [];
+
+    if (dataType === "forecast") {
+      const years = data.map((r) => r.year).filter((y) => y !== undefined);
+      const uniqueYears = new Set(years);
+      if (years.length !== uniqueYears.size) {
+        warnings.push("Duplicate years found in forecast data");
+      }
+    } else if (dataType === "sku") {
+      const skuIds = data.map((r) => r.sku_id).filter((id) => id !== undefined);
+      const uniqueSkuIds = new Set(skuIds);
+      if (skuIds.length !== uniqueSkuIds.size) {
+        warnings.push("Duplicate SKU IDs found");
+      }
+    } else if (dataType === "network") {
+      const cities = data.map((r) => r.city).filter((c) => c !== undefined);
+      const uniqueCities = new Set(cities);
+      if (cities.length !== uniqueCities.size) {
+        warnings.push("Duplicate cities found in network data");
+      }
+    }
+
+    return warnings;
+  };
+
+  const checkMissingValues = (
+    data: any[],
+    requiredColumns: string[],
+  ): string[] => {
+    const warnings: string[] = [];
+
+    requiredColumns.forEach((col) => {
+      const missingCount = data.filter(
+        (record) =>
+          record[col] === undefined ||
+          record[col] === null ||
+          record[col] === "",
+      ).length;
+
+      if (missingCount > 0) {
+        warnings.push(`Column '${col}' has ${missingCount} missing values`);
+      }
+    });
+
+    return warnings;
   };
 
   const addToLog = (message: string) => {
