@@ -2017,27 +2017,39 @@ export default function DataProcessor() {
         finalDataType,
       );
       setConversionResults(conversionResult);
+
+      // Use mapped data for all subsequent operations
+      const mappedData = conversionResult.mappedData || actualData;
+      setActualFileData(mappedData);
+
       addToLog(
         `✓ Column mapping completed: ${Object.keys(conversionResult.mappedColumns).length} columns mapped`,
       );
 
-      // Step 5: Apply data conversions
+      // Display mapping suggestions if any
+      if (Object.keys(conversionResult.suggestions || {}).length > 0) {
+        addToLog(
+          "💡 Column mapping suggestions available - check conversion details",
+        );
+      }
+
+      // Step 5: Apply data conversions on mapped data
       addToLog("🧹 Applying data type specific conversions...");
       let conversionLog: string[] = [];
 
       if (finalDataType === "forecast") {
-        conversionLog = convertForecastData(actualData);
+        conversionLog = convertForecastData(mappedData);
       } else if (finalDataType === "sku") {
-        conversionLog = convertSkuData(actualData);
+        conversionLog = convertSkuData(mappedData);
       } else if (finalDataType === "network") {
-        conversionLog = convertNetworkData(actualData);
+        conversionLog = convertNetworkData(mappedData);
       }
 
       conversionLog.forEach((log) => addToLog(`  ${log}`));
 
-      // Step 6: Run comprehensive validation
+      // Step 6: Run comprehensive validation on mapped data
       addToLog("🔍 Running comprehensive validation (DataValidator)...");
-      const validationResult = validateDataFrame(actualData, finalDataType);
+      const validationResult = validateDataFrame(mappedData, finalDataType);
 
       addToLog(
         `�� Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`,
