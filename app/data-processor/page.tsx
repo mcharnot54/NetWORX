@@ -1689,6 +1689,67 @@ export default function DataProcessor() {
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
   };
 
+  const compileBaselineData = () => {
+    const filesWithData = files.filter(
+      (f) => f.parsedData && f.parsedData.length > 0,
+    );
+
+    if (filesWithData.length === 0) {
+      addToLog("⚠️ No data available for baseline compilation");
+      return;
+    }
+
+    addToLog(
+      `🔄 Compiling baseline data from ${filesWithData.length} file(s)...`,
+    );
+
+    let allData: any[] = [];
+    let stats = {
+      totalRecords: 0,
+      fileTypes: {} as any,
+      dataQuality: 0,
+      sources: [] as string[],
+    };
+
+    filesWithData.forEach((file) => {
+      const data = file.parsedData || [];
+      const dataType = file.detectedType || "unknown";
+
+      // Add metadata to each record
+      const enrichedData = data.map((record) => ({
+        ...record,
+        _source: file.name,
+        _dataType: dataType,
+        _uploadTime: new Date().toISOString(),
+      }));
+
+      allData.push(...enrichedData);
+      stats.totalRecords += data.length;
+      stats.fileTypes[dataType] = (stats.fileTypes[dataType] || 0) + 1;
+      stats.sources.push(file.name);
+
+      addToLog(`  📄 ${file.name}: ${data.length} records (${dataType})`);
+    });
+
+    // Calculate data quality score
+    stats.dataQuality = Math.round(
+      (allData.length / (allData.length + 1)) * 100,
+    ); // Simplified score
+
+    setActualFileData(allData);
+
+    addToLog(`✅ Baseline compilation complete:`);
+    addToLog(`  📊 Total records: ${stats.totalRecords}`);
+    addToLog(
+      `  📁 File types: ${Object.entries(stats.fileTypes)
+        .map(([type, count]) => `${type}(${count})`)
+        .join(", ")}`,
+    );
+    addToLog(`  🎯 Data quality: ${stats.dataQuality}%`);
+
+    return stats;
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1787,7 +1848,7 @@ export default function DataProcessor() {
       setActualFileData(actualData);
 
       // Step 4: Column mapping and standardization
-      addToLog("🔄 Mapping columns to standard format (DataConverter)...");
+      addToLog("�� Mapping columns to standard format (DataConverter)...");
       const conversionResult = convertToStandardFormat(
         actualData,
         finalDataType,
