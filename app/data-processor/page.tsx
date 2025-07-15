@@ -1040,6 +1040,30 @@ export default function DataProcessor() {
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) {
+      // Create a fake event to reuse the existing upload logic
+      const fakeEvent = {
+        target: { files: droppedFiles },
+      } as any;
+      await handleFileUpload(fakeEvent);
+    }
+  };
+
   const handleProcess = async () => {
     if (files.length === 0) {
       addToLog("ERROR: No files uploaded for validation");
@@ -1266,7 +1290,12 @@ export default function DataProcessor() {
                 <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
                   File Upload & Auto-Detection
                 </h3>
-                <div className="file-upload">
+                <div
+                  className="file-upload"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <Upload
                     size={48}
                     style={{ color: "#6b7280", margin: "0 auto 1rem" }}
