@@ -961,17 +961,32 @@ export default function DataProcessor() {
       addToLog(steps[i]);
     }
 
-    // Simulate comprehensive validation using actual validation framework
+    // Use actual uploaded file data for validation
     setTimeout(() => {
-      // Generate sample data based on first file's detected type
-      const sampleData = generateSampleData(
-        files[0]?.detectedType || "network",
-      );
+      if (files.length === 0) {
+        addToLog("No files to validate");
+        setProcessing(false);
+        return;
+      }
 
-      // Run comprehensive validation
+      const firstFile = files[0];
+      const fileName = firstFile.name;
+      const fileData = parsedData[fileName];
+
+      if (!fileData || fileData.length === 0) {
+        addToLog(
+          `No data found in ${fileName}. Please ensure the file was uploaded correctly.`,
+        );
+        setProcessing(false);
+        return;
+      }
+
+      addToLog(`Validating ${fileData.length} records from ${fileName}`);
+
+      // Run comprehensive validation using actual file data
       const validationResult = validateDataFrame(
-        sampleData,
-        files[0]?.detectedType || "network",
+        fileData,
+        firstFile.detectedType || "network",
       );
 
       addToLog(
@@ -993,8 +1008,8 @@ export default function DataProcessor() {
         warnings: validationResult.warnings,
         validationResult,
         columnStats: generateColumnStats(
-          sampleData,
-          files[0]?.detectedType || "network",
+          fileData,
+          firstFile.detectedType || "network",
         ),
       });
 
