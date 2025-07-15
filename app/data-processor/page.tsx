@@ -734,6 +734,210 @@ export default function DataProcessor() {
     });
   };
 
+  const parseFileContent = async (fileData: FileData): Promise<any[]> => {
+    if (!fileData.file) return [];
+
+    try {
+      if (fileData.file.name.endsWith(".csv")) {
+        return await parseCSVFile(fileData.file);
+      } else if (
+        fileData.file.name.endsWith(".xlsx") ||
+        fileData.file.name.endsWith(".xls")
+      ) {
+        return await parseExcelFile(
+          fileData.file,
+          fileData.selectedSheet || "Sheet1",
+        );
+      }
+      return [];
+    } catch (error) {
+      addToLog(`Error parsing file ${fileData.file.name}: ${error}`);
+      throw error;
+    }
+  };
+
+  const parseCSVFile = async (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split("\n").filter((line) => line.trim());
+
+          if (lines.length === 0) {
+            resolve([]);
+            return;
+          }
+
+          // Parse CSV with basic comma separation (handles quoted fields)
+          const parseCSVLine = (line: string): string[] => {
+            const result: string[] = [];
+            let current = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === "," && !inQuotes) {
+                result.push(current.trim());
+                current = "";
+              } else {
+                current += char;
+              }
+            }
+            result.push(current.trim());
+            return result;
+          };
+
+          const headers = parseCSVLine(lines[0]).map((h) =>
+            h.replace(/"/g, "").trim(),
+          );
+          const cleanHeaders = headers.map((header) => cleanColumnName(header));
+
+          const data = lines
+            .slice(1)
+            .map((line) => {
+              const values = parseCSVLine(line);
+              const row: any = {};
+
+              cleanHeaders.forEach((header, index) => {
+                let value = values[index] || "";
+                value = value.replace(/"/g, "").trim();
+
+                // Try to convert to number if it looks numeric
+                if (value && !isNaN(Number(value)) && value !== "") {
+                  row[header] = Number(value);
+                } else {
+                  row[header] = value;
+                }
+              });
+
+              return row;
+            })
+            .filter((row) => {
+              // Filter out completely empty rows
+              return Object.values(row).some(
+                (value) =>
+                  value !== "" && value !== null && value !== undefined,
+              );
+            });
+
+          addToLog(
+            `Parsed CSV file: ${data.length} rows, ${cleanHeaders.length} columns`,
+          );
+          resolve(data);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsText(file);
+    });
+  };
+
+  const parseExcelFile = async (
+    file: File,
+    sheetName: string,
+  ): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+
+          if (!workbook.SheetNames.includes(sheetName)) {
+            sheetName = workbook.SheetNames[0];
+          }
+
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (jsonData.length === 0) {
+            resolve([]);
+            return;
+          }
+
+          // Extract headers and clean them
+          const headers = (jsonData[0] as any[]).map((h: any) =>
+            cleanColumnName(String(h || "").trim()),
+          );
+
+          // Convert remaining rows to objects
+          const data = (jsonData.slice(1) as any[][])
+            .map((row) => {
+              const rowObj: any = {};
+              headers.forEach((header, index) => {
+                let value = row[index];
+
+                // Handle Excel date values
+                if (
+                  typeof value === "number" &&
+                  value > 25569 &&
+                  value < 50000
+                ) {
+                  // Likely a date serial number
+                  const date = XLSX.SSF.parse_date_code(value);
+                  if (date) {
+                    value = `${date.y}-${String(date.m).padStart(2, "0")}-${String(date.d).padStart(2, "0")}`;
+                  }
+                }
+
+                // Clean string values
+                if (typeof value === "string") {
+                  value = value.trim();
+                }
+
+                rowObj[header] = value;
+              });
+              return rowObj;
+            })
+            .filter((row) => {
+              // Filter out completely empty rows
+              return Object.values(row).some(
+                (value) =>
+                  value !== "" && value !== null && value !== undefined,
+              );
+            });
+
+          addToLog(
+            `Parsed Excel file (${sheetName}): ${data.length} rows, ${headers.length} columns`,
+          );
+          resolve(data);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error("Failed to read Excel file"));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const cleanColumnName = (columnName: string): string => {
+    if (!columnName || columnName.trim() === "") {
+      return "unnamed_column";
+    }
+
+    // Convert to string and clean
+    let cleanName = String(columnName).trim();
+
+    // Remove special characters and replace with underscores
+    cleanName = cleanName.replace(/[^\w\s]/g, "_");
+
+    // Replace multiple spaces/underscores with single underscore
+    cleanName = cleanName.replace(/[\s_]+/g, "_");
+
+    // Convert to lowercase
+    cleanName = cleanName.toLowerCase();
+
+    // Remove leading/trailing underscores
+    cleanName = cleanName.replace(/^_+|_+$/g, "");
+
+    return cleanName || "unnamed_column";
+  };
+
   const autoDetectDataType = (filename: string): string => {
     const name = filename.toLowerCase();
     if (name.includes("forecast") || name.includes("demand")) return "forecast";
@@ -742,6 +946,35 @@ export default function DataProcessor() {
     if (name.includes("cost") || name.includes("rate")) return "cost";
     if (name.includes("capacity") || name.includes("warehouse"))
       return "capacity";
+    return "unknown";
+  };
+
+  const autoDetectDataTypeFromColumns = (columnNames: string[]): string => {
+    const columns = columnNames.join(" ").toLowerCase();
+
+    if (
+      columns.includes("year") &&
+      (columns.includes("forecast") ||
+        columns.includes("demand") ||
+        columns.includes("units"))
+    ) {
+      return "forecast";
+    }
+
+    if (
+      columns.includes("sku") ||
+      (columns.includes("case") && columns.includes("pallet"))
+    ) {
+      return "sku";
+    }
+
+    if (
+      (columns.includes("city") || columns.includes("location")) &&
+      (columns.includes("latitude") || columns.includes("longitude"))
+    ) {
+      return "network";
+    }
+
     return "unknown";
   };
 
@@ -1895,7 +2128,7 @@ export default function DataProcessor() {
                             : "#ef4444",
                         }}
                       >
-                        {dataQuality.validationResult.isValid ? "��" : "✗"}
+                        {dataQuality.validationResult.isValid ? "✓" : "✗"}
                       </div>
                       <div style={{ color: "#6b7280" }}>Validation Status</div>
                     </div>
