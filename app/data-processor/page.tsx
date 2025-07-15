@@ -952,22 +952,51 @@ export default function DataProcessor() {
   const autoDetectDataTypeFromColumns = (columnNames: string[]): string => {
     const columns = columnNames.join(" ").toLowerCase();
 
+    // Forecast/Sales Volume Data
     if (
       columns.includes("year") &&
       (columns.includes("forecast") ||
         columns.includes("demand") ||
-        columns.includes("units"))
+        columns.includes("units") ||
+        columns.includes("sales") ||
+        columns.includes("volume"))
     ) {
-      return "forecast";
+      return columns.includes("sales") || columns.includes("volume")
+        ? "sales_volume"
+        : "forecast";
     }
 
+    // SKU/Inventory Data
     if (
       columns.includes("sku") ||
-      (columns.includes("case") && columns.includes("pallet"))
+      (columns.includes("case") && columns.includes("pallet")) ||
+      columns.includes("inventory")
     ) {
       return "sku";
     }
 
+    // Facility/Warehouse Data
+    if (
+      (columns.includes("facility") || columns.includes("warehouse")) &&
+      (columns.includes("capacity") ||
+        columns.includes("cost") ||
+        columns.includes("fixed") ||
+        columns.includes("variable"))
+    ) {
+      return "facility";
+    }
+
+    // Transportation Cost Data
+    if (
+      (columns.includes("origin") && columns.includes("destination")) ||
+      (columns.includes("lane") && columns.includes("rate")) ||
+      columns.includes("freight") ||
+      columns.includes("transport")
+    ) {
+      return "transport_cost";
+    }
+
+    // Network/Location Data
     if (
       (columns.includes("city") || columns.includes("location")) &&
       (columns.includes("latitude") || columns.includes("longitude"))
