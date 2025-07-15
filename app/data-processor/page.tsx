@@ -2050,9 +2050,8 @@ export default function DataProcessor() {
   };
 
   const handleProcess = async () => {
-    // Allow validation to run with or without uploaded files
+    // Process multiple files or use sample data
     let useUploadedData = files.length > 0;
-    let dataTypeToUse = "network";
 
     if (!useUploadedData) {
       addToLog(
@@ -2061,42 +2060,107 @@ export default function DataProcessor() {
     }
 
     setProcessing(true);
-    addToLog("Starting comprehensive data processing pipeline...");
+    addToLog(
+      "🚀 Starting comprehensive multi-file data processing pipeline...",
+    );
 
     try {
-      let actualData: any[];
-      let finalDataType: string;
-
       if (useUploadedData) {
-        const firstFile = files[0];
-        addToLog(`Processing file: ${firstFile.name}`);
-        addToLog(`File size: ${formatFileSize(firstFile.size)}`);
-        addToLog(`Initial detected type: ${firstFile.detectedType}`);
+        addToLog(`📊 Processing ${files.length} uploaded file(s)...`);
 
-        // Step 1: Validate file existence and size
-        addToLog("✓ Validating file existence and size");
-        if (firstFile.size > config.maxFileSizeMB * 1024 * 1024) {
-          addToLog(`ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`);
-          setProcessing(false);
-          return;
+        // Process each file
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          addToLog(
+            `\n📁 Processing file ${i + 1}/${files.length}: ${file.name}`,
+          );
+
+          // Skip if already processed
+          if (file.processed) {
+            addToLog(`✓ File already processed, skipping...`);
+            continue;
+          }
+
+          // Step 1: Validate file
+          addToLog(
+            `✓ Validating file: ${formatFileSize(file.size)}, type: ${file.detectedType}`,
+          );
+          if (file.size > config.maxFileSizeMB * 1024 * 1024) {
+            addToLog(
+              `❌ ERROR: File size exceeds ${config.maxFileSizeMB}MB limit`,
+            );
+            continue;
+          }
+
+          // Step 2: Parse file content if not already parsed
+          let fileData = file.parsedData;
+          if (!fileData || fileData.length === 0) {
+            addToLog(`📄 Reading and parsing file content...`);
+            fileData = await parseFileContent(file);
+
+            // Update file with parsed data
+            setFiles((prev) =>
+              prev.map((f) =>
+                f.name === file.name
+                  ? {
+                      ...f,
+                      parsedData: fileData,
+                      columnNames:
+                        fileData.length > 0 ? Object.keys(fileData[0]) : [],
+                    }
+                  : f,
+              ),
+            );
+          }
+
+          if (!fileData || fileData.length === 0) {
+            addToLog(`⚠️ WARNING: No data found in file ${file.name}`);
+            continue;
+          }
+
+          addToLog(`✓ Parsed ${fileData.length} records from ${file.name}`);
+
+          // Step 3: Run validation on this file
+          addToLog(`🔍 Running validation on ${file.name}...`);
+          const validationResult = validateDataFrame(
+            fileData,
+            file.detectedType || "unknown",
+          );
+
+          addToLog(
+            `✓ Validation completed: ${validationResult.errors.length} errors, ${validationResult.warnings.length} warnings`,
+          );
+
+          // Step 4: Apply data conversions
+          addToLog(`🔄 Applying data conversions...`);
+          let conversionLog: string[] = [];
+
+          if (file.detectedType === "forecast") {
+            conversionLog = convertForecastData(fileData);
+          } else if (file.detectedType === "sku") {
+            conversionLog = convertSkuData(fileData);
+          } else if (file.detectedType === "network") {
+            conversionLog = convertNetworkData(fileData);
+          }
+
+          conversionLog.forEach((log) => addToLog(`  ${log}`));
+
+          // Update file as processed
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.name === file.name
+                ? { ...f, processed: true, validationResult }
+                : f,
+            ),
+          );
         }
 
-        // Step 2: Parse file content
-        addToLog("📄 Reading and parsing file content...");
+        // Step 5: Compile baseline data from all processed files
+        addToLog(`\n🏗️ Compiling digital twin baseline data...`);
+        compileBaselineData();
 
-        if (firstFile.parsedData && firstFile.parsedData.length > 0) {
-          actualData = firstFile.parsedData;
-          addToLog(`✓ Using pre-parsed data: ${actualData.length} records`);
-        } else {
-          actualData = await parseFileContent(firstFile);
-          addToLog(`✓ Parsed file content: ${actualData.length} records`);
-        }
-
-        if (actualData.length === 0) {
-          addToLog("WARNING: No data found in file");
-          setProcessing(false);
-          return;
-        }
+        // Update preview with compiled data (show first 100 records)
+        setActualFileData(compiledData.slice(0, 100));
 
         // Step 3: Auto-detect data type from column structure
         const columnBasedType = autoDetectDataTypeFromColumns(
