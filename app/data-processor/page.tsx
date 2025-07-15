@@ -2022,6 +2022,13 @@ export default function DataProcessor() {
                 <BarChart3 size={16} />
                 Validation Report
               </button>
+              <button
+                className={`button ${activeTab === "baseline" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setActiveTab("baseline")}
+              >
+                <Database size={16} />
+                Digital Twin Baseline
+              </button>
             </div>
           </div>
 
