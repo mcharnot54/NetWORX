@@ -619,6 +619,12 @@ export default function TransportOptimizer() {
       `Service level achievement: ${(networkMetrics.service_level_achievement * 100).toFixed(1)}%`,
     );
 
+    // Fetch market data for opened facilities
+    if (openFacilities.length > 0) {
+      addLogEntry("INFO", "Fetching market data for selected locations...");
+      await fetchMarketData(openFacilities);
+    }
+
     if (scenarioName) {
       setScenarioResults((prev) => ({
         ...prev,
@@ -627,6 +633,8 @@ export default function TransportOptimizer() {
       addLogEntry("INFO", `Scenario "${scenarioName}" results stored`);
     } else {
       setResults(optimizationResults);
+      // Store results in context for integration with other components
+      setTransportResults(optimizationResults);
     }
 
     setOptimizing(false);
