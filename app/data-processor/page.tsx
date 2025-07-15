@@ -1791,6 +1791,8 @@ export default function DataProcessor() {
     try {
       let actualData: any[];
       let finalDataType: string;
+      let columnBasedType: string = "unknown";
+      let detectionSource: string = "filename";
 
       if (useUploadedData) {
         const firstFile = files[0];
@@ -1824,24 +1826,30 @@ export default function DataProcessor() {
         }
 
         // Step 3: Auto-detect data type from column structure
-        const columnBasedType = autoDetectDataTypeFromColumns(
+        columnBasedType = autoDetectDataTypeFromColumns(
           Object.keys(actualData[0]),
         );
-        finalDataType =
-          columnBasedType !== "unknown"
-            ? columnBasedType
-            : firstFile.detectedType || "network";
+
+        if (columnBasedType !== "unknown") {
+          finalDataType = columnBasedType;
+          detectionSource = "columns";
+        } else {
+          finalDataType = firstFile.detectedType || "network";
+          detectionSource = "filename";
+        }
       } else {
         // Use sample data for demonstration
         addToLog("🎯 Generating sample data for validation demonstration...");
         finalDataType = dataTypeToUse;
         actualData = generateSampleData(finalDataType);
+        detectionSource = "sample";
         addToLog(
           `✓ Generated ${actualData.length} sample records of type: ${finalDataType}`,
         );
       }
+
       addToLog(
-        `✓ Data type detection: ${finalDataType} (from ${columnBasedType !== "unknown" ? "columns" : "filename"})`,
+        `✓ Data type detection: ${finalDataType} (from ${detectionSource})`,
       );
 
       // Update actual data for use in preview
