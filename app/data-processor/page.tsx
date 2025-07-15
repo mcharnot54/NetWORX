@@ -648,19 +648,45 @@ export default function DataProcessor() {
       // Check city name format
       const city = String(record.city || "");
       if (city.length < 2) {
+        const suggestion =
+          city.length === 0
+            ? " (City name is empty - ensure location data is properly mapped)"
+            : " (City name is too short - check for abbreviations or data truncation)";
         errors.push(
-          `Row ${index + 1}: City name '${city}' should have at least 2 characters`,
+          `Row ${index + 1}: City name '${city}' should have at least 2 characters${suggestion}`,
         );
       }
 
-      // Check for (0,0) coordinates
+      // Check for valid coordinates
       const lat = Number(record.latitude);
       const lng = Number(record.longitude);
 
       if (lat === 0 && lng === 0) {
         errors.push(
-          `Row ${index + 1}: Coordinates (0,0) likely indicate missing location data`,
+          `Row ${index + 1}: Coordinates (0,0) likely indicate missing location data - please verify lat/lng values for '${city}'`,
         );
+      }
+
+      // Check coordinate ranges
+      if (!isNaN(lat) && (lat < -90 || lat > 90)) {
+        errors.push(
+          `Row ${index + 1}: Latitude ${lat} is outside valid range (-90 to 90) for '${city}'`,
+        );
+      }
+
+      if (!isNaN(lng) && (lng < -180 || lng > 180)) {
+        errors.push(
+          `Row ${index + 1}: Longitude ${lng} is outside valid range (-180 to 180) for '${city}'`,
+        );
+      }
+
+      // Check for suspicious coordinate patterns
+      if (!isNaN(lat) && !isNaN(lng)) {
+        if (Math.abs(lat) === Math.abs(lng) && lat !== 0) {
+          errors.push(
+            `Row ${index + 1}: Identical latitude and longitude values (${lat}, ${lng}) may indicate data entry error for '${city}'`,
+          );
+        }
       }
     });
 
