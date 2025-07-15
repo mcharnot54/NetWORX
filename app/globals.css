@@ -163,6 +163,46 @@ a {
   }
 }
 
+/* Banner responsive styles */
+@media (max-width: 768px) {
+  .banner {
+    padding: 1rem;
+  }
+
+  .banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .banner-title {
+    font-size: 2rem;
+  }
+
+  .banner-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .powered-by {
+    font-size: 1rem;
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .banner-title {
+    font-size: 1.75rem;
+  }
+
+  .banner-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .powered-by {
+    font-size: 0.9rem;
+  }
+}
+
 .card {
   background: white;
   border-radius: 0.75rem;
