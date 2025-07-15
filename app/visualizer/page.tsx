@@ -6042,13 +6042,21 @@ export default function Visualizer() {
                             >
                               {market.location}
                             </td>
+                                                        <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.straightLaborRate?.toFixed(2) || market.laborCostPerHour?.toFixed(2) || 'N/A'}
+                            </td>
                             <td
                               style={{
                                 padding: "0.75rem",
                                 fontSize: "0.875rem",
                               }}
                             >
-                              ${market.laborCostPerHour.toFixed(2)}
+                              ${market.fullyBurdendedLaborRate?.toFixed(2) || (market.laborCostPerHour * 1.4)?.toFixed(2) || 'N/A'}
                             </td>
                             <td
                               style={{
