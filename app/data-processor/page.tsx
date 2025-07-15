@@ -89,6 +89,70 @@ export default function DataProcessor() {
   });
   const [dataQuality, setDataQuality] = useState<DataQuality | null>(null);
   const [processingLog, setProcessingLog] = useState<string[]>([]);
+  const [conversionResults, setConversionResults] = useState<any>(null);
+
+  // Column mappings matching Python DataConverter
+  const columnMappings: any = {
+    forecast: {
+      year: ["year", "yr", "period", "time", "fiscal_year", "fy"],
+      annual_units: [
+        "annual_units",
+        "units",
+        "volume",
+        "demand",
+        "quantity",
+        "annual_volume",
+        "yearly_units",
+        "total_units",
+      ],
+    },
+    sku: {
+      sku_id: [
+        "sku_id",
+        "sku",
+        "item_id",
+        "product_id",
+        "part_number",
+        "item_number",
+      ],
+      units_per_case: [
+        "units_per_case",
+        "units_case",
+        "case_pack",
+        "pack_size",
+        "units_per_pack",
+        "each_per_case",
+      ],
+      cases_per_pallet: [
+        "cases_per_pallet",
+        "case_pallet",
+        "pallet_quantity",
+        "cases_per_layer",
+        "case_per_pallet",
+      ],
+      annual_volume: [
+        "annual_volume",
+        "yearly_volume",
+        "annual_units",
+        "total_volume",
+        "volume_per_year",
+      ],
+    },
+    network: {
+      city: [
+        "city",
+        "location",
+        "facility",
+        "destination",
+        "site",
+        "warehouse",
+      ],
+      latitude: ["latitude", "lat", "y_coord", "y_coordinate"],
+      longitude: ["longitude", "lng", "lon", "x_coord", "x_coordinate"],
+      state: ["state", "province", "region"],
+      country: ["country", "nation"],
+    },
+  };
 
   // Validation rules matching Python DataValidator
   const validationRules: { [key: string]: ValidationRules } = {
