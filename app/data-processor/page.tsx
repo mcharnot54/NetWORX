@@ -1128,6 +1128,37 @@ export default function DataProcessor() {
 
           {activeTab === "config" && (
             <div>
+              {/* Development Notice */}
+              <div
+                style={{
+                  backgroundColor: "#fef3c7",
+                  border: "1px solid #f59e0b",
+                  borderRadius: "0.5rem",
+                  padding: "1rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <AlertCircle size={20} style={{ color: "#f59e0b" }} />
+                  <span style={{ fontWeight: "600", color: "#92400e" }}>
+                    Development Notice
+                  </span>
+                </div>
+                <p
+                  style={{ fontSize: "0.875rem", color: "#92400e", margin: 0 }}
+                >
+                  Currently using sample data for validation demonstration. Real
+                  file parsing with FileReader API needed for production use.
+                </p>
+              </div>
+
               <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
                 Validation Configuration (Python DataValidator Rules)
               </h3>
