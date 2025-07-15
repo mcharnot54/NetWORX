@@ -28,6 +28,39 @@ interface FileData {
   file?: File;
   parsedData?: any[];
   columnNames?: string[];
+  processed?: boolean;
+  validationResult?: ValidationResult;
+}
+
+interface BaselineData {
+  inventory: {
+    totalSKUs: number;
+    totalVolume: number;
+    avgUnitsPerCase: number;
+    avgCasesPerPallet: number;
+    topProducts: any[];
+  };
+  warehouse: {
+    totalFacilities: number;
+    totalCapacity: number;
+    avgUtilization: number;
+    totalCosts: number;
+    performanceMetrics: any[];
+  };
+  transportation: {
+    totalLanes: number;
+    avgDistance: number;
+    avgCostPerMile: number;
+    modeDistribution: any[];
+    costAnalysis: any[];
+  };
+  salesOrders: {
+    totalOrders: number;
+    totalVolume: number;
+    avgOrderSize: number;
+    topCustomers: any[];
+    orderPatterns: any[];
+  };
 }
 
 interface ProcessingConfig {
@@ -96,6 +129,12 @@ export default function DataProcessor() {
   const [conversionResults, setConversionResults] = useState<any>(null);
   const [actualFileData, setActualFileData] = useState<any[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [compiledData, setCompiledData] = useState<any[]>([]);
+  const [baselineData, setBaselineData] = useState<BaselineData | null>(null);
+  const [fileUploadProgress, setFileUploadProgress] = useState<{
+    [key: string]: number;
+  }>({});
+  const [digitalTwinValidation, setDigitalTwinValidation] = useState<any>(null);
 
   // Column mappings matching Python DataConverter
   const columnMappings: any = {
