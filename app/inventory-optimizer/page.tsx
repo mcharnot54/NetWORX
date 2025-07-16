@@ -215,7 +215,9 @@ export default function InventoryOptimizer() {
 
   // Load SKU data from Data Processor
   const loadSKUDataFromProcessor = () => {
+    console.log("loadSKUDataFromProcessor clicked!");
     const skuDataFromProcessor = getSKUData();
+    console.log("SKU data from processor:", skuDataFromProcessor);
 
     if (skuDataFromProcessor && skuDataFromProcessor.length > 0) {
       addLogEntry(
