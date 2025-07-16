@@ -229,7 +229,9 @@ export default function WarehouseOptimizer() {
 
   // Load warehouse data from Data Processor
   const loadWarehouseData = () => {
+    console.log("loadWarehouseData clicked!");
     const warehouseData = getWarehouseData();
+    console.log("Warehouse data:", warehouseData);
 
     if (warehouseData && warehouseData.length > 0) {
       addToLog(
@@ -273,7 +275,9 @@ export default function WarehouseOptimizer() {
 
   // Load SKU data from Data Processor
   const loadSKUData = () => {
+    console.log("loadSKUData clicked!");
     const skuData = getSKUData();
+    console.log("SKU data:", skuData);
 
     if (skuData && skuData.length > 0) {
       addToLog(`Loading ${skuData.length} SKU records from Data Processor`);
