@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
+import { useData } from "@/context/DataContext";
 import {
   BarChart,
   Bar,
@@ -64,6 +65,37 @@ import {
 } from "lucide-react";
 
 // Comprehensive Result Data Structures
+interface SavedScenario {
+  id: string;
+  name: string;
+  description: string;
+  savedAt: string;
+  transportResults?: any;
+  warehouseResults?: any;
+  inventoryResults?: any;
+  financialMetrics?: any;
+  yearlyBreakdown: YearlyBreakdown[];
+  totalCost: number;
+  viability: "High" | "Medium" | "Low";
+  strengths: string[];
+  weaknesses: string[];
+}
+
+interface YearlyBreakdown {
+  year: number;
+  categories: {
+    transportation: number;
+    warehousing: number;
+    inventory: number;
+    labor: number;
+    facilities: number;
+    technology: number;
+    overhead: number;
+  };
+  totalCost: number;
+  costChange: number;
+}
+
 interface WarehouseResults {
   results_df: Array<{
     Year: number;
@@ -167,12 +199,28 @@ interface LogEntry {
 }
 
 export default function Visualizer() {
+  const {
+    transportResults,
+    warehouseResults: warehouseResultsFromContext,
+    inventoryResults,
+    marketData,
+    financialParams,
+    setFinancialParams,
+    calculateFinancialMetrics,
+  } = useData();
+
   const [activeTab, setActiveTab] = useState<
-    "analytics" | "outputs" | "reports" | "insights"
+    "analytics" | "outputs" | "reports" | "insights" | "financial" | "scenarios"
   >("analytics");
   const [selectedChart, setSelectedChart] = useState("warehouse");
   const [advancedView, setAdvancedView] = useState(false);
   const [dateRange, setDateRange] = useState("1year");
+
+  // Scenario Management State
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
+  const [currentScenarioName, setCurrentScenarioName] = useState("");
+  const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
+  const [scenarioComparisonView, setScenarioComparisonView] = useState("table");
 
   // Output Generation State
   const [generating, setGenerating] = useState(false);
@@ -776,6 +824,140 @@ export default function Visualizer() {
       component,
     };
     setOutputLogs((prev) => [...prev.slice(-49), entry]);
+    };
+
+  // Scenario Management Functions
+  const saveCurrentScenario = () => {
+    if (!currentScenarioName.trim()) {
+      alert("Please enter a scenario name");
+      return;
+    }
+
+    // Generate yearly breakdown data
+    const yearlyBreakdown: YearlyBreakdown[] = [];
+    const currentYear = new Date().getFullYear();
+
+    for (let i = 0; i < 8; i++) {
+      const year = currentYear + i;
+      const growthFactor = 1 + (i * 0.15); // 15% annual growth
+
+      const baseTransportCost = transportResults?.network_metrics?.total_transportation_cost || 2000000;
+      const baseWarehouseCost = warehouseResultsFromContext?.objective_value || 3000000;
+      const baseInventoryCost = inventoryResults?.totalValue || 1500000;
+
+      yearlyBreakdown.push({
+        year,
+        categories: {
+          transportation: Math.round(baseTransportCost * growthFactor),
+          warehousing: Math.round(baseWarehouseCost * growthFactor),
+          inventory: Math.round(baseInventoryCost * growthFactor),
+          labor: Math.round(500000 * growthFactor),
+          facilities: Math.round(800000 * growthFactor),
+          technology: Math.round(300000 * growthFactor),
+          overhead: Math.round(400000 * growthFactor),
+        },
+        totalCost: Math.round((baseTransportCost + baseWarehouseCost + baseInventoryCost + 500000 + 800000 + 300000 + 400000) * growthFactor),
+        costChange: i === 0 ? 0 : 15, // 15% growth
+      });
+    }
+
+    const totalCost = yearlyBreakdown[0]?.totalCost || 0;
+
+    // Determine viability based on financial metrics
+    const financialMetrics = calculateFinancialMetrics();
+    let viability: "High" | "Medium" | "Low" = "Medium";
+
+    if (financialMetrics.roic > 20 && financialMetrics.npv > 0 && financialMetrics.paybackPeriod < 3) {
+      viability = "High";
+    } else if (financialMetrics.roic < 10 || financialMetrics.npv < 0 || financialMetrics.paybackPeriod > 5) {
+      viability = "Low";
+    }
+
+    // Generate strengths and weaknesses based on results
+    const strengths: string[] = [];
+    const weaknesses: string[] = [];
+
+    if (transportResults?.network_metrics?.service_level_achievement > 0.95) {
+      strengths.push("High service level achievement");
+    } else {
+      weaknesses.push("Service level below target");
+    }
+
+    if (warehouseResultsFromContext?.performance_metrics?.avg_utilization > 80) {
+      strengths.push("Optimal warehouse utilization");
+    } else {
+      weaknesses.push("Low warehouse utilization");
+    }
+
+    if (financialMetrics.roic > 15) {
+      strengths.push("Strong return on investment");
+    } else {
+      weaknesses.push("Below target ROI");
+    }
+
+    if (financialMetrics.paybackPeriod < 4) {
+      strengths.push("Fast payback period");
+    } else {
+      weaknesses.push("Extended payback period");
+    }
+
+    const newScenario: SavedScenario = {
+      id: `scenario_${Date.now()}`,
+      name: currentScenarioName,
+      description: `Saved scenario with ${transportResults?.open_facilities?.length || 0} transport facilities and ${warehouseResultsFromContext?.optimization_summary?.total_facilities_added || 0} warehouse facilities`,
+      savedAt: new Date().toISOString(),
+      transportResults,
+      warehouseResults: warehouseResultsFromContext,
+      inventoryResults,
+      financialMetrics,
+      yearlyBreakdown,
+      totalCost,
+      viability,
+      strengths,
+      weaknesses,
+    };
+
+    setSavedScenarios(prev => [...prev, newScenario]);
+    setCurrentScenarioName("");
+    alert(`Scenario "${newScenario.name}" saved successfully!`);
+  };
+
+  const deleteScenario = (scenarioId: string) => {
+    if (confirm("Are you sure you want to delete this scenario?")) {
+      setSavedScenarios(prev => prev.filter(s => s.id !== scenarioId));
+      setSelectedScenarios(prev => prev.filter(id => id !== scenarioId));
+    }
+  };
+
+  const toggleScenarioSelection = (scenarioId: string) => {
+    setSelectedScenarios(prev =>
+      prev.includes(scenarioId)
+        ? prev.filter(id => id !== scenarioId)
+        : [...prev, scenarioId]
+    );
+  };
+
+  const getScenarioComparisonData = () => {
+    const selectedScenarioData = savedScenarios.filter(s => selectedScenarios.includes(s.id));
+
+    // Prepare data for multi-scenario chart
+    const years = Array.from({length: 8}, (_, i) => new Date().getFullYear() + i);
+
+    return years.map(year => {
+      const yearData: any = { year };
+
+      selectedScenarioData.forEach(scenario => {
+        const yearBreakdown = scenario.yearlyBreakdown.find(yb => yb.year === year);
+        if (yearBreakdown) {
+          yearData[`${scenario.name}_Total`] = yearBreakdown.totalCost;
+          yearData[`${scenario.name}_Transport`] = yearBreakdown.categories.transportation;
+          yearData[`${scenario.name}_Warehouse`] = yearBreakdown.categories.warehousing;
+          yearData[`${scenario.name}_Inventory`] = yearBreakdown.categories.inventory;
+        }
+      });
+
+      return yearData;
+    });
   };
 
   // Generate Executive Summary
@@ -1063,6 +1245,16 @@ export default function Visualizer() {
                 { id: "outputs", label: "Output Generation", icon: Database },
                 { id: "reports", label: "Generated Reports", icon: FileText },
                 { id: "insights", label: "Strategic Insights", icon: Target },
+                {
+                  id: "financial",
+                  label: "Financial Analysis",
+                  icon: DollarSign,
+                },
+                {
+                  id: "scenarios",
+                  label: "Scenario Management",
+                  icon: Layers,
+                },
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -5292,6 +5484,963 @@ export default function Visualizer() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Financial Analysis Tab */}
+          {activeTab === "financial" && (
+            <div>
+              <h3 style={{ marginBottom: "2rem", color: "#111827" }}>
+                Financial Analysis & ROI
+              </h3>
+
+              {/* Financial Parameters */}
+              <div className="card" style={{ marginBottom: "2rem" }}>
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Financial Parameters
+                </h4>
+                <div className="grid grid-cols-4" style={{ gap: "1rem" }}>
+                  <div className="form-group">
+                    <label className="form-label">Discount Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={financialParams.discountRate * 100}
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          discountRate: parseFloat(e.target.value) / 100,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Analysis Period (Years)
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={financialParams.analysisYears}
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          analysisYears: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Current State Cost ($M)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={
+                        financialParams.currentStateBaseline.totalCost / 1000000
+                      }
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          currentStateBaseline: {
+                            ...financialParams.currentStateBaseline,
+                            totalCost: parseFloat(e.target.value) * 1000000,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Future State Investment ($M)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={
+                        financialParams.futureStateProjections.totalInvestment /
+                        1000000
+                      }
+                      onChange={(e) =>
+                        setFinancialParams({
+                          ...financialParams,
+                          futureStateProjections: {
+                            ...financialParams.futureStateProjections,
+                            totalInvestment:
+                              parseFloat(e.target.value) * 1000000,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Metrics */}
+              <div
+                className="grid grid-cols-2"
+                style={{ gap: "2rem", marginBottom: "2rem" }}
+              >
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Investment Analysis
+                  </h4>
+                  <div>
+                    {(() => {
+                      const metrics = calculateFinancialMetrics();
+                      return (
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: "1rem",
+                              padding: "1rem",
+                              backgroundColor: "#f0f9ff",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Return on Invested Capital
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.roic > 15 ? "#10b981" : "#ef4444",
+                                }}
+                              >
+                                {metrics.roic.toFixed(1)}%
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>💰</div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: "1rem",
+                              padding: "1rem",
+                              backgroundColor: "#f0fdf4",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Net Present Value
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.npv > 0 ? "#10b981" : "#ef4444",
+                                }}
+                              >
+                                ${(metrics.npv / 1000000).toFixed(1)}M
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>���</div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: "1rem",
+                              padding: "1rem",
+                              backgroundColor: "#fefce8",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Internal Rate of Return
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.irr >
+                                    financialParams.discountRate * 100
+                                      ? "#10b981"
+                                      : "#ef4444",
+                                }}
+                              >
+                                {metrics.irr.toFixed(1)}%
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>⚡</div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "1rem",
+                              backgroundColor: "#fdf2f8",
+                              borderRadius: "0.5rem",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                Payback Period
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "1.875rem",
+                                  fontWeight: "700",
+                                  color:
+                                    metrics.paybackPeriod < 3
+                                      ? "#10b981"
+                                      : "#ef4444",
+                                }}
+                              >
+                                {metrics.paybackPeriod.toFixed(1)} years
+                              </div>
+                            </div>
+                            <div style={{ fontSize: "2rem" }}>⏱️</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Cost Comparison
+                  </h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={[
+                        {
+                          scenario: "Current State",
+                          totalCost:
+                            financialParams.currentStateBaseline.totalCost /
+                            1000000,
+                          investment:
+                            financialParams.currentStateBaseline
+                              .totalInvestment / 1000000,
+                        },
+                        {
+                          scenario: "Future State",
+                          totalCost:
+                            financialParams.futureStateProjections.totalCost /
+                            1000000,
+                          investment:
+                            financialParams.futureStateProjections
+                              .totalInvestment / 1000000,
+                        },
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="scenario" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`$${value}M`, ""]} />
+                      <Legend />
+                      <Bar
+                        dataKey="totalCost"
+                        fill="#3b82f6"
+                        name="Annual Operating Cost"
+                      />
+                      <Bar
+                        dataKey="investment"
+                        fill="#10b981"
+                        name="Investment Required"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Optimizer Results Integration */}
+              <div
+                className="grid grid-cols-3"
+                style={{ gap: "2rem", marginBottom: "2rem" }}
+              >
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Transportation Optimization Impact
+                  </h4>
+                  {transportResults ? (
+                    <div>
+                      <div
+                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Facilities Opened:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {transportResults.open_facilities?.length || 0}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Total Transportation Cost:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            $
+                            {(
+                              transportResults.network_metrics
+                                ?.total_transportation_cost || 0
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Service Level:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {(
+                              (transportResults.network_metrics
+                                ?.service_level_achievement || 0) * 100
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                      Run Transportation Optimizer to see cost impact
+                    </p>
+                  )}
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Warehouse Optimization Impact
+                  </h4>
+                  {warehouseResultsFromContext ? (
+                    <div>
+                      <div
+                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Facilities Added:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {warehouseResultsFromContext.optimization_summary
+                              ?.total_facilities_added || 0}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Annual Cost:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            $
+                            {(
+                              warehouseResultsFromContext.objective_value || 0
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Volume CAGR:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {(
+                              (warehouseResultsFromContext.performance_metrics
+                                ?.volume_cagr || 0) * 100
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                      Run Warehouse Optimizer to see cost impact
+                    </p>
+                  )}
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Optimization Impact
+                  </h4>
+                  {inventoryResults ? (
+                    <div>
+                      <div
+                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>SKUs Analyzed:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {inventoryResults.skuData?.length || 0}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Total Inventory Value:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            $
+                            {(
+                              inventoryResults.totalValue || 0
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>A-Class SKUs:</span>
+                          <span style={{ fontWeight: "600" }}>
+                            {inventoryResults.abcDistribution?.a_class || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                      Run Inventory Optimizer to see cost impact
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Market Data */}
+              {marketData && marketData.length > 0 && (
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Market Data Analysis
+                  </h4>
+                  <div style={{ overflowX: "auto" }}>
+                    <table
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
+                      <thead>
+                        <tr style={{ backgroundColor: "#f9fafb" }}>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Location
+                          </th>
+                                                    <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Straight Labor Rate
+                          </th>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Fully Burdened Rate
+                          </th>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Lease Rate/SqFt
+                          </th>
+                          <th
+                            style={{
+                              padding: "0.75rem",
+                              textAlign: "left",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            3PL Cost/Unit
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {marketData.map((market, index) => (
+                          <tr
+                            key={index}
+                            style={{ borderTop: "1px solid #e5e7eb" }}
+                          >
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {market.location}
+                            </td>
+                                                        <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.straightLaborRate?.toFixed(2) || market.laborCostPerHour?.toFixed(2) || 'N/A'}
+                            </td>
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.fullyBurdendedLaborRate?.toFixed(2) || (market.laborCostPerHour * 1.4)?.toFixed(2) || 'N/A'}
+                            </td>
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.leaseRatePerSqFt.toFixed(2)}
+                            </td>
+                            <td
+                              style={{
+                                padding: "0.75rem",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              ${market.threePLCostPerUnit.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+                    )}
+
+          {/* Scenario Management Tab */}
+          {activeTab === "scenarios" && (
+            <div>
+              <h3 style={{ marginBottom: "2rem", color: "#111827" }}>
+                Scenario Management & Comparison
+              </h3>
+
+              {/* Save Current Scenario */}
+              <div className="card" style={{ marginBottom: "2rem" }}>
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Save Current Scenario
+                </h4>
+                <div style={{ display: "flex", gap: "1rem", alignItems: "end" }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">Scenario Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={currentScenarioName}
+                      onChange={(e) => setCurrentScenarioName(e.target.value)}
+                      placeholder="Enter scenario name (e.g., 'Baseline 2024', 'Expansion East Coast')"
+                    />
+                  </div>
+                  <button
+                    onClick={saveCurrentScenario}
+                    disabled={!currentScenarioName.trim()}
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      backgroundColor: currentScenarioName.trim() ? "#10b981" : "#9ca3af",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      cursor: currentScenarioName.trim() ? "pointer" : "not-allowed"
+                    }}
+                  >
+                    Save Scenario
+                  </button>
+                </div>
+              </div>
+
+              {/* Saved Scenarios Overview */}
+              <div className="card" style={{ marginBottom: "2rem" }}>
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Saved Scenarios ({savedScenarios.length})
+                </h4>
+                {savedScenarios.length === 0 ? (
+                  <p style={{ color: "#6b7280", textAlign: "center", padding: "2rem" }}>
+                    No scenarios saved yet. Save your current optimization results as a scenario to begin comparison analysis.
+                  </p>
+                ) : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ backgroundColor: "#f9fafb" }}>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedScenarios(savedScenarios.map(s => s.id));
+                                } else {
+                                  setSelectedScenarios([]);
+                                }
+                              }}
+                              checked={selectedScenarios.length === savedScenarios.length && savedScenarios.length > 0}
+                            />
+                          </th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Scenario</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Viability</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Total Cost (Year 1)</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Cost Projection (Year 8)</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Saved At</th>
+                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {savedScenarios.map((scenario, index) => (
+                          <tr key={scenario.id} style={{ borderTop: "1px solid #e5e7eb" }}>
+                            <td style={{ padding: "0.75rem" }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedScenarios.includes(scenario.id)}
+                                onChange={() => toggleScenarioSelection(scenario.id)}
+                              />
+                            </td>
+                            <td style={{ padding: "0.75rem" }}>
+                              <div>
+                                <div style={{ fontWeight: "600", fontSize: "0.875rem" }}>{scenario.name}</div>
+                                <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{scenario.description}</div>
+                              </div>
+                            </td>
+                            <td style={{ padding: "0.75rem" }}>
+                              <span style={{
+                                padding: "0.25rem 0.5rem",
+                                borderRadius: "0.25rem",
+                                fontSize: "0.75rem",
+                                fontWeight: "600",
+                                backgroundColor: scenario.viability === "High" ? "#dcfce7" : scenario.viability === "Medium" ? "#fef3c7" : "#fee2e2",
+                                color: scenario.viability === "High" ? "#166534" : scenario.viability === "Medium" ? "#92400e" : "#991b1b"
+                              }}>
+                                {scenario.viability}
+                              </span>
+                            </td>
+                            <td style={{ padding: "0.75rem", fontSize: "0.875rem", fontWeight: "600" }}>
+                              ${(scenario.yearlyBreakdown[0]?.totalCost || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: "0.75rem", fontSize: "0.875rem" }}>
+                              ${(scenario.yearlyBreakdown[7]?.totalCost || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: "0.75rem", fontSize: "0.875rem", color: "#6b7280" }}>
+                              {new Date(scenario.savedAt).toLocaleDateString()}
+                            </td>
+                            <td style={{ padding: "0.75rem" }}>
+                              <button
+                                onClick={() => deleteScenario(scenario.id)}
+                                style={{
+                                  padding: "0.25rem 0.5rem",
+                                  backgroundColor: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "0.25rem",
+                                  fontSize: "0.75rem",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Scenario Comparison */}
+              {selectedScenarios.length > 1 && (
+                <div>
+                  <div className="card" style={{ marginBottom: "2rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                      <h4 style={{ color: "#111827" }}>
+                        Scenario Comparison ({selectedScenarios.length} scenarios)
+                      </h4>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button
+                          onClick={() => setScenarioComparisonView("table")}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            backgroundColor: scenarioComparisonView === "table" ? "#3b82f6" : "#f3f4f6",
+                            color: scenarioComparisonView === "table" ? "white" : "#374151",
+                            border: "none",
+                            borderRadius: "0.375rem",
+                            fontSize: "0.875rem",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Table View
+                        </button>
+                        <button
+                          onClick={() => setScenarioComparisonView("chart")}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            backgroundColor: scenarioComparisonView === "chart" ? "#3b82f6" : "#f3f4f6",
+                            color: scenarioComparisonView === "chart" ? "white" : "#374151",
+                            border: "none",
+                            borderRadius: "0.375rem",
+                            fontSize: "0.875rem",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Chart View
+                        </button>
+                      </div>
+                    </div>
+
+                    {scenarioComparisonView === "table" && (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+                          <thead>
+                            <tr style={{ backgroundColor: "#f9fafb" }}>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Scenario</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Strengths</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Viability</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Reason</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>2025 Cost</th>
+                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>2032 Cost</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario) => (
+                              <tr key={scenario.id} style={{ borderTop: "1px solid #e5e7eb" }}>
+                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>{scenario.name}</td>
+                                <td style={{ padding: "0.75rem" }}>
+                                  <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                                    {scenario.strengths.map((strength, idx) => (
+                                      <span key={idx} style={{
+                                        padding: "0.125rem 0.375rem",
+                                        backgroundColor: "#dcfce7",
+                                        color: "#166534",
+                                        borderRadius: "0.25rem",
+                                        fontSize: "0.75rem"
+                                      }}>
+                                        ✓
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td style={{ padding: "0.75rem" }}>
+                                  <span style={{
+                                    padding: "0.25rem 0.5rem",
+                                    borderRadius: "0.25rem",
+                                    fontSize: "0.75rem",
+                                    fontWeight: "600",
+                                    backgroundColor: scenario.viability === "High" ? "#dcfce7" : scenario.viability === "Medium" ? "#fef3c7" : "#fee2e2",
+                                    color: scenario.viability === "High" ? "#166534" : scenario.viability === "Medium" ? "#92400e" : "#991b1b"
+                                  }}>
+                                    {scenario.viability}
+                                  </span>
+                                </td>
+                                <td style={{ padding: "0.75rem" }}>
+                                  {scenario.viability === "High" ? "Optimal Cost and Service" :
+                                   scenario.viability === "Medium" ? "Acceptable Trade-offs" :
+                                   "High Risk or Cost"}
+                                </td>
+                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>
+                                  ${(scenario.yearlyBreakdown[1]?.totalCost || 0).toLocaleString()}
+                                </td>
+                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>
+                                  ${(scenario.yearlyBreakdown[7]?.totalCost || 0).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {scenarioComparisonView === "chart" && (
+                      <div>
+                        <ResponsiveContainer width="100%" height={400}>
+                          <ComposedChart data={getScenarioComparisonData()}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="year" />
+                            <YAxis />
+                            <Tooltip
+                              formatter={(value: any, name: string) => [
+                                `$${value?.toLocaleString()}`,
+                                name.replace('_Total', '').replace('_', ' ')
+                              ]}
+                            />
+                            <Legend />
+                            {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario, index) => {
+                              const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+                              return (
+                                <Line
+                                  key={scenario.id}
+                                  type="monotone"
+                                  dataKey={`${scenario.name}_Total`}
+                                  stroke={colors[index % colors.length]}
+                                  strokeWidth={3}
+                                  dot={{ fill: colors[index % colors.length], strokeWidth: 2, r: 4 }}
+                                />
+                              );
+                            })}
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Yearly Breakdown by Category */}
+                  <div className="card">
+                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Yearly Cost Breakdown by Category
+                    </h4>
+                    {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario) => (
+                      <div key={scenario.id} style={{ marginBottom: "2rem" }}>
+                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
+                          {scenario.name} - Detailed Breakdown
+                        </h5>
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+                            <thead>
+                              <tr style={{ backgroundColor: "#f9fafb" }}>
+                                <th style={{ padding: "0.5rem", textAlign: "left", fontWeight: "600" }}>Year</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Transportation</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Warehousing</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Inventory</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Labor</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Facilities</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Technology</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Overhead</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600", backgroundColor: "#e5e7eb" }}>Total Cost</th>
+                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Change %</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scenario.yearlyBreakdown.map((year, index) => (
+                                <tr key={year.year} style={{ borderTop: "1px solid #e5e7eb" }}>
+                                  <td style={{ padding: "0.5rem", fontWeight: "600" }}>{year.year}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.transportation.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.warehousing.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.inventory.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.labor.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.facilities.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.technology.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.overhead.toLocaleString()}</td>
+                                  <td style={{
+                                    padding: "0.5rem",
+                                    textAlign: "right",
+                                    fontWeight: "600",
+                                    backgroundColor: "#f3f4f6"
+                                  }}>
+                                    ${year.totalCost.toLocaleString()}
+                                  </td>
+                                  <td style={{
+                                    padding: "0.5rem",
+                                    textAlign: "right",
+                                    color: year.costChange > 0 ? "#ef4444" : year.costChange < 0 ? "#10b981" : "#6b7280"
+                                  }}>
+                                    {year.costChange > 0 ? '+' : ''}{year.costChange}%
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              )}
+
+              {selectedScenarios.length === 1 && (
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Select multiple scenarios to enable comparison analysis
+                  </h4>
+                  <p style={{ color: "#6b7280" }}>
+                    Check the boxes next to 2 or more scenarios above to compare their performance over time.
+                  </p>
+                </div>
+              )}
+
+              {selectedScenarios.length === 0 && savedScenarios.length > 0 && (
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Select scenarios to compare
+                  </h4>
+                  <p style={{ color: "#6b7280" }}>
+                    Check the boxes next to scenarios above to analyze and compare their performance.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

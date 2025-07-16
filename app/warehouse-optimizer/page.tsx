@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
+import { useData } from "@/context/DataContext";
 import {
   Package,
   MapPin,
@@ -86,6 +87,9 @@ interface ScenarioConfig {
 }
 
 export default function WarehouseOptimizer() {
+  const { getWarehouseData, getSKUData, setWarehouseResults, fetchMarketData } =
+    useData();
+
   const [activeTab, setActiveTab] = useState("parameters");
   const [warehouseParams, setWarehouseParams] = useState<WarehouseParams>({
     DOH: 250,
@@ -223,6 +227,118 @@ export default function WarehouseOptimizer() {
     };
   };
 
+  // Load warehouse data from Data Processor
+  const loadWarehouseData = () => {
+    const warehouseData = getWarehouseData();
+
+    if (warehouseData && warehouseData.length > 0) {
+      addToLog(
+        `Loading ${warehouseData.length} warehouse records from Data Processor`,
+      );
+
+      // Aggregate warehouse metrics
+      const totalCapacity = warehouseData.reduce((sum: number, record: any) => {
+        return sum + (record.capacity_sqft || 0);
+      }, 0);
+
+      const avgLaborCost =
+        warehouseData.reduce((sum: number, record: any) => {
+          return sum + (record.labor_cost_per_hour || 0);
+        }, 0) / warehouseData.length;
+
+      const avgCostPerSqft =
+        warehouseData.reduce((sum: number, record: any) => {
+          return (
+            sum + (record.cost_fixed_annual || 0) / (record.capacity_sqft || 1)
+          );
+        }, 0) / warehouseData.length;
+
+      // Update warehouse parameters with loaded data
+      setWarehouseParams((prev) => ({
+        ...prev,
+        initial_facility_area:
+          totalCapacity / warehouseData.length || prev.initial_facility_area,
+        cost_per_sqft_annual: avgCostPerSqft || prev.cost_per_sqft_annual,
+        labor_cost_per_hour: avgLaborCost || prev.labor_cost_per_hour,
+        num_facilities: warehouseData.length || prev.num_facilities,
+      }));
+
+      addToLog(
+        `Updated parameters from warehouse data: ${warehouseData.length} facilities, avg ${Math.round(totalCapacity / warehouseData.length).toLocaleString()} sqft`,
+      );
+    } else {
+      addToLog("No warehouse data available from Data Processor");
+    }
+  };
+
+  // Load SKU data from Data Processor
+  const loadSKUData = () => {
+    const skuData = getSKUData();
+
+    if (skuData && skuData.length > 0) {
+      addToLog(`Loading ${skuData.length} SKU records from Data Processor`);
+
+      // Calculate total annual volume and average pallet requirements
+      const totalAnnualVolume = skuData.reduce((sum: number, record: any) => {
+        return sum + (record.annual_volume || 0);
+      }, 0);
+
+      const avgUnitsPerCase =
+        skuData.reduce((sum: number, record: any) => {
+          return sum + (record.units_per_case || 0);
+        }, 0) / skuData.length;
+
+      const avgCasesPerPallet =
+        skuData.reduce((sum: number, record: any) => {
+          return sum + (record.cases_per_pallet || 0);
+        }, 0) / skuData.length;
+
+      // Calculate required storage based on SKU data
+      const totalPallets =
+        totalAnnualVolume / (avgUnitsPerCase * avgCasesPerPallet) || 0;
+      const dailyPallets = totalPallets / 365;
+      const adjustedDOH = Math.max(30, (totalPallets / dailyPallets) * 7); // Adjust DOH based on volume
+
+      // Update warehouse parameters with SKU-driven calculations
+      setWarehouseParams((prev) => ({
+        ...prev,
+        DOH: Math.round(adjustedDOH) || prev.DOH,
+        // Adjust facility size based on volume requirements
+        facility_design_area: Math.max(
+          prev.facility_design_area,
+          totalPallets * 50,
+        ), // 50 sqft per pallet position
+      }));
+
+      addToLog(
+        `Updated parameters from SKU data: ${skuData.length} SKUs, ${totalAnnualVolume.toLocaleString()} annual volume`,
+      );
+    } else {
+      addToLog("No SKU data available from Data Processor");
+    }
+  };
+
+  // Load all available data
+  const loadAllData = () => {
+    addToLog("Loading data from Data Processor...");
+    loadWarehouseData();
+    loadSKUData();
+    addToLog("Data loading completed");
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    const warehouseData = getWarehouseData();
+    const skuData = getSKUData();
+
+    if (
+      (warehouseData && warehouseData.length > 0) ||
+      (skuData && skuData.length > 0)
+    ) {
+      loadAllData();
+    }
+  }, [getWarehouseData, getSKUData]);
+
   const runOptimization = async () => {
     setOptimizing(true);
     addToLog(
@@ -250,7 +366,7 @@ export default function WarehouseOptimizer() {
     }
 
     // Simulate comprehensive results matching Python WarehouseOptimizer
-    setTimeout(() => {
+    setTimeout(async () => {
       // Generate sample yearly data
       const yearlyResults = [];
       const years = [2024, 2025, 2026, 2027, 2028];
@@ -352,7 +468,16 @@ export default function WarehouseOptimizer() {
         },
       };
 
+      // Fetch market data for optimization locations if available
+      if (result.yearly_results && result.yearly_results.length > 0) {
+        const locations = ["Chicago, IL", "Dallas, TX", "Los Angeles, CA"]; // Mock locations - can be enhanced
+        addToLog("Fetching market data for optimization locations...");
+        await fetchMarketData(locations);
+      }
+
       setResults(result);
+      // Store results in context for integration with other components
+      setWarehouseResults(result);
       addToLog(`✓ Optimization completed successfully`);
       addToLog(
         `Status: ${result.status}, Objective Value: $${result.objective_value.toLocaleString()}`,
@@ -456,6 +581,45 @@ export default function WarehouseOptimizer() {
                 Configure warehouse parameters matching Python
                 WarehouseOptimizer class
               </p>
+
+              {/* Data Integration Section */}
+              <div
+                className="card"
+                style={{ marginBottom: "2rem", backgroundColor: "#f8fafc" }}
+              >
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Data Integration
+                </h4>
+                <div
+                  style={{ display: "flex", gap: "1rem", alignItems: "center" }}
+                >
+                  <button
+                    onClick={loadAllData}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.75rem 1rem",
+                      backgroundColor: "#3b82f6",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Package size={16} />
+                    Load Warehouse & SKU Data
+                  </button>
+                  <p
+                    style={{ fontSize: "0.75rem", color: "#6b7280", margin: 0 }}
+                  >
+                    Import warehouse capacity data and SKU information from Data
+                    Processor to auto-configure parameters
+                  </p>
+                </div>
+              </div>
 
               <div className="grid grid-cols-3">
                 <div className="card">

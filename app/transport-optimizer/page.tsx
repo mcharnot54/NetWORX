@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
+import { useData } from "@/context/DataContext";
 import {
   Truck,
   Route,
@@ -130,6 +131,14 @@ interface LogEntry {
 }
 
 export default function TransportOptimizer() {
+  const {
+    getTransportationData,
+    lockedLocations,
+    setLockedLocations,
+    setTransportResults,
+    fetchMarketData,
+  } = useData();
+
   const [activeTab, setActiveTab] = useState<
     "network" | "optimization" | "scenarios" | "results"
   >("network");
@@ -289,6 +298,121 @@ export default function TransportOptimizer() {
     setOptimizationLogs((prev) => [...prev.slice(-49), entry]);
   };
 
+  // Load transportation data from Data Processor
+  const loadTransportationData = async () => {
+    const transportData = getTransportationData();
+
+    if (transportData && transportData.length > 0) {
+      addLogEntry(
+        "INFO",
+        `Loading ${transportData.length} transportation records from Data Processor`,
+      );
+
+      // Extract unique facilities and destinations
+      const facilities = new Set<string>();
+      const destinations = new Set<string>();
+      const costs: { [key: string]: { [key: string]: number } } = {};
+
+      transportData.forEach((record: any) => {
+        const facility = record.facility || record.origin;
+        const destination = record.destination || record.ship_to;
+        const cost =
+          record.total_lane_cost ||
+          record.cost_per_mile * record.distance_miles ||
+          0;
+
+        if (facility && destination) {
+          facilities.add(facility);
+          destinations.add(destination);
+
+          if (!costs[facility]) costs[facility] = {};
+          costs[facility][destination] = cost;
+        }
+      });
+
+      // Build cost matrix from loaded data
+      const newCostMatrix: CostMatrixRow[] = Array.from(facilities).map(
+        (facility) => ({
+          facility,
+          destinations: costs[facility] || {},
+        }),
+      );
+
+      // Build demand data (aggregate by destination)
+      const demandMap: { [key: string]: number } = {};
+      transportData.forEach((record: any) => {
+        const destination = record.destination || record.ship_to;
+        const demand = record.shipment_weight_lbs || 1000; // Default demand
+
+        if (destination) {
+          demandMap[destination] = (demandMap[destination] || 0) + demand;
+        }
+      });
+
+      const newDemandData: DemandData[] = Array.from(destinations).map(
+        (destination) => ({
+          destination,
+          demand: demandMap[destination] || 1000,
+          priority: demandMap[destination] > 10000 ? "High" : "Medium",
+        }),
+      );
+
+      // Build capacity data
+      const newCapacityData: CapacityData[] = Array.from(facilities).map(
+        (facility) => ({
+          facility,
+          capacity: 100000, // Default capacity - can be enhanced with warehouse data
+          operating_cost: 50000, // Default operating cost - can be enhanced with market data
+        }),
+      );
+
+      setCostMatrix(newCostMatrix);
+      setDemandData(newDemandData);
+      setCapacityData(newCapacityData);
+
+      addLogEntry(
+        "SUCCESS",
+        `Loaded ${facilities.size} facilities and ${destinations.size} destinations`,
+      );
+    } else {
+      addLogEntry(
+        "WARNING",
+        "No transportation data available from Data Processor",
+      );
+    }
+  };
+
+  // Toggle location lock
+  const toggleLocationLock = (location: string) => {
+    const newLockedLocations = lockedLocations.includes(location)
+      ? lockedLocations.filter((loc) => loc !== location)
+      : [...lockedLocations, location];
+
+    setLockedLocations(newLockedLocations);
+
+    // Update mandatory facilities in config
+    setConfig((prev) => ({
+      ...prev,
+      facilities: {
+        ...prev.facilities,
+        mandatory_facilities: newLockedLocations,
+      },
+    }));
+
+    addLogEntry(
+      "INFO",
+      `${lockedLocations.includes(location) ? "Unlocked" : "Locked"} location: ${location}`,
+    );
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    const transportData = getTransportationData();
+    if (transportData && transportData.length > 0) {
+      loadTransportationData();
+    }
+  }, [getTransportationData]);
+
   // Simulate Transportation Network Optimization
   const runNetworkOptimization = async (scenarioName?: string) => {
     setOptimizing(true);
@@ -334,17 +458,37 @@ export default function TransportOptimizer() {
     const totalDemand = demandData.reduce((sum, d) => sum + d.demand, 0);
     const totalCapacity = capacityData.reduce((sum, c) => sum + c.capacity, 0);
 
-    // Determine opened facilities (simplified logic)
-    const openFacilities = capacityData
+    // Determine opened facilities (including locked locations)
+    const mandatoryFacilities =
+      currentConfig.facilities.mandatory_facilities || [];
+    const availableFacilities = capacityData.filter(
+      (f) => !mandatoryFacilities.includes(f.facility),
+    );
+
+    addLogEntry(
+      "INFO",
+      `Mandatory facilities: ${mandatoryFacilities.length > 0 ? mandatoryFacilities.join(", ") : "None"}`,
+    );
+
+    // Start with mandatory/locked facilities
+    let openFacilities = [...mandatoryFacilities];
+
+    // Add additional facilities based on optimization
+    const additionalNeeded = Math.max(
+      0,
+      Math.min(
+        currentConfig.facilities.required_facilities -
+          mandatoryFacilities.length,
+        currentConfig.facilities.max_facilities - mandatoryFacilities.length,
+      ),
+    );
+
+    const additionalFacilities = availableFacilities
       .sort((a, b) => b.capacity - a.capacity)
-      .slice(
-        0,
-        Math.min(
-          currentConfig.facilities.required_facilities + 1,
-          currentConfig.facilities.max_facilities,
-        ),
-      )
+      .slice(0, additionalNeeded)
       .map((f) => f.facility);
+
+    openFacilities = [...openFacilities, ...additionalFacilities];
 
     // Generate assignments
     const assignments: NetworkAssignment[] = [];
@@ -475,6 +619,12 @@ export default function TransportOptimizer() {
       `Service level achievement: ${(networkMetrics.service_level_achievement * 100).toFixed(1)}%`,
     );
 
+    // Fetch market data for opened facilities
+    if (openFacilities.length > 0) {
+      addLogEntry("INFO", "Fetching market data for selected locations...");
+      await fetchMarketData(openFacilities);
+    }
+
     if (scenarioName) {
       setScenarioResults((prev) => ({
         ...prev,
@@ -483,6 +633,8 @@ export default function TransportOptimizer() {
       addLogEntry("INFO", `Scenario "${scenarioName}" results stored`);
     } else {
       setResults(optimizationResults);
+      // Store results in context for integration with other components
+      setTransportResults(optimizationResults);
     }
 
     setOptimizing(false);
@@ -714,6 +866,121 @@ export default function TransportOptimizer() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Loading and Location Management */}
+              <div style={{ marginTop: "2rem" }}>
+                <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
+                  {/* Data Loading */}
+                  <div className="card">
+                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Data Integration
+                    </h3>
+                    <button
+                      onClick={loadTransportationData}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.75rem 1rem",
+                        backgroundColor: "#3b82f6",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Upload size={16} />
+                      Load Data from Data Processor
+                    </button>
+                    <p
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        marginTop: "0.5rem",
+                      }}
+                    >
+                      Import transportation cost data, facilities, and demand
+                      information from processed files
+                    </p>
+                  </div>
+
+                  {/* Location Locking */}
+                  <div className="card">
+                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                      Locked Locations
+                    </h3>
+                    <div style={{ marginBottom: "1rem" }}>
+                      {capacityData.map((facility, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "0.5rem",
+                            backgroundColor: lockedLocations.includes(
+                              facility.facility,
+                            )
+                              ? "#ecfdf5"
+                              : "#f9fafb",
+                            border: lockedLocations.includes(facility.facility)
+                              ? "1px solid #10b981"
+                              : "1px solid #d1d5db",
+                            borderRadius: "0.375rem",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "0.875rem",
+                              color: lockedLocations.includes(facility.facility)
+                                ? "#065f46"
+                                : "#374151",
+                              fontWeight: lockedLocations.includes(
+                                facility.facility,
+                              )
+                                ? "600"
+                                : "400",
+                            }}
+                          >
+                            {facility.facility}
+                          </span>
+                          <button
+                            onClick={() =>
+                              toggleLocationLock(facility.facility)
+                            }
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              backgroundColor: lockedLocations.includes(
+                                facility.facility,
+                              )
+                                ? "#10b981"
+                                : "#6b7280",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "0.25rem",
+                              fontSize: "0.75rem",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {lockedLocations.includes(facility.facility)
+                              ? "🔒 Locked"
+                              : "🔓 Lock"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      Locked locations will always be included in optimization
+                      scenarios
+                    </p>
                   </div>
                 </div>
               </div>

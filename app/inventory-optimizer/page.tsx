@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
+import { useData } from "@/context/DataContext";
 import {
   BarChart,
   Bar,
@@ -96,6 +97,8 @@ interface LogEntry {
 }
 
 export default function InventoryOptimizer() {
+  const { getSKUData, setInventoryResults } = useData();
+
   const [activeTab, setActiveTab] = useState<
     "inputs" | "optimization" | "scenarios" | "results"
   >("inputs");
@@ -115,8 +118,8 @@ export default function InventoryOptimizer() {
     multi_echelon_enabled: false,
   });
 
-  // Sample SKU Data
-  const [skuData] = useState<SKUData[]>([
+  // SKU Data (can be loaded from Data Processor)
+  const [skuData, setSkuData] = useState<SKUData[]>([
     {
       sku: "SKU_001",
       avg_demand: 100,
@@ -209,6 +212,91 @@ export default function InventoryOptimizer() {
     };
     setOptimizationLogs((prev) => [...prev.slice(-49), entry]);
   };
+
+  // Load SKU data from Data Processor
+  const loadSKUDataFromProcessor = () => {
+    const skuDataFromProcessor = getSKUData();
+
+    if (skuDataFromProcessor && skuDataFromProcessor.length > 0) {
+      addLogEntry(
+        "INFO",
+        `Loading ${skuDataFromProcessor.length} SKU records from Data Processor`,
+      );
+
+      // Transform Data Processor SKU data to Inventory Optimizer format
+      const transformedSKUs: SKUData[] = skuDataFromProcessor.map(
+        (record: any, index: number) => {
+          // Extract values with defaults
+          const annualVolume = record.annual_volume || 1000;
+          const unitsPerCase = record.units_per_case || 24;
+          const casesPerPallet = record.cases_per_pallet || 48;
+
+          // Calculate average demand (monthly)
+          const avgDemand = annualVolume / 12;
+
+          // Estimate demand variability (CV) based on volume
+          const cv =
+            annualVolume > 50000 ? 0.15 : annualVolume > 10000 ? 0.25 : 0.4;
+          const demandSd = avgDemand * cv;
+
+          // Classify ABC based on annual volume
+          let abcClass: "A" | "B" | "C" = "C";
+          if (annualVolume > 100000) abcClass = "A";
+          else if (annualVolume > 25000) abcClass = "B";
+
+          // Estimate unit cost (reverse engineer from typical margins)
+          const unitCost =
+            annualVolume > 50000 ? 2.5 : annualVolume > 10000 ? 5.0 : 10.0;
+
+          // Calculate annual value
+          const annualValue = annualVolume * unitCost;
+
+          // Set service level targets by class
+          const serviceLevelTarget =
+            abcClass === "A" ? 98 : abcClass === "B" ? 95 : 90;
+
+          return {
+            sku: record.sku_id || `SKU_${String(index + 1).padStart(3, "0")}`,
+            avg_demand: Math.round(avgDemand),
+            demand_sd: Math.round(demandSd),
+            cv: parseFloat(cv.toFixed(2)),
+            unit_cost: parseFloat(unitCost.toFixed(2)),
+            volume_ft3: parseFloat((unitsPerCase * 0.01).toFixed(2)), // Estimate volume
+            category: "Imported", // Default category
+            lead_time_days: 30, // Default lead time
+            abc_class: abcClass,
+            annual_value: Math.round(annualValue),
+            service_level_target: serviceLevelTarget,
+          };
+        },
+      );
+
+      setSkuData(transformedSKUs);
+      addLogEntry(
+        "SUCCESS",
+        `Loaded and transformed ${transformedSKUs.length} SKUs for inventory optimization`,
+      );
+
+      // Log ABC distribution
+      const aCount = transformedSKUs.filter((s) => s.abc_class === "A").length;
+      const bCount = transformedSKUs.filter((s) => s.abc_class === "B").length;
+      const cCount = transformedSKUs.filter((s) => s.abc_class === "C").length;
+      addLogEntry(
+        "INFO",
+        `ABC Classification: A-Class: ${aCount}, B-Class: ${bCount}, C-Class: ${cCount}`,
+      );
+    } else {
+      addLogEntry("WARNING", "No SKU data available from Data Processor");
+    }
+  };
+
+  // Load data on component mount if available
+  useEffect(() => {
+    const skuDataFromProcessor = getSKUData();
+    if (skuDataFromProcessor && skuDataFromProcessor.length > 0) {
+      loadSKUDataFromProcessor();
+    }
+  }, [getSKUData]);
 
   // Core Inventory Calculations
   const calculateSafetyStock = (
@@ -341,6 +429,25 @@ export default function InventoryOptimizer() {
       );
 
       calculateInventoryMetrics();
+
+      // Store results in context for integration with other components
+      const optimizationResults = {
+        skuData,
+        inventoryMetrics,
+        config,
+        totalValue: inventoryMetrics.reduce((sum, m) => sum + m.total_value, 0),
+        totalInventoryPosition: inventoryMetrics.reduce(
+          (sum, m) => sum + m.reorder_point,
+          0,
+        ),
+        abcDistribution: {
+          a_class: skuData.filter((s) => s.abc_class === "A").length,
+          b_class: skuData.filter((s) => s.abc_class === "B").length,
+          c_class: skuData.filter((s) => s.abc_class === "C").length,
+        },
+      };
+
+      setInventoryResults(optimizationResults);
     } catch (error) {
       addLogEntry("ERROR", `Error during optimization: ${error}`);
     } finally {
@@ -465,7 +572,11 @@ export default function InventoryOptimizer() {
                   SKU Data Stratification & Analytics
                 </h3>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
-                  <button className="button button-secondary">
+                  <button
+                    className="button button-secondary"
+                    onClick={loadSKUDataFromProcessor}
+                    title="Load SKU data from Data Processor"
+                  >
                     <Upload size={16} />
                     Import SKU Data
                   </button>
@@ -1495,7 +1606,7 @@ export default function InventoryOptimizer() {
                             borderRadius: "0.25rem",
                           }}
                         >
-                          Pooled_SS = Original_SS / √(n_locations)
+                          Pooled_SS = Original_SS / ��(n_locations)
                         </div>
                       </div>
 
