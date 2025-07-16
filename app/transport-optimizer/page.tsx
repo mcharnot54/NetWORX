@@ -300,7 +300,9 @@ export default function TransportOptimizer() {
 
   // Load transportation data from Data Processor
   const loadTransportationData = async () => {
+    console.log("loadTransportationData clicked!");
     const transportData = getTransportationData();
+    console.log("Transport data:", transportData);
 
     if (transportData && transportData.length > 0) {
       addLogEntry(
