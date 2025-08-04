@@ -147,7 +147,7 @@ export default function DataProcessor() {
         if (detectedTemplate) {
           addToLog(`✓ Detected template: ${detectedTemplate.name}`);
         } else {
-          addToLog(`⚠ No template detected for ${file.name} - manual mapping required`);
+          addToLog(`�� No template detected for ${file.name} - manual mapping required`);
         }
         
       } catch (error) {
@@ -407,10 +407,10 @@ export default function DataProcessor() {
               };
 
               return (
-                <div key={tab.id} className="group relative">
+                <div key={tab.id} className="group relative flex-1">
                   <button
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative p-8 rounded-xl border-2 transition-all duration-200 text-left w-full min-h-[180px] ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                    className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left w-full h-full min-h-[160px] flex flex-col justify-center ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
                   >
                     <div className="flex flex-col items-center text-center space-y-4">
                       <div className={`p-4 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
