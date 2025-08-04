@@ -12,13 +12,10 @@ const nextConfig = {
       if (isCloudEnvironment) {
         // More conservative settings for cloud environments
         config.watchOptions = {
-          poll: 3000, // Slower polling for cloud
-          aggregateTimeout: 1000,
+          poll: 5000, // Much slower polling for cloud to reduce errors
+          aggregateTimeout: 2000,
           ignored: /node_modules/,
         };
-
-        // Use lighter source maps for cloud environments
-        config.devtool = 'cheap-module-source-map'; // Lighter source maps for cloud
       } else {
         // Local development settings
         config.watchOptions = {
