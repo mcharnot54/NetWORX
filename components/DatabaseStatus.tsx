@@ -42,12 +42,16 @@ export default function DatabaseStatus() {
   };
 
   const initializeDatabase = async () => {
+    if (!isMounted) return;
+
     setIsInitializing(true);
     try {
       const result = await robustPost('/api/init-db', {}, {
         timeout: 15000,
         retries: 2,
       });
+
+      if (!isMounted) return;
 
       if (result.success) {
         console.log('✅ Database initialized successfully');
@@ -57,18 +61,23 @@ export default function DatabaseStatus() {
         setDbStatus(result);
       }
     } catch (error) {
-      console.error('❌ Error initializing database:', error);
-      setDbStatus({
-        success: false,
-        error: error instanceof FetchError ? error.message : 'Failed to initialize database'
-      });
+      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
+        console.error('❌ Error initializing database:', error);
+        setDbStatus({
+          success: false,
+          error: error instanceof FetchError ? error.message : 'Failed to initialize database'
+        });
+      }
     } finally {
-      setIsInitializing(false);
+      if (isMounted) {
+        setIsInitializing(false);
+      }
     }
   };
 
   useEffect(() => {
     checkDatabaseStatus();
+    return () => setIsMounted(false);
   }, []);
 
   const hasProjectsTable = dbStatus?.database_schema?.projects?.length > 0;
