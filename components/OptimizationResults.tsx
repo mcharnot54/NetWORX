@@ -219,11 +219,11 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({
                       <div key={key} className="flex justify-between items-center p-2 bg-red-50 rounded">
                         <span className="text-sm capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                         <span className="font-medium">
-                          {typeof value === 'number' && key.toLowerCase().includes('cost') 
-                            ? formatCurrency(value) 
-                            : typeof value === 'number' 
+                          {typeof value === 'number' && key.toLowerCase().includes('cost')
+                            ? formatCurrency(value)
+                            : typeof value === 'number'
                               ? formatPercentage(value)
-                              : value
+                              : String(value)
                           }
                         </span>
                       </div>
