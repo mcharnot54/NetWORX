@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import Link from "next/link";
 import {
   Activity,
   Database,
@@ -6,6 +7,7 @@ import {
   Target,
   BarChart3,
   Settings,
+  Package,
 } from "lucide-react";
 
 export default function Dashboard() {
