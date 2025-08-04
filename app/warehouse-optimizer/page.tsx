@@ -535,10 +535,28 @@ export default function WarehouseOptimizer() {
 
           {activeTab === 'costs' && (
             <div className="tab-content">
-              <h2 className="section-title">Market Data</h2>
-              <p className="section-description">
-                Current lease rates and labor costs by market. Data sourced from market research APIs.
-              </p>
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">Market Data</h2>
+                  <p className="section-description">
+                    Current lease rates and labor costs by market. Data sourced from Perplexity API in real-time.
+                  </p>
+                </div>
+                <button
+                  className="action-button secondary"
+                  onClick={() => fetchMarketData(true)}
+                  disabled={isLoadingMarketData}
+                >
+                  {isLoadingMarketData ? (
+                    <>
+                      <div className="loading-spinner"></div>
+                      Refreshing...
+                    </>
+                  ) : (
+                    'Refresh Data'
+                  )}
+                </button>
+              </div>
 
               <div className="market-data-table">
                 <div className="table-header">
