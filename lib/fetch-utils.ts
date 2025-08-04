@@ -67,18 +67,27 @@ const isRetryableError = (error: Error): boolean => {
   if (error.message.includes('fetch') || error.message.includes('network')) {
     return true;
   }
-  
-  // Timeout errors
-  if (error.message.includes('timeout') || error.message.includes('aborted')) {
+
+  // Timeout errors are retryable, but not cancelled requests
+  if (error.message.includes('timeout')) {
     return true;
   }
-  
+
+  // Don't retry requests that were cancelled (not timeout aborts)
+  if (error.message.includes('cancelled')) {
+    return false;
+  }
+
   // If it's a FetchError, check the status
   if (error instanceof FetchError) {
+    // Don't retry cancelled requests, but retry timeouts and network errors
+    if (error.message.includes('cancelled')) {
+      return false;
+    }
     // Retry on network errors, timeouts, or 5xx errors
     return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
   }
-  
+
   return false;
 };
 
