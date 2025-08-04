@@ -32,32 +32,56 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, scenario_type, created_by, metadata } = body;
+    const {
+      project_id,
+      name,
+      description,
+      scenario_number,
+      number_of_nodes,
+      cities,
+      scenario_type = 'combined',
+      created_by,
+      metadata
+    } = body;
 
-    if (!name || !scenario_type) {
+    if (!name || !project_id) {
       return NextResponse.json(
-        { success: false, error: 'Name and scenario_type are required' },
+        { success: false, error: 'Name and project_id are required' },
         { status: 400 }
       );
     }
 
-    const newScenario = {
-      id: nextId++,
+    const newScenario = await ScenarioService.createScenario({
       name,
       description: description || "",
       scenario_type,
-      status: "draft" as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: created_by || "demo_user",
-      metadata: metadata || {}
-    };
-
-    mockScenarios.unshift(newScenario);
+      created_by: created_by || "current_user",
+      metadata: {
+        project_id,
+        scenario_number,
+        number_of_nodes,
+        cities,
+        status: 'draft',
+        capacity_analysis_completed: false,
+        transport_optimization_completed: false,
+        warehouse_optimization_completed: false,
+        ...metadata
+      }
+    });
 
     return NextResponse.json({
       success: true,
-      data: newScenario
+      data: {
+        ...newScenario,
+        project_id,
+        scenario_number,
+        number_of_nodes,
+        cities,
+        status: 'draft',
+        capacity_analysis_completed: false,
+        transport_optimization_completed: false,
+        warehouse_optimization_completed: false
+      }
     });
   } catch (error) {
     console.error('Error creating scenario:', error);
