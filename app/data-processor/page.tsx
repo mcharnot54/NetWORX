@@ -524,14 +524,22 @@ export default function DataProcessor() {
                   
                   {files.some(f => f.validationStatus === 'validated') && (
                     <div className="mt-6 flex justify-center">
-                      <button
-                        onClick={processAllFiles}
-                        disabled={processing}
-                        className="flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {processing ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
-                        {processing ? 'Processing...' : 'Process All Data'}
-                      </button>
+                      <div className="group relative">
+                        <button
+                          onClick={processAllFiles}
+                          disabled={processing}
+                          className="flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          title="Merge and process all validated files into a unified dataset"
+                        >
+                          {processing ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
+                          {processing ? 'Processing...' : 'Process All Data'}
+                        </button>
+                        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-64 bg-gray-900 text-white p-3 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          <div className="font-semibold mb-1">Final Processing Step:</div>
+                          <div>Merges all validated files into a comprehensive dataset ready for optimization modules</div>
+                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
