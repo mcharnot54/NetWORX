@@ -1,6 +1,7 @@
 "use client";
 
 import Navigation from "@/components/Navigation";
+import DatabaseStatus from "@/components/DatabaseStatus";
 import {
   Activity,
   Database,
