@@ -5,10 +5,15 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
+    const projectId = searchParams.get('project_id');
 
-    let scenarios = mockScenarios;
-    if (type) {
-      scenarios = mockScenarios.filter(s => s.scenario_type === type);
+    let scenarios;
+    if (projectId) {
+      // Get scenarios for a specific project
+      scenarios = await ScenarioService.getScenarios();
+      scenarios = scenarios.filter(s => s.project_id === parseInt(projectId));
+    } else {
+      scenarios = await ScenarioService.getScenarios(type || undefined);
     }
 
     return NextResponse.json({
