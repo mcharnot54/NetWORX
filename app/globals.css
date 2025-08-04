@@ -59,10 +59,13 @@ a {
 
 .nav-list {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   list-style: none;
   max-width: 1200px;
   margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .nav-item {
@@ -72,6 +75,12 @@ a {
   transition: all 0.2s;
   color: #374151;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  min-height: 2.5rem;
 }
 
 .nav-item:hover {
