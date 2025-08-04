@@ -301,6 +301,29 @@ export default function DataProcessor() {
               <h2 className="card-title mb-1">Data Processor</h2>
               <p className="text-gray-600">Upload and validate operational data for your project scenarios</p>
             </div>
+            <div className="ml-auto">
+              <div
+                className="group relative cursor-help"
+                title="Click for detailed workflow instructions"
+              >
+                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-sm font-semibold">
+                  ?
+                </div>
+                <div className="absolute right-0 top-8 w-80 bg-gray-900 text-white p-4 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                  <div className="text-sm space-y-2">
+                    <div className="font-semibold text-blue-300">Data Processor Workflow:</div>
+                    <div className="space-y-1">
+                      <div><span className="text-blue-300">1.</span> Create or select a project and scenario</div>
+                      <div><span className="text-blue-300">2.</span> Upload your operational data files (Excel/CSV)</div>
+                      <div><span className="text-blue-300">3.</span> Validate data quality and mappings</div>
+                      <div><span className="text-blue-300">4.</span> Review processed results</div>
+                      <div><span className="text-blue-300">5.</span> Proceed to optimization modules</div>
+                    </div>
+                    <div className="text-xs text-gray-300 mt-2">💡 Start by creating a project if you don't have one yet!</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div style={{ marginBottom: "2rem" }}>
