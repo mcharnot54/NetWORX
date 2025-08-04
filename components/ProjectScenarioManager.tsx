@@ -104,17 +104,12 @@ export default function ProjectScenarioManager({
 
       for (const project of projects) {
         try {
-          const scenariosResponse = await fetch(`/api/scenarios?project_id=${project.id}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+          const scenariosResult = await robustFetchJson(`/api/scenarios?project_id=${project.id}`, {
+            timeout: 8000,
+            retries: 2,
           });
 
-          if (scenariosResponse.ok) {
-            const scenariosResult = await scenariosResponse.json();
-
-            if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
+          if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
               // Transform database scenarios to match component interface
               scenariosMap[project.id] = scenariosResult.data.map((scenario: any) => ({
                 id: scenario.id,
@@ -131,11 +126,7 @@ export default function ProjectScenarioManager({
                 transport_optimization_completed: scenario.metadata?.transport_optimization_completed || false,
                 warehouse_optimization_completed: scenario.metadata?.warehouse_optimization_completed || false
               }));
-            } else {
-              scenariosMap[project.id] = [];
-            }
           } else {
-            console.warn(`Failed to fetch scenarios for project ${project.id}`);
             scenariosMap[project.id] = [];
           }
         } catch (scenarioError) {
@@ -162,6 +153,11 @@ export default function ProjectScenarioManager({
       // Fallback to empty state instead of crashing
       setProjects([]);
       setScenarios({});
+
+      // Show user-friendly error message for fetch failures
+      if (error instanceof FetchError) {
+        alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+      }
     } finally {
       setLoading(false);
     }
