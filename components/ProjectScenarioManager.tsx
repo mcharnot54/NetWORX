@@ -147,15 +147,21 @@ export default function ProjectScenarioManager({
 
   const createProject = async () => {
     try {
-      // Mock creation - in production, this would be an API call
-      const newProjectData: Project = {
-        id: Math.max(...projects.map(p => p.id), 0) + 1,
-        ...newProject,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        status: 'active',
-        owner_id: 'current_user'
-      };
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newProject),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      const newProjectData = result.data;
 
       setProjects([newProjectData, ...projects]);
       setScenarios({ ...scenarios, [newProjectData.id]: [] });
@@ -169,6 +175,7 @@ export default function ProjectScenarioManager({
       onSelectProject(newProjectData);
     } catch (error) {
       console.error('Error creating project:', error);
+      alert('Failed to create project. Please try again.');
     }
   };
 
