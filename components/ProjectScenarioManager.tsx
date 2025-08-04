@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Plus, Play, Copy, Trash2, Edit, FolderOpen, Settings, BarChart3, 
-  Folder, ChevronDown, ChevronRight, Calendar, MapPin, Users, 
+import {
+  Plus, Play, Copy, Trash2, Edit, FolderOpen, Settings, BarChart3,
+  Folder, ChevronDown, ChevronRight, Calendar, MapPin, Users,
   Target, Activity, Building
 } from 'lucide-react';
+import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
+import ErrorBoundary, { FetchErrorFallback } from './ErrorBoundary';
 
 interface Project {
   id: number;
