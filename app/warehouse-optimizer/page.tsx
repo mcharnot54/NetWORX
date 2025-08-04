@@ -1072,6 +1072,15 @@ export default function WarehouseOptimizer() {
           background: #2563eb;
         }
 
+        .action-button.secondary {
+          background: #6b7280;
+          color: white;
+        }
+
+        .action-button.secondary:hover:not(:disabled) {
+          background: #4b5563;
+        }
+
         .action-button.large {
           padding: 1rem 2rem;
           font-size: 1.125rem;
