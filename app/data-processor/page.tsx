@@ -410,21 +410,21 @@ export default function DataProcessor() {
                 <div key={tab.id} className="group relative">
                   <button
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left w-full ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                    className={`relative p-8 rounded-xl border-2 transition-all duration-200 text-left w-full min-h-[180px] ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
                   >
-                    <div className="flex flex-col items-center text-center space-y-3">
-                      <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
-                        <tab.icon size={24} />
+                    <div className="flex flex-col items-center text-center space-y-4">
+                      <div className={`p-4 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
+                        <tab.icon size={32} />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-sm">{tab.label}</h3>
-                        <p className="text-xs opacity-80 mt-1">{tab.description}</p>
+                        <h3 className="font-semibold text-lg">{tab.label}</h3>
+                        <p className="text-sm opacity-80 mt-2">{tab.description}</p>
                       </div>
                     </div>
                     {isActive && (
-                      <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
+                      <div className={`absolute top-3 right-3 w-4 h-4 bg-${tab.color}-500 rounded-full`}></div>
                     )}
-                    <div className={`absolute top-2 left-2 w-6 h-6 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-xs font-semibold`}>
+                    <div className={`absolute top-3 left-3 w-8 h-8 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-sm font-semibold`}>
                       {tab.step}
                     </div>
                   </button>
