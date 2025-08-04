@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import ScenarioManager from "@/components/ScenarioManager";
+import ProjectScenarioManager from "@/components/ProjectScenarioManager";
 import { useData } from "@/context/DataContext";
 import { DataValidator, DataProcessingUtils } from "@/lib/data-validator";
 import {
@@ -28,18 +28,35 @@ import {
   Target,
   TrendingUp,
   Shield,
+  Building,
 } from "lucide-react";
 
-interface Scenario {
+interface Project {
   id: number;
   name: string;
   description?: string;
-  scenario_type: 'warehouse' | 'transport' | 'combined';
-  status: 'draft' | 'running' | 'completed' | 'failed';
   created_at: string;
   updated_at: string;
-  created_by?: string;
-  metadata: any;
+  status: 'active' | 'archived' | 'completed';
+  owner_id?: string;
+  project_duration_years: number;
+  base_year: number;
+}
+
+interface Scenario {
+  id: number;
+  project_id: number;
+  name: string;
+  scenario_number: number;
+  number_of_nodes?: number;
+  cities?: string[];
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  status: 'draft' | 'in_progress' | 'completed' | 'failed';
+  capacity_analysis_completed: boolean;
+  transport_optimization_completed: boolean;
+  warehouse_optimization_completed: boolean;
 }
 
 interface FileData {
@@ -60,6 +77,7 @@ interface FileData {
 }
 
 export default function DataProcessor() {
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const { setProcessedData } = useData();
   const [files, setFiles] = useState<FileData[]>([]);
@@ -86,8 +104,8 @@ export default function DataProcessor() {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedScenario) {
-      alert('Please select a scenario first');
+    if (!selectedProject || !selectedScenario) {
+      alert('Please select a project and scenario first');
       return;
     }
 
@@ -281,46 +299,101 @@ export default function DataProcessor() {
             <Database className="text-blue-600" size={32} />
             <div>
               <h2 className="card-title mb-1">Data Processor</h2>
-              <p className="text-gray-600">Validate and process operational data for network optimization</p>
+              <p className="text-gray-600">Upload and validate operational data for your project scenarios</p>
             </div>
           </div>
           
           <div style={{ marginBottom: "2rem" }}>
-            <ScenarioManager
+            <ProjectScenarioManager
+              selectedProject={selectedProject}
               selectedScenario={selectedScenario}
+              onSelectProject={setSelectedProject}
               onSelectScenario={setSelectedScenario}
             />
           </div>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-1 mb-6 border-b">
+          {/* Navigation Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[
-              { id: 'upload', label: 'File Upload', icon: Upload },
-              { id: 'validation', label: 'Data Validation', icon: Shield },
-              { id: 'templates', label: 'Data Templates', icon: Settings },
-              { id: 'results', label: 'Results', icon: BarChart3 }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${
-                  activeTab === tab.id 
-                    ? 'bg-blue-50 border-blue-500 text-blue-600' 
-                    : 'border-transparent text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <tab.icon size={16} />
-                {tab.label}
-              </button>
-            ))}
+              {
+                id: 'upload',
+                label: 'File Upload',
+                description: 'Upload and analyze data files',
+                icon: Upload,
+                color: 'blue'
+              },
+              {
+                id: 'validation',
+                label: 'Data Validation',
+                description: 'Review validation results',
+                icon: Shield,
+                color: 'green'
+              },
+              {
+                id: 'templates',
+                label: 'Data Templates',
+                description: 'View supported data formats',
+                icon: Settings,
+                color: 'purple'
+              },
+              {
+                id: 'results',
+                label: 'Results',
+                description: 'View processed data summary',
+                icon: BarChart3,
+                color: 'orange'
+              }
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              const colorClasses = {
+                blue: isActive
+                  ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-lg shadow-blue-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600',
+                green: isActive
+                  ? 'bg-green-50 border-green-200 text-green-700 shadow-lg shadow-green-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-green-50 hover:border-green-200 hover:text-green-600',
+                purple: isActive
+                  ? 'bg-purple-50 border-purple-200 text-purple-700 shadow-lg shadow-purple-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600',
+                orange: isActive
+                  ? 'bg-orange-50 border-orange-200 text-orange-700 shadow-lg shadow-orange-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600'
+              };
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                >
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
+                      <tab.icon size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">{tab.label}</h3>
+                      <p className="text-xs opacity-80 mt-1">{tab.description}</p>
+                    </div>
+                  </div>
+                  {isActive && (
+                    <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Upload Tab */}
-          {activeTab === 'upload' && selectedScenario && (
+          {activeTab === 'upload' && selectedProject && selectedScenario && (
             <div className="card">
               <div className="flex items-center gap-3 mb-4">
                 <Upload className="text-blue-600" size={24} />
-                <h3 className="text-xl font-semibold">File Upload & Analysis</h3>
+                <div>
+                  <h3 className="text-xl font-semibold">File Upload & Analysis</h3>
+                  <p className="text-gray-600 text-sm">
+                    Selected: {selectedProject.name} → {selectedScenario.name}
+                  </p>
+                </div>
               </div>
               
               <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -618,30 +691,69 @@ export default function DataProcessor() {
                     )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-4 justify-center">
-                    <button
-                      onClick={() => setActiveTab('validation')}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      <Eye size={16} />
-                      View Validation Details
-                    </button>
-                    <button
-                      onClick={() => {
-                        const dataStr = JSON.stringify(validatedData, null, 2);
-                        const blob = new Blob([dataStr], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `processed-data-${new Date().toISOString().split('T')[0]}.json`;
-                        a.click();
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                      <Download size={16} />
-                      Export Data
-                    </button>
+                  {/* Next Steps */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 mt-6">
+                    <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                      <CheckCircle className="text-green-600" size={20} />
+                      Data Processing Complete - Ready for Optimization
+                    </h4>
+                    <p className="text-green-700 mb-4">
+                      Your data has been successfully processed and is now available for use in the optimization modules.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <a 
+                        href="/capacity-optimizer" 
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center justify-center transition-colors"
+                      >
+                        <BarChart3 size={16} />
+                        Capacity Optimizer
+                      </a>
+                      <a 
+                        href="/warehouse-optimizer" 
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-center justify-center transition-colors"
+                      >
+                        <Building size={16} />
+                        Warehouse Optimizer
+                      </a>
+                      <a 
+                        href="/transport-optimizer" 
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center justify-center transition-colors"
+                      >
+                        <TrendingUp size={16} />
+                        Transport Optimizer
+                      </a>
+                      <a 
+                        href="/inventory-optimizer" 
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-center justify-center transition-colors"
+                      >
+                        <Target size={16} />
+                        Inventory Optimizer
+                      </a>
+                    </div>
+                    <div className="flex gap-4 justify-center mt-4">
+                      <button
+                        onClick={() => setActiveTab('validation')}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-green-300 text-green-700 rounded hover:bg-green-50 transition-colors"
+                      >
+                        <Eye size={16} />
+                        View Validation Details
+                      </button>
+                      <button
+                        onClick={() => {
+                          const dataStr = JSON.stringify(validatedData, null, 2);
+                          const blob = new Blob([dataStr], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `processed-data-${selectedProject?.name || 'project'}-${selectedScenario?.name || 'scenario'}-${new Date().toISOString().split('T')[0]}.json`;
+                          a.click();
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-green-300 text-green-700 rounded hover:bg-green-50 transition-colors"
+                      >
+                        <Download size={16} />
+                        Export Data
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -653,11 +765,11 @@ export default function DataProcessor() {
             </div>
           )}
 
-          {/* No Scenario Selected */}
-          {!selectedScenario && (
+          {/* No Project or Scenario Selected */}
+          {(!selectedProject || !selectedScenario) && (
             <div className="text-center py-8 text-gray-500">
               <Database size={48} className="mx-auto mb-4 text-gray-300" />
-              <p>Please select a scenario first to begin data processing.</p>
+              <p>Please select a project and scenario first to begin data processing.</p>
             </div>
           )}
 
