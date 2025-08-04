@@ -1682,6 +1682,64 @@ export default function DataProcessor() {
                       longitude: {columnMappings.network.longitude.join(", ")}
                     </div>
                   </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Inventory Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      sku_id: {columnMappings.inventory.sku_id.join(", ")}
+                      <br />
+                      current_stock: {columnMappings.inventory.current_stock.join(", ")}
+                      <br />
+                      annual_demand: {columnMappings.inventory.annual_demand.join(", ")}
+                      <br />
+                      unit_cost: {columnMappings.inventory.unit_cost.join(", ")}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Sales Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      sku_id: {columnMappings.sales_data.sku_id.join(", ")}
+                      <br />
+                      sales_units: {columnMappings.sales_data.sales_units.join(", ")}
+                      <br />
+                      customer_location: {columnMappings.sales_data.customer_location.join(", ")}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="card">
