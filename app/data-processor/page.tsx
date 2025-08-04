@@ -876,9 +876,21 @@ export default function DataProcessor() {
 
           {/* No Project or Scenario Selected */}
           {(!selectedProject || !selectedScenario) && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="group relative text-center py-8 text-gray-500 cursor-help">
               <Database size={48} className="mx-auto mb-4 text-gray-300" />
               <p>Please select a project and scenario first to begin data processing.</p>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                <div className="text-sm space-y-2">
+                  <div className="font-semibold">Getting Started:</div>
+                  <div>1. <strong>New user?</strong> Click "New Project" above to create your first project</div>
+                  <div>2. <strong>Have projects?</strong> Click on a project name to expand it</div>
+                  <div>3. <strong>Select scenario:</strong> Choose an existing scenario or create a new one</div>
+                  <div>4. <strong>Upload files:</strong> Once both are selected, you can upload data files</div>
+                  <div className="text-xs text-blue-600 mt-2">
+                    💡 Both a project AND scenario must be selected before you can upload files
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
