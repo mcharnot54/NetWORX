@@ -97,7 +97,7 @@ export default function WarehouseOptimizer() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
 
-  // Mock data initialization
+  // Data initialization
   useEffect(() => {
     // Mock transport scenarios with volume allocations
     const mockScenarios: TransportScenario[] = [
@@ -140,14 +140,58 @@ export default function WarehouseOptimizer() {
     ];
     setTransportScenarios(mockScenarios);
 
-    // Mock market data
-    const mockMarketData: MarketData[] = [
-      { city: 'Chicago', state: 'IL', warehouse_lease_rate_per_sqft: 6.25, hourly_wage_rate: 18.50, fully_burdened_rate: 24.95, confidence_score: 95, last_updated: '2024-01-15' },
-      { city: 'Atlanta', state: 'GA', warehouse_lease_rate_per_sqft: 5.75, hourly_wage_rate: 16.25, fully_burdened_rate: 21.85, confidence_score: 92, last_updated: '2024-01-15' },
-      { city: 'Phoenix', state: 'AZ', warehouse_lease_rate_per_sqft: 6.95, hourly_wage_rate: 17.75, fully_burdened_rate: 23.90, confidence_score: 88, last_updated: '2024-01-15' }
-    ];
-    setMarketData(mockMarketData);
+    // Fetch real-time market data
+    fetchMarketData();
   }, []);
+
+  const fetchMarketData = async (forceRefresh = false) => {
+    try {
+      const uniqueLocations = Array.from(new Set(
+        transportScenarios.flatMap(scenario =>
+          scenario.volume_allocations?.map(allocation => allocation.location) || []
+        )
+      )).map(location => {
+        const [city, state] = location.split(', ');
+        return { city, state };
+      });
+
+      if (uniqueLocations.length === 0) return;
+
+      const response = await fetch('/api/market-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          locations: uniqueLocations,
+          force_refresh: forceRefresh
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Market data API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setMarketData(result.data);
+        console.log(`Loaded market data for ${result.data.length} locations (${result.cache_info?.from_cache || 0} from cache, ${result.cache_info?.from_api || 0} from API)`);
+      } else {
+        throw new Error(result.error || 'Failed to fetch market data');
+      }
+    } catch (error) {
+      console.error('Failed to fetch market data:', error);
+
+      // Use fallback data on error
+      const fallbackData: MarketData[] = [
+        { city: 'Chicago', state: 'IL', warehouse_lease_rate_per_sqft: 6.25, hourly_wage_rate: 18.50, fully_burdened_rate: 24.95, confidence_score: 25, last_updated: new Date().toISOString().split('T')[0] },
+        { city: 'Atlanta', state: 'GA', warehouse_lease_rate_per_sqft: 5.75, hourly_wage_rate: 16.25, fully_burdened_rate: 21.85, confidence_score: 25, last_updated: new Date().toISOString().split('T')[0] },
+        { city: 'Phoenix', state: 'AZ', warehouse_lease_rate_per_sqft: 6.95, hourly_wage_rate: 17.75, fully_burdened_rate: 23.90, confidence_score: 25, last_updated: new Date().toISOString().split('T')[0] }
+      ];
+      setMarketData(fallbackData);
+    }
+  };
 
   const calculateWarehouseCosts = async () => {
     if (!selectedScenario) {
