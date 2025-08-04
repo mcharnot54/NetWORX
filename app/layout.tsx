@@ -22,6 +22,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;800&display=swap"
           rel="stylesheet"
         />
+        {process.env.NODE_ENV === 'development' && (
+          <script src="/hmr-error-handler.js" async />
+        )}
       </head>
       <body>
         <ErrorBoundary>
