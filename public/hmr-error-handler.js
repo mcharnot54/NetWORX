@@ -31,8 +31,15 @@
     if (isHMRRequest) {
       return originalFetch.apply(this, arguments)
         .catch(error => {
-          hmrErrorCount++;
-          console.warn(`HMR fetch failed (${hmrErrorCount}/${MAX_HMR_ERRORS}):`, error.message);
+          // Only count TypeError: Failed to fetch errors
+          if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+            hmrErrorCount++;
+            console.warn(`HMR fetch failed (${hmrErrorCount}/${MAX_HMR_ERRORS}):`, error.message);
+          } else {
+            console.warn('HMR error (not counted):', error.message);
+            // Return original error for other types
+            return Promise.reject(error);
+          }
 
           // If we've had too many HMR errors, suggest a refresh
           if (hmrErrorCount >= MAX_HMR_ERRORS) {
