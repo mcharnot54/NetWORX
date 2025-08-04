@@ -22,10 +22,11 @@
   window.fetch = function(resource, options) {
     // Check if this is an HMR-related request
     const url = typeof resource === 'string' ? resource : resource.url;
-    const isHMRRequest = url.includes('_next/static') || 
-                        url.includes('webpack') || 
+    const isHMRRequest = url.includes('_next/static') ||
+                        url.includes('webpack') ||
                         url.includes('hot-update') ||
-                        url.includes('reload=');
+                        url.includes('reload=') ||
+                        url.includes('hmrM');
 
     if (isHMRRequest) {
       return originalFetch.apply(this, arguments)
