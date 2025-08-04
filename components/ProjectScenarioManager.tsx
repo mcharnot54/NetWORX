@@ -78,10 +78,15 @@ export default function ProjectScenarioManager({
   useEffect(() => {
     // Add a small delay to ensure the app is fully loaded
     const timer = setTimeout(() => {
-      fetchProjects();
+      if (isMounted) {
+        fetchProjects();
+      }
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setIsMounted(false);
+    };
   }, []);
 
   const fetchProjects = async () => {
