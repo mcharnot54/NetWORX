@@ -312,6 +312,12 @@ export default function Configuration() {
                 Output Config
               </button>
               <button
+                className={`button ${activeTab === "inventory" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setActiveTab("inventory")}
+              >
+                Inventory Metrics
+              </button>
+              <button
                 className={`button ${activeTab === "logging" ? "button-primary" : "button-secondary"}`}
                 onClick={() => setActiveTab("logging")}
               >
