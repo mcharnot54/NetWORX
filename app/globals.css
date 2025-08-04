@@ -72,14 +72,12 @@ a {
   white-space: nowrap;
 }
 
-.continuum-text {
-  font-family: "Raleway", sans-serif;
-  font-weight: 700;
-  font-size: 1.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.continuum-logo {
+  height: 2rem;
+  max-width: 150px;
+  object-fit: contain;
+  margin-left: 0.5rem;
   opacity: 0.95;
-  white-space: nowrap;
 }
 
 .content-area {
