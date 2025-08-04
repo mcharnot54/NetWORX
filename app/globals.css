@@ -77,9 +77,9 @@ a {
 }
 
 .continuum-logo {
-  height: 2rem;
+  height: 6rem;
   width: auto;
-  max-width: 200px;
+  max-width: 600px;
   object-fit: contain;
 }
 
