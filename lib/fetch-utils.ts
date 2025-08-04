@@ -63,56 +63,59 @@ const calculateRetryDelay = (
 
 // Check if error is retryable
 const isRetryableError = (error: Error): boolean => {
-  // Safety check for error object
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-
-  // Extra safety: wrap in try-catch to handle any unexpected error structures
+  // Ultimate safety check
   try {
-    // Handle AbortErrors specifically
-    if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-      // Only retry timeout aborts, not user-cancelled requests
-      return error.message?.includes('timeout') ?? false;
+    // Safety check for error object
+    if (!error || typeof error !== 'object') {
+      return false;
     }
-  } catch (e) {
-    // If we can't even check the error properly, don't retry
-    console.debug('Error checking error retryability:', e);
-    return false;
-  }
 
-  try {
+    // Handle any AbortError immediately to prevent propagation
+    const errorName = String(error.name || '');
+    const errorMessage = String(error.message || '');
+
+    // Handle AbortErrors specifically with multiple detection methods
+    if (errorName === 'AbortError' ||
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('signal is aborted') ||
+        errorMessage.includes('aborted without reason')) {
+      // Only retry timeout aborts, not user-cancelled requests
+      const isTimeout = errorMessage.includes('timeout');
+      console.debug('AbortError detected in retry check:', { errorName, errorMessage, isTimeout });
+      return isTimeout;
+    }
+
     // Network errors
-    if (error.message?.includes('fetch') || error.message?.includes('network')) {
+    if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
       return true;
     }
 
     // Timeout errors are retryable, but not cancelled requests
-    if (error.message?.includes('timeout')) {
+    if (errorMessage.includes('timeout')) {
       return true;
     }
 
     // Don't retry requests that were cancelled (not timeout aborts)
-    if (error.message?.includes('cancelled')) {
+    if (errorMessage.includes('cancelled')) {
       return false;
     }
 
     // If it's a FetchError, check the status
     if (error instanceof FetchError) {
       // Don't retry cancelled requests, but retry timeouts and network errors
-      if (error.message?.includes('cancelled')) {
+      if (errorMessage.includes('cancelled')) {
         return false;
       }
       // Retry on network errors, timeouts, or 5xx errors
       return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
     }
+
+    return false;
   } catch (e) {
-    // If any error checking fails, default to not retrying
-    console.debug('Error in retry logic evaluation:', e);
+    // Ultimate fallback - if even this error checking fails, don't retry
+    console.debug('Critical error in retry logic evaluation:', e);
     return false;
   }
-
-  return false;
 };
 
 // Enhanced fetch with timeout and abort signal
