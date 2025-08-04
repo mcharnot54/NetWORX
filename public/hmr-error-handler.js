@@ -149,20 +149,40 @@
   // Global error handler to suppress AbortErrors from cancelled requests
   window.addEventListener('error', (event) => {
     const error = event.error;
-    if (error && (error.name === 'AbortError' || (error.message && error.message.includes('aborted')))) {
-      console.debug('Suppressed AbortError:', error.message || 'signal aborted');
-      event.preventDefault();
-      return false;
+    if (error) {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      // Detect AbortErrors with multiple patterns
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('The operation was aborted')) {
+        console.debug('Suppressed AbortError:', errorMessage || 'signal aborted');
+        event.preventDefault();
+        return false;
+      }
     }
   });
 
   // Handle unhandled promise rejections for AbortErrors
   window.addEventListener('unhandledrejection', (event) => {
     const error = event.reason;
-    if (error && (error.name === 'AbortError' || (error.message && error.message.includes('aborted')))) {
-      console.debug('Suppressed unhandled AbortError rejection:', error.message || 'signal aborted');
-      event.preventDefault();
-      return false;
+    if (error) {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      // Detect AbortErrors with multiple patterns
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('The operation was aborted')) {
+        console.debug('Suppressed unhandled AbortError rejection:', errorMessage || 'signal aborted');
+        event.preventDefault();
+        return false;
+      }
     }
   });
 
