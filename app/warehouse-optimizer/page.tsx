@@ -201,20 +201,20 @@ export default function WarehouseOptimizer() {
   };
 
   const calculateWarehouseCosts = async () => {
-    if (!selectedScenario) {
+    if (!selectedTransportScenario) {
       alert('Please select a transport scenario first');
       return;
     }
 
     setIsAnalyzing(true);
-    
+
     try {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const costs: WarehouseCostBreakdown[] = [];
-      
-      selectedScenario.volume_allocations?.forEach(allocation => {
+
+      selectedTransportScenario.volume_allocations?.forEach(allocation => {
         const marketInfo = marketData.find(m => 
           allocation.location.includes(m.city) && allocation.location.includes(m.state)
         );
