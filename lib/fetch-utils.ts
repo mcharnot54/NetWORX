@@ -63,6 +63,12 @@ const calculateRetryDelay = (
 
 // Check if error is retryable
 const isRetryableError = (error: Error): boolean => {
+  // Handle AbortErrors specifically
+  if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+    // Only retry timeout aborts, not user-cancelled requests
+    return error.message.includes('timeout');
+  }
+
   // Network errors
   if (error.message.includes('fetch') || error.message.includes('network')) {
     return true;
