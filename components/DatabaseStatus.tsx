@@ -17,21 +17,17 @@ export default function DatabaseStatus() {
 
   const checkDatabaseStatus = async () => {
     try {
-      const response = await fetch('/api/init-db', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const result = await robustFetchJson('/api/init-db', {
+        timeout: 10000,
+        retries: 2,
       });
-
-      const result = await response.json();
       setDbStatus(result);
       setLastChecked(new Date());
     } catch (error) {
       console.error('Error checking database status:', error);
       setDbStatus({
         success: false,
-        error: 'Failed to connect to database'
+        error: error instanceof FetchError ? error.message : 'Failed to connect to database'
       });
       setLastChecked(new Date());
     }
