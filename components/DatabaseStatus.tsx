@@ -17,20 +17,27 @@ export default function DatabaseStatus() {
   const [isMounted, setIsMounted] = useState(true);
 
   const checkDatabaseStatus = async () => {
+    if (!isMounted) return;
+
     try {
       const result = await robustFetchJson('/api/init-db', {
         timeout: 10000,
         retries: 2,
       });
-      setDbStatus(result);
-      setLastChecked(new Date());
+
+      if (isMounted) {
+        setDbStatus(result);
+        setLastChecked(new Date());
+      }
     } catch (error) {
-      console.error('Error checking database status:', error);
-      setDbStatus({
-        success: false,
-        error: error instanceof FetchError ? error.message : 'Failed to connect to database'
-      });
-      setLastChecked(new Date());
+      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
+        console.error('Error checking database status:', error);
+        setDbStatus({
+          success: false,
+          error: error instanceof FetchError ? error.message : 'Failed to connect to database'
+        });
+        setLastChecked(new Date());
+      }
     }
   };
 
