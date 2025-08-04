@@ -53,7 +53,9 @@ interface RouteDetail {
 }
 
 export default function TransportOptimizer() {
-  const [activeTab, setActiveTab] = useState<'configuration' | 'scenarios' | 'generation' | 'analysis' | 'results'>('configuration');
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedScenario, setSelectedScenario] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'projects' | 'configuration' | 'scenarios' | 'generation' | 'analysis' | 'results'>('projects');
   
   const [configuration, setConfiguration] = useState<TransportConfiguration>({
     outbound_weight_percentage: 50,
