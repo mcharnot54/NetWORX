@@ -673,7 +673,7 @@ export default function InventoryOptimizer() {
                       />
                       <Tooltip
                         formatter={(value, name) => [
-                          name === "cv" ? value.toFixed(2) : `${value} days`,
+                          name === "cv" ? Number(value).toFixed(2) : `${value} days`,
                           name === "cv"
                             ? "Coefficient of Variation"
                             : "Lead Time",
