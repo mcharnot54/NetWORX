@@ -348,6 +348,247 @@ export default function Visualizer() {
             </div>
           )}
 
+          {selectedChart === "inventory" && (
+            <div>
+              <div className="grid grid-cols-2" style={{ marginBottom: "1.5rem" }}>
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Pareto Chart (80/20 Analysis)
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mockParetoData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="sku" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="value"
+                        fill="#3b82f6"
+                        name="Value ($)"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="cumulative_percentage"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        name="Cumulative %"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    ABC Classification Distribution
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={mockABCData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ category, percentage }) =>
+                          `Category ${category}: ${percentage}%`
+                        }
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="percentage"
+                      >
+                        {mockABCData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2" style={{ marginBottom: "1.5rem" }}>
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Turns Analysis
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mockInventoryData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="sku" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="turns"
+                        fill="#10b981"
+                        name="Turns per Year"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Velocity Slotting Plan
+                  </h3>
+                  <div style={{ padding: "1rem" }}>
+                    {mockVelocityData.map((velocity, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "1rem",
+                          padding: "1rem",
+                          backgroundColor: "#f9fafb",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: "500", marginBottom: "0.25rem" }}>
+                            {velocity.velocity}
+                          </div>
+                          <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                            {velocity.items} items ({velocity.percentage}%)
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#3b82f6" }}>
+                            {velocity.accessibility}%
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            Accessibility
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    ABC Category Breakdown
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {mockABCData.map((category) => (
+                      <div
+                        key={category.category}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          padding: "0.75rem",
+                          backgroundColor: "#f9fafb",
+                          borderRadius: "0.375rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            backgroundColor: category.color,
+                            borderRadius: "0.375rem",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontWeight: "bold",
+                            fontSize: "1.25rem",
+                          }}
+                        >
+                          {category.category}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: "500" }}>
+                            {category.items} Items
+                          </div>
+                          <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                            {category.percentage}% of value
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Velocity Distribution
+                  </h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={mockVelocityData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="items"
+                      >
+                        {mockVelocityData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              index === 0
+                                ? "#10b981"
+                                : index === 1
+                                ? "#f59e0b"
+                                : "#6b7280"
+                            }
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Slotting Recommendations
+                  </h4>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <strong style={{ color: "#10b981" }}>Fast Movers:</strong>
+                      <br />
+                      • Front zone (A1-A3)
+                      <br />
+                      • Waist level placement
+                      <br />
+                      • Near shipping docks
+                    </div>
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <strong style={{ color: "#f59e0b" }}>Medium Movers:</strong>
+                      <br />
+                      • Standard zone (B1-B5)
+                      <br />
+                      • Mid-level racks
+                      <br />
+                      • Moderate accessibility
+                    </div>
+                    <div>
+                      <strong style={{ color: "#6b7280" }}>Slow Movers:</strong>
+                      <br />
+                      • Reserve zone (C1-C8)
+                      <br />
+                      • High/low racks acceptable
+                      <br />
+                      • Bulk storage areas
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="card" style={{ marginTop: "1.5rem" }}>
             <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
               Key Performance Indicators
