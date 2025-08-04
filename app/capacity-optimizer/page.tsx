@@ -118,25 +118,31 @@ export default function CapacityOptimizer() {
           </p>
 
           <div className="tab-navigation">
-            <button 
+            <button
+              className={`tab-button ${activeTab === 'projects' ? 'active' : ''}`}
+              onClick={() => setActiveTab('projects')}
+            >
+              Projects & Scenarios
+            </button>
+            <button
               className={`tab-button ${activeTab === 'config' ? 'active' : ''}`}
               onClick={() => setActiveTab('config')}
             >
               Project Configuration
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'growth' ? 'active' : ''}`}
               onClick={() => setActiveTab('growth')}
             >
               Growth Forecasts
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'facilities' ? 'active' : ''}`}
               onClick={() => setActiveTab('facilities')}
             >
               Facility Constraints
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'analysis' ? 'active' : ''}`}
               onClick={() => setActiveTab('analysis')}
             >
