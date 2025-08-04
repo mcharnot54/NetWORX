@@ -7,6 +7,18 @@ if (!process.env.DATABASE_URL) {
 const sql = neon(process.env.DATABASE_URL);
 
 // Type definitions for database entities
+export interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  created_at: Date;
+  updated_at: Date;
+  status: 'active' | 'archived' | 'completed';
+  owner_id?: string;
+  project_duration_years: number;
+  base_year: number;
+}
+
 export interface Scenario {
   id: number;
   name: string;
