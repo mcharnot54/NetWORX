@@ -95,6 +95,7 @@ export default function WarehouseOptimizer() {
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [warehouseCosts, setWarehouseCosts] = useState<WarehouseCostBreakdown[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoadingMarketData, setIsLoadingMarketData] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
 
   // Data initialization
