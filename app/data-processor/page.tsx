@@ -315,6 +315,40 @@ export default function DataProcessor() {
         longitude: [-180, 180],
       },
     },
+    inventory: {
+      requiredColumns: [
+        "sku_id",
+        "current_stock",
+        "annual_demand",
+        "unit_cost",
+      ],
+      numericColumns: [
+        "current_stock",
+        "annual_demand",
+        "unit_cost",
+        "lead_time_days",
+        "safety_stock",
+      ],
+      positiveColumns: [
+        "current_stock",
+        "annual_demand",
+        "unit_cost",
+        "lead_time_days",
+      ],
+      stringColumns: ["sku_id", "warehouse_location"],
+    },
+    sales_data: {
+      requiredColumns: ["sku_id", "sales_units", "sales_date"],
+      numericColumns: ["sales_units", "revenue"],
+      positiveColumns: ["sales_units", "revenue"],
+      stringColumns: ["sku_id", "customer_location"],
+    },
+    shipping_data: {
+      requiredColumns: ["sku_id", "destination", "shipping_units"],
+      numericColumns: ["shipping_units", "freight_cost"],
+      positiveColumns: ["shipping_units", "freight_cost"],
+      stringColumns: ["sku_id", "destination"],
+    },
   };
 
   const validateDataFrame = (
