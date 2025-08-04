@@ -796,15 +796,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           perplexityResult.status === "fulfilled" ? perplexityResult.value : {};
 
         // Determine final values (Perplexity API first, then fallback, then regional estimates)
+        const typedPerplexityData = perplexityData as any;
         let straightLaborRate =
-          perplexityData.straightLaborRate || baseData?.straightLaborRate;
+          typedPerplexityData?.straightLaborRate || baseData?.straightLaborRate;
         let fullyBurdendedLaborRate =
-          perplexityData.fullyBurdendedLaborRate ||
+          typedPerplexityData?.fullyBurdendedLaborRate ||
           baseData?.fullyBurdendedLaborRate;
         let leaseRate =
-          perplexityData.leaseRatePerSqFt || baseData?.leaseRatePerSqFt;
+          typedPerplexityData?.leaseRatePerSqFt || baseData?.leaseRatePerSqFt;
         let threePLCost =
-          perplexityData.threePLCostPerUnit || baseData?.threePLCostPerUnit;
+          typedPerplexityData?.threePLCostPerUnit || baseData?.threePLCostPerUnit;
 
         // If no data available, generate realistic regional estimates
         if (
