@@ -90,6 +90,8 @@ export default function ProjectScenarioManager({
   }, []);
 
   const fetchProjects = async () => {
+    if (!isMounted) return;
+
     try {
       setLoading(true);
 
@@ -98,6 +100,8 @@ export default function ProjectScenarioManager({
         timeout: 10000,
         retries: 2,
       });
+
+      if (!isMounted) return; // Check again after async operation
 
       if (!projectsResult.success) {
         throw new Error(projectsResult.error || 'Failed to fetch projects');
