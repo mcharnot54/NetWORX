@@ -87,19 +87,11 @@ export default function ProjectScenarioManager({
     try {
       setLoading(true);
 
-      // Fetch projects from API with timeout and error handling
-      const projectsResponse = await fetch('/api/projects', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Fetch projects from API with robust error handling
+      const projectsResult = await robustFetchJson('/api/projects', {
+        timeout: 10000,
+        retries: 2,
       });
-
-      if (!projectsResponse.ok) {
-        throw new Error(`HTTP error! status: ${projectsResponse.status}`);
-      }
-
-      const projectsResult = await projectsResponse.json();
 
       if (!projectsResult.success) {
         throw new Error(projectsResult.error || 'Failed to fetch projects');
