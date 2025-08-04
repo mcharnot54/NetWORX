@@ -193,9 +193,9 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({
                     )}
                   </div>
                   <div className="text-2xl font-bold">
-                    {typeof value === 'number' 
+                    {typeof value === 'number'
                       ? (key.includes('Cost') || key.includes('cost') ? formatCurrency(value) : formatPercentage(value))
-                      : value
+                      : String(value)
                     }
                   </div>
                 </div>
