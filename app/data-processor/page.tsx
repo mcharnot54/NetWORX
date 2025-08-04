@@ -357,29 +357,37 @@ export default function DataProcessor() {
                 id: 'upload',
                 label: 'File Upload',
                 description: 'Upload and analyze data files',
+                hoverInstruction: 'Step 2: Upload your Excel (.xlsx, .xls) or CSV files. Files are automatically analyzed and template-matched for validation.',
                 icon: Upload,
-                color: 'blue'
+                color: 'blue',
+                step: '2'
               },
               {
                 id: 'validation',
                 label: 'Data Validation',
                 description: 'Review validation results',
+                hoverInstruction: 'Step 3: Review data quality metrics, validation errors, and column mappings. Fix any issues before processing.',
                 icon: Shield,
-                color: 'green'
+                color: 'green',
+                step: '3'
               },
               {
                 id: 'templates',
                 label: 'Data Templates',
                 description: 'View supported data formats',
+                hoverInstruction: 'Reference: View all supported data formats and required column structures for optimal file preparation.',
                 icon: Settings,
-                color: 'purple'
+                color: 'purple',
+                step: 'ℹ️'
               },
               {
                 id: 'results',
                 label: 'Results',
                 description: 'View processed data summary',
+                hoverInstruction: 'Step 4: View final processed data summary and proceed to optimization modules (Capacity, Transport, Warehouse).',
                 icon: BarChart3,
-                color: 'orange'
+                color: 'orange',
+                step: '4'
               }
             ].map(tab => {
               const isActive = activeTab === tab.id;
