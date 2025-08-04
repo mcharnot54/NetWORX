@@ -101,9 +101,9 @@ export default function DataProcessor() {
           <h2 className="card-title">Data Processor</h2>
           
           <div style={{ marginBottom: "2rem" }}>
-            <ScenarioManager 
+            <ScenarioManager
               selectedScenario={selectedScenario}
-              onScenarioSelect={setSelectedScenario}
+              onSelectScenario={setSelectedScenario}
             />
           </div>
 
