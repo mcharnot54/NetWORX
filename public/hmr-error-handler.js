@@ -146,5 +146,27 @@
     return ws;
   };
 
-  console.log('HMR error handler initialized for cloud environment');
+  // Global error handler to suppress AbortErrors from cancelled requests
+  window.addEventListener('error', (event) => {
+    const error = event.error;
+    if (error && error.name === 'AbortError' &&
+        (error.message?.includes('cancelled') || error.message?.includes('aborted without reason'))) {
+      console.debug('Suppressed AbortError from cancelled request:', error.message);
+      event.preventDefault();
+      return false;
+    }
+  });
+
+  // Handle unhandled promise rejections for AbortErrors
+  window.addEventListener('unhandledrejection', (event) => {
+    const error = event.reason;
+    if (error && error.name === 'AbortError' &&
+        (error.message?.includes('cancelled') || error.message?.includes('aborted without reason'))) {
+      console.debug('Suppressed unhandled AbortError rejection:', error.message);
+      event.preventDefault();
+      return false;
+    }
+  });
+
+  console.log('HMR error handler and AbortError suppression initialized for cloud environment');
 })();
