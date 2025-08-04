@@ -6,6 +6,7 @@ import Link from "next/link";
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/data-processor", label: "Data Processor" },
+  { href: "/capacity-optimizer", label: "Capacity Optimizer" },
   { href: "/warehouse-optimizer", label: "Warehouse Optimizer" },
   { href: "/transport-optimizer", label: "Transport Optimizer" },
   { href: "/inventory-optimizer", label: "Inventory Optimizer" },
