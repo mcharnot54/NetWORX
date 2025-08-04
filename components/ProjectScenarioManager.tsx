@@ -79,110 +79,57 @@ export default function ProjectScenarioManager({
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      // Mock data for now - in production, this would be API calls
-      const mockProjects: Project[] = [
-        {
-          id: 1,
-          name: 'NetWORX Optimization 2024',
-          description: 'Comprehensive network optimization project for improved efficiency and cost reduction',
-          created_at: '2024-01-15T00:00:00Z',
-          updated_at: '2024-01-20T00:00:00Z',
-          status: 'active',
-          owner_id: 'user_001',
-          project_duration_years: 5,
-          base_year: 2024
-        },
-        {
-          id: 2,
-          name: 'East Coast Expansion Strategy',
-          description: 'Strategic expansion analysis for east coast operations',
-          created_at: '2024-02-01T00:00:00Z',
-          updated_at: '2024-02-10T00:00:00Z',
-          status: 'active',
-          owner_id: 'user_001',
-          project_duration_years: 3,
-          base_year: 2024
+
+      // Fetch projects from API
+      const projectsResponse = await fetch('/api/projects');
+      const projectsResult = await projectsResponse.json();
+
+      if (!projectsResult.success) {
+        throw new Error(projectsResult.error);
+      }
+
+      const projects = projectsResult.data;
+
+      // Fetch scenarios for each project
+      const scenariosMap: { [key: number]: Scenario[] } = {};
+
+      for (const project of projects) {
+        const scenariosResponse = await fetch(`/api/scenarios?project_id=${project.id}`);
+        const scenariosResult = await scenariosResponse.json();
+
+        if (scenariosResult.success) {
+          // Transform database scenarios to match component interface
+          scenariosMap[project.id] = scenariosResult.data.map((scenario: any) => ({
+            id: scenario.id,
+            project_id: scenario.project_id || project.id,
+            name: scenario.name,
+            scenario_number: scenario.metadata?.scenario_number || 1,
+            number_of_nodes: scenario.metadata?.number_of_nodes || 3,
+            cities: scenario.metadata?.cities || [],
+            description: scenario.description,
+            created_at: scenario.created_at,
+            updated_at: scenario.updated_at,
+            status: scenario.metadata?.status || scenario.status || 'draft',
+            capacity_analysis_completed: scenario.metadata?.capacity_analysis_completed || false,
+            transport_optimization_completed: scenario.metadata?.transport_optimization_completed || false,
+            warehouse_optimization_completed: scenario.metadata?.warehouse_optimization_completed || false
+          }));
+        } else {
+          scenariosMap[project.id] = [];
         }
-      ];
+      }
 
-      const mockScenarios: { [key: number]: Scenario[] } = {
-        1: [
-          {
-            id: 1,
-            project_id: 1,
-            name: 'NetWORX Optimization 2024 - Scenario 1 - 3 Nodes - Chicago, Atlanta, Phoenix',
-            scenario_number: 1,
-            number_of_nodes: 3,
-            cities: ['Chicago, IL', 'Atlanta, GA', 'Phoenix, AZ'],
-            description: 'Baseline scenario with current hub configuration',
-            created_at: '2024-01-16T00:00:00Z',
-            updated_at: '2024-01-20T00:00:00Z',
-            status: 'completed',
-            capacity_analysis_completed: true,
-            transport_optimization_completed: true,
-            warehouse_optimization_completed: true
-          },
-          {
-            id: 2,
-            project_id: 1,
-            name: 'NetWORX Optimization 2024 - Scenario 2 - 4 Nodes - Chicago, Atlanta, Phoenix, Dallas',
-            scenario_number: 2,
-            number_of_nodes: 4,
-            cities: ['Chicago, IL', 'Atlanta, GA', 'Phoenix, AZ', 'Dallas, TX'],
-            description: 'Expanded network with additional Dallas hub',
-            created_at: '2024-01-18T00:00:00Z',
-            updated_at: '2024-01-22T00:00:00Z',
-            status: 'in_progress',
-            capacity_analysis_completed: true,
-            transport_optimization_completed: true,
-            warehouse_optimization_completed: false
-          },
-          {
-            id: 3,
-            project_id: 1,
-            name: 'NetWORX Optimization 2024 - Scenario 3 - 2 Nodes - Chicago, Atlanta',
-            scenario_number: 3,
-            number_of_nodes: 2,
-            cities: ['Chicago, IL', 'Atlanta, GA'],
-            description: 'Consolidated network focusing on core markets',
-            created_at: '2024-01-20T00:00:00Z',
-            updated_at: '2024-01-25T00:00:00Z',
-            status: 'draft',
-            capacity_analysis_completed: false,
-            transport_optimization_completed: false,
-            warehouse_optimization_completed: false
-          }
-        ],
-        2: [
-          {
-            id: 4,
-            project_id: 2,
-            name: 'East Coast Expansion Strategy - Scenario 1 - 3 Nodes - New York, Boston, Miami',
-            scenario_number: 1,
-            number_of_nodes: 3,
-            cities: ['New York, NY', 'Boston, MA', 'Miami, FL'],
-            description: 'Primary east coast expansion scenario',
-            created_at: '2024-02-02T00:00:00Z',
-            updated_at: '2024-02-08T00:00:00Z',
-            status: 'completed',
-            capacity_analysis_completed: true,
-            transport_optimization_completed: true,
-            warehouse_optimization_completed: true
-          }
-        ]
-      };
+      setProjects(projects);
+      setScenarios(scenariosMap);
 
-      setProjects(mockProjects);
-      setScenarios(mockScenarios);
-      
       // Auto-expand first project and select first scenario if none selected
-      if (mockProjects.length > 0) {
-        setExpandedProjects(new Set([mockProjects[0].id]));
+      if (projects.length > 0) {
+        setExpandedProjects(new Set([projects[0].id]));
         if (!selectedProject) {
-          onSelectProject(mockProjects[0]);
+          onSelectProject(projects[0]);
         }
-        if (!selectedScenario && mockScenarios[mockProjects[0].id]?.length > 0) {
-          onSelectScenario(mockScenarios[mockProjects[0].id][0]);
+        if (!selectedScenario && scenariosMap[projects[0].id]?.length > 0) {
+          onSelectScenario(scenariosMap[projects[0].id][0]);
         }
       }
     } catch (error) {
