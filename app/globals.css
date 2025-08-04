@@ -194,8 +194,9 @@ a {
     font-size: 1rem;
   }
 
-  .continuum-text {
-    font-size: 1.5rem;
+  .continuum-logo {
+    height: 1.75rem;
+    max-width: 120px;
   }
 
   .banner-right {
