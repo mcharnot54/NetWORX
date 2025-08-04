@@ -47,6 +47,7 @@ export default function RootLayout({
                 </div>
               </header>
               {children}
+              <ConnectionStatus />
             </div>
           </DataProvider>
         </ErrorBoundary>
