@@ -45,12 +45,12 @@ interface ProjectScenarioManagerProps {
   optimizationType?: 'capacity' | 'transport' | 'warehouse' | 'all';
 }
 
-export default function ProjectScenarioManager({ 
-  onSelectProject, 
-  onSelectScenario, 
-  selectedProject, 
-  selectedScenario, 
-  optimizationType = 'all' 
+export default function ProjectScenarioManager({
+  onSelectProject,
+  onSelectScenario,
+  selectedProject,
+  selectedScenario,
+  optimizationType = 'all'
 }: ProjectScenarioManagerProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [scenarios, setScenarios] = useState<{ [key: number]: Scenario[] }>({});
@@ -59,6 +59,7 @@ export default function ProjectScenarioManager({
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [showCreateScenarioModal, setShowCreateScenarioModal] = useState(false);
   const [targetProjectId, setTargetProjectId] = useState<number | null>(null);
+  const [isMounted, setIsMounted] = useState(true);
 
   const [newProject, setNewProject] = useState({
     name: '',
