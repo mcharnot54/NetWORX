@@ -83,27 +83,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const scenario = await ScenarioService.createScenario({
+    const newScenario = {
+      id: nextId++,
       name,
-      description,
+      description: description || "",
       scenario_type,
-      created_by,
-      metadata
-    });
+      status: "draft" as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: created_by || "demo_user",
+      metadata: metadata || {}
+    };
 
-    // Log the action
-    await AuditLogService.logAction({
-      scenario_id: scenario.id,
-      action: 'create_scenario',
-      entity_type: 'scenario',
-      entity_id: scenario.id,
-      user_id: created_by,
-      details: { scenario_type, name }
-    });
+    mockScenarios.unshift(newScenario);
 
     return NextResponse.json({
       success: true,
-      data: scenario
+      data: newScenario
     });
   } catch (error) {
     console.error('Error creating scenario:', error);
