@@ -396,8 +396,8 @@ export default function WarehouseOptimizer() {
                 {transportScenarios.map(scenario => (
                   <div 
                     key={scenario.id} 
-                    className={`scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}`}
-                    onClick={() => setSelectedScenario(scenario)}
+                    className={`scenario-card ${selectedTransportScenario?.id === scenario.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedTransportScenario(scenario)}
                   >
                     <div className="scenario-header">
                       <h3 className="scenario-name">{scenario.scenario_name}</h3>
