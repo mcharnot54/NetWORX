@@ -373,6 +373,18 @@ export default function WarehouseOptimizer() {
             </button>
           </div>
 
+          {activeTab === 'projects' && (
+            <div className="tab-content">
+              <ProjectScenarioManager
+                onSelectProject={setSelectedProject}
+                onSelectScenario={setSelectedScenario}
+                selectedProject={selectedProject}
+                selectedScenario={selectedScenario}
+                optimizationType="warehouse"
+              />
+            </div>
+          )}
+
           {activeTab === 'scenarios' && (
             <div className="tab-content">
               <h2 className="section-title">Transport Scenarios</h2>
