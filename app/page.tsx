@@ -16,7 +16,7 @@ export default function Dashboard() {
       <Navigation />
       <main className="content-area">
         <div className="card">
-          <h2 className="card-title">Welcome to NetWORX Essentials</h2>
+          <h2 className="card-title networx-title">Welcome to NetWORX Essentials</h2>
           <p style={{ marginBottom: "1.5rem", color: "#6b7280" }}>
             Your comprehensive network strategy optimization solution for
             warehouse space optimization and freight cost minimization.
