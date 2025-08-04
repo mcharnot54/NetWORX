@@ -351,7 +351,7 @@ export default function DataProcessor() {
           </div>
 
           {/* Navigation Cards */}
-          <div className="grid grid-cols-4 gap-4 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[
               {
                 id: 'upload',
@@ -407,30 +407,34 @@ export default function DataProcessor() {
               };
 
               return (
-                <div key={tab.id} className="group relative flex-1">
+                <div key={tab.id} className="group relative">
                   <button
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left w-full h-full min-h-[160px] flex flex-col justify-center ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                    className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left w-full ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
                   >
-                    <div className="flex flex-col items-center text-center space-y-3 flex-1 justify-center">
+                    <div className="flex flex-col items-center text-center space-y-3">
                       <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
-                        <tab.icon size={28} />
+                        <tab.icon size={24} />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-base">{tab.label}</h3>
+                        <h3 className="font-semibold text-sm">{tab.label}</h3>
                         <p className="text-xs opacity-80 mt-1">{tab.description}</p>
                       </div>
                     </div>
                     {isActive && (
-                      <div className={`absolute top-3 right-3 w-4 h-4 bg-${tab.color}-500 rounded-full`}></div>
+                      <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
                     )}
-                    <div className={`absolute top-2 left-2 w-7 h-7 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-xs font-semibold`}>
-                      {tab.step}
-                    </div>
                   </button>
-                  <div className="absolute top-full mt-3 left-1/2 transform -translate-x-1/2 w-72 bg-gray-900 text-white p-4 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                    <div className="text-sm">{tab.hoverInstruction}</div>
-                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+
+                  {/* Step indicator as separate positioned element */}
+                  <div className={`absolute -top-2 -left-2 w-6 h-6 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-xs font-semibold shadow-md z-10`}>
+                    {tab.step}
+                  </div>
+
+                  {/* Tooltip positioned better */}
+                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-64 bg-gray-900 text-white p-3 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                    <div className="text-sm leading-relaxed">{tab.hoverInstruction}</div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
                 </div>
               );
@@ -478,7 +482,7 @@ export default function DataProcessor() {
                     <div>• <strong>Supported formats:</strong> Excel (.xlsx, .xls) and CSV files</div>
                     <div>• <strong>Data types:</strong> Forecast, SKU, Network, Operational, Financial, Sales</div>
                     <div className="text-xs text-blue-600 mt-2">
-                      💡 Check the "Data Templates" tab to see required column structures
+                      ��� Check the "Data Templates" tab to see required column structures
                     </div>
                   </div>
                 </div>
