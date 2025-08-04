@@ -224,25 +224,31 @@ export default function TransportOptimizer() {
           </p>
 
           <div className="tab-navigation">
-            <button 
+            <button
+              className={`tab-button ${activeTab === 'projects' ? 'active' : ''}`}
+              onClick={() => setActiveTab('projects')}
+            >
+              Projects & Scenarios
+            </button>
+            <button
               className={`tab-button ${activeTab === 'configuration' ? 'active' : ''}`}
               onClick={() => setActiveTab('configuration')}
             >
               Configuration
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'scenarios' ? 'active' : ''}`}
               onClick={() => setActiveTab('scenarios')}
             >
               Scenario Generation
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'analysis' ? 'active' : ''}`}
               onClick={() => setActiveTab('analysis')}
             >
               Scenario Analysis
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'results' ? 'active' : ''}`}
               onClick={() => setActiveTab('results')}
             >
