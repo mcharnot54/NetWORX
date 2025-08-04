@@ -525,17 +525,30 @@ export default function Visualizer() {
                   <h3 className="chart-title">5-Year Cost & Savings Projection</h3>
                   <div className="chart-container">
                     <ResponsiveContainer width="100%" height={350}>
-                      <ComposedChart data={getMultiYearData()}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="year_number" />
-                        <YAxis yAxisId="left" />
-                        <YAxis yAxisId="right" orientation="right" />
-                        <Tooltip formatter={(value: number) => `$${(value / 1000000).toFixed(2)}M`} />
-                        <Legend />
-                        <Bar yAxisId="left" dataKey="total_costs" fill="#ef4444" name="Total Costs" />
-                        <Line yAxisId="right" type="monotone" dataKey="annual_cost_savings" stroke="#10b981" strokeWidth={3} name="Annual Savings" />
-                        <Line yAxisId="right" type="monotone" dataKey="roi_percentage" stroke="#3b82f6" strokeWidth={2} name="ROI %" />
-                      </ComposedChart>
+                      {ComposedChart ? (
+                        <ComposedChart data={getMultiYearData()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="year_number" />
+                          <YAxis yAxisId="left" />
+                          <YAxis yAxisId="right" orientation="right" />
+                          <Tooltip formatter={(value: number) => `$${(value / 1000000).toFixed(2)}M`} />
+                          <Legend />
+                          <Bar yAxisId="left" dataKey="total_costs" fill="#ef4444" name="Total Costs" />
+                          <Line yAxisId="right" type="monotone" dataKey="annual_cost_savings" stroke="#10b981" strokeWidth={3} name="Annual Savings" />
+                          <Line yAxisId="right" type="monotone" dataKey="roi_percentage" stroke="#3b82f6" strokeWidth={2} name="ROI %" />
+                        </ComposedChart>
+                      ) : (
+                        <LineChart data={getMultiYearData()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="year_number" />
+                          <YAxis />
+                          <Tooltip formatter={(value: number) => `$${(value / 1000000).toFixed(2)}M`} />
+                          <Legend />
+                          <Line type="monotone" dataKey="total_costs" stroke="#ef4444" strokeWidth={3} name="Total Costs" />
+                          <Line type="monotone" dataKey="annual_cost_savings" stroke="#10b981" strokeWidth={3} name="Annual Savings" />
+                          <Line type="monotone" dataKey="roi_percentage" stroke="#3b82f6" strokeWidth={2} name="ROI %" />
+                        </LineChart>
+                      )}
                     </ResponsiveContainer>
                   </div>
                 </div>
