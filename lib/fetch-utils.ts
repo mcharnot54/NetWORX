@@ -139,35 +139,52 @@ const fetchWithTimeout = async (
   } catch (error) {
     clearTimeout(timeoutId);
 
-    // Handle all types of abort errors more defensively
-    if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-      // Check if this was a timeout abort or an external abort
-      const isTimeoutAbort = controller.signal.aborted && controller.signal.reason === undefined;
-      const errorMessage = isTimeoutAbort
-        ? `Request timeout after ${timeout}ms for ${url}`
-        : `Request was cancelled for ${url}`;
+    // Wrap all error handling in try-catch to prevent errors in error handling
+    try {
+      // Handle all types of abort errors more defensively
+      if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+        // Check if this was a timeout abort or an external abort
+        const isTimeoutAbort = controller.signal.aborted && controller.signal.reason === undefined;
+        const errorMessage = isTimeoutAbort
+          ? `Request timeout after ${timeout}ms for ${url}`
+          : `Request was cancelled for ${url}`;
 
-      throw new FetchError(
-        errorMessage,
-        undefined,
-        undefined,
-        false,
-        isTimeoutAbort
-      );
-    }
+        throw new FetchError(
+          errorMessage,
+          undefined,
+          undefined,
+          false,
+          isTimeoutAbort
+        );
+      }
 
-    if (error instanceof Error) {
-      // Network error
+      if (error instanceof Error) {
+        // Network error
+        throw new FetchError(
+          `Network error: ${error.message}`,
+          undefined,
+          undefined,
+          true,
+          false
+        );
+      }
+
+      throw error;
+    } catch (handlingError) {
+      // If error handling itself fails, create a safe fallback error
+      if (handlingError instanceof FetchError) {
+        throw handlingError;
+      }
+
+      // Create a safe fallback error
       throw new FetchError(
-        `Network error: ${error.message}`,
+        `Request failed for ${url}`,
         undefined,
         undefined,
         true,
         false
       );
     }
-
-    throw error;
   }
 };
 
