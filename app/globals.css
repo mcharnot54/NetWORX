@@ -33,9 +33,11 @@ a {
 }
 
 .banner-title {
+  font-family: 'Raleway', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   font-size: 2rem;
-  font-weight: bold;
+  font-weight: 700;
   margin-bottom: 0.5rem;
+  letter-spacing: -0.025em;
 }
 
 .banner-subtitle {
