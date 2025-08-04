@@ -786,34 +786,58 @@ export default function DataProcessor() {
                       Your data has been successfully processed and is now available for use in the optimization modules.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <a 
-                        href="/capacity-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center justify-center transition-colors"
-                      >
-                        <BarChart3 size={16} />
-                        Capacity Optimizer
-                      </a>
-                      <a 
-                        href="/warehouse-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-center justify-center transition-colors"
-                      >
-                        <Building size={16} />
-                        Warehouse Optimizer
-                      </a>
-                      <a 
-                        href="/transport-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center justify-center transition-colors"
-                      >
-                        <TrendingUp size={16} />
-                        Transport Optimizer
-                      </a>
-                      <a 
-                        href="/inventory-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-center justify-center transition-colors"
-                      >
-                        <Target size={16} />
-                        Inventory Optimizer
-                      </a>
+                      <div className="group relative">
+                        <a
+                          href="/capacity-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center justify-center transition-colors"
+                          title="Analyze network capacity and demand distribution"
+                        >
+                          <BarChart3 size={16} />
+                          Capacity Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Optimize capacity allocation and demand distribution across your network
+                        </div>
+                      </div>
+                      <div className="group relative">
+                        <a
+                          href="/warehouse-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-center justify-center transition-colors"
+                          title="Optimize warehouse locations, sizes, and configurations"
+                        >
+                          <Building size={16} />
+                          Warehouse Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Find optimal warehouse locations, sizes, and operational configurations
+                        </div>
+                      </div>
+                      <div className="group relative">
+                        <a
+                          href="/transport-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center justify-center transition-colors"
+                          title="Optimize transportation routes and logistics"
+                        >
+                          <TrendingUp size={16} />
+                          Transport Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Optimize transportation routes, carrier selection, and logistics costs
+                        </div>
+                      </div>
+                      <div className="group relative">
+                        <a
+                          href="/inventory-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-center justify-center transition-colors"
+                          title="Optimize inventory levels and stocking strategies"
+                        >
+                          <Target size={16} />
+                          Inventory Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Determine optimal inventory levels and stocking strategies
+                        </div>
+                      </div>
                     </div>
                     <div className="flex gap-4 justify-center mt-4">
                       <button
