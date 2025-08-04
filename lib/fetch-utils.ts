@@ -100,23 +100,29 @@ const fetchWithTimeout = async (
       ...options,
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
+        // Check if this was a timeout abort or an external abort
+        const isTimeoutAbort = controller.signal.aborted;
+        const errorMessage = isTimeoutAbort
+          ? `Request timeout after ${timeout}ms for ${url}`
+          : `Request was cancelled for ${url}`;
+
         throw new FetchError(
-          `Request timeout after ${timeout}ms`,
+          errorMessage,
           undefined,
           undefined,
           false,
-          true
+          isTimeoutAbort
         );
       }
-      
+
       // Network error
       throw new FetchError(
         `Network error: ${error.message}`,
@@ -126,7 +132,7 @@ const fetchWithTimeout = async (
         false
       );
     }
-    
+
     throw error;
   }
 };
