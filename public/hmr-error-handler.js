@@ -186,5 +186,23 @@
     }
   });
 
-  console.log('HMR error handler and AbortError suppression initialized for cloud environment');
+  // Additional protection: Override window.fetch to add AbortError handling
+  const originalWindowFetch = window.fetch;
+  window.fetch = function(...args) {
+    return originalWindowFetch.apply(this, args).catch(error => {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason')) {
+        console.debug('Global fetch AbortError suppression:', errorMessage);
+        throw new Error('Request was cancelled');
+      }
+      throw error;
+    });
+  };
+
+  console.log('HMR error handler and comprehensive AbortError suppression initialized for cloud environment');
 })();
