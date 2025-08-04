@@ -18,8 +18,17 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  ComposedChart,
 } from 'recharts';
+
+// Import ComposedChart separately to handle potential loading issues
+let ComposedChart: any;
+try {
+  const recharts = require('recharts');
+  ComposedChart = recharts.ComposedChart;
+} catch (error) {
+  console.warn('ComposedChart not available, using fallback');
+  ComposedChart = LineChart; // Fallback to LineChart
+}
 import {
   Download,
   BarChart3,
