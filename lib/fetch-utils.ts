@@ -365,17 +365,19 @@ export const robustPost = async <T = any>(
 
 // Check if the current environment has connectivity issues
 export const checkConnectivity = async (): Promise<boolean> => {
-  try {
-    // Try to fetch a simple endpoint
-    await robustFetch('/api/health', {
-      timeout: 5000,
-      retries: 1,
-    });
-    return true;
-  } catch (error) {
-    console.warn('Connectivity check failed:', error);
-    return false;
-  }
+  return safeWrapper(async () => {
+    try {
+      // Try to fetch a simple endpoint
+      await robustFetch('/api/health', {
+        timeout: 5000,
+        retries: 1,
+      });
+      return true;
+    } catch (error) {
+      console.warn('Connectivity check failed:', error);
+      return false;
+    }
+  }, 'checkConnectivity');
 };
 
 // Create a simple health check endpoint
