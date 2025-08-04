@@ -76,7 +76,7 @@ const isRetryableError = (error: Error): boolean => {
   // If it's a FetchError, check the status
   if (error instanceof FetchError) {
     // Retry on network errors, timeouts, or 5xx errors
-    return error.isNetworkError || error.isTimeoutError || (error.status && error.status >= 500);
+    return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
   }
   
   return false;
