@@ -1431,6 +1431,114 @@ export default function DataProcessor() {
                     </label>
                   </div>
                 </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Validation
+                  </h4>
+                  <div
+                    style={{
+                      fontSize: "0.875rem",
+                      marginBottom: "1rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    Required: sku_id, current_stock, annual_demand, unit_cost
+                    <br />
+                    Numeric: current_stock, annual_demand, unit_cost, lead_time_days
+                    <br />
+                    Positive: all numeric fields
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Stock Level Validation
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Annual Demand Check
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Cost Validation
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Lead Time Range Check
+                    </label>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Sales Data Validation
+                  </h4>
+                  <div
+                    style={{
+                      fontSize: "0.875rem",
+                      marginBottom: "1rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    Required: sku_id, sales_units, sales_date
+                    <br />
+                    Numeric: sales_units, revenue
+                    <br />
+                    Positive: sales_units, revenue
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Sales Volume Validation
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Date Format Check
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Revenue Consistency Check
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           )}
