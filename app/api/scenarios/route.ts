@@ -52,9 +52,12 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
-    
-    const scenarios = await ScenarioService.getScenarios(type || undefined);
-    
+
+    let scenarios = mockScenarios;
+    if (type) {
+      scenarios = mockScenarios.filter(s => s.scenario_type === type);
+    }
+
     return NextResponse.json({
       success: true,
       data: scenarios
