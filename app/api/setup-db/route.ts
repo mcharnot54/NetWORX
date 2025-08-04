@@ -34,6 +34,22 @@ export async function POST(request: NextRequest) {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
+
+    // Check if project_id column exists and add it if missing
+    const columnCheck = await sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'scenarios' AND column_name = 'project_id'
+    `;
+
+    if (columnCheck.length === 0) {
+      // Add project_id column if it doesn't exist
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE
+      `;
+      console.log('Added missing project_id column to scenarios table');
+    }
     
     // Check if tables exist and have data
     const projectCount = await sql`SELECT COUNT(*) as count FROM projects`;
