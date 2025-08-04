@@ -900,6 +900,9 @@ export default function DataProcessor() {
     if (name.includes("forecast") || name.includes("demand")) return "forecast";
     if (name.includes("sku") || name.includes("product")) return "sku";
     if (name.includes("network") || name.includes("location")) return "network";
+    if (name.includes("inventory") || name.includes("stock") || name.includes("on_hand")) return "inventory";
+    if (name.includes("sales") || name.includes("sold") || name.includes("order")) return "sales_data";
+    if (name.includes("shipping") || name.includes("shipment") || name.includes("delivery")) return "shipping_data";
     if (name.includes("cost") || name.includes("rate")) return "cost";
     if (name.includes("capacity") || name.includes("warehouse"))
       return "capacity";
