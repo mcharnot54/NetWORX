@@ -617,12 +617,12 @@ export default function WarehouseOptimizer() {
             <div className="tab-content">
               <h2 className="section-title">Cost Analysis</h2>
               
-              {selectedScenario ? (
+              {selectedTransportScenario ? (
                 <>
                   <div className="selected-scenario-info">
                     <h3 className="subsection-title">Selected Scenario</h3>
                     <div className="scenario-info-card">
-                      <h4>{selectedScenario.scenario_name}</h4>
+                      <h4>{selectedTransportScenario.scenario_name}</h4>
                       <p>This analysis will calculate warehouse operating costs for {projectYears} years based on the volume allocations from this transport scenario.</p>
                     </div>
                   </div>
