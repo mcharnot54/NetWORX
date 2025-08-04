@@ -335,31 +335,37 @@ export default function WarehouseOptimizer() {
           </p>
 
           <div className="tab-navigation">
-            <button 
+            <button
+              className={`tab-button ${activeTab === 'projects' ? 'active' : ''}`}
+              onClick={() => setActiveTab('projects')}
+            >
+              Projects & Scenarios
+            </button>
+            <button
               className={`tab-button ${activeTab === 'scenarios' ? 'active' : ''}`}
               onClick={() => setActiveTab('scenarios')}
             >
               Transport Scenarios
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'configuration' ? 'active' : ''}`}
               onClick={() => setActiveTab('configuration')}
             >
               Configuration
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'costs' ? 'active' : ''}`}
               onClick={() => setActiveTab('costs')}
             >
               Market Data
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'analysis' ? 'active' : ''}`}
               onClick={() => setActiveTab('analysis')}
             >
               Cost Analysis
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'results' ? 'active' : ''}`}
               onClick={() => setActiveTab('results')}
             >
