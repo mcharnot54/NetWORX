@@ -1890,7 +1890,7 @@ export default function InventoryOptimizer() {
                       <Tooltip
                         formatter={(value, name) => [
                           name === "fill_rate"
-                            ? `${value.toFixed(1)}%`
+                            ? `${Number(value).toFixed(1)}%`
                             : `$${value.toLocaleString()}`,
                           name === "fill_rate" ? "Fill Rate" : "Investment",
                         ]}
