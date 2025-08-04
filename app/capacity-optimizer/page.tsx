@@ -502,24 +502,41 @@ export default function CapacityOptimizer() {
             <div className="tab-content">
               <h2 className="section-title">Capacity Analysis</h2>
               <p className="section-description">
-                Run capacity analysis to determine optimal facility requirements based on 
+                Run capacity analysis to determine optimal facility requirements based on
                 growth forecasts and constraints.
               </p>
 
-              <div className="analysis-actions">
-                <button 
-                  className="action-button primary large"
-                  onClick={runCapacityAnalysis}
-                >
-                  Run Capacity Analysis
-                </button>
-              </div>
+              {selectedProject && selectedScenario ? (
+                <>
+                  <div className="selected-context">
+                    <div className="context-card">
+                      <h3>Selected Context</h3>
+                      <p><strong>Project:</strong> {selectedProject.name}</p>
+                      <p><strong>Scenario:</strong> {selectedScenario.name}</p>
+                      <p><strong>Duration:</strong> {selectedProject.project_duration_years} years</p>
+                    </div>
+                  </div>
 
-              <div className="analysis-results">
-                <p className="placeholder-text">
-                  Analysis results will appear here after running the capacity analysis.
-                </p>
-              </div>
+                  <div className="analysis-actions">
+                    <button
+                      className="action-button primary large"
+                      onClick={runCapacityAnalysis}
+                    >
+                      Run Capacity Analysis
+                    </button>
+                  </div>
+
+                  <div className="analysis-results">
+                    <p className="placeholder-text">
+                      Analysis results will appear here after running the capacity analysis.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="no-selection">
+                  <p>Please select a project and scenario from the "Projects & Scenarios" tab to run capacity analysis.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
