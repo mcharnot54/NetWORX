@@ -176,6 +176,11 @@ export default function ProjectScenarioManager({
 
   const createProject = async () => {
     try {
+      if (!newProject.name?.trim()) {
+        alert('Project name is required');
+        return;
+      }
+
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: {
@@ -184,10 +189,14 @@ export default function ProjectScenarioManager({
         body: JSON.stringify(newProject),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Failed to create project');
       }
 
       const newProjectData = result.data;
@@ -204,7 +213,8 @@ export default function ProjectScenarioManager({
       onSelectProject(newProjectData);
     } catch (error) {
       console.error('Error creating project:', error);
-      alert('Failed to create project. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to create project: ${errorMessage}`);
     }
   };
 
