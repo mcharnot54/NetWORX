@@ -232,7 +232,7 @@ export class DataValidator {
         };
       } else {
         // For non-numeric fields, keep unique values
-        const uniqueValues = [...new Set(values)];
+        const uniqueValues = Array.from(new Set(values));
         aggregated[key] = {
           uniqueValues,
           count: values.length,
@@ -379,7 +379,7 @@ export const DataProcessingUtils = {
   // Format data quality metrics for display
   formatDataQuality: (quality: DataQualityMetrics): string => {
     return `Data Quality Assessment:
-• Completeness: ${quality.completeness.toFixed(1)}%
+�� Completeness: ${quality.completeness.toFixed(1)}%
 • Accuracy: ${quality.accuracy.toFixed(1)}%
 • Valid Records: ${quality.validRecords}/${quality.totalRecords}
 ${quality.missingFields.length > 0 ? `• Missing Fields: ${quality.missingFields.join(', ')}` : ''}
