@@ -275,15 +275,25 @@ export const robustFetch = async (
     return await _robustFetch(url, options);
   } catch (error) {
     // Final safety net for any AbortErrors that slip through
-    if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-      console.debug('Final AbortError catch:', error.message);
-      throw new FetchError(
-        `Request aborted for ${url}`,
-        undefined,
-        undefined,
-        false,
-        false
-      );
+    if (error instanceof Error) {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      // Enhanced AbortError detection
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('The operation was aborted')) {
+        console.debug('Final AbortError catch:', errorMessage);
+        throw new FetchError(
+          `Request aborted for ${url}`,
+          undefined,
+          undefined,
+          false,
+          false
+        );
+      }
     }
     throw error;
   }
