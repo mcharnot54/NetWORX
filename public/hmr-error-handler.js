@@ -1,13 +1,23 @@
 // HMR Error Handler for Cloud Environments
 (function() {
-  if (typeof window === 'undefined' || process.env.NODE_ENV !== 'development') {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  // Check if we're in development mode and likely in a cloud environment
+  const isDevelopment = window.location.hostname.includes('fly.dev') ||
+                       window.location.hostname.includes('vercel.app') ||
+                       window.location.hostname.includes('netlify.app') ||
+                       window.location.search.includes('reload=');
+
+  if (!isDevelopment) {
     return;
   }
 
   // Override the original fetch for HMR requests
   const originalFetch = window.fetch;
   let hmrErrorCount = 0;
-  const MAX_HMR_ERRORS = 3;
+  const MAX_HMR_ERRORS = 2; // Reduced threshold
 
   window.fetch = function(resource, options) {
     // Check if this is an HMR-related request
