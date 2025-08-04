@@ -373,8 +373,9 @@ export default function ProjectScenarioManager({
   }
 
   return (
-    <div className="project-scenario-manager">
-      <div className="manager-header">
+    <ErrorBoundary fallback={FetchErrorFallback}>
+      <div className="project-scenario-manager">
+        <div className="manager-header">
         <div className="header-content">
           <h3>Project & Scenario Management</h3>
           <p>Manage optimization projects and their scenarios</p>
@@ -1215,6 +1216,7 @@ export default function ProjectScenarioManager({
           }
         }
       `}</style>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
