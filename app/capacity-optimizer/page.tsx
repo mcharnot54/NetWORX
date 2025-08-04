@@ -779,6 +779,38 @@ export default function CapacityOptimizer() {
           font-style: italic;
         }
 
+        .selected-context {
+          margin-bottom: 2rem;
+        }
+
+        .context-card {
+          background: #f0f9ff;
+          border: 1px solid #3b82f6;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+
+        .context-card h3 {
+          margin: 0 0 1rem 0;
+          color: #1f2937;
+          font-size: 1.125rem;
+          font-weight: 600;
+        }
+
+        .context-card p {
+          margin: 0.5rem 0;
+          color: #374151;
+        }
+
+        .no-selection {
+          text-align: center;
+          padding: 3rem;
+          color: #6b7280;
+          background: #f9fafb;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+        }
+
         @media (max-width: 768px) {
           .table-header,
           .table-row {
