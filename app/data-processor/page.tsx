@@ -424,7 +424,7 @@ export default function DataProcessor() {
                     {isActive && (
                       <div className={`absolute top-3 right-3 w-4 h-4 bg-${tab.color}-500 rounded-full`}></div>
                     )}
-                    <div className={`absolute top-3 left-3 w-8 h-8 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-sm font-semibold`}>
+                    <div className={`absolute top-2 left-2 w-7 h-7 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-xs font-semibold`}>
                       {tab.step}
                     </div>
                   </button>
