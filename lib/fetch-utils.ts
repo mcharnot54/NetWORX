@@ -266,28 +266,24 @@ const _robustFetch = async (
   throw lastError!;
 };
 
-// Main robust fetch function with final AbortError protection
-export const robustFetch = async (
-  url: string,
-  options: FetchOptions = {}
-): Promise<Response> => {
+// Internal safe wrapper to prevent AbortError propagation
+const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T> => {
   try {
-    return await _robustFetch(url, options);
+    return await fn();
   } catch (error) {
-    // Final safety net for any AbortErrors that slip through
     if (error instanceof Error) {
       const errorName = String(error.name || '');
       const errorMessage = String(error.message || '');
 
-      // Enhanced AbortError detection
+      // Comprehensive AbortError detection
       if (errorName === 'AbortError' ||
           errorMessage.includes('aborted') ||
           errorMessage.includes('signal is aborted') ||
           errorMessage.includes('aborted without reason') ||
           errorMessage.includes('The operation was aborted')) {
-        console.debug('Final AbortError catch:', errorMessage);
+        console.debug(`AbortError suppressed in ${context}:`, errorMessage);
         throw new FetchError(
-          `Request aborted for ${url}`,
+          `Request aborted in ${context}`,
           undefined,
           undefined,
           false,
@@ -297,6 +293,41 @@ export const robustFetch = async (
     }
     throw error;
   }
+};
+
+// Main robust fetch function with final AbortError protection
+export const robustFetch = async (
+  url: string,
+  options: FetchOptions = {}
+): Promise<Response> => {
+  return safeWrapper(async () => {
+    try {
+      return await _robustFetch(url, options);
+    } catch (error) {
+      // Final safety net for any AbortErrors that slip through
+      if (error instanceof Error) {
+        const errorName = String(error.name || '');
+        const errorMessage = String(error.message || '');
+
+        // Enhanced AbortError detection
+        if (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted') ||
+            errorMessage.includes('aborted without reason') ||
+            errorMessage.includes('The operation was aborted')) {
+          console.debug('Final AbortError catch:', errorMessage);
+          throw new FetchError(
+            `Request aborted for ${url}`,
+            undefined,
+            undefined,
+            false,
+            false
+          );
+        }
+      }
+      throw error;
+    }
+  }, 'robustFetch');
 };
 
 // Convenience function for JSON requests
