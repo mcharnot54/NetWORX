@@ -208,34 +208,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Extract straight labor rate
       const straightLaborRate = parseRateFromText(content, [
-        /straight.*?labor.*?rate.*?\$?(\d+\.?\d*)/,
-        /base.*?wage.*?\$?(\d+\.?\d*)/,
-        /hourly.*?wage.*?\$?(\d+\.?\d*)/,
-        /warehouse.*?worker.*?\$?(\d+\.?\d*)/,
+        "straight.*?labor.*?rate.*?\\$?(\\d+\\.?\\d*)",
+        "base.*?wage.*?\\$?(\\d+\\.?\\d*)",
+        "hourly.*?wage.*?\\$?(\\d+\\.?\\d*)",
+        "warehouse.*?worker.*?\\$?(\\d+\\.?\\d*)",
       ]);
 
       // Extract fully burdened labor rate
       const fullyBurdendedLaborRate = parseRateFromText(content, [
-        /fully.*?burdened.*?\$?(\d+\.?\d*)/,
-        /total.*?labor.*?cost.*?\$?(\d+\.?\d*)/,
-        /burdened.*?rate.*?\$?(\d+\.?\d*)/,
-        /fully.*?loaded.*?\$?(\d+\.?\d*)/,
+        "fully.*?burdened.*?\\$?(\\d+\\.?\\d*)",
+        "total.*?labor.*?cost.*?\\$?(\\d+\\.?\\d*)",
+        "burdened.*?rate.*?\\$?(\\d+\\.?\\d*)",
+        "fully.*?loaded.*?\\$?(\\d+\\.?\\d*)",
       ]);
 
       // Extract lease rate
       const leaseRate = parseRateFromText(content, [
-        /lease.*?rate.*?\$?(\d+\.?\d*)/,
-        /industrial.*?lease.*?\$?(\d+\.?\d*)/,
-        /warehouse.*?rent.*?\$?(\d+\.?\d*)/,
-        /per.*?square.*?foot.*?\$?(\d+\.?\d*)/,
+        "lease.*?rate.*?\\$?(\\d+\\.?\\d*)",
+        "industrial.*?lease.*?\\$?(\\d+\\.?\\d*)",
+        "warehouse.*?rent.*?\\$?(\\d+\\.?\\d*)",
+        "per.*?square.*?foot.*?\\$?(\\d+\\.?\\d*)",
       ]);
 
       // Extract 3PL costs
       const threePLCost = parseRateFromText(content, [
-        /3pl.*?cost.*?\$?(\d+\.?\d*)/,
-        /fulfillment.*?cost.*?\$?(\d+\.?\d*)/,
-        /per.*?unit.*?\$?(\d+\.?\d*)/,
-        /per.*?shipment.*?\$?(\d+\.?\d*)/,
+        "3pl.*?cost.*?\\$?(\\d+\\.?\\d*)",
+        "fulfillment.*?cost.*?\\$?(\\d+\\.?\\d*)",
+        "per.*?unit.*?\\$?(\\d+\\.?\\d*)",
+        "per.*?shipment.*?\\$?(\\d+\\.?\\d*)",
       ]);
 
       return {
