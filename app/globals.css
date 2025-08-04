@@ -129,6 +129,12 @@ a {
   color: #111827;
 }
 
+.networx-title {
+  font-family: 'Raleway', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
 .form-group {
   margin-bottom: 1rem;
 }
