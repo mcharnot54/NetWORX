@@ -150,6 +150,18 @@ export default function CapacityOptimizer() {
             </button>
           </div>
 
+          {activeTab === 'projects' && (
+            <div className="tab-content">
+              <ProjectScenarioManager
+                onSelectProject={setSelectedProject}
+                onSelectScenario={setSelectedScenario}
+                selectedProject={selectedProject}
+                selectedScenario={selectedScenario}
+                optimizationType="capacity"
+              />
+            </div>
+          )}
+
           {activeTab === 'config' && (
             <div className="tab-content">
               <h2 className="section-title">Project Configuration</h2>
