@@ -146,6 +146,7 @@ export default function WarehouseOptimizer() {
   }, []);
 
   const fetchMarketData = async (forceRefresh = false) => {
+    setIsLoadingMarketData(true);
     try {
       const uniqueLocations = Array.from(new Set(
         transportScenarios.flatMap(scenario =>
@@ -191,6 +192,8 @@ export default function WarehouseOptimizer() {
         { city: 'Phoenix', state: 'AZ', warehouse_lease_rate_per_sqft: 6.95, hourly_wage_rate: 17.75, fully_burdened_rate: 23.90, confidence_score: 25, last_updated: new Date().toISOString().split('T')[0] }
       ];
       setMarketData(fallbackData);
+    } finally {
+      setIsLoadingMarketData(false);
     }
   };
 
