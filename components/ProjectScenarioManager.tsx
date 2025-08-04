@@ -73,120 +73,101 @@ export default function ProjectScenarioManager({
   });
 
   useEffect(() => {
-    fetchProjects();
+    // Add a small delay to ensure the app is fully loaded
+    const timer = setTimeout(() => {
+      fetchProjects();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      // Mock data for now - in production, this would be API calls
-      const mockProjects: Project[] = [
-        {
-          id: 1,
-          name: 'NetWORX Optimization 2024',
-          description: 'Comprehensive network optimization project for improved efficiency and cost reduction',
-          created_at: '2024-01-15T00:00:00Z',
-          updated_at: '2024-01-20T00:00:00Z',
-          status: 'active',
-          owner_id: 'user_001',
-          project_duration_years: 5,
-          base_year: 2024
+
+      // Fetch projects from API with timeout and error handling
+      const projectsResponse = await fetch('/api/projects', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: 2,
-          name: 'East Coast Expansion Strategy',
-          description: 'Strategic expansion analysis for east coast operations',
-          created_at: '2024-02-01T00:00:00Z',
-          updated_at: '2024-02-10T00:00:00Z',
-          status: 'active',
-          owner_id: 'user_001',
-          project_duration_years: 3,
-          base_year: 2024
+      });
+
+      if (!projectsResponse.ok) {
+        throw new Error(`HTTP error! status: ${projectsResponse.status}`);
+      }
+
+      const projectsResult = await projectsResponse.json();
+
+      if (!projectsResult.success) {
+        throw new Error(projectsResult.error || 'Failed to fetch projects');
+      }
+
+      const projects = projectsResult.data || [];
+
+      // Fetch scenarios for each project with error handling
+      const scenariosMap: { [key: number]: Scenario[] } = {};
+
+      for (const project of projects) {
+        try {
+          const scenariosResponse = await fetch(`/api/scenarios?project_id=${project.id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (scenariosResponse.ok) {
+            const scenariosResult = await scenariosResponse.json();
+
+            if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
+              // Transform database scenarios to match component interface
+              scenariosMap[project.id] = scenariosResult.data.map((scenario: any) => ({
+                id: scenario.id,
+                project_id: scenario.project_id || project.id,
+                name: scenario.name,
+                scenario_number: scenario.metadata?.scenario_number || 1,
+                number_of_nodes: scenario.metadata?.number_of_nodes || 3,
+                cities: scenario.metadata?.cities || [],
+                description: scenario.description,
+                created_at: scenario.created_at,
+                updated_at: scenario.updated_at,
+                status: scenario.metadata?.status || scenario.status || 'draft',
+                capacity_analysis_completed: scenario.metadata?.capacity_analysis_completed || false,
+                transport_optimization_completed: scenario.metadata?.transport_optimization_completed || false,
+                warehouse_optimization_completed: scenario.metadata?.warehouse_optimization_completed || false
+              }));
+            } else {
+              scenariosMap[project.id] = [];
+            }
+          } else {
+            console.warn(`Failed to fetch scenarios for project ${project.id}`);
+            scenariosMap[project.id] = [];
+          }
+        } catch (scenarioError) {
+          console.warn(`Error fetching scenarios for project ${project.id}:`, scenarioError);
+          scenariosMap[project.id] = [];
         }
-      ];
+      }
 
-      const mockScenarios: { [key: number]: Scenario[] } = {
-        1: [
-          {
-            id: 1,
-            project_id: 1,
-            name: 'NetWORX Optimization 2024 - Scenario 1 - 3 Nodes - Chicago, Atlanta, Phoenix',
-            scenario_number: 1,
-            number_of_nodes: 3,
-            cities: ['Chicago, IL', 'Atlanta, GA', 'Phoenix, AZ'],
-            description: 'Baseline scenario with current hub configuration',
-            created_at: '2024-01-16T00:00:00Z',
-            updated_at: '2024-01-20T00:00:00Z',
-            status: 'completed',
-            capacity_analysis_completed: true,
-            transport_optimization_completed: true,
-            warehouse_optimization_completed: true
-          },
-          {
-            id: 2,
-            project_id: 1,
-            name: 'NetWORX Optimization 2024 - Scenario 2 - 4 Nodes - Chicago, Atlanta, Phoenix, Dallas',
-            scenario_number: 2,
-            number_of_nodes: 4,
-            cities: ['Chicago, IL', 'Atlanta, GA', 'Phoenix, AZ', 'Dallas, TX'],
-            description: 'Expanded network with additional Dallas hub',
-            created_at: '2024-01-18T00:00:00Z',
-            updated_at: '2024-01-22T00:00:00Z',
-            status: 'in_progress',
-            capacity_analysis_completed: true,
-            transport_optimization_completed: true,
-            warehouse_optimization_completed: false
-          },
-          {
-            id: 3,
-            project_id: 1,
-            name: 'NetWORX Optimization 2024 - Scenario 3 - 2 Nodes - Chicago, Atlanta',
-            scenario_number: 3,
-            number_of_nodes: 2,
-            cities: ['Chicago, IL', 'Atlanta, GA'],
-            description: 'Consolidated network focusing on core markets',
-            created_at: '2024-01-20T00:00:00Z',
-            updated_at: '2024-01-25T00:00:00Z',
-            status: 'draft',
-            capacity_analysis_completed: false,
-            transport_optimization_completed: false,
-            warehouse_optimization_completed: false
-          }
-        ],
-        2: [
-          {
-            id: 4,
-            project_id: 2,
-            name: 'East Coast Expansion Strategy - Scenario 1 - 3 Nodes - New York, Boston, Miami',
-            scenario_number: 1,
-            number_of_nodes: 3,
-            cities: ['New York, NY', 'Boston, MA', 'Miami, FL'],
-            description: 'Primary east coast expansion scenario',
-            created_at: '2024-02-02T00:00:00Z',
-            updated_at: '2024-02-08T00:00:00Z',
-            status: 'completed',
-            capacity_analysis_completed: true,
-            transport_optimization_completed: true,
-            warehouse_optimization_completed: true
-          }
-        ]
-      };
+      setProjects(projects);
+      setScenarios(scenariosMap);
 
-      setProjects(mockProjects);
-      setScenarios(mockScenarios);
-      
       // Auto-expand first project and select first scenario if none selected
-      if (mockProjects.length > 0) {
-        setExpandedProjects(new Set([mockProjects[0].id]));
+      if (projects.length > 0) {
+        setExpandedProjects(new Set([projects[0].id]));
         if (!selectedProject) {
-          onSelectProject(mockProjects[0]);
+          onSelectProject(projects[0]);
         }
-        if (!selectedScenario && mockScenarios[mockProjects[0].id]?.length > 0) {
-          onSelectScenario(mockScenarios[mockProjects[0].id][0]);
+        if (!selectedScenario && scenariosMap[projects[0].id]?.length > 0) {
+          onSelectScenario(scenariosMap[projects[0].id][0]);
         }
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
+      // Fallback to empty state instead of crashing
+      setProjects([]);
+      setScenarios({});
     } finally {
       setLoading(false);
     }
@@ -200,15 +181,30 @@ export default function ProjectScenarioManager({
 
   const createProject = async () => {
     try {
-      // Mock creation - in production, this would be an API call
-      const newProjectData: Project = {
-        id: Math.max(...projects.map(p => p.id), 0) + 1,
-        ...newProject,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        status: 'active',
-        owner_id: 'current_user'
-      };
+      if (!newProject.name?.trim()) {
+        alert('Project name is required');
+        return;
+      }
+
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newProject),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create project');
+      }
+
+      const newProjectData = result.data;
 
       setProjects([newProjectData, ...projects]);
       setScenarios({ ...scenarios, [newProjectData.id]: [] });
@@ -222,29 +218,82 @@ export default function ProjectScenarioManager({
       onSelectProject(newProjectData);
     } catch (error) {
       console.error('Error creating project:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to create project: ${errorMessage}`);
     }
   };
 
   const createScenario = async () => {
-    if (!targetProjectId) return;
+    if (!targetProjectId) {
+      alert('No project selected');
+      return;
+    }
 
     try {
       const project = projects.find(p => p.id === targetProjectId);
-      if (!project) return;
+      if (!project) {
+        alert('Selected project not found');
+        return;
+      }
+
+      const validCities = newScenario.cities.filter(city => city.trim() !== '');
+      if (validCities.length === 0) {
+        alert('At least one city is required');
+        return;
+      }
 
       const existingScenarios = scenarios[targetProjectId] || [];
       const nextScenarioNumber = Math.max(...existingScenarios.map(s => s.scenario_number), 0) + 1;
 
-      const newScenarioData: Scenario = {
-        id: Math.max(...Object.values(scenarios).flat().map(s => s.id), 0) + 1,
+      const scenarioData = {
         project_id: targetProjectId,
-        name: generateScenarioName(project.name, nextScenarioNumber, newScenario.number_of_nodes, newScenario.cities),
+        name: generateScenarioName(project.name, nextScenarioNumber, newScenario.number_of_nodes, validCities),
+        description: newScenario.description,
         scenario_number: nextScenarioNumber,
         number_of_nodes: newScenario.number_of_nodes,
-        cities: newScenario.cities.filter(city => city.trim() !== ''),
-        description: newScenario.description,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        cities: validCities,
+        scenario_type: 'combined' as const,
+        created_by: 'current_user',
+        metadata: {
+          project_id: targetProjectId,
+          scenario_number: nextScenarioNumber,
+          number_of_nodes: newScenario.number_of_nodes,
+          cities: validCities,
+          status: 'draft',
+          capacity_analysis_completed: false,
+          transport_optimization_completed: false,
+          warehouse_optimization_completed: false
+        }
+      };
+
+      const response = await fetch('/api/scenarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scenarioData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create scenario');
+      }
+
+      const newScenarioData: Scenario = {
+        id: result.data.id,
+        project_id: targetProjectId,
+        name: result.data.name,
+        scenario_number: nextScenarioNumber,
+        number_of_nodes: newScenario.number_of_nodes,
+        cities: validCities,
+        description: result.data.description,
+        created_at: result.data.created_at,
+        updated_at: result.data.updated_at,
         status: 'draft',
         capacity_analysis_completed: false,
         transport_optimization_completed: false,
@@ -267,6 +316,8 @@ export default function ProjectScenarioManager({
       onSelectScenario(newScenarioData);
     } catch (error) {
       console.error('Error creating scenario:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to create scenario: ${errorMessage}`);
     }
   };
 

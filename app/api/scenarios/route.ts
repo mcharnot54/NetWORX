@@ -1,105 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Mock data for development - replace with actual database when ready
-const mockScenarios = [
-  {
-    id: 1,
-    name: "Chicago Distribution Optimization",
-    description: "Optimize warehouse space and transportation costs for Chicago hub",
-    scenario_type: "combined",
-    status: "draft",
-    created_at: new Date("2024-01-15").toISOString(),
-    updated_at: new Date("2024-01-15").toISOString(),
-    created_by: "demo_user",
-    metadata: {
-      created_via: "web_interface",
-      initial_configuration: {}
-    }
-  },
-  {
-    id: 2,
-    name: "West Coast Transport Routes",
-    description: "Transportation network optimization for west coast operations",
-    scenario_type: "transport",
-    status: "completed",
-    created_at: new Date("2024-01-10").toISOString(),
-    updated_at: new Date("2024-01-12").toISOString(),
-    created_by: "demo_user",
-    metadata: {
-      created_via: "web_interface",
-      initial_configuration: {}
-    }
-  },
-  {
-    id: 3,
-    name: "Northeast Warehouse Capacity",
-    description: "Warehouse space optimization for northeast facilities",
-    scenario_type: "warehouse",
-    status: "running",
-    created_at: new Date("2024-01-08").toISOString(),
-    updated_at: new Date("2024-01-14").toISOString(),
-    created_by: "demo_user",
-    metadata: {
-      created_via: "web_interface",
-      initial_configuration: {}
-    }
-  }
-];
-
-let nextId = 4;
+import { ScenarioService } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      console.warn('DATABASE_URL not configured, returning empty scenarios array');
+      return NextResponse.json({
+        success: true,
+        data: []
+      });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
+    const projectId = searchParams.get('project_id');
 
-    let scenarios = mockScenarios;
-    if (type) {
-      scenarios = mockScenarios.filter(s => s.scenario_type === type);
+    let scenarios;
+    if (projectId) {
+      // Get scenarios for a specific project
+      scenarios = await ScenarioService.getScenarios();
+      scenarios = scenarios.filter(s => s.project_id === parseInt(projectId));
+    } else {
+      scenarios = await ScenarioService.getScenarios(type || undefined);
     }
 
     return NextResponse.json({
       success: true,
-      data: scenarios
+      data: scenarios || []
     });
   } catch (error) {
     console.error('Error fetching scenarios:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch scenarios' },
-      { status: 500 }
-    );
+
+    // Return empty array instead of error to prevent UI crashes
+    return NextResponse.json({
+      success: true,
+      data: [],
+      warning: 'Database connection failed, returning empty data'
+    });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, scenario_type, created_by, metadata } = body;
+    const {
+      project_id,
+      name,
+      description,
+      scenario_number,
+      number_of_nodes,
+      cities,
+      scenario_type = 'combined',
+      created_by,
+      metadata
+    } = body;
 
-    if (!name || !scenario_type) {
+    if (!name || !project_id) {
       return NextResponse.json(
-        { success: false, error: 'Name and scenario_type are required' },
+        { success: false, error: 'Name and project_id are required' },
         { status: 400 }
       );
     }
 
-    const newScenario = {
-      id: nextId++,
+    const newScenario = await ScenarioService.createScenario({
       name,
       description: description || "",
       scenario_type,
-      status: "draft" as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: created_by || "demo_user",
-      metadata: metadata || {}
-    };
-
-    mockScenarios.unshift(newScenario);
+      created_by: created_by || "current_user",
+      metadata: {
+        project_id,
+        scenario_number,
+        number_of_nodes,
+        cities,
+        status: 'draft',
+        capacity_analysis_completed: false,
+        transport_optimization_completed: false,
+        warehouse_optimization_completed: false,
+        ...metadata
+      }
+    });
 
     return NextResponse.json({
       success: true,
-      data: newScenario
+      data: {
+        ...newScenario,
+        project_id,
+        scenario_number,
+        number_of_nodes,
+        cities,
+        status: 'draft',
+        capacity_analysis_completed: false,
+        transport_optimization_completed: false,
+        warehouse_optimization_completed: false
+      }
     });
   } catch (error) {
     console.error('Error creating scenario:', error);

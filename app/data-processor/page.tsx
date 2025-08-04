@@ -364,19 +364,20 @@ export default function DataProcessor() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                  className={`relative p-8 rounded-xl border-2 transition-all duration-200 text-left w-full h-40 ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                  title={`Click to switch to ${tab.label} section`}
                 >
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
-                      <tab.icon size={24} />
+                  <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                    <div className={`p-4 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
+                      <tab.icon size={32} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm">{tab.label}</h3>
-                      <p className="text-xs opacity-80 mt-1">{tab.description}</p>
+                      <h3 className="font-semibold text-lg">{tab.label}</h3>
+                      <p className="text-sm opacity-80 mt-1">{tab.description}</p>
                     </div>
                   </div>
                   {isActive && (
-                    <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
+                    <div className={`absolute top-3 right-3 w-4 h-4 bg-${tab.color}-500 rounded-full`}></div>
                   )}
                 </button>
               );
@@ -396,21 +397,38 @@ export default function DataProcessor() {
                 </div>
               </div>
               
-              <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <input
-                  type="file"
-                  multiple
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="mx-auto mb-4 text-gray-400" size={48} />
-                  <p className="text-lg font-medium text-gray-700 mb-2">Upload Operational Data Files</p>
-                  <p className="text-gray-500">Supports Excel (.xlsx, .xls) and CSV files</p>
-                  <p className="text-sm text-gray-400 mt-2">Files will be automatically analyzed and validated</p>
-                </label>
+              <div className="group relative">
+                <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Upload className="mx-auto mb-4 text-gray-400" size={48} />
+                    <p className="text-lg font-medium text-gray-700 mb-2">Upload Operational Data Files</p>
+                    <p className="text-gray-500">Supports Excel (.xlsx, .xls) and CSV files</p>
+                    <p className="text-sm text-gray-400 mt-2">Files will be automatically analyzed and validated</p>
+                  </label>
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs font-semibold cursor-help">
+                  💡
+                </div>
+                <div className="absolute top-8 right-0 w-80 bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                  <div className="text-sm space-y-2">
+                    <div className="font-semibold">File Upload Tips:</div>
+                    <div>• <strong>Multiple files:</strong> You can upload several files at once</div>
+                    <div>• <strong>Auto-detection:</strong> System automatically detects data types</div>
+                    <div>• <strong>Supported formats:</strong> Excel (.xlsx, .xls) and CSV files</div>
+                    <div>• <strong>Data types:</strong> Forecast, SKU, Network, Operational, Financial, Sales</div>
+                    <div className="text-xs text-blue-600 mt-2">
+                      💡 Check the "Data Templates" tab to see required column structures
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {files.length > 0 && (
@@ -432,13 +450,19 @@ export default function DataProcessor() {
                         <div className="flex items-center gap-3">
                           {getStatusIcon(file.validationStatus)}
                           {file.validationStatus === 'pending' && (
-                            <button
-                              onClick={() => validateFileData(index)}
-                              className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                            >
-                              <Zap size={14} />
-                              Validate
-                            </button>
+                            <div className="group relative">
+                              <button
+                                onClick={() => validateFileData(index)}
+                                className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                title="Click to validate this file's data structure and quality"
+                              >
+                                <Zap size={14} />
+                                Validate
+                              </button>
+                              <div className="absolute bottom-full mb-1 right-0 w-48 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                Click to validate data structure, check for missing values, and ensure column mappings are correct
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -447,14 +471,22 @@ export default function DataProcessor() {
                   
                   {files.some(f => f.validationStatus === 'validated') && (
                     <div className="mt-6 flex justify-center">
-                      <button
-                        onClick={processAllFiles}
-                        disabled={processing}
-                        className="flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {processing ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
-                        {processing ? 'Processing...' : 'Process All Data'}
-                      </button>
+                      <div className="group relative">
+                        <button
+                          onClick={processAllFiles}
+                          disabled={processing}
+                          className="flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          title="Merge and process all validated files into a unified dataset"
+                        >
+                          {processing ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
+                          {processing ? 'Processing...' : 'Process All Data'}
+                        </button>
+                        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-64 bg-gray-900 text-white p-3 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          <div className="font-semibold mb-1">Final Processing Step:</div>
+                          <div>Merges all validated files into a comprehensive dataset ready for optimization modules</div>
+                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -701,34 +733,58 @@ export default function DataProcessor() {
                       Your data has been successfully processed and is now available for use in the optimization modules.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <a 
-                        href="/capacity-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center justify-center transition-colors"
-                      >
-                        <BarChart3 size={16} />
-                        Capacity Optimizer
-                      </a>
-                      <a 
-                        href="/warehouse-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-center justify-center transition-colors"
-                      >
-                        <Building size={16} />
-                        Warehouse Optimizer
-                      </a>
-                      <a 
-                        href="/transport-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center justify-center transition-colors"
-                      >
-                        <TrendingUp size={16} />
-                        Transport Optimizer
-                      </a>
-                      <a 
-                        href="/inventory-optimizer" 
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-center justify-center transition-colors"
-                      >
-                        <Target size={16} />
-                        Inventory Optimizer
-                      </a>
+                      <div className="group relative">
+                        <a
+                          href="/capacity-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center justify-center transition-colors"
+                          title="Analyze network capacity and demand distribution"
+                        >
+                          <BarChart3 size={16} />
+                          Capacity Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Optimize capacity allocation and demand distribution across your network
+                        </div>
+                      </div>
+                      <div className="group relative">
+                        <a
+                          href="/warehouse-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-center justify-center transition-colors"
+                          title="Optimize warehouse locations, sizes, and configurations"
+                        >
+                          <Building size={16} />
+                          Warehouse Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Find optimal warehouse locations, sizes, and operational configurations
+                        </div>
+                      </div>
+                      <div className="group relative">
+                        <a
+                          href="/transport-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center justify-center transition-colors"
+                          title="Optimize transportation routes and logistics"
+                        >
+                          <TrendingUp size={16} />
+                          Transport Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Optimize transportation routes, carrier selection, and logistics costs
+                        </div>
+                      </div>
+                      <div className="group relative">
+                        <a
+                          href="/inventory-optimizer"
+                          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-center justify-center transition-colors"
+                          title="Optimize inventory levels and stocking strategies"
+                        >
+                          <Target size={16} />
+                          Inventory Optimizer
+                        </a>
+                        <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 w-40 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Determine optimal inventory levels and stocking strategies
+                        </div>
+                      </div>
                     </div>
                     <div className="flex gap-4 justify-center mt-4">
                       <button
@@ -767,9 +823,21 @@ export default function DataProcessor() {
 
           {/* No Project or Scenario Selected */}
           {(!selectedProject || !selectedScenario) && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="group relative text-center py-8 text-gray-500 cursor-help">
               <Database size={48} className="mx-auto mb-4 text-gray-300" />
               <p>Please select a project and scenario first to begin data processing.</p>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                <div className="text-sm space-y-2">
+                  <div className="font-semibold">Getting Started:</div>
+                  <div>1. <strong>New user?</strong> Click "New Project" above to create your first project</div>
+                  <div>2. <strong>Have projects?</strong> Click on a project name to expand it</div>
+                  <div>3. <strong>Select scenario:</strong> Choose an existing scenario or create a new one</div>
+                  <div>4. <strong>Upload files:</strong> Once both are selected, you can upload data files</div>
+                  <div className="text-xs text-blue-600 mt-2">
+                    💡 Both a project AND scenario must be selected before you can upload files
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
