@@ -312,27 +312,75 @@ export default function DataProcessor() {
             />
           </div>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-1 mb-6 border-b">
+          {/* Navigation Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[
-              { id: 'upload', label: 'File Upload', icon: Upload },
-              { id: 'validation', label: 'Data Validation', icon: Shield },
-              { id: 'templates', label: 'Data Templates', icon: Settings },
-              { id: 'results', label: 'Results', icon: BarChart3 }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${
-                  activeTab === tab.id 
-                    ? 'bg-blue-50 border-blue-500 text-blue-600' 
-                    : 'border-transparent text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <tab.icon size={16} />
-                {tab.label}
-              </button>
-            ))}
+              {
+                id: 'upload',
+                label: 'File Upload',
+                description: 'Upload and analyze data files',
+                icon: Upload,
+                color: 'blue'
+              },
+              {
+                id: 'validation',
+                label: 'Data Validation',
+                description: 'Review validation results',
+                icon: Shield,
+                color: 'green'
+              },
+              {
+                id: 'templates',
+                label: 'Data Templates',
+                description: 'View supported data formats',
+                icon: Settings,
+                color: 'purple'
+              },
+              {
+                id: 'results',
+                label: 'Results',
+                description: 'View processed data summary',
+                icon: BarChart3,
+                color: 'orange'
+              }
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              const colorClasses = {
+                blue: isActive
+                  ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-lg shadow-blue-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600',
+                green: isActive
+                  ? 'bg-green-50 border-green-200 text-green-700 shadow-lg shadow-green-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-green-50 hover:border-green-200 hover:text-green-600',
+                purple: isActive
+                  ? 'bg-purple-50 border-purple-200 text-purple-700 shadow-lg shadow-purple-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600',
+                orange: isActive
+                  ? 'bg-orange-50 border-orange-200 text-orange-700 shadow-lg shadow-orange-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600'
+              };
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                >
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
+                      <tab.icon size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">{tab.label}</h3>
+                      <p className="text-xs opacity-80 mt-1">{tab.description}</p>
+                    </div>
+                  </div>
+                  {isActive && (
+                    <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Upload Tab */}
