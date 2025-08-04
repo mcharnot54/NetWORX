@@ -21,6 +21,7 @@ export interface Project {
 
 export interface Scenario {
   id: number;
+  project_id: number;
   name: string;
   description?: string;
   scenario_type: 'warehouse' | 'transport' | 'combined';
