@@ -146,5 +146,63 @@
     return ws;
   };
 
-  console.log('HMR error handler initialized for cloud environment');
+  // Global error handler to suppress AbortErrors from cancelled requests
+  window.addEventListener('error', (event) => {
+    const error = event.error;
+    if (error) {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      // Detect AbortErrors with multiple patterns
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('The operation was aborted')) {
+        console.debug('Suppressed AbortError:', errorMessage || 'signal aborted');
+        event.preventDefault();
+        return false;
+      }
+    }
+  });
+
+  // Handle unhandled promise rejections for AbortErrors
+  window.addEventListener('unhandledrejection', (event) => {
+    const error = event.reason;
+    if (error) {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      // Detect AbortErrors with multiple patterns
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('The operation was aborted')) {
+        console.debug('Suppressed unhandled AbortError rejection:', errorMessage || 'signal aborted');
+        event.preventDefault();
+        return false;
+      }
+    }
+  });
+
+  // Additional protection: Override window.fetch to add AbortError handling
+  const originalWindowFetch = window.fetch;
+  window.fetch = function(...args) {
+    return originalWindowFetch.apply(this, args).catch(error => {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason')) {
+        console.debug('Global fetch AbortError suppression:', errorMessage);
+        throw new Error('Request was cancelled');
+      }
+      throw error;
+    });
+  };
+
+  console.log('HMR error handler and comprehensive AbortError suppression initialized for cloud environment');
 })();

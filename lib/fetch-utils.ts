@@ -63,23 +63,59 @@ const calculateRetryDelay = (
 
 // Check if error is retryable
 const isRetryableError = (error: Error): boolean => {
-  // Network errors
-  if (error.message.includes('fetch') || error.message.includes('network')) {
-    return true;
+  // Ultimate safety check
+  try {
+    // Safety check for error object
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
+    // Handle any AbortError immediately to prevent propagation
+    const errorName = String(error.name || '');
+    const errorMessage = String(error.message || '');
+
+    // Handle AbortErrors specifically with multiple detection methods
+    if (errorName === 'AbortError' ||
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('signal is aborted') ||
+        errorMessage.includes('aborted without reason')) {
+      // Only retry timeout aborts, not user-cancelled requests
+      const isTimeout = errorMessage.includes('timeout');
+      console.debug('AbortError detected in retry check:', { errorName, errorMessage, isTimeout });
+      return isTimeout;
+    }
+
+    // Network errors
+    if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
+      return true;
+    }
+
+    // Timeout errors are retryable, but not cancelled requests
+    if (errorMessage.includes('timeout')) {
+      return true;
+    }
+
+    // Don't retry requests that were cancelled (not timeout aborts)
+    if (errorMessage.includes('cancelled')) {
+      return false;
+    }
+
+    // If it's a FetchError, check the status
+    if (error instanceof FetchError) {
+      // Don't retry cancelled requests, but retry timeouts and network errors
+      if (errorMessage.includes('cancelled')) {
+        return false;
+      }
+      // Retry on network errors, timeouts, or 5xx errors
+      return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
+    }
+
+    return false;
+  } catch (e) {
+    // Ultimate fallback - if even this error checking fails, don't retry
+    console.debug('Critical error in retry logic evaluation:', e);
+    return false;
   }
-  
-  // Timeout errors
-  if (error.message.includes('timeout') || error.message.includes('aborted')) {
-    return true;
-  }
-  
-  // If it's a FetchError, check the status
-  if (error instanceof FetchError) {
-    // Retry on network errors, timeouts, or 5xx errors
-    return error.isNetworkError || error.isTimeoutError || (error.status && error.status >= 500);
-  }
-  
-  return false;
 };
 
 // Enhanced fetch with timeout and abort signal
@@ -100,39 +136,63 @@ const fetchWithTimeout = async (
       ...options,
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
+
+    // Wrap all error handling in try-catch to prevent errors in error handling
+    try {
+      // Handle all types of abort errors more defensively
+      if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+        // Check if this was a timeout abort or an external abort
+        const isTimeoutAbort = controller.signal.aborted && controller.signal.reason === undefined;
+        const errorMessage = isTimeoutAbort
+          ? `Request timeout after ${timeout}ms for ${url}`
+          : `Request was cancelled for ${url}`;
+
         throw new FetchError(
-          `Request timeout after ${timeout}ms`,
+          errorMessage,
           undefined,
           undefined,
           false,
-          true
+          isTimeoutAbort
         );
       }
-      
-      // Network error
+
+      if (error instanceof Error) {
+        // Network error
+        throw new FetchError(
+          `Network error: ${error.message}`,
+          undefined,
+          undefined,
+          true,
+          false
+        );
+      }
+
+      throw error;
+    } catch (handlingError) {
+      // If error handling itself fails, create a safe fallback error
+      if (handlingError instanceof FetchError) {
+        throw handlingError;
+      }
+
+      // Create a safe fallback error
       throw new FetchError(
-        `Network error: ${error.message}`,
+        `Request failed for ${url}`,
         undefined,
         undefined,
         true,
         false
       );
     }
-    
-    throw error;
   }
 };
 
-// Main robust fetch function
-export const robustFetch = async (
+// Internal robust fetch function
+const _robustFetch = async (
   url: string,
   options: FetchOptions = {}
 ): Promise<Response> => {
@@ -175,17 +235,27 @@ export const robustFetch = async (
       return response;
     } catch (error) {
       lastError = error as Error;
-      
+
+      // Handle AbortError specifically to prevent propagation
+      if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
+        // If it's a cancellation, don't retry and throw a more specific error
+        if (lastError.message?.includes('cancelled') || lastError.message?.includes('aborted without reason')) {
+          console.debug('Request cancelled, not retrying:', lastError.message);
+          throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+        }
+        // If it's a timeout, allow retry logic to proceed
+      }
+
       // If this is the last attempt, throw the error
       if (attempt > retryConfig.maxRetries) {
         throw lastError;
       }
-      
+
       // Check if the error is retryable
       if (!isRetryableError(lastError)) {
         throw lastError;
       }
-      
+
       // Calculate delay and retry
       const delay = calculateRetryDelay(attempt, retryConfig);
       console.warn(`Request failed (attempt ${attempt}), retrying in ${delay}ms...`, lastError);
@@ -194,6 +264,70 @@ export const robustFetch = async (
   }
   
   throw lastError!;
+};
+
+// Internal safe wrapper to prevent AbortError propagation
+const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof Error) {
+      const errorName = String(error.name || '');
+      const errorMessage = String(error.message || '');
+
+      // Comprehensive AbortError detection
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('The operation was aborted')) {
+        console.debug(`AbortError suppressed in ${context}:`, errorMessage);
+        throw new FetchError(
+          `Request aborted in ${context}`,
+          undefined,
+          undefined,
+          false,
+          false
+        );
+      }
+    }
+    throw error;
+  }
+};
+
+// Main robust fetch function with final AbortError protection
+export const robustFetch = async (
+  url: string,
+  options: FetchOptions = {}
+): Promise<Response> => {
+  return safeWrapper(async () => {
+    try {
+      return await _robustFetch(url, options);
+    } catch (error) {
+      // Final safety net for any AbortErrors that slip through
+      if (error instanceof Error) {
+        const errorName = String(error.name || '');
+        const errorMessage = String(error.message || '');
+
+        // Enhanced AbortError detection
+        if (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted') ||
+            errorMessage.includes('aborted without reason') ||
+            errorMessage.includes('The operation was aborted')) {
+          console.debug('Final AbortError catch:', errorMessage);
+          throw new FetchError(
+            `Request aborted for ${url}`,
+            undefined,
+            undefined,
+            false,
+            false
+          );
+        }
+      }
+      throw error;
+    }
+  }, 'robustFetch');
 };
 
 // Convenience function for JSON requests
@@ -231,17 +365,19 @@ export const robustPost = async <T = any>(
 
 // Check if the current environment has connectivity issues
 export const checkConnectivity = async (): Promise<boolean> => {
-  try {
-    // Try to fetch a simple endpoint
-    await robustFetch('/api/health', {
-      timeout: 5000,
-      retries: 1,
-    });
-    return true;
-  } catch (error) {
-    console.warn('Connectivity check failed:', error);
-    return false;
-  }
+  return safeWrapper(async () => {
+    try {
+      // Try to fetch a simple endpoint
+      await robustFetch('/api/health', {
+        timeout: 5000,
+        retries: 1,
+      });
+      return true;
+    } catch (error) {
+      console.warn('Connectivity check failed:', error);
+      return false;
+    }
+  }, 'checkConnectivity');
 };
 
 // Create a simple health check endpoint

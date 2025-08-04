@@ -45,12 +45,12 @@ interface ProjectScenarioManagerProps {
   optimizationType?: 'capacity' | 'transport' | 'warehouse' | 'all';
 }
 
-export default function ProjectScenarioManager({ 
-  onSelectProject, 
-  onSelectScenario, 
-  selectedProject, 
-  selectedScenario, 
-  optimizationType = 'all' 
+export default function ProjectScenarioManager({
+  onSelectProject,
+  onSelectScenario,
+  selectedProject,
+  selectedScenario,
+  optimizationType = 'all'
 }: ProjectScenarioManagerProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [scenarios, setScenarios] = useState<{ [key: number]: Scenario[] }>({});
@@ -59,6 +59,7 @@ export default function ProjectScenarioManager({
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [showCreateScenarioModal, setShowCreateScenarioModal] = useState(false);
   const [targetProjectId, setTargetProjectId] = useState<number | null>(null);
+  const [isMounted, setIsMounted] = useState(true);
 
   const [newProject, setNewProject] = useState({
     name: '',
@@ -77,13 +78,20 @@ export default function ProjectScenarioManager({
   useEffect(() => {
     // Add a small delay to ensure the app is fully loaded
     const timer = setTimeout(() => {
-      fetchProjects();
+      if (isMounted) {
+        fetchProjects();
+      }
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setIsMounted(false);
+    };
   }, []);
 
   const fetchProjects = async () => {
+    if (!isMounted) return;
+
     try {
       setLoading(true);
 
@@ -92,6 +100,8 @@ export default function ProjectScenarioManager({
         timeout: 10000,
         retries: 2,
       });
+
+      if (!isMounted) return; // Check again after async operation
 
       if (!projectsResult.success) {
         throw new Error(projectsResult.error || 'Failed to fetch projects');
@@ -135,31 +145,37 @@ export default function ProjectScenarioManager({
         }
       }
 
-      setProjects(projects);
-      setScenarios(scenariosMap);
+      if (isMounted) {
+        setProjects(projects);
+        setScenarios(scenariosMap);
 
-      // Auto-expand first project and select first scenario if none selected
-      if (projects.length > 0) {
-        setExpandedProjects(new Set([projects[0].id]));
-        if (!selectedProject) {
-          onSelectProject(projects[0]);
-        }
-        if (!selectedScenario && scenariosMap[projects[0].id]?.length > 0) {
-          onSelectScenario(scenariosMap[projects[0].id][0]);
+        // Auto-expand first project and select first scenario if none selected
+        if (projects.length > 0) {
+          setExpandedProjects(new Set([projects[0].id]));
+          if (!selectedProject) {
+            onSelectProject(projects[0]);
+          }
+          if (!selectedScenario && scenariosMap[projects[0].id]?.length > 0) {
+            onSelectScenario(scenariosMap[projects[0].id][0]);
+          }
         }
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
-      // Fallback to empty state instead of crashing
-      setProjects([]);
-      setScenarios({});
+      if (isMounted) {
+        console.error('Error fetching projects:', error);
+        // Fallback to empty state instead of crashing
+        setProjects([]);
+        setScenarios({});
 
-      // Show user-friendly error message for fetch failures
-      if (error instanceof FetchError) {
-        alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+        // Show user-friendly error message for fetch failures (but only if not cancelled)
+        if (error instanceof FetchError && !error.message.includes('cancelled')) {
+          alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+        }
       }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   };
 

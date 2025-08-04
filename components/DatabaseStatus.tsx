@@ -14,32 +14,44 @@ export default function DatabaseStatus() {
   const [dbStatus, setDbStatus] = useState<DatabaseInfo | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [isMounted, setIsMounted] = useState(true);
 
   const checkDatabaseStatus = async () => {
+    if (!isMounted) return;
+
     try {
       const result = await robustFetchJson('/api/init-db', {
         timeout: 10000,
         retries: 2,
       });
-      setDbStatus(result);
-      setLastChecked(new Date());
+
+      if (isMounted) {
+        setDbStatus(result);
+        setLastChecked(new Date());
+      }
     } catch (error) {
-      console.error('Error checking database status:', error);
-      setDbStatus({
-        success: false,
-        error: error instanceof FetchError ? error.message : 'Failed to connect to database'
-      });
-      setLastChecked(new Date());
+      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
+        console.error('Error checking database status:', error);
+        setDbStatus({
+          success: false,
+          error: error instanceof FetchError ? error.message : 'Failed to connect to database'
+        });
+        setLastChecked(new Date());
+      }
     }
   };
 
   const initializeDatabase = async () => {
+    if (!isMounted) return;
+
     setIsInitializing(true);
     try {
       const result = await robustPost('/api/init-db', {}, {
         timeout: 15000,
         retries: 2,
       });
+
+      if (!isMounted) return;
 
       if (result.success) {
         console.log('✅ Database initialized successfully');
@@ -49,18 +61,23 @@ export default function DatabaseStatus() {
         setDbStatus(result);
       }
     } catch (error) {
-      console.error('❌ Error initializing database:', error);
-      setDbStatus({
-        success: false,
-        error: error instanceof FetchError ? error.message : 'Failed to initialize database'
-      });
+      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
+        console.error('❌ Error initializing database:', error);
+        setDbStatus({
+          success: false,
+          error: error instanceof FetchError ? error.message : 'Failed to initialize database'
+        });
+      }
     } finally {
-      setIsInitializing(false);
+      if (isMounted) {
+        setIsInitializing(false);
+      }
     }
   };
 
   useEffect(() => {
     checkDatabaseStatus();
+    return () => setIsMounted(false);
   }, []);
 
   const hasProjectsTable = dbStatus?.database_schema?.projects?.length > 0;

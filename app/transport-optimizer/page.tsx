@@ -206,7 +206,7 @@ export default function TransportOptimizer() {
     setConfiguration(prev => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as object),
         ...updates
       }
     }));

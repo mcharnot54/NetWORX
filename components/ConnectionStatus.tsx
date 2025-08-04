@@ -13,18 +13,28 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
   const [serverReachable, setServerReachable] = useState(true);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [checking, setChecking] = useState(false);
+  const [isMounted, setIsMounted] = useState(true);
 
   const checkServerConnectivity = async () => {
+    if (!isMounted) return; // Don't start new requests if component is unmounting
+
     setChecking(true);
     try {
       const reachable = await checkConnectivity();
-      setServerReachable(reachable);
-      setLastCheck(new Date());
+      if (isMounted) { // Only update state if component is still mounted
+        setServerReachable(reachable);
+        setLastCheck(new Date());
+      }
     } catch (error) {
-      setServerReachable(false);
-      setLastCheck(new Date());
+      // Ignore errors if the request was cancelled due to unmounting
+      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
+        setServerReachable(false);
+        setLastCheck(new Date());
+      }
     } finally {
-      setChecking(false);
+      if (isMounted) {
+        setChecking(false);
+      }
     }
   };
 
@@ -46,6 +56,7 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
     const interval = setInterval(checkServerConnectivity, 30000); // Every 30 seconds
 
     return () => {
+      setIsMounted(false); // Mark component as unmounting
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
       clearInterval(interval);
