@@ -1,6 +1,7 @@
 "use client";
 
 import Navigation from "@/components/Navigation";
+import DatabaseStatus from "@/components/DatabaseStatus";
 import {
   Activity,
   Database,
@@ -333,6 +334,9 @@ export default function Dashboard() {
             Your comprehensive network strategy optimization solution for
             warehouse space optimization and freight cost minimization.
           </p>
+
+          {/* Database Status Component */}
+          <DatabaseStatus />
 
           {/* Network Optimization Readiness Checklist */}
           <div

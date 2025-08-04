@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Plus, Play, Copy, Trash2, Edit, FolderOpen, Settings, BarChart3, 
-  Folder, ChevronDown, ChevronRight, Calendar, MapPin, Users, 
+import {
+  Plus, Play, Copy, Trash2, Edit, FolderOpen, Settings, BarChart3,
+  Folder, ChevronDown, ChevronRight, Calendar, MapPin, Users,
   Target, Activity, Building
 } from 'lucide-react';
+import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
+import ErrorBoundary, { FetchErrorFallback } from './ErrorBoundary';
 
 interface Project {
   id: number;
@@ -85,19 +87,11 @@ export default function ProjectScenarioManager({
     try {
       setLoading(true);
 
-      // Fetch projects from API with timeout and error handling
-      const projectsResponse = await fetch('/api/projects', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Fetch projects from API with robust error handling
+      const projectsResult = await robustFetchJson('/api/projects', {
+        timeout: 10000,
+        retries: 2,
       });
-
-      if (!projectsResponse.ok) {
-        throw new Error(`HTTP error! status: ${projectsResponse.status}`);
-      }
-
-      const projectsResult = await projectsResponse.json();
 
       if (!projectsResult.success) {
         throw new Error(projectsResult.error || 'Failed to fetch projects');
@@ -110,17 +104,12 @@ export default function ProjectScenarioManager({
 
       for (const project of projects) {
         try {
-          const scenariosResponse = await fetch(`/api/scenarios?project_id=${project.id}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+          const scenariosResult = await robustFetchJson(`/api/scenarios?project_id=${project.id}`, {
+            timeout: 8000,
+            retries: 2,
           });
 
-          if (scenariosResponse.ok) {
-            const scenariosResult = await scenariosResponse.json();
-
-            if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
+          if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
               // Transform database scenarios to match component interface
               scenariosMap[project.id] = scenariosResult.data.map((scenario: any) => ({
                 id: scenario.id,
@@ -137,11 +126,7 @@ export default function ProjectScenarioManager({
                 transport_optimization_completed: scenario.metadata?.transport_optimization_completed || false,
                 warehouse_optimization_completed: scenario.metadata?.warehouse_optimization_completed || false
               }));
-            } else {
-              scenariosMap[project.id] = [];
-            }
           } else {
-            console.warn(`Failed to fetch scenarios for project ${project.id}`);
             scenariosMap[project.id] = [];
           }
         } catch (scenarioError) {
@@ -168,6 +153,11 @@ export default function ProjectScenarioManager({
       // Fallback to empty state instead of crashing
       setProjects([]);
       setScenarios({});
+
+      // Show user-friendly error message for fetch failures
+      if (error instanceof FetchError) {
+        alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -186,19 +176,10 @@ export default function ProjectScenarioManager({
         return;
       }
 
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newProject),
+      const result = await robustPost('/api/projects', newProject, {
+        timeout: 15000,
+        retries: 2,
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create project');
@@ -266,19 +247,10 @@ export default function ProjectScenarioManager({
         }
       };
 
-      const response = await fetch('/api/scenarios', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(scenarioData),
+      const result = await robustPost('/api/scenarios', scenarioData, {
+        timeout: 15000,
+        retries: 2,
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create scenario');
@@ -401,8 +373,9 @@ export default function ProjectScenarioManager({
   }
 
   return (
-    <div className="project-scenario-manager">
-      <div className="manager-header">
+    <ErrorBoundary fallback={FetchErrorFallback}>
+      <div className="project-scenario-manager">
+        <div className="manager-header">
         <div className="header-content">
           <h3>Project & Scenario Management</h3>
           <p>Manage optimization projects and their scenarios</p>
@@ -1243,6 +1216,7 @@ export default function ProjectScenarioManager({
           }
         }
       `}</style>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
