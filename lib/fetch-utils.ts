@@ -115,23 +115,24 @@ const fetchWithTimeout = async (
   } catch (error) {
     clearTimeout(timeoutId);
 
+    // Handle all types of abort errors more defensively
+    if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+      // Check if this was a timeout abort or an external abort
+      const isTimeoutAbort = controller.signal.aborted && controller.signal.reason === undefined;
+      const errorMessage = isTimeoutAbort
+        ? `Request timeout after ${timeout}ms for ${url}`
+        : `Request was cancelled for ${url}`;
+
+      throw new FetchError(
+        errorMessage,
+        undefined,
+        undefined,
+        false,
+        isTimeoutAbort
+      );
+    }
+
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        // Check if this was a timeout abort or an external abort
-        const isTimeoutAbort = controller.signal.aborted;
-        const errorMessage = isTimeoutAbort
-          ? `Request timeout after ${timeout}ms for ${url}`
-          : `Request was cancelled for ${url}`;
-
-        throw new FetchError(
-          errorMessage,
-          undefined,
-          undefined,
-          false,
-          isTimeoutAbort
-        );
-      }
-
       // Network error
       throw new FetchError(
         `Network error: ${error.message}`,
