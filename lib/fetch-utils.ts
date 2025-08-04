@@ -92,7 +92,7 @@ const isRetryableError = (error: Error): boolean => {
   // If it's a FetchError, check the status
   if (error instanceof FetchError) {
     // Don't retry cancelled requests, but retry timeouts and network errors
-    if (error.message.includes('cancelled')) {
+    if (error.message?.includes('cancelled')) {
       return false;
     }
     // Retry on network errors, timeouts, or 5xx errors
