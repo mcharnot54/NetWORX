@@ -145,31 +145,37 @@ export default function ProjectScenarioManager({
         }
       }
 
-      setProjects(projects);
-      setScenarios(scenariosMap);
+      if (isMounted) {
+        setProjects(projects);
+        setScenarios(scenariosMap);
 
-      // Auto-expand first project and select first scenario if none selected
-      if (projects.length > 0) {
-        setExpandedProjects(new Set([projects[0].id]));
-        if (!selectedProject) {
-          onSelectProject(projects[0]);
-        }
-        if (!selectedScenario && scenariosMap[projects[0].id]?.length > 0) {
-          onSelectScenario(scenariosMap[projects[0].id][0]);
+        // Auto-expand first project and select first scenario if none selected
+        if (projects.length > 0) {
+          setExpandedProjects(new Set([projects[0].id]));
+          if (!selectedProject) {
+            onSelectProject(projects[0]);
+          }
+          if (!selectedScenario && scenariosMap[projects[0].id]?.length > 0) {
+            onSelectScenario(scenariosMap[projects[0].id][0]);
+          }
         }
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
-      // Fallback to empty state instead of crashing
-      setProjects([]);
-      setScenarios({});
+      if (isMounted) {
+        console.error('Error fetching projects:', error);
+        // Fallback to empty state instead of crashing
+        setProjects([]);
+        setScenarios({});
 
-      // Show user-friendly error message for fetch failures
-      if (error instanceof FetchError) {
-        alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+        // Show user-friendly error message for fetch failures (but only if not cancelled)
+        if (error instanceof FetchError && !error.message.includes('cancelled')) {
+          alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+        }
       }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   };
 
