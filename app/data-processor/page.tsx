@@ -450,21 +450,38 @@ export default function DataProcessor() {
                 </div>
               </div>
               
-              <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <input
-                  type="file"
-                  multiple
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="mx-auto mb-4 text-gray-400" size={48} />
-                  <p className="text-lg font-medium text-gray-700 mb-2">Upload Operational Data Files</p>
-                  <p className="text-gray-500">Supports Excel (.xlsx, .xls) and CSV files</p>
-                  <p className="text-sm text-gray-400 mt-2">Files will be automatically analyzed and validated</p>
-                </label>
+              <div className="group relative">
+                <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Upload className="mx-auto mb-4 text-gray-400" size={48} />
+                    <p className="text-lg font-medium text-gray-700 mb-2">Upload Operational Data Files</p>
+                    <p className="text-gray-500">Supports Excel (.xlsx, .xls) and CSV files</p>
+                    <p className="text-sm text-gray-400 mt-2">Files will be automatically analyzed and validated</p>
+                  </label>
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs font-semibold cursor-help">
+                  💡
+                </div>
+                <div className="absolute top-8 right-0 w-80 bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                  <div className="text-sm space-y-2">
+                    <div className="font-semibold">File Upload Tips:</div>
+                    <div>• <strong>Multiple files:</strong> You can upload several files at once</div>
+                    <div>• <strong>Auto-detection:</strong> System automatically detects data types</div>
+                    <div>• <strong>Supported formats:</strong> Excel (.xlsx, .xls) and CSV files</div>
+                    <div>• <strong>Data types:</strong> Forecast, SKU, Network, Operational, Financial, Sales</div>
+                    <div className="text-xs text-blue-600 mt-2">
+                      💡 Check the "Data Templates" tab to see required column structures
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {files.length > 0 && (
