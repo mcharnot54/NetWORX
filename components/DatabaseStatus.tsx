@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Database, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
 
 interface DatabaseInfo {
   success: boolean;
