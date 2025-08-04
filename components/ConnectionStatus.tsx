@@ -56,6 +56,7 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
     const interval = setInterval(checkServerConnectivity, 30000); // Every 30 seconds
 
     return () => {
+      setIsMounted(false); // Mark component as unmounting
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
       clearInterval(interval);
