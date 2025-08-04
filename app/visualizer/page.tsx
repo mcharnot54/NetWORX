@@ -42,6 +42,40 @@ const mockCostBreakdown = [
   { name: "Administrative", value: 5, color: "#ef4444" },
 ];
 
+const mockInventoryData = [
+  { sku: "ABC-001", current_stock: 1200, annual_demand: 14400, turns: 12, abc_category: "A", value: 48000 },
+  { sku: "DEF-002", current_stock: 800, annual_demand: 7200, turns: 9, abc_category: "A", value: 32000 },
+  { sku: "GHI-003", current_stock: 600, annual_demand: 4800, turns: 8, abc_category: "B", value: 18000 },
+  { sku: "JKL-004", current_stock: 400, annual_demand: 2400, turns: 6, abc_category: "B", value: 12000 },
+  { sku: "MNO-005", current_stock: 300, annual_demand: 1200, turns: 4, abc_category: "C", value: 6000 },
+  { sku: "PQR-006", current_stock: 200, annual_demand: 800, turns: 4, abc_category: "C", value: 4000 },
+  { sku: "STU-007", current_stock: 150, annual_demand: 450, turns: 3, abc_category: "C", value: 2250 },
+  { sku: "VWX-008", current_stock: 100, annual_demand: 200, turns: 2, abc_category: "C", value: 1500 },
+];
+
+const mockABCData = [
+  { category: "A", items: 2, percentage: 65, cumulative: 65, color: "#dc2626" },
+  { category: "B", items: 2, percentage: 25, cumulative: 90, color: "#d97706" },
+  { category: "C", items: 4, percentage: 10, cumulative: 100, color: "#059669" },
+];
+
+const mockVelocityData = [
+  { velocity: "Fast (>10 turns)", items: 2, percentage: 25, accessibility: 95 },
+  { velocity: "Medium (6-10 turns)", items: 3, percentage: 37.5, accessibility: 75 },
+  { velocity: "Slow (<6 turns)", items: 3, percentage: 37.5, accessibility: 50 },
+];
+
+const mockParetoData = mockInventoryData
+  .sort((a, b) => b.value - a.value)
+  .map((item, index, arr) => {
+    const totalValue = arr.reduce((sum, i) => sum + i.value, 0);
+    const cumulativeValue = arr.slice(0, index + 1).reduce((sum, i) => sum + i.value, 0);
+    return {
+      ...item,
+      cumulative_percentage: (cumulativeValue / totalValue) * 100,
+    };
+  });
+
 export default function Visualizer() {
   const [selectedChart, setSelectedChart] = useState("warehouse");
   const [dateRange, setDateRange] = useState("6months");
