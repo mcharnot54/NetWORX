@@ -188,8 +188,8 @@ const fetchWithTimeout = async (
   }
 };
 
-// Main robust fetch function
-export const robustFetch = async (
+// Internal robust fetch function
+const _robustFetch = async (
   url: string,
   options: FetchOptions = {}
 ): Promise<Response> => {
