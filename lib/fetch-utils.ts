@@ -75,17 +75,17 @@ const isRetryableError = (error: Error): boolean => {
   }
 
   // Network errors
-  if (error.message.includes('fetch') || error.message.includes('network')) {
+  if (error.message?.includes('fetch') || error.message?.includes('network')) {
     return true;
   }
 
   // Timeout errors are retryable, but not cancelled requests
-  if (error.message.includes('timeout')) {
+  if (error.message?.includes('timeout')) {
     return true;
   }
 
   // Don't retry requests that were cancelled (not timeout aborts)
-  if (error.message.includes('cancelled')) {
+  if (error.message?.includes('cancelled')) {
     return false;
   }
 
