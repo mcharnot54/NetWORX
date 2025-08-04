@@ -204,9 +204,15 @@ export class ScenarioService {
     created_by?: string;
     metadata?: any;
   }): Promise<Scenario> {
+    // Extract project_id from metadata if present
+    const project_id = data.metadata?.project_id;
+    if (!project_id) {
+      throw new Error('project_id is required in metadata');
+    }
+
     const [scenario] = await sql`
-      INSERT INTO scenarios (name, description, scenario_type, created_by, metadata)
-      VALUES (${data.name}, ${data.description || null}, ${data.scenario_type}, ${data.created_by || null}, ${JSON.stringify(data.metadata || {})})
+      INSERT INTO scenarios (project_id, name, description, scenario_type, created_by, metadata)
+      VALUES (${project_id}, ${data.name}, ${data.description || null}, ${data.scenario_type}, ${data.created_by || null}, ${JSON.stringify(data.metadata || {})})
       RETURNING *
     `;
     return scenario as Scenario;
