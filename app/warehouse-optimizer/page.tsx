@@ -826,6 +826,14 @@ export default function WarehouseOptimizer() {
           line-height: 1.6;
         }
 
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 2rem;
+          gap: 2rem;
+        }
+
         .subsection-title {
           font-size: 1.25rem;
           font-weight: 600;
