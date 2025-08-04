@@ -82,7 +82,7 @@ export default function WarehouseOptimizer() {
   const [activeTab, setActiveTab] = useState<'projects' | 'scenarios' | 'configuration' | 'costs' | 'analysis' | 'results'>('projects');
   
   const [transportScenarios, setTransportScenarios] = useState<TransportScenario[]>([]);
-  const [selectedScenario, setSelectedScenario] = useState<TransportScenario | null>(null);
+  const [selectedTransportScenario, setSelectedTransportScenario] = useState<TransportScenario | null>(null);
   const [projectYears, setProjectYears] = useState(5);
   
   const [configuration, setConfiguration] = useState<WarehouseConfiguration>({
