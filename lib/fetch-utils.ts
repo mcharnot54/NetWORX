@@ -68,10 +68,17 @@ const isRetryableError = (error: Error): boolean => {
     return false;
   }
 
-  // Handle AbortErrors specifically
-  if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-    // Only retry timeout aborts, not user-cancelled requests
-    return error.message?.includes('timeout') ?? false;
+  // Extra safety: wrap in try-catch to handle any unexpected error structures
+  try {
+    // Handle AbortErrors specifically
+    if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      // Only retry timeout aborts, not user-cancelled requests
+      return error.message?.includes('timeout') ?? false;
+    }
+  } catch (e) {
+    // If we can't even check the error properly, don't retry
+    console.debug('Error checking error retryability:', e);
+    return false;
   }
 
   // Network errors
