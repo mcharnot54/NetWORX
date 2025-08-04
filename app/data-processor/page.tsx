@@ -3,8 +3,14 @@
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import ScenarioManager from "@/components/ScenarioManager";
-import * as XLSX from "xlsx";
 import { useData } from "@/context/DataContext";
+import { DataValidator, DataProcessingUtils } from "@/lib/data-validator";
+import {
+  ComprehensiveOperationalData,
+  DataMappingTemplate,
+  ProcessingResult,
+  DATA_MAPPING_TEMPLATES
+} from "@/types/data-schema";
 import {
   Upload,
   FileText,
@@ -18,6 +24,10 @@ import {
   RefreshCw,
   BarChart3,
   Save,
+  Zap,
+  Target,
+  TrendingUp,
+  Shield,
 } from "lucide-react";
 
 interface Scenario {
@@ -40,10 +50,13 @@ interface FileData {
   sheets?: string[];
   selectedSheet?: string;
   detectedType?: string;
+  detectedTemplate?: DataMappingTemplate | null;
   scenarioId?: number;
   file?: File;
   parsedData?: any[];
   columnNames?: string[];
+  processingResult?: ProcessingResult;
+  validationStatus?: 'pending' | 'processing' | 'validated' | 'error';
 }
 
 export default function DataProcessor() {
@@ -51,8 +64,10 @@ export default function DataProcessor() {
   const { setProcessedData } = useData();
   const [files, setFiles] = useState<FileData[]>([]);
   const [processing, setProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState("scenarios");
+  const [activeTab, setActiveTab] = useState("upload");
   const [processingLog, setProcessingLog] = useState<string[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<DataMappingTemplate | null>(null);
+  const [validatedData, setValidatedData] = useState<ComprehensiveOperationalData | null>(null);
 
   const addToLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -64,10 +79,13 @@ export default function DataProcessor() {
     if (name.includes("forecast") || name.includes("demand")) return "forecast";
     if (name.includes("sku") || name.includes("product")) return "sku";
     if (name.includes("network") || name.includes("location")) return "network";
+    if (name.includes("operational") || name.includes("reporting")) return "operational";
+    if (name.includes("financial") || name.includes("cost")) return "financial";
+    if (name.includes("sales") || name.includes("historical")) return "sales";
     return "unknown";
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedScenario) {
       alert('Please select a scenario first');
       return;
@@ -79,18 +97,179 @@ export default function DataProcessor() {
       return;
     }
 
-    const fileData = uploadedFiles.map((file) => ({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified,
-      detectedType: autoDetectDataType(file.name),
-      scenarioId: selectedScenario.id,
-      file,
-    }));
+    addToLog(`Processing ${uploadedFiles.length} file(s)...`);
+    const processedFiles: FileData[] = [];
 
-    setFiles(fileData);
-    addToLog(`Uploaded ${fileData.length} file(s) for scenario "${selectedScenario.name}"`);
+    for (const file of uploadedFiles) {
+      try {
+        addToLog(`Analyzing file: ${file.name}`);
+        
+        // Parse file to extract data and columns
+        const { data, columnHeaders } = await DataValidator.parseFile(file);
+        
+        // Auto-detect appropriate data template
+        const detectedTemplate = DataValidator.detectDataTemplate(columnHeaders);
+        
+        const fileData: FileData = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+          detectedType: autoDetectDataType(file.name),
+          detectedTemplate,
+          scenarioId: selectedScenario.id,
+          file,
+          parsedData: data,
+          columnNames: columnHeaders,
+          validationStatus: 'pending'
+        };
+
+        processedFiles.push(fileData);
+        
+        if (detectedTemplate) {
+          addToLog(`✓ Detected template: ${detectedTemplate.name}`);
+        } else {
+          addToLog(`⚠ No template detected for ${file.name} - manual mapping required`);
+        }
+        
+      } catch (error) {
+        addToLog(`✗ Error processing ${file.name}: ${error}`);
+      }
+    }
+
+    setFiles(processedFiles);
+    addToLog(`Upload complete. ${processedFiles.length} files ready for validation.`);
+  };
+
+  const validateFileData = async (fileIndex: number) => {
+    const file = files[fileIndex];
+    if (!file.parsedData || !file.detectedTemplate) {
+      addToLog(`Cannot validate ${file.name} - missing data or template`);
+      return;
+    }
+
+    addToLog(`Validating data in ${file.name}...`);
+    
+    // Update status to processing
+    const updatedFiles = [...files];
+    updatedFiles[fileIndex].validationStatus = 'processing';
+    setFiles(updatedFiles);
+
+    try {
+      const result = DataValidator.processDataWithTemplate(
+        file.parsedData,
+        file.detectedTemplate
+      );
+
+      // Update file with validation results
+      updatedFiles[fileIndex].processingResult = result;
+      updatedFiles[fileIndex].validationStatus = result.success ? 'validated' : 'error';
+      setFiles(updatedFiles);
+
+      if (result.success) {
+        addToLog(`✓ Validation successful for ${file.name}`);
+        addToLog(DataProcessingUtils.formatDataQuality(result.summary.dataQuality));
+      } else {
+        addToLog(`✗ Validation failed for ${file.name}`);
+        addToLog(DataProcessingUtils.formatValidationResults(result.data?.metadata?.validationResults || []));
+      }
+
+    } catch (error) {
+      addToLog(`✗ Validation error for ${file.name}: ${error}`);
+      updatedFiles[fileIndex].validationStatus = 'error';
+      setFiles(updatedFiles);
+    }
+  };
+
+  const processAllFiles = async () => {
+    if (files.length === 0) {
+      addToLog("No files to process");
+      return;
+    }
+
+    setProcessing(true);
+    addToLog("Starting comprehensive data processing...");
+
+    const mergedData: ComprehensiveOperationalData = {
+      operationalReporting: {},
+      businessFinancials: {},
+      salesGrowthTrajectory: {},
+      metadata: {
+        lastProcessed: new Date().toISOString(),
+        dataQuality: {
+          completeness: 0,
+          accuracy: 0,
+          consistency: 0,
+          timeliness: 100,
+          validRecords: 0,
+          totalRecords: 0,
+          missingFields: [],
+          invalidValues: []
+        },
+        validationResults: []
+      }
+    };
+
+    let totalValidRecords = 0;
+    let totalRecords = 0;
+
+    // Process each validated file
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      if (file.validationStatus !== 'validated' || !file.processingResult?.data) {
+        addToLog(`Skipping ${file.name} - not validated`);
+        continue;
+      }
+
+      const fileData = file.processingResult.data;
+      
+      // Merge data by category
+      if (fileData.operationalReporting) {
+        Object.assign(mergedData.operationalReporting!, fileData.operationalReporting);
+      }
+      if (fileData.businessFinancials) {
+        Object.assign(mergedData.businessFinancials!, fileData.businessFinancials);
+      }
+      if (fileData.salesGrowthTrajectory) {
+        Object.assign(mergedData.salesGrowthTrajectory!, fileData.salesGrowthTrajectory);
+      }
+
+      // Aggregate quality metrics
+      const fileQuality = file.processingResult.summary.dataQuality;
+      totalValidRecords += fileQuality.validRecords;
+      totalRecords += fileQuality.totalRecords;
+      
+      if (fileData.metadata?.validationResults) {
+        mergedData.metadata!.validationResults!.push(...fileData.metadata.validationResults);
+      }
+    }
+
+    // Calculate overall data quality
+    if (mergedData.metadata?.dataQuality) {
+      mergedData.metadata.dataQuality.validRecords = totalValidRecords;
+      mergedData.metadata.dataQuality.totalRecords = totalRecords;
+      mergedData.metadata.dataQuality.accuracy = totalRecords > 0 ? (totalValidRecords / totalRecords) * 100 : 100;
+      mergedData.metadata.dataQuality.completeness = totalRecords > 0 ? (totalValidRecords / totalRecords) * 100 : 100;
+    }
+
+    setValidatedData(mergedData);
+    setProcessedData(mergedData as any); // Update context with processed data
+    
+    addToLog("✓ Data processing complete");
+    addToLog(`Processed ${totalValidRecords}/${totalRecords} records successfully`);
+    
+    setProcessing(false);
+    setActiveTab("results");
+  };
+
+  const getStatusIcon = (status?: string) => {
+    switch (status) {
+      case 'validated': return <CheckCircle className="text-green-500" size={16} />;
+      case 'error': return <AlertCircle className="text-red-500" size={16} />;
+      case 'processing': return <RefreshCw className="text-blue-500 animate-spin" size={16} />;
+      default: return <Database className="text-gray-400" size={16} />;
+    }
   };
 
   return (
@@ -98,7 +277,13 @@ export default function DataProcessor() {
       <Navigation />
       <main className="content-area">
         <div className="card">
-          <h2 className="card-title">Data Processor</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <Database className="text-blue-600" size={32} />
+            <div>
+              <h2 className="card-title mb-1">Data Processor</h2>
+              <p className="text-gray-600">Validate and process operational data for network optimization</p>
+            </div>
+          </div>
           
           <div style={{ marginBottom: "2rem" }}>
             <ScenarioManager
@@ -107,49 +292,387 @@ export default function DataProcessor() {
             />
           </div>
 
-          {selectedScenario && (
+          {/* Tab Navigation */}
+          <div className="flex gap-1 mb-6 border-b">
+            {[
+              { id: 'upload', label: 'File Upload', icon: Upload },
+              { id: 'validation', label: 'Data Validation', icon: Shield },
+              { id: 'templates', label: 'Data Templates', icon: Settings },
+              { id: 'results', label: 'Results', icon: BarChart3 }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${
+                  activeTab === tab.id 
+                    ? 'bg-blue-50 border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <tab.icon size={16} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Upload Tab */}
+          {activeTab === 'upload' && selectedScenario && (
             <div className="card">
-              <h3>File Upload</h3>
-              <div className="file-upload">
+              <div className="flex items-center gap-3 mb-4">
+                <Upload className="text-blue-600" size={24} />
+                <h3 className="text-xl font-semibold">File Upload & Analysis</h3>
+              </div>
+              
+              <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                 <input
                   type="file"
                   multiple
                   accept=".csv,.xlsx,.xls"
                   onChange={handleFileUpload}
+                  className="hidden"
+                  id="file-upload"
                 />
-                <p>Upload Excel or CSV files for processing</p>
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Upload className="mx-auto mb-4 text-gray-400" size={48} />
+                  <p className="text-lg font-medium text-gray-700 mb-2">Upload Operational Data Files</p>
+                  <p className="text-gray-500">Supports Excel (.xlsx, .xls) and CSV files</p>
+                  <p className="text-sm text-gray-400 mt-2">Files will be automatically analyzed and validated</p>
+                </label>
               </div>
 
               {files.length > 0 && (
-                <div style={{ marginTop: "1rem" }}>
-                  <h4>Uploaded Files:</h4>
-                  <ul>
+                <div className="mt-6">
+                  <h4 className="text-lg font-semibold mb-4">Uploaded Files ({files.length})</h4>
+                  <div className="space-y-3">
                     {files.map((file, index) => (
-                      <li key={index}>
-                        {file.name} ({Math.round(file.size / 1024)}KB) - {file.detectedType}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {processingLog.length > 0 && (
-                <div style={{ marginTop: "1rem" }}>
-                  <h4>Processing Log:</h4>
-                  <div style={{ 
-                    height: "200px", 
-                    overflow: "auto", 
-                    backgroundColor: "#f8f9fa", 
-                    padding: "1rem",
-                    fontFamily: "monospace",
-                    fontSize: "0.875rem"
-                  }}>
-                    {processingLog.map((log, index) => (
-                      <div key={index}>{log}</div>
+                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <FileText className="text-blue-500" size={20} />
+                          <div>
+                            <p className="font-medium">{file.name}</p>
+                            <p className="text-sm text-gray-600">
+                              {Math.round(file.size / 1024)}KB • {file.detectedType}
+                              {file.detectedTemplate && ` • ${file.detectedTemplate.name}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {getStatusIcon(file.validationStatus)}
+                          {file.validationStatus === 'pending' && (
+                            <button
+                              onClick={() => validateFileData(index)}
+                              className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                            >
+                              <Zap size={14} />
+                              Validate
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
+                  
+                  {files.some(f => f.validationStatus === 'validated') && (
+                    <div className="mt-6 flex justify-center">
+                      <button
+                        onClick={processAllFiles}
+                        disabled={processing}
+                        className="flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {processing ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
+                        {processing ? 'Processing...' : 'Process All Data'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Validation Tab */}
+          {activeTab === 'validation' && (
+            <div className="card">
+              <div className="flex items-center gap-3 mb-4">
+                <Shield className="text-green-600" size={24} />
+                <h3 className="text-xl font-semibold">Data Validation Results</h3>
+              </div>
+
+              {files.filter(f => f.processingResult).map((file, index) => (
+                <div key={index} className="mb-6 p-4 border rounded-lg">
+                  <div className="flex items-center gap-3 mb-3">
+                    <FileText className="text-blue-500" size={20} />
+                    <h4 className="font-semibold">{file.name}</h4>
+                    {getStatusIcon(file.validationStatus)}
+                  </div>
+                  
+                  {file.processingResult && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <pre className="text-sm whitespace-pre-wrap">
+                        {DataProcessingUtils.generateProcessingSummary(file.processingResult)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {files.filter(f => f.processingResult).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Shield size={48} className="mx-auto mb-4 text-gray-300" />
+                  <p>No validation results yet. Upload and validate files first.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Templates Tab */}
+          {activeTab === 'templates' && (
+            <div className="card">
+              <div className="flex items-center gap-3 mb-4">
+                <Settings className="text-purple-600" size={24} />
+                <h3 className="text-xl font-semibold">Data Mapping Templates</h3>
+              </div>
+
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">Supported Data Categories</h4>
+                <p className="text-blue-700 mb-3">The system automatically detects and validates the following operational data categories based on your uploaded file structure:</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <strong className="text-blue-800">Operational Reporting:</strong>
+                    <ul className="text-blue-600 mt-1 space-y-1">
+                      <li>• Network Footprint & Capacity</li>
+                      <li>• Order & Payment Data</li>
+                      <li>• Order Shipment Data</li>
+                      <li>• Performance Metrics</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-blue-800">Business Financials:</strong>
+                    <ul className="text-blue-600 mt-1 space-y-1">
+                      <li>• Cost & Financial Data</li>
+                      <li>• Operating Expenses</li>
+                      <li>• Lease & Purchase Costs</li>
+                      <li>• Carrier Costs</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-blue-800">Sales Growth Trajectory:</strong>
+                    <ul className="text-blue-600 mt-1 space-y-1">
+                      <li>• Historical Sales Data</li>
+                      <li>• Demand Projection</li>
+                      <li>• Growth Forecasts</li>
+                      <li>• SKU Performance</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                {DATA_MAPPING_TEMPLATES.map((template, index) => (
+                  <div key={index} className="p-4 border rounded-lg hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-semibold text-lg">{template.name}</h4>
+                        <p className="text-gray-600 mb-2">{template.description}</p>
+                        <div className="flex gap-4 text-sm text-gray-500">
+                          <span>Category: {template.targetCategory}</span>
+                          <span>Required Fields: {template.requiredColumns.length}</span>
+                          <span>Optional Fields: {template.optionalColumns.length}</span>
+                        </div>
+                        <div className="mt-2">
+                          <details className="text-sm">
+                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">Show field mappings</summary>
+                            <div className="mt-2 pl-4 border-l-2 border-gray-200">
+                              <p className="font-medium text-gray-700 mb-1">Required columns:</p>
+                              <ul className="text-gray-600 mb-2">
+                                {template.requiredColumns.map((col, idx) => (
+                                  <li key={idx}>• {col}</li>
+                                ))}
+                              </ul>
+                              {template.optionalColumns.length > 0 && (
+                                <>
+                                  <p className="font-medium text-gray-700 mb-1">Optional columns:</p>
+                                  <ul className="text-gray-600">
+                                    {template.optionalColumns.map((col, idx) => (
+                                      <li key={idx}>• {col}</li>
+                                    ))}
+                                  </ul>
+                                </>
+                              )}
+                            </div>
+                          </details>
+                        </div>
+                      </div>
+                      <Target className="text-purple-500" size={20} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Results Tab */}
+          {activeTab === 'results' && (
+            <div className="card">
+              <div className="flex items-center gap-3 mb-4">
+                <BarChart3 className="text-green-600" size={24} />
+                <h3 className="text-xl font-semibold">Processing Results</h3>
+              </div>
+
+              {validatedData ? (
+                <div className="space-y-6">
+                  {/* Summary Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Database className="text-blue-600" size={20} />
+                        <h4 className="font-semibold">Data Quality</h4>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {validatedData.metadata?.dataQuality?.accuracy?.toFixed(1)}%
+                      </p>
+                      <p className="text-sm text-gray-600">Overall Accuracy</p>
+                    </div>
+                    
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="text-green-600" size={20} />
+                        <h4 className="font-semibold">Valid Records</h4>
+                      </div>
+                      <p className="text-2xl font-bold text-green-600">
+                        {validatedData.metadata?.dataQuality?.validRecords || 0}
+                      </p>
+                      <p className="text-sm text-gray-600">Successfully Processed</p>
+                    </div>
+                    
+                    <div className="p-4 bg-purple-50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="text-purple-600" size={20} />
+                        <h4 className="font-semibold">Categories</h4>
+                      </div>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {Object.keys(validatedData.operationalReporting || {}).length + 
+                         Object.keys(validatedData.businessFinancials || {}).length + 
+                         Object.keys(validatedData.salesGrowthTrajectory || {}).length}
+                      </p>
+                      <p className="text-sm text-gray-600">Data Categories</p>
+                    </div>
+                  </div>
+
+                  {/* Data Category Breakdown */}
+                  <div className="grid gap-4">
+                    {validatedData.operationalReporting && Object.keys(validatedData.operationalReporting).length > 0 && (
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                          <Settings className="text-blue-600" size={20} />
+                          Operational Reporting Data
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          {Object.entries(validatedData.operationalReporting).map(([key, value]) => (
+                            <div key={key} className="p-3 bg-gray-50 rounded">
+                              <p className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                              <p className="text-gray-600">
+                                {typeof value === 'object' && value ? `${Object.keys(value).length} metrics` : 'Data available'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {validatedData.businessFinancials && Object.keys(validatedData.businessFinancials).length > 0 && (
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                          <TrendingUp className="text-green-600" size={20} />
+                          Business Financials Data
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          {Object.entries(validatedData.businessFinancials).map(([key, value]) => (
+                            <div key={key} className="p-3 bg-gray-50 rounded">
+                              <p className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                              <p className="text-gray-600">
+                                {typeof value === 'object' && value ? `${Object.keys(value).length} metrics` : 'Data available'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {validatedData.salesGrowthTrajectory && Object.keys(validatedData.salesGrowthTrajectory).length > 0 && (
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                          <BarChart3 className="text-purple-600" size={20} />
+                          Sales Growth Trajectory Data
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          {Object.entries(validatedData.salesGrowthTrajectory).map(([key, value]) => (
+                            <div key={key} className="p-3 bg-gray-50 rounded">
+                              <p className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                              <p className="text-gray-600">
+                                {typeof value === 'object' && value ? `${Object.keys(value).length} metrics` : 'Data available'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={() => setActiveTab('validation')}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      <Eye size={16} />
+                      View Validation Details
+                    </button>
+                    <button
+                      onClick={() => {
+                        const dataStr = JSON.stringify(validatedData, null, 2);
+                        const blob = new Blob([dataStr], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `processed-data-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      <Download size={16} />
+                      Export Data
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <BarChart3 size={48} className="mx-auto mb-4 text-gray-300" />
+                  <p>No processed data yet. Upload and process files first.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* No Scenario Selected */}
+          {!selectedScenario && (
+            <div className="text-center py-8 text-gray-500">
+              <Database size={48} className="mx-auto mb-4 text-gray-300" />
+              <p>Please select a scenario first to begin data processing.</p>
+            </div>
+          )}
+
+          {/* Processing Log */}
+          {processingLog.length > 0 && (
+            <div className="card mt-6">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <FileText className="text-gray-600" size={20} />
+                Processing Log
+              </h4>
+              <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-64 overflow-auto">
+                {processingLog.map((log, index) => (
+                  <div key={index} className="mb-1">{log}</div>
+                ))}
+              </div>
             </div>
           )}
         </div>
