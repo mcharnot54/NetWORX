@@ -202,17 +202,27 @@ export const robustFetch = async (
       return response;
     } catch (error) {
       lastError = error as Error;
-      
+
+      // Handle AbortError specifically to prevent propagation
+      if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
+        // If it's a cancellation, don't retry and throw a more specific error
+        if (lastError.message?.includes('cancelled') || lastError.message?.includes('aborted without reason')) {
+          console.debug('Request cancelled, not retrying:', lastError.message);
+          throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+        }
+        // If it's a timeout, allow retry logic to proceed
+      }
+
       // If this is the last attempt, throw the error
       if (attempt > retryConfig.maxRetries) {
         throw lastError;
       }
-      
+
       // Check if the error is retryable
       if (!isRetryableError(lastError)) {
         throw lastError;
       }
-      
+
       // Calculate delay and retry
       const delay = calculateRetryDelay(attempt, retryConfig);
       console.warn(`Request failed (attempt ${attempt}), retrying in ${delay}ms...`, lastError);
