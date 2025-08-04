@@ -335,6 +335,9 @@ export default function Dashboard() {
             warehouse space optimization and freight cost minimization.
           </p>
 
+          {/* Database Status Component */}
+          <DatabaseStatus />
+
           {/* Network Optimization Readiness Checklist */}
           <div
             style={{
