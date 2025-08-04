@@ -503,13 +503,19 @@ export default function DataProcessor() {
                         <div className="flex items-center gap-3">
                           {getStatusIcon(file.validationStatus)}
                           {file.validationStatus === 'pending' && (
-                            <button
-                              onClick={() => validateFileData(index)}
-                              className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                            >
-                              <Zap size={14} />
-                              Validate
-                            </button>
+                            <div className="group relative">
+                              <button
+                                onClick={() => validateFileData(index)}
+                                className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                title="Click to validate this file's data structure and quality"
+                              >
+                                <Zap size={14} />
+                                Validate
+                              </button>
+                              <div className="absolute bottom-full mb-1 right-0 w-48 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                Click to validate data structure, check for missing values, and ensure column mappings are correct
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
