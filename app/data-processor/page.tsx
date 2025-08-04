@@ -407,24 +407,32 @@ export default function DataProcessor() {
               };
 
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
-                >
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
-                      <tab.icon size={24} />
+                <div key={tab.id} className="group relative">
+                  <button
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left w-full ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                  >
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
+                        <tab.icon size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">{tab.label}</h3>
+                        <p className="text-xs opacity-80 mt-1">{tab.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">{tab.label}</h3>
-                      <p className="text-xs opacity-80 mt-1">{tab.description}</p>
+                    {isActive && (
+                      <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
+                    )}
+                    <div className={`absolute top-2 left-2 w-6 h-6 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-xs font-semibold`}>
+                      {tab.step}
                     </div>
+                  </button>
+                  <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-64 bg-gray-900 text-white p-3 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                    <div className="text-sm">{tab.hoverInstruction}</div>
+                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
                   </div>
-                  {isActive && (
-                    <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
-                  )}
-                </button>
+                </div>
               );
             })}
           </div>
