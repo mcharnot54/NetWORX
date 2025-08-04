@@ -217,8 +217,9 @@ a {
     font-size: 0.9rem;
   }
 
-  .continuum-text {
-    font-size: 1.35rem;
+  .continuum-logo {
+    height: 1.5rem;
+    max-width: 100px;
   }
 }
 
