@@ -17,8 +17,8 @@ const nextConfig = {
           ignored: /node_modules/,
         };
 
-        // Disable some HMR features that don't work well in cloud
-        config.devtool = false; // Disable source maps in cloud dev
+        // Use lighter source maps for cloud environments
+        config.devtool = 'cheap-module-source-map'; // Lighter source maps for cloud
       } else {
         // Local development settings
         config.watchOptions = {
