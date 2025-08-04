@@ -263,6 +263,29 @@ const _robustFetch = async (
   throw lastError!;
 };
 
+// Main robust fetch function with final AbortError protection
+export const robustFetch = async (
+  url: string,
+  options: FetchOptions = {}
+): Promise<Response> => {
+  try {
+    return await _robustFetch(url, options);
+  } catch (error) {
+    // Final safety net for any AbortErrors that slip through
+    if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+      console.debug('Final AbortError catch:', error.message);
+      throw new FetchError(
+        `Request aborted for ${url}`,
+        undefined,
+        undefined,
+        false,
+        false
+      );
+    }
+    throw error;
+  }
+};
+
 // Convenience function for JSON requests
 export const robustFetchJson = async <T = any>(
   url: string,
