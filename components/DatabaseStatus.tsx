@@ -36,15 +36,11 @@ export default function DatabaseStatus() {
   const initializeDatabase = async () => {
     setIsInitializing(true);
     try {
-      const response = await fetch('/api/init-db', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const result = await robustPost('/api/init-db', {}, {
+        timeout: 15000,
+        retries: 2,
       });
 
-      const result = await response.json();
-      
       if (result.success) {
         console.log('✅ Database initialized successfully');
         await checkDatabaseStatus(); // Refresh status
@@ -56,7 +52,7 @@ export default function DatabaseStatus() {
       console.error('❌ Error initializing database:', error);
       setDbStatus({
         success: false,
-        error: 'Failed to initialize database'
+        error: error instanceof FetchError ? error.message : 'Failed to initialize database'
       });
     } finally {
       setIsInitializing(false);
