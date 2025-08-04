@@ -256,6 +256,18 @@ export default function TransportOptimizer() {
             </button>
           </div>
 
+          {activeTab === 'projects' && (
+            <div className="tab-content">
+              <ProjectScenarioManager
+                onSelectProject={setSelectedProject}
+                onSelectScenario={setSelectedScenario}
+                selectedProject={selectedProject}
+                selectedScenario={selectedScenario}
+                optimizationType="transport"
+              />
+            </div>
+          )}
+
           {activeTab === 'configuration' && (
             <div className="tab-content">
               <h2 className="section-title">Transport Configuration</h2>
