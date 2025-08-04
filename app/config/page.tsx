@@ -87,6 +87,21 @@ interface LoggingConfig {
   backup_count: number;
 }
 
+interface InventoryConfig {
+  target_inventory_turns: number;
+  service_level_target: number;
+  carrying_cost_rate: number;
+  ordering_cost_default: number;
+  safety_stock_factor: number;
+  abc_cutoff_a: number;
+  abc_cutoff_b: number;
+  velocity_threshold_fast: number;
+  velocity_threshold_slow: number;
+  stockout_risk_threshold: number;
+  lead_time_buffer_days: number;
+  demand_forecast_accuracy: number;
+}
+
 export default function Configuration() {
   const [activeTab, setActiveTab] = useState("warehouse");
   const [saving, setSaving] = useState(false);
@@ -166,6 +181,21 @@ export default function Configuration() {
     console_handler: true,
     max_file_size_mb: 10,
     backup_count: 5,
+  });
+
+  const [inventoryConfig, setInventoryConfig] = useState<InventoryConfig>({
+    target_inventory_turns: 8,
+    service_level_target: 0.95,
+    carrying_cost_rate: 0.25,
+    ordering_cost_default: 150,
+    safety_stock_factor: 1.5,
+    abc_cutoff_a: 0.80,
+    abc_cutoff_b: 0.95,
+    velocity_threshold_fast: 12,
+    velocity_threshold_slow: 6,
+    stockout_risk_threshold: 0.05,
+    lead_time_buffer_days: 3,
+    demand_forecast_accuracy: 0.85,
   });
 
   const handleSave = async () => {
@@ -280,6 +310,12 @@ export default function Configuration() {
                 onClick={() => setActiveTab("output")}
               >
                 Output Config
+              </button>
+              <button
+                className={`button ${activeTab === "inventory" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setActiveTab("inventory")}
+              >
+                Inventory Metrics
               </button>
               <button
                 className={`button ${activeTab === "logging" ? "button-primary" : "button-secondary"}`}
@@ -1165,6 +1201,301 @@ export default function Configuration() {
                       placeholder="NetWORX Optimization Report - {date}"
                       defaultValue="NetWORX Optimization Report - {date}\nGenerated: {timestamp}\nAnalysis Period: {start_date} to {end_date}"
                     />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "inventory" && (
+            <div>
+              <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                Inventory Metrics Configuration
+              </h3>
+              <p style={{ marginBottom: "1.5rem", color: "#6b7280" }}>
+                Configure inventory optimization parameters for turns, service levels, and ABC classification.
+              </p>
+
+              <div className="grid grid-cols-3">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Target Metrics
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Target Inventory Turns</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={inventoryConfig.target_inventory_turns}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          target_inventory_turns: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Number of times inventory is sold and replaced per year
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Service Level Target</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      className="form-input"
+                      value={inventoryConfig.service_level_target}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          service_level_target: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Probability of not running out of stock (0.0-1.0)
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Demand Forecast Accuracy</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      className="form-input"
+                      value={inventoryConfig.demand_forecast_accuracy}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          demand_forecast_accuracy: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Historical forecast accuracy rate (0.0-1.0)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Cost Parameters
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">Carrying Cost Rate</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-input"
+                      value={inventoryConfig.carrying_cost_rate}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          carrying_cost_rate: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Annual cost of holding inventory as percentage of item value
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Default Ordering Cost ($)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={inventoryConfig.ordering_cost_default}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          ordering_cost_default: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Fixed cost per purchase order
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Safety Stock Factor</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      value={inventoryConfig.safety_stock_factor}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          safety_stock_factor: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Multiplier for safety stock calculation (higher = more buffer)
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Lead Time Buffer (days)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={inventoryConfig.lead_time_buffer_days}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          lead_time_buffer_days: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Additional days added to supplier lead time
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Classification Thresholds
+                  </h4>
+                  <div className="form-group">
+                    <label className="form-label">ABC Category A Cutoff</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      className="form-input"
+                      value={inventoryConfig.abc_cutoff_a}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          abc_cutoff_a: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Cumulative revenue percentage for Category A (typically 0.80)
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">ABC Category B Cutoff</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      className="form-input"
+                      value={inventoryConfig.abc_cutoff_b}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          abc_cutoff_b: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Cumulative revenue percentage for Category B (typically 0.95)
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Fast Velocity Threshold (turns/year)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={inventoryConfig.velocity_threshold_fast}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          velocity_threshold_fast: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Minimum turns per year to classify as fast-moving
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Slow Velocity Threshold (turns/year)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={inventoryConfig.velocity_threshold_slow}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          velocity_threshold_slow: parseInt(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Maximum turns per year to classify as slow-moving
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Stock-out Risk Threshold</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      className="form-input"
+                      value={inventoryConfig.stockout_risk_threshold}
+                      onChange={(e) =>
+                        setInventoryConfig({
+                          ...inventoryConfig,
+                          stockout_risk_threshold: parseFloat(e.target.value),
+                        })
+                      }
+                    />
+                    <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                      Probability threshold for stock-out risk alerts
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card" style={{ marginTop: "1rem" }}>
+                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                  Inventory Optimization Preview
+                </h4>
+                <div className="grid grid-cols-4">
+                  <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f0f9ff", borderRadius: "0.5rem" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#3b82f6" }}>
+                      {inventoryConfig.target_inventory_turns}x
+                    </div>
+                    <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>Target Turns</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#f0fdf4", borderRadius: "0.5rem" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#10b981" }}>
+                      {(inventoryConfig.service_level_target * 100).toFixed(1)}%
+                    </div>
+                    <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>Service Level</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#fffbeb", borderRadius: "0.5rem" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#f59e0b" }}>
+                      {(inventoryConfig.carrying_cost_rate * 100).toFixed(1)}%
+                    </div>
+                    <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>Carrying Cost</div>
+                  </div>
+                  <div style={{ textAlign: "center", padding: "1rem", backgroundColor: "#fef2f2", borderRadius: "0.5rem" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#ef4444" }}>
+                      ${inventoryConfig.ordering_cost_default}
+                    </div>
+                    <div style={{ color: "#6b7280", fontSize: "0.875rem" }}>Ordering Cost</div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: "1rem", padding: "1rem", backgroundColor: "#f9fafb", borderRadius: "0.375rem" }}>
+                  <h5 style={{ marginBottom: "0.5rem", color: "#111827" }}>Configuration Impact:</h5>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    With current settings, items with <strong>{inventoryConfig.velocity_threshold_fast}+ turns/year</strong> will be classified as fast-moving
+                    and placed in prime picking locations. Category A items (top {(inventoryConfig.abc_cutoff_a * 100)}% by revenue) will receive
+                    daily monitoring and tight inventory control. The system will target <strong>{(inventoryConfig.service_level_target * 100).toFixed(1)}% service level</strong>
+                    while maintaining <strong>{inventoryConfig.target_inventory_turns}x annual turns</strong>.
                   </div>
                 </div>
               </div>

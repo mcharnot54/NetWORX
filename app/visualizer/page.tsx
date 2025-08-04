@@ -198,6 +198,40 @@ interface LogEntry {
   component: string;
 }
 
+const mockInventoryData = [
+  { sku: "ABC-001", current_stock: 1200, annual_demand: 14400, turns: 12, abc_category: "A", value: 48000 },
+  { sku: "DEF-002", current_stock: 800, annual_demand: 7200, turns: 9, abc_category: "A", value: 32000 },
+  { sku: "GHI-003", current_stock: 600, annual_demand: 4800, turns: 8, abc_category: "B", value: 18000 },
+  { sku: "JKL-004", current_stock: 400, annual_demand: 2400, turns: 6, abc_category: "B", value: 12000 },
+  { sku: "MNO-005", current_stock: 300, annual_demand: 1200, turns: 4, abc_category: "C", value: 6000 },
+  { sku: "PQR-006", current_stock: 200, annual_demand: 800, turns: 4, abc_category: "C", value: 4000 },
+  { sku: "STU-007", current_stock: 150, annual_demand: 450, turns: 3, abc_category: "C", value: 2250 },
+  { sku: "VWX-008", current_stock: 100, annual_demand: 200, turns: 2, abc_category: "C", value: 1500 },
+];
+
+const mockABCData = [
+  { category: "A", items: 2, percentage: 65, cumulative: 65, color: "#dc2626" },
+  { category: "B", items: 2, percentage: 25, cumulative: 90, color: "#d97706" },
+  { category: "C", items: 4, percentage: 10, cumulative: 100, color: "#059669" },
+];
+
+const mockVelocityData = [
+  { velocity: "Fast (>10 turns)", items: 2, percentage: 25, accessibility: 95 },
+  { velocity: "Medium (6-10 turns)", items: 3, percentage: 37.5, accessibility: 75 },
+  { velocity: "Slow (<6 turns)", items: 3, percentage: 37.5, accessibility: 50 },
+];
+
+const mockParetoData = mockInventoryData
+  .sort((a, b) => b.value - a.value)
+  .map((item, index, arr) => {
+    const totalValue = arr.reduce((sum, i) => sum + i.value, 0);
+    const cumulativeValue = arr.slice(0, index + 1).reduce((sum, i) => sum + i.value, 0);
+    return {
+      ...item,
+      cumulative_percentage: (cumulativeValue / totalValue) * 100,
+    };
+  });
+
 export default function Visualizer() {
   const {
     transportResults,
@@ -1231,6 +1265,34 @@ export default function Visualizer() {
             </div>
           </div>
 
+          <div style={{ marginBottom: "1.5rem" }}>
+            <div
+              style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}
+            >
+              <button
+                className={`button ${selectedChart === "warehouse" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setSelectedChart("warehouse")}
+              >
+                Warehouse Analytics
+              </button>
+              <button
+                className={`button ${selectedChart === "transport" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setSelectedChart("transport")}
+              >
+                Transport Analytics
+              </button>
+              <button
+                className={`button ${selectedChart === "costs" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setSelectedChart("costs")}
+              >
+                Cost Breakdown
+              </button>
+              <button
+                className={`button ${selectedChart === "inventory" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setSelectedChart("inventory")}
+              >
+                Inventory Analytics
+              </button>
           {/* Tab Navigation */}
           <div
             style={{ borderBottom: "2px solid #e5e7eb", marginBottom: "2rem" }}
@@ -2413,6 +2475,83 @@ export default function Visualizer() {
                       </div>
                     </div>
 
+          {selectedChart === "inventory" && (
+            <div>
+              <div className="grid grid-cols-2" style={{ marginBottom: "1.5rem" }}>
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Pareto Chart (80/20 Analysis)
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mockParetoData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="sku" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="value"
+                        fill="#3b82f6"
+                        name="Value ($)"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="cumulative_percentage"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        name="Cumulative %"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    ABC Classification Distribution
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={mockABCData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ category, percentage }) =>
+                          `Category ${category}: ${percentage}%`
+                        }
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="percentage"
+                      >
+                        {mockABCData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2" style={{ marginBottom: "1.5rem" }}>
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Turns Analysis
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mockInventoryData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="sku" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="turns"
+                        fill="#10b981"
+                        name="Turns per Year"
                     <div
                       style={{
                         textAlign: "center",
@@ -5784,6 +5923,93 @@ export default function Visualizer() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+
+                <div className="card">
+                  <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Velocity Slotting Plan
+                  </h3>
+                  <div style={{ padding: "1rem" }}>
+                    {mockVelocityData.map((velocity, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "1rem",
+                          padding: "1rem",
+                          backgroundColor: "#f9fafb",
+                          borderRadius: "0.375rem",
+                          border: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: "500", marginBottom: "0.25rem" }}>
+                            {velocity.velocity}
+                          </div>
+                          <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                            {velocity.items} items ({velocity.percentage}%)
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#3b82f6" }}>
+                            {velocity.accessibility}%
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            Accessibility
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3">
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    ABC Category Breakdown
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {mockABCData.map((category) => (
+                      <div
+                        key={category.category}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          padding: "0.75rem",
+                          backgroundColor: "#f9fafb",
+                          borderRadius: "0.375rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            backgroundColor: category.color,
+                            borderRadius: "0.375rem",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontWeight: "bold",
+                            fontSize: "1.25rem",
+                          }}
+                        >
+                          {category.category}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: "500" }}>
+                            {category.items} Items
+                          </div>
+                          <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                            {category.percentage}% of value
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
               </div>
 
               {/* Optimizer Results Integration */}
@@ -5911,6 +6137,145 @@ export default function Visualizer() {
 
                 <div className="card">
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Velocity Distribution
+                  </h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={mockVelocityData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="items"
+                      >
+                        {mockVelocityData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              index === 0
+                                ? "#10b981"
+                                : index === 1
+                                ? "#f59e0b"
+                                : "#6b7280"
+                            }
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Slotting Recommendations
+                  </h4>
+                  <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <strong style={{ color: "#10b981" }}>Fast Movers:</strong>
+                      <br />
+                      • Front zone (A1-A3)
+                      <br />
+                      • Waist level placement
+                      <br />
+                      • Near shipping docks
+                    </div>
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <strong style={{ color: "#f59e0b" }}>Medium Movers:</strong>
+                      <br />
+                      • Standard zone (B1-B5)
+                      <br />
+                      • Mid-level racks
+                      <br />
+                      • Moderate accessibility
+                    </div>
+                    <div>
+                      <strong style={{ color: "#6b7280" }}>Slow Movers:</strong>
+                      <br />
+                      • Reserve zone (C1-C8)
+                      <br />
+                      • High/low racks acceptable
+                      <br />
+                      • Bulk storage areas
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="card" style={{ marginTop: "1.5rem" }}>
+            <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
+              Key Performance Indicators
+            </h3>
+            <div className="grid grid-cols-3">
+              <div style={{ textAlign: "center", padding: "1rem" }}>
+                <div
+                  style={{
+                    fontSize: "2.5rem",
+                    fontWeight: "bold",
+                    color: "#3b82f6",
+                  }}
+                >
+                  23.5%
+                </div>
+                <div style={{ color: "#6b7280" }}>Cost Reduction</div>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "#10b981",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  ↑ 5.2% vs last period
+                </div>
+              </div>
+              <div style={{ textAlign: "center", padding: "1rem" }}>
+                <div
+                  style={{
+                    fontSize: "2.5rem",
+                    fontWeight: "bold",
+                    color: "#10b981",
+                  }}
+                >
+                  87.2%
+                </div>
+                <div style={{ color: "#6b7280" }}>Average Efficiency</div>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "#10b981",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  ↑ 3.8% vs last period
+                </div>
+              </div>
+              <div style={{ textAlign: "center", padding: "1rem" }}>
+                <div
+                  style={{
+                    fontSize: "2.5rem",
+                    fontWeight: "bold",
+                    color: "#f59e0b",
+                  }}
+                >
+                  42.1
+                </div>
+                <div style={{ color: "#6b7280" }}>Tons CO₂ Saved</div>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "#10b981",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  ↑ 12.3% vs last period
+                </div>
+              </div>
+            </div>
+          </div>
                     Inventory Optimization Impact
                   </h4>
                   {inventoryResults ? (

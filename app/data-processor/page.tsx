@@ -388,6 +388,139 @@ export default function DataProcessor() {
       ship_to_address: FIELD_SYNONYMS.ship_to_address,
       required_date: FIELD_SYNONYMS.scheduled_delivery_date_time,
     },
+    inventory: {
+      sku_id: [
+        "sku_id",
+        "sku",
+        "item_id",
+        "product_id",
+        "part_number",
+        "item_number",
+        "material_number",
+      ],
+      current_stock: [
+        "current_stock",
+        "on_hand",
+        "inventory_level",
+        "stock_level",
+        "available_qty",
+        "current_inventory",
+        "qty_on_hand",
+        "stock_quantity",
+      ],
+      annual_demand: [
+        "annual_demand",
+        "yearly_demand",
+        "annual_usage",
+        "demand_qty",
+        "consumption",
+        "annual_sales_units",
+      ],
+      unit_cost: [
+        "unit_cost",
+        "cost_per_unit",
+        "item_cost",
+        "standard_cost",
+        "avg_cost",
+        "price",
+      ],
+      lead_time_days: [
+        "lead_time_days",
+        "lead_time",
+        "supplier_lead_time",
+        "delivery_time",
+        "procurement_lead_time",
+      ],
+      safety_stock: [
+        "safety_stock",
+        "buffer_stock",
+        "safety_inventory",
+        "minimum_stock",
+        "reserve_stock",
+      ],
+      warehouse_location: [
+        "warehouse_location",
+        "location",
+        "warehouse",
+        "site",
+        "facility",
+        "storage_location",
+      ],
+    },
+    sales_data: {
+      sku_id: [
+        "sku_id",
+        "sku",
+        "item_id",
+        "product_id",
+        "part_number",
+        "material_number",
+      ],
+      sales_units: [
+        "sales_units",
+        "units_sold",
+        "quantity_sold",
+        "sold_qty",
+        "sales_quantity",
+        "units",
+      ],
+      sales_date: [
+        "sales_date",
+        "date",
+        "transaction_date",
+        "order_date",
+        "ship_date",
+      ],
+      customer_location: [
+        "customer_location",
+        "ship_to_location",
+        "destination",
+        "customer_address",
+        "delivery_location",
+      ],
+      revenue: [
+        "revenue",
+        "sales_amount",
+        "total_sales",
+        "net_sales",
+        "gross_sales",
+      ],
+    },
+    shipping_data: {
+      sku_id: [
+        "sku_id",
+        "sku",
+        "item_id",
+        "product_id",
+        "part_number",
+      ],
+      destination: [
+        "destination",
+        "ship_to",
+        "delivery_location",
+        "customer_location",
+        "shipping_address",
+      ],
+      shipping_units: [
+        "shipping_units",
+        "shipped_qty",
+        "quantity_shipped",
+        "units_shipped",
+        "delivered_qty",
+      ],
+      shipping_date: [
+        "shipping_date",
+        "ship_date",
+        "delivery_date",
+        "dispatch_date",
+      ],
+      freight_cost: [
+        "freight_cost",
+        "shipping_cost",
+        "transportation_cost",
+        "delivery_cost",
+      ],
+    },
   };
 
   // Comprehensive validation rules for business data types
@@ -579,6 +712,40 @@ export default function DataProcessor() {
         latitude: [-90, 90],
         longitude: [-180, 180],
       },
+    },
+    inventory: {
+      requiredColumns: [
+        "sku_id",
+        "current_stock",
+        "annual_demand",
+        "unit_cost",
+      ],
+      numericColumns: [
+        "current_stock",
+        "annual_demand",
+        "unit_cost",
+        "lead_time_days",
+        "safety_stock",
+      ],
+      positiveColumns: [
+        "current_stock",
+        "annual_demand",
+        "unit_cost",
+        "lead_time_days",
+      ],
+      stringColumns: ["sku_id", "warehouse_location"],
+    },
+    sales_data: {
+      requiredColumns: ["sku_id", "sales_units", "sales_date"],
+      numericColumns: ["sales_units", "revenue"],
+      positiveColumns: ["sales_units", "revenue"],
+      stringColumns: ["sku_id", "customer_location"],
+    },
+    shipping_data: {
+      requiredColumns: ["sku_id", "destination", "shipping_units"],
+      numericColumns: ["shipping_units", "freight_cost"],
+      positiveColumns: ["shipping_units", "freight_cost"],
+      stringColumns: ["sku_id", "destination"],
     },
   };
 
@@ -2423,6 +2590,19 @@ export default function DataProcessor() {
       }
     });
 
+
+  const autoDetectDataType = (filename: string): string => {
+    const name = filename.toLowerCase();
+    if (name.includes("forecast") || name.includes("demand")) return "forecast";
+    if (name.includes("sku") || name.includes("product")) return "sku";
+    if (name.includes("network") || name.includes("location")) return "network";
+    if (name.includes("inventory") || name.includes("stock") || name.includes("on_hand")) return "inventory";
+    if (name.includes("sales") || name.includes("sold") || name.includes("order")) return "sales_data";
+    if (name.includes("shipping") || name.includes("shipment") || name.includes("delivery")) return "shipping_data";
+    if (name.includes("cost") || name.includes("rate")) return "cost";
+    if (name.includes("capacity") || name.includes("warehouse"))
+      return "capacity";
+    return "unknown";
     // Store processed data in context for optimizers
     setProcessedData(organizedData);
 
@@ -3250,6 +3430,114 @@ export default function DataProcessor() {
                     Coordinate Ranges: lat(-90,90), lng(-180,180)
                   </div>
                 </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Inventory Validation
+                  </h4>
+                  <div
+                    style={{
+                      fontSize: "0.875rem",
+                      marginBottom: "1rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    Required: sku_id, current_stock, annual_demand, unit_cost
+                    <br />
+                    Numeric: current_stock, annual_demand, unit_cost, lead_time_days
+                    <br />
+                    Positive: all numeric fields
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Stock Level Validation
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Annual Demand Check
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Cost Validation
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Lead Time Range Check
+                    </label>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
+                    Sales Data Validation
+                  </h4>
+                  <div
+                    style={{
+                      fontSize: "0.875rem",
+                      marginBottom: "1rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    Required: sku_id, sales_units, sales_date
+                    <br />
+                    Numeric: sales_units, revenue
+                    <br />
+                    Positive: sales_units, revenue
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Sales Volume Validation
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Date Format Check
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{ marginRight: "0.5rem" }}
+                      />
+                      Revenue Consistency Check
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -3549,6 +3837,67 @@ export default function DataProcessor() {
                       <br />
                       longitude: {columnMappings.network.longitude.join(", ")}
                     </div>
+
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Inventory Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      sku_id: {columnMappings.inventory.sku_id.join(", ")}
+                      <br />
+                      current_stock: {columnMappings.inventory.current_stock.join(", ")}
+                      <br />
+                      annual_demand: {columnMappings.inventory.annual_demand.join(", ")}
+                      <br />
+                      unit_cost: {columnMappings.inventory.unit_cost.join(", ")}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h5
+                      style={{
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Sales Data Mappings:
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontFamily: "monospace",
+                        backgroundColor: "#f9fafb",
+                        padding: "0.5rem",
+                        borderRadius: "0.25rem",
+                      }}
+                    >
+                      sku_id: {columnMappings.sales_data.sku_id.join(", ")}
+                      <br />
+                      sales_units: {columnMappings.sales_data.sales_units.join(", ")}
+                      <br />
+                      customer_location: {columnMappings.sales_data.customer_location.join(", ")}
+                    </div>
+                  </div>
+                </div>
 
                   </div>
                   <div style={{ color: "#6b7280" }}>Validation Status</div>
