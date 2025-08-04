@@ -319,37 +319,29 @@ export default function DataProcessor() {
                 id: 'upload',
                 label: 'File Upload',
                 description: 'Upload and analyze data files',
-                hoverInstruction: 'Step 2: Upload your Excel (.xlsx, .xls) or CSV files. Files are automatically analyzed and template-matched for validation.',
                 icon: Upload,
-                color: 'blue',
-                step: '2'
+                color: 'blue'
               },
               {
                 id: 'validation',
                 label: 'Data Validation',
                 description: 'Review validation results',
-                hoverInstruction: 'Step 3: Review data quality metrics, validation errors, and column mappings. Fix any issues before processing.',
                 icon: Shield,
-                color: 'green',
-                step: '3'
+                color: 'green'
               },
               {
                 id: 'templates',
                 label: 'Data Templates',
                 description: 'View supported data formats',
-                hoverInstruction: 'Reference: View all supported data formats and required column structures for optimal file preparation.',
                 icon: Settings,
-                color: 'purple',
-                step: 'ℹ️'
+                color: 'purple'
               },
               {
                 id: 'results',
                 label: 'Results',
                 description: 'View processed data summary',
-                hoverInstruction: 'Step 4: View final processed data summary and proceed to optimization modules (Capacity, Transport, Warehouse).',
                 icon: BarChart3,
-                color: 'orange',
-                step: '4'
+                color: 'orange'
               }
             ].map(tab => {
               const isActive = activeTab === tab.id;
@@ -369,36 +361,25 @@ export default function DataProcessor() {
               };
 
               return (
-                <div key={tab.id} className="group relative">
-                  <button
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`relative p-6 rounded-xl border-2 transition-all duration-200 text-left w-full ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
-                  >
-                    <div className="flex flex-col items-center text-center space-y-3">
-                      <div className={`p-3 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
-                        <tab.icon size={24} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm">{tab.label}</h3>
-                        <p className="text-xs opacity-80 mt-1">{tab.description}</p>
-                      </div>
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative p-8 rounded-xl border-2 transition-all duration-200 text-left w-full h-40 ${colorClasses[tab.color as keyof typeof colorClasses]} ${isActive ? 'transform scale-105' : 'hover:transform hover:scale-105'}`}
+                  title={`Click to switch to ${tab.label} section`}
+                >
+                  <div className="flex flex-col items-center text-center space-y-4 h-full justify-center">
+                    <div className={`p-4 rounded-full ${isActive ? `bg-${tab.color}-100` : 'bg-gray-100'}`}>
+                      <tab.icon size={32} />
                     </div>
-                    {isActive && (
-                      <div className={`absolute top-2 right-2 w-3 h-3 bg-${tab.color}-500 rounded-full`}></div>
-                    )}
-                  </button>
-
-                  {/* Step indicator as separate positioned element */}
-                  <div className={`absolute -top-2 -left-2 w-6 h-6 bg-white border-2 border-${tab.color}-300 rounded-full flex items-center justify-center text-${tab.color}-600 text-xs font-semibold shadow-md z-10`}>
-                    {tab.step}
+                    <div>
+                      <h3 className="font-semibold text-lg">{tab.label}</h3>
+                      <p className="text-sm opacity-80 mt-1">{tab.description}</p>
+                    </div>
                   </div>
-
-                  {/* Tooltip positioned better */}
-                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-64 bg-gray-900 text-white p-3 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                    <div className="text-sm leading-relaxed">{tab.hoverInstruction}</div>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                  </div>
-                </div>
+                  {isActive && (
+                    <div className={`absolute top-3 right-3 w-4 h-4 bg-${tab.color}-500 rounded-full`}></div>
+                  )}
+                </button>
               );
             })}
           </div>
