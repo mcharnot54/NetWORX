@@ -1,52 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Mock data for development - replace with actual database when ready
-const mockScenarios = [
-  {
-    id: 1,
-    name: "Chicago Distribution Optimization",
-    description: "Optimize warehouse space and transportation costs for Chicago hub",
-    scenario_type: "combined",
-    status: "draft",
-    created_at: new Date("2024-01-15").toISOString(),
-    updated_at: new Date("2024-01-15").toISOString(),
-    created_by: "demo_user",
-    metadata: {
-      created_via: "web_interface",
-      initial_configuration: {}
-    }
-  },
-  {
-    id: 2,
-    name: "West Coast Transport Routes",
-    description: "Transportation network optimization for west coast operations",
-    scenario_type: "transport",
-    status: "completed",
-    created_at: new Date("2024-01-10").toISOString(),
-    updated_at: new Date("2024-01-12").toISOString(),
-    created_by: "demo_user",
-    metadata: {
-      created_via: "web_interface",
-      initial_configuration: {}
-    }
-  },
-  {
-    id: 3,
-    name: "Northeast Warehouse Capacity",
-    description: "Warehouse space optimization for northeast facilities",
-    scenario_type: "warehouse",
-    status: "running",
-    created_at: new Date("2024-01-08").toISOString(),
-    updated_at: new Date("2024-01-14").toISOString(),
-    created_by: "demo_user",
-    metadata: {
-      created_via: "web_interface",
-      initial_configuration: {}
-    }
-  }
-];
-
-let nextId = 4;
+import { ScenarioService } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
