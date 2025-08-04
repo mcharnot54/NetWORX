@@ -6,18 +6,34 @@ const nextConfig = {
   // Improve hot reloading in cloud environments
   webpack: (config, { dev, isServer, webpack }) => {
     if (dev && !isServer) {
-      // Improve HMR reliability in cloud environments
-      config.watchOptions = {
-        poll: 2000,
-        aggregateTimeout: 500,
-        ignored: /node_modules/,
-      };
+      // Check if we're in a cloud environment (Fly.io in this case)
+      const isCloudEnvironment = process.env.FLY_APP_NAME || process.env.VERCEL || process.env.NETLIFY;
+
+      if (isCloudEnvironment) {
+        // More conservative settings for cloud environments
+        config.watchOptions = {
+          poll: 3000, // Slower polling for cloud
+          aggregateTimeout: 1000,
+          ignored: /node_modules/,
+        };
+
+        // Disable some HMR features that don't work well in cloud
+        config.devtool = false; // Disable source maps in cloud dev
+      } else {
+        // Local development settings
+        config.watchOptions = {
+          poll: 1000,
+          aggregateTimeout: 300,
+          ignored: /node_modules/,
+        };
+      }
 
       // Add HMR error handling
       config.plugins = config.plugins || [];
       config.plugins.push(
         new webpack.DefinePlugin({
-          __DEV_HMR_TIMEOUT__: JSON.stringify(10000),
+          __DEV_HMR_TIMEOUT__: JSON.stringify(isCloudEnvironment ? 15000 : 5000),
+          __IS_CLOUD_ENV__: JSON.stringify(!!isCloudEnvironment),
         })
       );
 
@@ -36,7 +52,7 @@ const nextConfig = {
             name: 'vendors',
             priority: -10,
             chunks: 'all',
-            maxSize: 244000, // Smaller chunks for better loading
+            maxSize: isCloudEnvironment ? 200000 : 244000, // Smaller chunks for cloud
           },
         },
       };
