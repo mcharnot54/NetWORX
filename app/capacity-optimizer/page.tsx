@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Navigation } from '@/components/Navigation';
+import Navigation from '@/components/Navigation';
 import ProjectScenarioManager from '@/components/ProjectScenarioManager';
 
 interface GrowthForecast {
