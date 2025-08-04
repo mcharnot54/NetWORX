@@ -40,6 +40,9 @@ interface ProjectConfiguration {
 }
 
 export default function CapacityOptimizer() {
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedScenario, setSelectedScenario] = useState<any>(null);
+
   const [projectConfig, setProjectConfig] = useState<ProjectConfiguration>({
     default_lease_term_years: 7,
     default_utilization_rate: 80,
@@ -49,7 +52,7 @@ export default function CapacityOptimizer() {
 
   const [growthForecasts, setGrowthForecasts] = useState<GrowthForecast[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [activeTab, setActiveTab] = useState<'config' | 'growth' | 'facilities' | 'analysis'>('config');
+  const [activeTab, setActiveTab] = useState<'projects' | 'config' | 'growth' | 'facilities' | 'analysis'>('projects');
 
   // Initialize default growth forecasts
   useEffect(() => {
