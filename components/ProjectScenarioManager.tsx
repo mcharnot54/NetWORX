@@ -80,41 +80,67 @@ export default function ProjectScenarioManager({
     try {
       setLoading(true);
 
-      // Fetch projects from API
-      const projectsResponse = await fetch('/api/projects');
+      // Fetch projects from API with timeout and error handling
+      const projectsResponse = await fetch('/api/projects', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!projectsResponse.ok) {
+        throw new Error(`HTTP error! status: ${projectsResponse.status}`);
+      }
+
       const projectsResult = await projectsResponse.json();
 
       if (!projectsResult.success) {
-        throw new Error(projectsResult.error);
+        throw new Error(projectsResult.error || 'Failed to fetch projects');
       }
 
-      const projects = projectsResult.data;
+      const projects = projectsResult.data || [];
 
-      // Fetch scenarios for each project
+      // Fetch scenarios for each project with error handling
       const scenariosMap: { [key: number]: Scenario[] } = {};
 
       for (const project of projects) {
-        const scenariosResponse = await fetch(`/api/scenarios?project_id=${project.id}`);
-        const scenariosResult = await scenariosResponse.json();
+        try {
+          const scenariosResponse = await fetch(`/api/scenarios?project_id=${project.id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (scenariosResult.success) {
-          // Transform database scenarios to match component interface
-          scenariosMap[project.id] = scenariosResult.data.map((scenario: any) => ({
-            id: scenario.id,
-            project_id: scenario.project_id || project.id,
-            name: scenario.name,
-            scenario_number: scenario.metadata?.scenario_number || 1,
-            number_of_nodes: scenario.metadata?.number_of_nodes || 3,
-            cities: scenario.metadata?.cities || [],
-            description: scenario.description,
-            created_at: scenario.created_at,
-            updated_at: scenario.updated_at,
-            status: scenario.metadata?.status || scenario.status || 'draft',
-            capacity_analysis_completed: scenario.metadata?.capacity_analysis_completed || false,
-            transport_optimization_completed: scenario.metadata?.transport_optimization_completed || false,
-            warehouse_optimization_completed: scenario.metadata?.warehouse_optimization_completed || false
-          }));
-        } else {
+          if (scenariosResponse.ok) {
+            const scenariosResult = await scenariosResponse.json();
+
+            if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
+              // Transform database scenarios to match component interface
+              scenariosMap[project.id] = scenariosResult.data.map((scenario: any) => ({
+                id: scenario.id,
+                project_id: scenario.project_id || project.id,
+                name: scenario.name,
+                scenario_number: scenario.metadata?.scenario_number || 1,
+                number_of_nodes: scenario.metadata?.number_of_nodes || 3,
+                cities: scenario.metadata?.cities || [],
+                description: scenario.description,
+                created_at: scenario.created_at,
+                updated_at: scenario.updated_at,
+                status: scenario.metadata?.status || scenario.status || 'draft',
+                capacity_analysis_completed: scenario.metadata?.capacity_analysis_completed || false,
+                transport_optimization_completed: scenario.metadata?.transport_optimization_completed || false,
+                warehouse_optimization_completed: scenario.metadata?.warehouse_optimization_completed || false
+              }));
+            } else {
+              scenariosMap[project.id] = [];
+            }
+          } else {
+            console.warn(`Failed to fetch scenarios for project ${project.id}`);
+            scenariosMap[project.id] = [];
+          }
+        } catch (scenarioError) {
+          console.warn(`Error fetching scenarios for project ${project.id}:`, scenarioError);
           scenariosMap[project.id] = [];
         }
       }
@@ -134,6 +160,9 @@ export default function ProjectScenarioManager({
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
+      // Fallback to empty state instead of crashing
+      setProjects([]);
+      setScenarios({});
     } finally {
       setLoading(false);
     }
