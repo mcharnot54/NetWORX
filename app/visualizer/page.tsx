@@ -160,6 +160,12 @@ export default function Visualizer() {
               >
                 Cost Breakdown
               </button>
+              <button
+                className={`button ${selectedChart === "inventory" ? "button-primary" : "button-secondary"}`}
+                onClick={() => setSelectedChart("inventory")}
+              >
+                Inventory Analytics
+              </button>
             </div>
           </div>
 
