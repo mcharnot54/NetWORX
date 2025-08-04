@@ -23,7 +23,7 @@ export default function Dashboard() {
           </p>
 
           <div className="grid grid-cols-3">
-            <div className="card">
+            <Link href="/data-processor" className="card dashboard-card">
               <div
                 style={{
                   display: "flex",
@@ -39,9 +39,9 @@ export default function Dashboard() {
                 Upload and process Excel/CSV files with comprehensive data
                 validation and conversion utilities.
               </p>
-            </div>
+            </Link>
 
-            <div className="card">
+            <Link href="/warehouse-optimizer" className="card dashboard-card">
               <div
                 style={{
                   display: "flex",
@@ -59,9 +59,29 @@ export default function Dashboard() {
                 Optimize warehouse space allocation and capacity planning with
                 advanced algorithms.
               </p>
-            </div>
+            </Link>
 
-            <div className="card">
+            <Link href="/inventory-optimizer" className="card dashboard-card">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                <Package size={24} style={{ color: "#3b82f6" }} />
+                <h3 style={{ margin: 0, color: "#111827" }}>
+                  Inventory Optimizer
+                </h3>
+              </div>
+              <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
+                Validate inventory levels, aggregate SKU volumes, and optimize
+                warehouse stocking with detailed CSV reports.
+              </p>
+            </Link>
+
+            <Link href="/transport-optimizer" className="card dashboard-card">
               <div
                 style={{
                   display: "flex",
@@ -79,9 +99,9 @@ export default function Dashboard() {
                 Minimize transportation costs and optimize routing strategies
                 across your network.
               </p>
-            </div>
+            </Link>
 
-            <div className="card">
+            <Link href="/visualizer" className="card dashboard-card">
               <div
                 style={{
                   display: "flex",
@@ -99,9 +119,9 @@ export default function Dashboard() {
                 Generate comprehensive reports and interactive visualizations of
                 optimization results.
               </p>
-            </div>
+            </Link>
 
-            <div className="card">
+            <Link href="/config" className="card dashboard-card">
               <div
                 style={{
                   display: "flex",
@@ -117,25 +137,7 @@ export default function Dashboard() {
                 Manage system settings, validation schemas, and output
                 templates.
               </p>
-            </div>
-
-            <div className="card">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  marginBottom: "1rem",
-                }}
-              >
-                <Activity size={24} style={{ color: "#3b82f6" }} />
-                <h3 style={{ margin: 0, color: "#111827" }}>System Status</h3>
-              </div>
-              <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
-                Monitor system performance and view processing logs and
-                activity.
-              </p>
-            </div>
+            </Link>
           </div>
         </div>
       </main>
