@@ -183,6 +183,21 @@ export default function Configuration() {
     backup_count: 5,
   });
 
+  const [inventoryConfig, setInventoryConfig] = useState<InventoryConfig>({
+    target_inventory_turns: 8,
+    service_level_target: 0.95,
+    carrying_cost_rate: 0.25,
+    ordering_cost_default: 150,
+    safety_stock_factor: 1.5,
+    abc_cutoff_a: 0.80,
+    abc_cutoff_b: 0.95,
+    velocity_threshold_fast: 12,
+    velocity_threshold_slow: 6,
+    stockout_risk_threshold: 0.05,
+    lead_time_buffer_days: 3,
+    demand_forecast_accuracy: 0.85,
+  });
+
   const handleSave = async () => {
     setSaving(true);
     // Simulate API call to save configuration
