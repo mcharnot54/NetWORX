@@ -300,11 +300,16 @@ a {
 
   .powered-by {
     align-items: center;
+    gap: 0.5rem;
+  }
+
+  .powered-by-text {
+    font-size: 0.75rem;
   }
 
   .continuum-logo {
     height: 1.5rem;
-    max-width: 120px;
+    max-width: 150px;
   }
 
   .content-area {
