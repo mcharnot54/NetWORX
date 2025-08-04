@@ -189,16 +189,51 @@ export default function ProjectScenarioManager({
       const existingScenarios = scenarios[targetProjectId] || [];
       const nextScenarioNumber = Math.max(...existingScenarios.map(s => s.scenario_number), 0) + 1;
 
-      const newScenarioData: Scenario = {
-        id: Math.max(...Object.values(scenarios).flat().map(s => s.id), 0) + 1,
+      const scenarioData = {
         project_id: targetProjectId,
         name: generateScenarioName(project.name, nextScenarioNumber, newScenario.number_of_nodes, newScenario.cities),
+        description: newScenario.description,
         scenario_number: nextScenarioNumber,
         number_of_nodes: newScenario.number_of_nodes,
         cities: newScenario.cities.filter(city => city.trim() !== ''),
-        description: newScenario.description,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        scenario_type: 'combined' as const,
+        created_by: 'current_user',
+        metadata: {
+          project_id: targetProjectId,
+          scenario_number: nextScenarioNumber,
+          number_of_nodes: newScenario.number_of_nodes,
+          cities: newScenario.cities.filter(city => city.trim() !== ''),
+          status: 'draft',
+          capacity_analysis_completed: false,
+          transport_optimization_completed: false,
+          warehouse_optimization_completed: false
+        }
+      };
+
+      const response = await fetch('/api/scenarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scenarioData),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      const newScenarioData: Scenario = {
+        id: result.data.id,
+        project_id: targetProjectId,
+        name: result.data.name,
+        scenario_number: nextScenarioNumber,
+        number_of_nodes: newScenario.number_of_nodes,
+        cities: newScenario.cities.filter(city => city.trim() !== ''),
+        description: result.data.description,
+        created_at: result.data.created_at,
+        updated_at: result.data.updated_at,
         status: 'draft',
         capacity_analysis_completed: false,
         transport_optimization_completed: false,
@@ -221,6 +256,7 @@ export default function ProjectScenarioManager({
       onSelectScenario(newScenarioData);
     } catch (error) {
       console.error('Error creating scenario:', error);
+      alert('Failed to create scenario. Please try again.');
     }
   };
 
