@@ -87,6 +87,21 @@ interface LoggingConfig {
   backup_count: number;
 }
 
+interface InventoryConfig {
+  target_inventory_turns: number;
+  service_level_target: number;
+  carrying_cost_rate: number;
+  ordering_cost_default: number;
+  safety_stock_factor: number;
+  abc_cutoff_a: number;
+  abc_cutoff_b: number;
+  velocity_threshold_fast: number;
+  velocity_threshold_slow: number;
+  stockout_risk_threshold: number;
+  lead_time_buffer_days: number;
+  demand_forecast_accuracy: number;
+}
+
 export default function Configuration() {
   const [activeTab, setActiveTab] = useState("warehouse");
   const [saving, setSaving] = useState(false);
