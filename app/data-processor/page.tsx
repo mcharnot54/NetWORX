@@ -428,7 +428,7 @@ export default function DataProcessor() {
                       {tab.step}
                     </div>
                   </button>
-                  <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-64 bg-gray-900 text-white p-3 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                  <div className="absolute top-full mt-3 left-1/2 transform -translate-x-1/2 w-72 bg-gray-900 text-white p-4 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
                     <div className="text-sm">{tab.hoverInstruction}</div>
                     <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
                   </div>
