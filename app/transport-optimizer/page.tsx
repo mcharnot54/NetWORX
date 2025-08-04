@@ -1,203 +1,206 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Navigation from "@/components/Navigation";
-import ScenarioManager from "@/components/ScenarioManager";
-import { useData } from "@/context/DataContext";
-import {
-  Truck,
-  Route,
-  DollarSign,
-  Clock,
-  Save,
-  Database,
-  TrendingUp,
-  Settings,
-  MapPin,
-  Zap,
-  BarChart3,
-  AlertTriangle,
-  CheckCircle,
-  Download,
-  Upload,
-  Play,
-  Pause,
-} from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Navigation } from '@/components/Navigation';
 
-interface Scenario {
-  id: number;
-  name: string;
-  description?: string;
-  scenario_type: 'warehouse' | 'transport' | 'combined';
-  status: 'draft' | 'running' | 'completed' | 'failed';
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
-  metadata: any;
+interface TransportScenario {
+  id?: number;
+  scenario_type: 'lowest_miles_zip' | 'lowest_miles_city' | 'lowest_miles_state' | 
+                 'lowest_cost_zip' | 'lowest_cost_city' | 'lowest_cost_state' |
+                 'best_service_parcel' | 'best_service_ltl' | 'best_service_tl' | 'blended_service';
+  scenario_name: string;
+  total_miles?: number;
+  total_cost?: number;
+  service_score?: number;
+  route_details?: any;
+  volume_allocations?: any;
+  generated: boolean;
 }
 
-interface TransportRoute {
-  id?: number;
-  route_name?: string;
+interface TransportConfiguration {
+  outbound_weight_percentage: number;
+  inbound_weight_percentage: number;
+  service_zone_weighting: {
+    parcel_zone_weight: number;
+    ltl_zone_weight: number;
+    tl_daily_miles_weight: number;
+  };
+  optimization_criteria: {
+    cost_weight: number;
+    service_weight: number;
+    distance_weight: number;
+  };
+}
+
+interface FacilityAllocation {
+  facility_id: string;
+  facility_name: string;
+  total_volume_units: number;
+  outbound_volume: number;
+  inbound_volume: number;
+  capacity_utilization: number;
+}
+
+interface RouteDetail {
   origin: string;
   destination: string;
-  distance?: number;
-  base_freight_cost?: number;
-  fuel_cost_per_km?: number;
-  transit_time?: number;
-  vehicle_type: 'truck' | 'rail' | 'air' | 'sea';
-  capacity?: number;
-}
-
-interface TransportationConfig {
-  facilities: {
-    max_capacity_per_facility: number;
-    fixed_cost_per_facility: number;
-    cost_per_mile: number;
-    max_distance_miles: number;
-    service_level_requirement: number;
-    required_facilities: number;
-    max_facilities: number;
-    mandatory_facilities: string[];
-  };
-  optimization: {
-    solver: string;
-    time_limit_seconds: number;
-    gap_tolerance: number;
-    threads: number;
-  };
-  weights: {
-    cost: number;
-    service_level: number;
-    distance: number;
-    capacity_utilization: number;
-  };
-}
-
-interface CostMatrixRow {
-  facility: string;
-  destinations: { [key: string]: number };
-}
-
-interface DemandData {
-  destination: string;
-  demand: number;
-  priority: number;
+  distance_miles: number;
+  cost_per_mile: number;
+  service_zone: string;
+  volume_units: number;
+  transit_time_hours: number;
 }
 
 export default function TransportOptimizer() {
-  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
-  const { getTransportationData, setTransportResults } = useData();
-  const [activeTab, setActiveTab] = useState("scenarios");
+  const [activeTab, setActiveTab] = useState<'configuration' | 'scenarios' | 'generation' | 'analysis' | 'results'>('configuration');
   
-  const [routes, setRoutes] = useState<TransportRoute[]>([
-    {
-      route_name: "Chicago-NYC Route",
-      origin: "Chicago, IL",
-      destination: "New York, NY",
-      distance: 790,
-      base_freight_cost: 2.5,
-      fuel_cost_per_km: 0.15,
-      transit_time: 18,
-      vehicle_type: "truck",
-      capacity: 26000,
+  const [configuration, setConfiguration] = useState<TransportConfiguration>({
+    outbound_weight_percentage: 50,
+    inbound_weight_percentage: 50,
+    service_zone_weighting: {
+      parcel_zone_weight: 40,
+      ltl_zone_weight: 35,
+      tl_daily_miles_weight: 25
     },
-  ]);
-
-  const [config, setConfig] = useState<TransportationConfig>({
-    facilities: {
-      max_capacity_per_facility: 100000,
-      fixed_cost_per_facility: 50000,
-      cost_per_mile: 2.5,
-      max_distance_miles: 500,
-      service_level_requirement: 0.95,
-      required_facilities: 3,
-      max_facilities: 10,
-      mandatory_facilities: [],
-    },
-    optimization: {
-      solver: "CBC",
-      time_limit_seconds: 300,
-      gap_tolerance: 0.01,
-      threads: 4,
-    },
-    weights: {
-      cost: 0.4,
-      service_level: 0.3,
-      distance: 0.2,
-      capacity_utilization: 0.1,
-    },
+    optimization_criteria: {
+      cost_weight: 40,
+      service_weight: 35,
+      distance_weight: 25
+    }
   });
 
-  const [results, setResults] = useState<any>(null);
-  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [scenarios, setScenarios] = useState<TransportScenario[]>([]);
+  const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
+  const [facilityRequirements, setFacilityRequirements] = useState(3);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<any>(null);
 
-  const runOptimization = async () => {
-    if (!selectedScenario) {
-      alert('Please select a scenario first');
+  const scenarioTypes = [
+    { key: 'lowest_miles_zip', name: 'Lowest Miles (ZIP to ZIP)', description: 'Minimize total miles for ZIP code to ZIP code routes' },
+    { key: 'lowest_miles_city', name: 'Lowest Miles (City to City)', description: 'Minimize total miles for city-to-city routes' },
+    { key: 'lowest_miles_state', name: 'Lowest Miles (State Average)', description: 'Minimize average state-to-state miles' },
+    { key: 'lowest_cost_zip', name: 'Lowest Cost (ZIP to ZIP)', description: 'Minimize total cost for ZIP code to ZIP code routes' },
+    { key: 'lowest_cost_city', name: 'Lowest Cost (City to City)', description: 'Minimize total cost for city-to-city routes' },
+    { key: 'lowest_cost_state', name: 'Lowest Cost (State Average)', description: 'Minimize average state-to-state costs' },
+    { key: 'best_service_parcel', name: 'Best Service (Parcel Zone)', description: 'Optimize based on parcel service zones' },
+    { key: 'best_service_ltl', name: 'Best Service (LTL Zone)', description: 'Optimize based on LTL service zones' },
+    { key: 'best_service_tl', name: 'Best Service (TL Daily Miles)', description: 'Optimize based on TL daily miles' },
+    { key: 'blended_service', name: 'Blended Service Zone', description: 'Weighted combination of all service factors' }
+  ];
+
+  const generateScenarios = async () => {
+    setIsGenerating(true);
+    try {
+      // Simulate scenario generation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const generatedScenarios = scenarioTypes.map((type, index) => ({
+        id: Date.now() + index,
+        scenario_type: type.key as any,
+        scenario_name: type.name,
+        total_miles: Math.floor(Math.random() * 50000) + 100000,
+        total_cost: Math.floor(Math.random() * 100000) + 200000,
+        service_score: Math.floor(Math.random() * 20) + 80,
+        generated: true,
+        route_details: generateMockRouteDetails(),
+        volume_allocations: generateMockVolumeAllocations()
+      }));
+
+      setScenarios(generatedScenarios);
+    } catch (error) {
+      console.error('Scenario generation failed:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generateMockRouteDetails = (): RouteDetail[] => {
+    const routes = [
+      { origin: 'Chicago, IL', destination: 'New York, NY', service_zone: 'Zone 3' },
+      { origin: 'Los Angeles, CA', destination: 'Phoenix, AZ', service_zone: 'Zone 2' },
+      { origin: 'Dallas, TX', destination: 'Houston, TX', service_zone: 'Zone 1' },
+      { origin: 'Atlanta, GA', destination: 'Miami, FL', service_zone: 'Zone 2' },
+      { origin: 'Seattle, WA', destination: 'Portland, OR', service_zone: 'Zone 1' }
+    ];
+
+    return routes.map(route => ({
+      ...route,
+      distance_miles: Math.floor(Math.random() * 800) + 200,
+      cost_per_mile: Math.random() * 2 + 1.5,
+      volume_units: Math.floor(Math.random() * 10000) + 5000,
+      transit_time_hours: Math.floor(Math.random() * 20) + 8
+    }));
+  };
+
+  const generateMockVolumeAllocations = (): FacilityAllocation[] => {
+    return Array.from({ length: facilityRequirements }, (_, i) => ({
+      facility_id: `facility_${i + 1}`,
+      facility_name: `Distribution Center ${i + 1}`,
+      total_volume_units: Math.floor(Math.random() * 50000) + 25000,
+      outbound_volume: Math.floor(Math.random() * 30000) + 15000,
+      inbound_volume: Math.floor(Math.random() * 20000) + 10000,
+      capacity_utilization: Math.random() * 30 + 70
+    }));
+  };
+
+  const runTransportAnalysis = async () => {
+    if (selectedScenarios.length === 0) {
+      alert('Please select at least one scenario to analyze');
       return;
     }
 
-    setIsOptimizing(true);
+    setIsAnalyzing(true);
     try {
-      // Simulate optimization process
+      // Simulate analysis
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      const mockResults = {
-        optimizedRoutes: routes.map(r => ({
-          ...r,
-          recommendedCapacity: r.capacity ? r.capacity * 0.9 : 24000,
-          efficiencyScore: Math.random() * 15 + 85,
-          costReduction: Math.random() * 0.2 + 0.1,
-        })),
-        totalCostSavings: Math.random() * 150000 + 75000,
-        averageTransitTime: Math.random() * 5 + 15,
-        fuelEfficiency: Math.random() * 10 + 85,
-        recommendations: [
-          "Consolidate shipments on Chicago-NYC route",
-          "Consider rail transport for long-distance routes",
-          "Optimize load balancing across vehicles",
-          "Implement dynamic routing based on traffic",
-        ],
+      const selectedScenarioData = scenarios.filter(s => 
+        selectedScenarios.includes(s.scenario_type)
+      );
+
+      const bestCostScenario = selectedScenarioData.reduce((prev, curr) => 
+        (curr.total_cost || 0) < (prev.total_cost || 0) ? curr : prev
+      );
+
+      const bestServiceScenario = selectedScenarioData.reduce((prev, curr) => 
+        (curr.service_score || 0) > (prev.service_score || 0) ? curr : prev
+      );
+
+      const bestMilesScenario = selectedScenarioData.reduce((prev, curr) => 
+        (curr.total_miles || 0) < (prev.total_miles || 0) ? curr : prev
+      );
+
+      const results = {
+        scenariosAnalyzed: selectedScenarioData.length,
+        bestCostScenario,
+        bestServiceScenario,
+        bestMilesScenario,
+        averageCost: selectedScenarioData.reduce((sum, s) => sum + (s.total_cost || 0), 0) / selectedScenarioData.length,
+        averageMiles: selectedScenarioData.reduce((sum, s) => sum + (s.total_miles || 0), 0) / selectedScenarioData.length,
+        averageService: selectedScenarioData.reduce((sum, s) => sum + (s.service_score || 0), 0) / selectedScenarioData.length,
+        costSavingsPotential: Math.max(...selectedScenarioData.map(s => s.total_cost || 0)) - Math.min(...selectedScenarioData.map(s => s.total_cost || 0)),
+        recommendedScenario: bestCostScenario // Can be customized based on weighted criteria
       };
 
-      setResults(mockResults);
-      setTransportResults(mockResults);
+      setAnalysisResults(results);
     } catch (error) {
-      console.error('Optimization failed:', error);
+      console.error('Analysis failed:', error);
     } finally {
-      setIsOptimizing(false);
+      setIsAnalyzing(false);
     }
   };
 
-  const addRoute = () => {
-    const newRoute: TransportRoute = {
-      route_name: `Route ${routes.length + 1}`,
-      origin: "",
-      destination: "",
-      distance: 0,
-      base_freight_cost: 2.0,
-      fuel_cost_per_km: 0.12,
-      transit_time: 24,
-      vehicle_type: "truck",
-      capacity: 26000,
-    };
-    setRoutes([...routes, newRoute]);
-  };
-
-  const updateRoute = (index: number, updates: Partial<TransportRoute>) => {
-    const updated = routes.map((r, i) => 
-      i === index ? { ...r, ...updates } : r
+  const toggleScenarioSelection = (scenarioType: string) => {
+    setSelectedScenarios(prev => 
+      prev.includes(scenarioType) 
+        ? prev.filter(s => s !== scenarioType)
+        : [...prev, scenarioType]
     );
-    setRoutes(updated);
   };
 
-  const removeRoute = (index: number) => {
-    setRoutes(routes.filter((_, i) => i !== index));
-  };
-
-  const updateConfig = (section: keyof TransportationConfig, updates: any) => {
-    setConfig(prev => ({
+  const updateConfiguration = (section: keyof TransportConfiguration, updates: any) => {
+    setConfiguration(prev => ({
       ...prev,
       [section]: {
         ...prev[section],
@@ -207,337 +210,861 @@ export default function TransportOptimizer() {
   };
 
   return (
-    <>
+    <div className="main-container">
       <Navigation />
-      <main className="content-area">
-        <div className="card">
-          <h2 className="card-title">Transport Optimizer</h2>
-          
-          <div style={{ marginBottom: "2rem" }}>
-            <ScenarioManager 
-              selectedScenario={selectedScenario}
-              onSelectScenario={setSelectedScenario}
-              scenarioType="transport"
-            />
+      <div className="content-area">
+        <div className="transport-optimizer-container">
+          <h1 className="page-title">Transport Optimizer</h1>
+          <p className="page-description">
+            Generate and analyze multiple transport scenarios to determine optimal routing strategies 
+            based on cost, service, and distance optimization criteria.
+          </p>
+
+          <div className="tab-navigation">
+            <button 
+              className={`tab-button ${activeTab === 'configuration' ? 'active' : ''}`}
+              onClick={() => setActiveTab('configuration')}
+            >
+              Configuration
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'scenarios' ? 'active' : ''}`}
+              onClick={() => setActiveTab('scenarios')}
+            >
+              Scenario Generation
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'analysis' ? 'active' : ''}`}
+              onClick={() => setActiveTab('analysis')}
+            >
+              Scenario Analysis
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'results' ? 'active' : ''}`}
+              onClick={() => setActiveTab('results')}
+            >
+              Results
+            </button>
           </div>
 
-          {selectedScenario && (
-            <>
-              {/* Tab Navigation */}
-              <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", borderBottom: "1px solid #e5e7eb" }}>
-                {["scenarios", "routes", "configuration", "results"].map((tab) => (
-                  <button
-                    key={tab}
-                    className={`button ${activeTab === tab ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setActiveTab(tab)}
-                    style={{ 
-                      borderRadius: "0.5rem 0.5rem 0 0",
-                      borderBottom: activeTab === tab ? "2px solid #3b82f6" : "none"
-                    }}
-                  >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </button>
-                ))}
+          {activeTab === 'configuration' && (
+            <div className="tab-content">
+              <h2 className="section-title">Transport Configuration</h2>
+              
+              <div className="config-section">
+                <h3 className="subsection-title">Shipment Direction Weighting</h3>
+                <div className="config-grid">
+                  <div className="config-field">
+                    <label className="field-label">Outbound Weight Percentage (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.outbound_weight_percentage}
+                      onChange={(e) => updateConfiguration('outbound_weight_percentage', parseFloat(e.target.value))}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+
+                  <div className="config-field">
+                    <label className="field-label">Inbound Weight Percentage (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.inbound_weight_percentage}
+                      onChange={(e) => updateConfiguration('inbound_weight_percentage', parseFloat(e.target.value))}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+                </div>
+                <p className="config-note">
+                  Note: Outbound + Inbound should equal 100%. Adjust based on shipment volume distribution.
+                </p>
               </div>
 
-              {/* Routes Configuration */}
-              {activeTab === "routes" && (
-                <div className="card">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                    <h3>Transport Routes</h3>
-                    <button className="button button-primary" onClick={addRoute}>
-                      <Truck size={16} />
-                      Add Route
-                    </button>
+              <div className="config-section">
+                <h3 className="subsection-title">Service Zone Weighting</h3>
+                <div className="config-grid">
+                  <div className="config-field">
+                    <label className="field-label">Parcel Zone Weight (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.service_zone_weighting.parcel_zone_weight}
+                      onChange={(e) => updateConfiguration('service_zone_weighting', { 
+                        parcel_zone_weight: parseFloat(e.target.value) 
+                      })}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
                   </div>
 
-                  {routes.map((route, index) => (
-                    <div key={index} className="card" style={{ marginBottom: "1rem" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                        <h4>{route.route_name || `Route ${index + 1}`}</h4>
-                        <button 
-                          className="button button-secondary"
-                          onClick={() => removeRoute(index)}
-                          style={{ color: "#ef4444" }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-2">
-                        <div className="form-group">
-                          <label className="form-label">Route Name</label>
-                          <input
-                            type="text"
-                            className="form-input"
-                            value={route.route_name || ""}
-                            onChange={(e) => updateRoute(index, { route_name: e.target.value })}
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">Vehicle Type</label>
-                          <select
-                            className="form-input"
-                            value={route.vehicle_type}
-                            onChange={(e) => updateRoute(index, { vehicle_type: e.target.value as any })}
-                          >
-                            <option value="truck">Truck</option>
-                            <option value="rail">Rail</option>
-                            <option value="air">Air</option>
-                            <option value="sea">Sea</option>
-                          </select>
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">Origin</label>
-                          <input
-                            type="text"
-                            className="form-input"
-                            value={route.origin}
-                            onChange={(e) => updateRoute(index, { origin: e.target.value })}
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">Destination</label>
-                          <input
-                            type="text"
-                            className="form-input"
-                            value={route.destination}
-                            onChange={(e) => updateRoute(index, { destination: e.target.value })}
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">Distance (miles)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={route.distance || 0}
-                            onChange={(e) => updateRoute(index, { distance: Number(e.target.value) })}
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">Base Freight Cost ($/mile)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="form-input"
-                            value={route.base_freight_cost || 0}
-                            onChange={(e) => updateRoute(index, { base_freight_cost: Number(e.target.value) })}
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">Transit Time (hours)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={route.transit_time || 0}
-                            onChange={(e) => updateRoute(index, { transit_time: Number(e.target.value) })}
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label className="form-label">Capacity (lbs)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={route.capacity || 0}
-                            onChange={(e) => updateRoute(index, { capacity: Number(e.target.value) })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Configuration */}
-              {activeTab === "configuration" && (
-                <div className="card">
-                  <h3 style={{ marginBottom: "1rem" }}>Optimization Configuration</h3>
-                  
-                  <div style={{ marginBottom: "2rem" }}>
-                    <h4>Facility Settings</h4>
-                    <div className="grid grid-cols-2">
-                      <div className="form-group">
-                        <label className="form-label">Cost per Mile ($)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-input"
-                          value={config.facilities.cost_per_mile}
-                          onChange={(e) => updateConfig('facilities', { cost_per_mile: Number(e.target.value) })}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Max Distance (miles)</label>
-                        <input
-                          type="number"
-                          className="form-input"
-                          value={config.facilities.max_distance_miles}
-                          onChange={(e) => updateConfig('facilities', { max_distance_miles: Number(e.target.value) })}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Service Level Requirement (%)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="1"
-                          className="form-input"
-                          value={config.facilities.service_level_requirement}
-                          onChange={(e) => updateConfig('facilities', { service_level_requirement: Number(e.target.value) })}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Required Facilities</label>
-                        <input
-                          type="number"
-                          className="form-input"
-                          value={config.facilities.required_facilities}
-                          onChange={(e) => updateConfig('facilities', { required_facilities: Number(e.target.value) })}
-                        />
-                      </div>
-                    </div>
+                  <div className="config-field">
+                    <label className="field-label">LTL Zone Weight (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.service_zone_weighting.ltl_zone_weight}
+                      onChange={(e) => updateConfiguration('service_zone_weighting', { 
+                        ltl_zone_weight: parseFloat(e.target.value) 
+                      })}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
                   </div>
 
-                  <div style={{ marginBottom: "2rem" }}>
-                    <h4>Optimization Weights</h4>
-                    <div className="grid grid-cols-2">
-                      <div className="form-group">
-                        <label className="form-label">Cost Weight</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="1"
-                          className="form-input"
-                          value={config.weights.cost}
-                          onChange={(e) => updateConfig('weights', { cost: Number(e.target.value) })}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Service Level Weight</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="1"
-                          className="form-input"
-                          value={config.weights.service_level}
-                          onChange={(e) => updateConfig('weights', { service_level: Number(e.target.value) })}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Distance Weight</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="1"
-                          className="form-input"
-                          value={config.weights.distance}
-                          onChange={(e) => updateConfig('weights', { distance: Number(e.target.value) })}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Capacity Weight</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="1"
-                          className="form-input"
-                          value={config.weights.capacity_utilization}
-                          onChange={(e) => updateConfig('weights', { capacity_utilization: Number(e.target.value) })}
-                        />
-                      </div>
-                    </div>
+                  <div className="config-field">
+                    <label className="field-label">TL Daily Miles Weight (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.service_zone_weighting.tl_daily_miles_weight}
+                      onChange={(e) => updateConfiguration('service_zone_weighting', { 
+                        tl_daily_miles_weight: parseFloat(e.target.value) 
+                      })}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Results */}
-              {activeTab === "results" && (
-                <div className="card">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-                    <h3>Optimization Results</h3>
+              <div className="config-section">
+                <h3 className="subsection-title">Optimization Criteria</h3>
+                <div className="config-grid">
+                  <div className="config-field">
+                    <label className="field-label">Cost Weight (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.optimization_criteria.cost_weight}
+                      onChange={(e) => updateConfiguration('optimization_criteria', { 
+                        cost_weight: parseFloat(e.target.value) 
+                      })}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+
+                  <div className="config-field">
+                    <label className="field-label">Service Weight (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.optimization_criteria.service_weight}
+                      onChange={(e) => updateConfiguration('optimization_criteria', { 
+                        service_weight: parseFloat(e.target.value) 
+                      })}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+
+                  <div className="config-field">
+                    <label className="field-label">Distance Weight (%)</label>
+                    <input
+                      type="number"
+                      className="field-input"
+                      value={configuration.optimization_criteria.distance_weight}
+                      onChange={(e) => updateConfiguration('optimization_criteria', { 
+                        distance_weight: parseFloat(e.target.value) 
+                      })}
+                      min="0"
+                      max="100"
+                      step="1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="config-section">
+                <h3 className="subsection-title">Facility Requirements</h3>
+                <div className="config-field">
+                  <label className="field-label">Required Number of Facilities</label>
+                  <input
+                    type="number"
+                    className="field-input"
+                    value={facilityRequirements}
+                    onChange={(e) => setFacilityRequirements(parseInt(e.target.value) || 3)}
+                    min="1"
+                    max="20"
+                  />
+                  <p className="field-note">
+                    This will determine how many scenarios are generated and analyzed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'scenarios' && (
+            <div className="tab-content">
+              <h2 className="section-title">Scenario Generation</h2>
+              <p className="section-description">
+                Generate transport optimization scenarios based on different criteria. 
+                Each scenario will be optimized for specific objectives.
+              </p>
+
+              <div className="generation-actions">
+                <button 
+                  className="action-button primary large"
+                  onClick={generateScenarios}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="loading-spinner"></div>
+                      Generating Scenarios...
+                    </>
+                  ) : (
+                    'Generate All Scenarios'
+                  )}
+                </button>
+              </div>
+
+              <div className="scenarios-grid">
+                {scenarioTypes.map(type => {
+                  const scenario = scenarios.find(s => s.scenario_type === type.key);
+                  return (
+                    <div key={type.key} className={`scenario-card ${scenario ? 'generated' : 'pending'}`}>
+                      <div className="scenario-header">
+                        <h3 className="scenario-name">{type.name}</h3>
+                        <div className={`scenario-status ${scenario ? 'completed' : 'pending'}`}>
+                          {scenario ? 'Generated' : 'Pending'}
+                        </div>
+                      </div>
+                      <p className="scenario-description">{type.description}</p>
+                      
+                      {scenario && (
+                        <div className="scenario-metrics">
+                          <div className="metric">
+                            <span className="metric-label">Total Miles:</span>
+                            <span className="metric-value">{scenario.total_miles?.toLocaleString()}</span>
+                          </div>
+                          <div className="metric">
+                            <span className="metric-label">Total Cost:</span>
+                            <span className="metric-value">${scenario.total_cost?.toLocaleString()}</span>
+                          </div>
+                          <div className="metric">
+                            <span className="metric-label">Service Score:</span>
+                            <span className="metric-value">{scenario.service_score}%</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'analysis' && (
+            <div className="tab-content">
+              <h2 className="section-title">Scenario Analysis</h2>
+              <p className="section-description">
+                Select scenarios to analyze and compare their performance across different metrics.
+              </p>
+
+              {scenarios.length > 0 ? (
+                <>
+                  <div className="scenario-selection">
+                    <h3 className="subsection-title">Select Scenarios for Analysis</h3>
+                    <div className="scenario-checkboxes">
+                      {scenarios.map(scenario => (
+                        <label key={scenario.scenario_type} className="scenario-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={selectedScenarios.includes(scenario.scenario_type)}
+                            onChange={() => toggleScenarioSelection(scenario.scenario_type)}
+                          />
+                          <span className="checkbox-label">{scenario.scenario_name}</span>
+                          <span className="checkbox-metrics">
+                            (${scenario.total_cost?.toLocaleString()} | {scenario.total_miles?.toLocaleString()} mi | {scenario.service_score}%)
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="analysis-actions">
                     <button 
-                      className="button button-primary" 
-                      onClick={runOptimization}
-                      disabled={isOptimizing}
+                      className="action-button primary large"
+                      onClick={runTransportAnalysis}
+                      disabled={isAnalyzing || selectedScenarios.length === 0}
                     >
-                      {isOptimizing ? (
+                      {isAnalyzing ? (
                         <>
-                          <div className="loading-spinner" style={{ marginRight: "0.5rem" }}></div>
-                          Optimizing...
+                          <div className="loading-spinner"></div>
+                          Analyzing Scenarios...
                         </>
                       ) : (
-                        <>
-                          <Play size={16} />
-                          Run Optimization
-                        </>
+                        `Analyze Selected Scenarios (${selectedScenarios.length})`
                       )}
                     </button>
                   </div>
-
-                  {results ? (
-                    <div>
-                      <div className="grid grid-cols-3" style={{ marginBottom: "2rem" }}>
-                        <div className="card">
-                          <h4 style={{ color: "#10b981", marginBottom: "0.5rem" }}>
-                            ${results.totalCostSavings?.toLocaleString() || 0}
-                          </h4>
-                          <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Total Cost Savings</p>
-                        </div>
-                        <div className="card">
-                          <h4 style={{ color: "#3b82f6", marginBottom: "0.5rem" }}>
-                            {results.averageTransitTime?.toFixed(1) || 0} hrs
-                          </h4>
-                          <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Avg Transit Time</p>
-                        </div>
-                        <div className="card">
-                          <h4 style={{ color: "#f59e0b", marginBottom: "0.5rem" }}>
-                            {results.fuelEfficiency?.toFixed(1) || 0}%
-                          </h4>
-                          <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Fuel Efficiency</p>
-                        </div>
-                      </div>
-
-                      <div className="card">
-                        <h4 style={{ marginBottom: "1rem" }}>Recommendations</h4>
-                        <ul style={{ paddingLeft: "1.5rem" }}>
-                          {results.recommendations?.map((rec: string, index: number) => (
-                            <li key={index} style={{ marginBottom: "0.5rem", color: "#6b7280" }}>
-                              {rec}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280" }}>
-                      <BarChart3 size={48} style={{ margin: "0 auto 1rem", opacity: 0.5 }} />
-                      <p>Run optimization to see results</p>
-                    </div>
-                  )}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <p>No scenarios available. Please generate scenarios first.</p>
                 </div>
               )}
-            </>
+            </div>
+          )}
+
+          {activeTab === 'results' && (
+            <div className="tab-content">
+              <h2 className="section-title">Analysis Results</h2>
+              
+              {analysisResults ? (
+                <div className="results-container">
+                  <div className="results-summary">
+                    <div className="summary-grid">
+                      <div className="summary-card">
+                        <h3 className="summary-title">Scenarios Analyzed</h3>
+                        <div className="summary-value">{analysisResults.scenariosAnalyzed}</div>
+                      </div>
+                      
+                      <div className="summary-card">
+                        <h3 className="summary-title">Average Cost</h3>
+                        <div className="summary-value">${analysisResults.averageCost?.toLocaleString()}</div>
+                      </div>
+                      
+                      <div className="summary-card">
+                        <h3 className="summary-title">Average Miles</h3>
+                        <div className="summary-value">{analysisResults.averageMiles?.toLocaleString()}</div>
+                      </div>
+                      
+                      <div className="summary-card">
+                        <h3 className="summary-title">Average Service</h3>
+                        <div className="summary-value">{analysisResults.averageService?.toFixed(1)}%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="best-scenarios">
+                    <h3 className="subsection-title">Best Performing Scenarios</h3>
+                    
+                    <div className="best-scenarios-grid">
+                      <div className="best-scenario-card">
+                        <h4 className="best-scenario-title">Lowest Cost</h4>
+                        <div className="best-scenario-name">{analysisResults.bestCostScenario?.scenario_name}</div>
+                        <div className="best-scenario-metric">${analysisResults.bestCostScenario?.total_cost?.toLocaleString()}</div>
+                      </div>
+                      
+                      <div className="best-scenario-card">
+                        <h4 className="best-scenario-title">Best Service</h4>
+                        <div className="best-scenario-name">{analysisResults.bestServiceScenario?.scenario_name}</div>
+                        <div className="best-scenario-metric">{analysisResults.bestServiceScenario?.service_score}%</div>
+                      </div>
+                      
+                      <div className="best-scenario-card">
+                        <h4 className="best-scenario-title">Shortest Distance</h4>
+                        <div className="best-scenario-name">{analysisResults.bestMilesScenario?.scenario_name}</div>
+                        <div className="best-scenario-metric">{analysisResults.bestMilesScenario?.total_miles?.toLocaleString()} mi</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="recommended-scenario">
+                    <h3 className="subsection-title">Recommended Scenario</h3>
+                    <div className="recommended-card">
+                      <h4 className="recommended-name">{analysisResults.recommendedScenario?.scenario_name}</h4>
+                      <p className="recommended-description">
+                        Based on your optimization criteria, this scenario provides the best balance 
+                        of cost, service, and distance factors.
+                      </p>
+                      <div className="recommended-metrics">
+                        <div className="recommended-metric">
+                          <span className="metric-label">Total Cost:</span>
+                          <span className="metric-value">${analysisResults.recommendedScenario?.total_cost?.toLocaleString()}</span>
+                        </div>
+                        <div className="recommended-metric">
+                          <span className="metric-label">Total Miles:</span>
+                          <span className="metric-value">{analysisResults.recommendedScenario?.total_miles?.toLocaleString()}</span>
+                        </div>
+                        <div className="recommended-metric">
+                          <span className="metric-label">Service Score:</span>
+                          <span className="metric-value">{analysisResults.recommendedScenario?.service_score}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="savings-potential">
+                    <h3 className="subsection-title">Cost Savings Potential</h3>
+                    <div className="savings-card">
+                      <div className="savings-amount">${analysisResults.costSavingsPotential?.toLocaleString()}</div>
+                      <p className="savings-description">
+                        Potential annual savings by choosing the optimal scenario versus the most expensive option.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>No analysis results available. Please run scenario analysis first.</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
-      </main>
-    </>
+      </div>
+
+      <style jsx>{`
+        .transport-optimizer-container {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .page-title {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 0.5rem;
+        }
+
+        .page-description {
+          color: #6b7280;
+          margin-bottom: 2rem;
+          line-height: 1.6;
+        }
+
+        .tab-navigation {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 2rem;
+          border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab-button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          background: none;
+          color: #6b7280;
+          font-weight: 500;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          transition: all 0.2s;
+        }
+
+        .tab-button:hover {
+          color: #374151;
+          background-color: #f9fafb;
+        }
+
+        .tab-button.active {
+          color: #3b82f6;
+          border-bottom-color: #3b82f6;
+        }
+
+        .tab-content {
+          background: white;
+          border-radius: 0.5rem;
+          padding: 2rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 0.5rem;
+        }
+
+        .section-description {
+          color: #6b7280;
+          margin-bottom: 1.5rem;
+          line-height: 1.6;
+        }
+
+        .subsection-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 1rem;
+        }
+
+        .config-section {
+          margin-bottom: 2rem;
+          padding-bottom: 1.5rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .config-section:last-child {
+          border-bottom: none;
+          margin-bottom: 0;
+        }
+
+        .config-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .config-field {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .field-label {
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 0.5rem;
+        }
+
+        .field-input {
+          padding: 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          transition: border-color 0.2s;
+        }
+
+        .field-input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .config-note, .field-note {
+          font-size: 0.875rem;
+          color: #6b7280;
+          margin-top: 0.5rem;
+          font-style: italic;
+        }
+
+        .generation-actions, .analysis-actions {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 2rem;
+        }
+
+        .action-button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.375rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .action-button.primary {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .action-button.primary:hover:not(:disabled) {
+          background: #2563eb;
+        }
+
+        .action-button.large {
+          padding: 1rem 2rem;
+          font-size: 1.125rem;
+        }
+
+        .action-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .loading-spinner {
+          width: 1rem;
+          height: 1rem;
+          border: 2px solid transparent;
+          border-top: 2px solid currentColor;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .scenarios-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .scenario-card {
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          background: white;
+          transition: all 0.2s;
+        }
+
+        .scenario-card.generated {
+          border-color: #10b981;
+          background: #f0fdf4;
+        }
+
+        .scenario-card.pending {
+          background: #f9fafb;
+          opacity: 0.7;
+        }
+
+        .scenario-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 0.75rem;
+        }
+
+        .scenario-name {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .scenario-status {
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .scenario-status.completed {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .scenario-status.pending {
+          background: #f3f4f6;
+          color: #6b7280;
+        }
+
+        .scenario-description {
+          color: #6b7280;
+          font-size: 0.875rem;
+          margin-bottom: 1rem;
+          line-height: 1.5;
+        }
+
+        .scenario-metrics {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .metric {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.875rem;
+        }
+
+        .metric-label {
+          color: #6b7280;
+          font-weight: 500;
+        }
+
+        .metric-value {
+          color: #1f2937;
+          font-weight: 600;
+        }
+
+        .scenario-selection {
+          margin-bottom: 2rem;
+        }
+
+        .scenario-checkboxes {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .scenario-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.375rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .scenario-checkbox:hover {
+          background: #f9fafb;
+        }
+
+        .checkbox-label {
+          font-weight: 500;
+          color: #1f2937;
+        }
+
+        .checkbox-metrics {
+          color: #6b7280;
+          font-size: 0.875rem;
+          margin-left: auto;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 3rem;
+          color: #6b7280;
+        }
+
+        .results-container {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+
+        .summary-card {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          text-align: center;
+        }
+
+        .summary-title {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #6b7280;
+          margin-bottom: 0.5rem;
+        }
+
+        .summary-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1f2937;
+        }
+
+        .best-scenarios-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1rem;
+        }
+
+        .best-scenario-card {
+          background: #f0f9ff;
+          border: 1px solid #0ea5e9;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+
+        .best-scenario-title {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #0c4a6e;
+          margin-bottom: 0.5rem;
+        }
+
+        .best-scenario-name {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 0.5rem;
+        }
+
+        .best-scenario-metric {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #0ea5e9;
+        }
+
+        .recommended-card {
+          background: #f0fdf4;
+          border: 1px solid #10b981;
+          border-radius: 0.5rem;
+          padding: 2rem;
+        }
+
+        .recommended-name {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 0.75rem;
+        }
+
+        .recommended-description {
+          color: #6b7280;
+          margin-bottom: 1.5rem;
+          line-height: 1.6;
+        }
+
+        .recommended-metrics {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+
+        .recommended-metric {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.75rem;
+          background: white;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+        }
+
+        .savings-card {
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          border-radius: 0.5rem;
+          padding: 2rem;
+          text-align: center;
+        }
+
+        .savings-amount {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #92400e;
+          margin-bottom: 0.75rem;
+        }
+
+        .savings-description {
+          color: #6b7280;
+          line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+          .config-grid,
+          .scenarios-grid,
+          .summary-grid,
+          .best-scenarios-grid,
+          .recommended-metrics {
+            grid-template-columns: 1fr;
+          }
+
+          .tab-navigation {
+            flex-wrap: wrap;
+          }
+
+          .scenario-checkbox {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+
+          .checkbox-metrics {
+            margin-left: 0;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
