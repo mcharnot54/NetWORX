@@ -326,7 +326,22 @@ export default function DataProcessor() {
             </div>
           </div>
           
-          <div style={{ marginBottom: "2rem" }}>
+          <div style={{ marginBottom: "2rem" }} className="group relative">
+            <div
+              className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 text-xs font-semibold cursor-help z-10"
+              title="Hover for step-by-step instructions"
+            >
+              1
+            </div>
+            <div className="absolute right-0 top-6 w-72 bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+              <div className="text-sm space-y-1">
+                <div className="font-semibold">Step 1: Project & Scenario Setup</div>
+                <div>• <strong>New users:</strong> Click "New Project" to create your first project</div>
+                <div>• <strong>Existing users:</strong> Expand a project and select a scenario</div>
+                <div>• <strong>Need a scenario?</strong> Click the "+" button next to your project</div>
+                <div className="text-xs mt-2 text-yellow-600">⚠️ Both project and scenario must be selected to upload files</div>
+              </div>
+            </div>
             <ProjectScenarioManager
               selectedProject={selectedProject}
               selectedScenario={selectedScenario}
