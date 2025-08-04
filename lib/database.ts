@@ -141,6 +141,60 @@ export interface AuditLog {
   ip_address?: string;
 }
 
+// Database operations for projects
+export class ProjectService {
+  static async createProject(data: {
+    name: string;
+    description?: string;
+    owner_id?: string;
+    project_duration_years?: number;
+    base_year?: number;
+    status?: 'active' | 'archived' | 'completed';
+  }): Promise<Project> {
+    const [project] = await sql`
+      INSERT INTO projects (name, description, owner_id, project_duration_years, base_year, status)
+      VALUES (${data.name}, ${data.description || null}, ${data.owner_id || null},
+              ${data.project_duration_years || 5}, ${data.base_year || new Date().getFullYear()},
+              ${data.status || 'active'})
+      RETURNING *
+    `;
+    return project as Project;
+  }
+
+  static async getProjects(): Promise<Project[]> {
+    return await sql`
+      SELECT * FROM projects
+      ORDER BY created_at DESC
+    ` as Project[];
+  }
+
+  static async getProject(id: number): Promise<Project | null> {
+    const [project] = await sql`
+      SELECT * FROM projects WHERE id = ${id}
+    `;
+    return project as Project || null;
+  }
+
+  static async updateProject(id: number, data: Partial<Project>): Promise<Project> {
+    const [project] = await sql`
+      UPDATE projects
+      SET name = COALESCE(${data.name}, name),
+          description = COALESCE(${data.description}, description),
+          status = COALESCE(${data.status}, status),
+          project_duration_years = COALESCE(${data.project_duration_years}, project_duration_years),
+          base_year = COALESCE(${data.base_year}, base_year),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return project as Project;
+  }
+
+  static async deleteProject(id: number): Promise<void> {
+    await sql`DELETE FROM projects WHERE id = ${id}`;
+  }
+}
+
 // Database operations for scenarios
 export class ScenarioService {
   static async createScenario(data: {
