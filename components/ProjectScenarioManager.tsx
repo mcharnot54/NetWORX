@@ -176,19 +176,10 @@ export default function ProjectScenarioManager({
         return;
       }
 
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newProject),
+      const result = await robustPost('/api/projects', newProject, {
+        timeout: 15000,
+        retries: 2,
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create project');
