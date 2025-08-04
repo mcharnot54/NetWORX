@@ -219,29 +219,41 @@ export default function ProjectScenarioManager({
   };
 
   const createScenario = async () => {
-    if (!targetProjectId) return;
+    if (!targetProjectId) {
+      alert('No project selected');
+      return;
+    }
 
     try {
       const project = projects.find(p => p.id === targetProjectId);
-      if (!project) return;
+      if (!project) {
+        alert('Selected project not found');
+        return;
+      }
+
+      const validCities = newScenario.cities.filter(city => city.trim() !== '');
+      if (validCities.length === 0) {
+        alert('At least one city is required');
+        return;
+      }
 
       const existingScenarios = scenarios[targetProjectId] || [];
       const nextScenarioNumber = Math.max(...existingScenarios.map(s => s.scenario_number), 0) + 1;
 
       const scenarioData = {
         project_id: targetProjectId,
-        name: generateScenarioName(project.name, nextScenarioNumber, newScenario.number_of_nodes, newScenario.cities),
+        name: generateScenarioName(project.name, nextScenarioNumber, newScenario.number_of_nodes, validCities),
         description: newScenario.description,
         scenario_number: nextScenarioNumber,
         number_of_nodes: newScenario.number_of_nodes,
-        cities: newScenario.cities.filter(city => city.trim() !== ''),
+        cities: validCities,
         scenario_type: 'combined' as const,
         created_by: 'current_user',
         metadata: {
           project_id: targetProjectId,
           scenario_number: nextScenarioNumber,
           number_of_nodes: newScenario.number_of_nodes,
-          cities: newScenario.cities.filter(city => city.trim() !== ''),
+          cities: validCities,
           status: 'draft',
           capacity_analysis_completed: false,
           transport_optimization_completed: false,
@@ -257,10 +269,14 @@ export default function ProjectScenarioManager({
         body: JSON.stringify(scenarioData),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Failed to create scenario');
       }
 
       const newScenarioData: Scenario = {
@@ -269,7 +285,7 @@ export default function ProjectScenarioManager({
         name: result.data.name,
         scenario_number: nextScenarioNumber,
         number_of_nodes: newScenario.number_of_nodes,
-        cities: newScenario.cities.filter(city => city.trim() !== ''),
+        cities: validCities,
         description: result.data.description,
         created_at: result.data.created_at,
         updated_at: result.data.updated_at,
@@ -295,7 +311,8 @@ export default function ProjectScenarioManager({
       onSelectScenario(newScenarioData);
     } catch (error) {
       console.error('Error creating scenario:', error);
-      alert('Failed to create scenario. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to create scenario: ${errorMessage}`);
     }
   };
 
