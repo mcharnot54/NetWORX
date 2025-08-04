@@ -14,6 +14,7 @@ export default function DatabaseStatus() {
   const [dbStatus, setDbStatus] = useState<DatabaseInfo | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [isMounted, setIsMounted] = useState(true);
 
   const checkDatabaseStatus = async () => {
     try {
