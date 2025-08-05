@@ -1581,7 +1581,7 @@ export default function Configuration() {
                     className="button button-secondary"
                     style={{ width: "100%", marginBottom: "0.5rem" }}
                   >
-                    <DownloadIcon size={16} />
+                    <Download size={16} />
                     Archive Old Logs
                   </button>
                   <button
