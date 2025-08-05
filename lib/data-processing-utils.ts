@@ -51,7 +51,7 @@ export class EnhancedDataProcessingUtils {
 ${quality.missingFields.length > 0 ? `• Missing Fields: ${quality.missingFields.slice(0, 5).join(', ')}${quality.missingFields.length > 5 ? '...' : ''}` : ''}
 ${quality.invalidValues.length > 0 ? `• Data Issues: ${quality.invalidValues.length} found` : ''}
 
-${this.generateQualityRecommendations(quality)}`;
+${EnhancedDataProcessingUtils.generateQualityRecommendations(quality)}`;
   }
 
   /**
