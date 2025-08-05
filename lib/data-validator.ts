@@ -349,8 +349,7 @@ export class DataValidator {
     }
 
     try {
-      // Dynamic import to avoid SSR issues
-      // Use the statically imported XLSX for better type safety
+      // Parse file using XLSX library
 
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -399,7 +398,7 @@ export class DataValidator {
         }
       });
     } catch (error) {
-      throw new Error(`Failed to load XLSX library: ${error}`);
+      throw new Error(`Failed to process file: ${error}`);
     }
   }
 }
