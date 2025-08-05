@@ -314,6 +314,11 @@ export class DataValidator {
 
   // Parse Excel/CSV file and extract data
   static async parseFile(file: File): Promise<{ data: any[]; columnHeaders: string[] }> {
+    // Ensure this runs only on client side
+    if (typeof window === 'undefined') {
+      throw new Error('File parsing is only available on the client side');
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
