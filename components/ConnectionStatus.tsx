@@ -73,8 +73,12 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
 
     return () => {
       setIsMounted(false);
-      if (abortController) {
-        abortController.abort();
+      if (abortController && !abortController.signal.aborted) {
+        try {
+          abortController.abort('Component unmounting');
+        } catch (e) {
+          // Ignore abort errors during cleanup
+        }
       }
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
