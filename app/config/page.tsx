@@ -240,7 +240,7 @@ export default function Configuration() {
                 className="button button-secondary"
                 onClick={resetToDefaults}
               >
-                <RefreshCw size={16} />
+                <RotateCcw size={16} />
                 Reset Defaults
               </button>
               <button
