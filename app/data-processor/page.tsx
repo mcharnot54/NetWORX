@@ -335,7 +335,7 @@ export default function DataProcessor() {
         processedFiles.push(fileData);
         
         if (detectedTemplate) {
-          addToLog(`�� Detected template: ${detectedTemplate.name}`);
+          addToLog(`✓ Detected template: ${detectedTemplate.name}`);
         } else {
           addToLog(`⚠ No template detected for ${file.name} - manual mapping required`);
         }
@@ -646,6 +646,7 @@ export default function DataProcessor() {
                     <div>• <strong>Auto-detection:</strong> System automatically detects data types</div>
                     <div>• <strong>Supported formats:</strong> Excel (.xlsx, .xls) and CSV files</div>
                     <div>• <strong>Data types:</strong> Forecast, SKU, Network, Operational, Financial, Sales</div>
+                    <div>• <strong>Persistent storage:</strong> Files are automatically saved and will persist between sessions</div>
                     <div className="text-xs text-blue-600 mt-2">
                       💡 Check the "Data Templates" tab to see required column structures
                     </div>
