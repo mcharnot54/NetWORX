@@ -129,12 +129,41 @@ export default function CapacityOptimizer() {
   };
 
   const runCapacityAnalysis = async () => {
-    // TODO: Implement API call to run capacity analysis
-    console.log('Running capacity analysis with:', {
-      projectConfig,
-      growthForecasts,
-      facilities
-    });
+    if (!selectedScenario) {
+      setAnalysisError('Please select a scenario first');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+
+    try {
+      const response = await fetch(`/api/scenarios/${selectedScenario.id}/capacity-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectConfig,
+          growthForecasts,
+          facilities
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to run capacity analysis');
+      }
+
+      const results = await response.json();
+      setAnalysisResults(results);
+      setAnalysisError(null);
+    } catch (error) {
+      console.error('Capacity analysis error:', error);
+      setAnalysisError(error instanceof Error ? error.message : 'Failed to run capacity analysis');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
