@@ -633,7 +633,7 @@ export default function DataProcessor() {
                     <Upload className="mx-auto mb-4 text-gray-400" size={48} />
                     <p className="text-lg font-medium text-gray-700 mb-2">Upload Operational Data Files</p>
                     <p className="text-gray-500">Supports Excel (.xlsx, .xls) and CSV files</p>
-                    <p className="text-sm text-gray-400 mt-2">Files will be automatically analyzed and validated</p>
+                    <p className="text-sm text-gray-400 mt-2">Files will be automatically saved, analyzed and validated</p>
                   </label>
                 </div>
                 <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs font-semibold cursor-help">
