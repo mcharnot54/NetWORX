@@ -161,8 +161,10 @@ const fetchWithTimeout = async (
           true
         );
       } else {
+        // Provide a more specific error message for cancelled requests
+        const reason = error.message || 'Request was cancelled';
         throw new FetchError(
-          `Request was cancelled for ${url}`,
+          `Request cancelled for ${url}: ${reason}`,
           undefined,
           undefined,
           false,
