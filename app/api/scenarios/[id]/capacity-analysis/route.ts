@@ -266,19 +266,16 @@ async function storeAnalysisResults(
   scenarioId: number,
   result: CapacityAnalysisResult
 ): Promise<void> {
-  // Store the analysis results in a results table
-  const query = `
-    INSERT INTO capacity_analysis_results 
-    (scenario_id, analysis_data, created_at) 
-    VALUES ($1, $2, NOW())
-    ON CONFLICT (scenario_id) 
-    DO UPDATE SET 
-      analysis_data = $2, 
-      updated_at = NOW()
-  `;
-  
   try {
-    await pool.query(query, [scenarioId, JSON.stringify(result)]);
+    await sql`
+      INSERT INTO capacity_analysis_results
+      (scenario_id, analysis_data, created_at)
+      VALUES (${scenarioId}, ${JSON.stringify(result)}, NOW())
+      ON CONFLICT (scenario_id)
+      DO UPDATE SET
+        analysis_data = ${JSON.stringify(result)},
+        updated_at = NOW()
+    `;
   } catch (error) {
     // If table doesn't exist, create it
     await pool.query(`
