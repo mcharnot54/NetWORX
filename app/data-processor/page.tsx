@@ -13,6 +13,7 @@ import {
   DATA_MAPPING_TEMPLATES
 } from "@/types/data-schema";
 import { AdaptiveTemplate } from "@/lib/adaptive-data-validator";
+import { FileStorageUtils } from "@/lib/file-storage-utils";
 import {
   Upload,
   FileText,
@@ -31,6 +32,8 @@ import {
   TrendingUp,
   Shield,
   Building,
+  X,
+  Trash2,
 } from "lucide-react";
 
 interface Project {
@@ -62,6 +65,7 @@ interface Scenario {
 }
 
 interface FileData {
+  id?: number;
   name: string;
   size: number;
   type: string;
@@ -76,6 +80,8 @@ interface FileData {
   columnNames?: string[];
   processingResult?: ProcessingResult;
   validationStatus?: 'pending' | 'processing' | 'validated' | 'error';
+  saved?: boolean;
+  fileContent?: string; // Base64 encoded file content
 }
 
 export default function DataProcessor() {
@@ -88,10 +94,183 @@ export default function DataProcessor() {
   const [processingLog, setProcessingLog] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<DataMappingTemplate | null>(null);
   const [validatedData, setValidatedData] = useState<ComprehensiveOperationalData | null>(null);
+  const [loadingSavedFiles, setLoadingSavedFiles] = useState(false);
 
   const addToLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  // Load saved files when scenario changes
+  useEffect(() => {
+    if (selectedScenario?.id) {
+      loadSavedFiles(selectedScenario.id);
+    } else {
+      setFiles([]);
+    }
+  }, [selectedScenario]);
+
+  const loadSavedFiles = async (scenarioId: number) => {
+    setLoadingSavedFiles(true);
+    addToLog('Loading previously uploaded files...');
+
+    try {
+      const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load files');
+      }
+
+      const { files: savedFiles } = await response.json();
+
+      if (savedFiles && savedFiles.length > 0) {
+        const reconstructedFiles: FileData[] = await Promise.all(
+          savedFiles.map(async (savedFile: any) => {
+            const fileContent = savedFile.processed_data?.file_content;
+            let file: File | undefined;
+            let parsedData: any[] | undefined;
+            let columnNames: string[] | undefined;
+
+            if (fileContent) {
+              try {
+                // Reconstruct File object from stored base64 data
+                file = FileStorageUtils.base64ToFile(
+                  fileContent,
+                  savedFile.file_name,
+                  savedFile.file_type
+                );
+
+                // Re-parse the file data
+                const { data, columnHeaders } = await DataValidator.parseFile(file);
+                parsedData = data;
+                columnNames = columnHeaders;
+              } catch (error) {
+                console.warn('Could not reconstruct file data:', error);
+              }
+            }
+
+            return {
+              id: savedFile.id,
+              name: savedFile.file_name,
+              size: savedFile.file_size || 0,
+              type: savedFile.file_type,
+              lastModified: new Date(savedFile.upload_date).getTime(),
+              detectedType: savedFile.data_type,
+              detectedTemplate: null, // Will be re-detected if needed
+              scenarioId: savedFile.scenario_id,
+              file,
+              parsedData,
+              columnNames,
+              processingResult: savedFile.processed_data?.processingResult,
+              validationStatus: savedFile.processing_status === 'completed' ? 'validated' :
+                              savedFile.processing_status === 'failed' ? 'error' : 'pending',
+              saved: true,
+              fileContent
+            } as FileData;
+          })
+        );
+
+        setFiles(reconstructedFiles);
+        addToLog(`✓ Loaded ${reconstructedFiles.length} previously uploaded file(s)`);
+      } else {
+        addToLog('No previously uploaded files found');
+      }
+    } catch (error) {
+      console.error('Error loading saved files:', error);
+      addToLog('⚠ Could not load previously uploaded files');
+    } finally {
+      setLoadingSavedFiles(false);
+    }
+  };
+
+  const saveFileToDatabase = async (fileData: FileData) => {
+    if (!fileData.file || !selectedScenario) return;
+
+    try {
+      // Convert file to base64 for storage
+      const fileContent = await FileStorageUtils.fileToBase64(fileData.file);
+
+      const saveData = {
+        scenario_id: selectedScenario.id,
+        file_name: fileData.name,
+        file_type: fileData.type,
+        file_size: fileData.size,
+        data_type: fileData.detectedType || 'unknown',
+        processing_status: 'pending',
+        validation_result: {},
+        processed_data: {
+          file_content: fileContent,
+          parsedData: fileData.parsedData,
+          columnNames: fileData.columnNames,
+          processingResult: fileData.processingResult
+        },
+        original_columns: fileData.columnNames,
+        mapped_columns: {}
+      };
+
+      const response = await fetch('/api/files', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(saveData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save file');
+      }
+
+      const { file: savedFile } = await response.json();
+      return savedFile.id;
+    } catch (error) {
+      console.error('Error saving file to database:', error);
+      addToLog(`⚠ Could not save ${fileData.name} to database`);
+      return null;
+    }
+  };
+
+  const updateFileInDatabase = async (fileId: number, updateData: any) => {
+    try {
+      const response = await fetch('/api/files', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: fileId, ...updateData }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update file');
+      }
+    } catch (error) {
+      console.error('Error updating file in database:', error);
+    }
+  };
+
+  const removeFile = async (fileIndex: number) => {
+    const file = files[fileIndex];
+
+    // Remove from database if it was saved
+    if (file.id) {
+      try {
+        const response = await fetch(`/api/files/${file.id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete file from database');
+        }
+
+        addToLog(`✓ Removed ${file.name} from database`);
+      } catch (error) {
+        console.error('Error deleting file from database:', error);
+        addToLog(`⚠ Could not remove ${file.name} from database`);
+      }
+    }
+
+    // Remove from local state
+    const updatedFiles = files.filter((_, index) => index !== fileIndex);
+    setFiles(updatedFiles);
+    addToLog(`Removed ${file.name} from current session`);
   };
 
   const autoDetectDataType = (fileName: string): string => {
@@ -141,8 +320,17 @@ export default function DataProcessor() {
           file,
           parsedData: data,
           columnNames: columnHeaders,
-          validationStatus: 'pending'
+          validationStatus: 'pending',
+          saved: false
         };
+
+        // Save file to database
+        const savedFileId = await saveFileToDatabase(fileData);
+        if (savedFileId) {
+          fileData.id = savedFileId;
+          fileData.saved = true;
+          addToLog(`✓ Saved ${file.name} to database`);
+        }
 
         processedFiles.push(fileData);
         
@@ -182,9 +370,22 @@ export default function DataProcessor() {
       );
 
       // Update file with validation results
-      updatedFiles[fileIndex].processingResult = result;
-      updatedFiles[fileIndex].validationStatus = result.success ? 'validated' : 'error';
-      setFiles(updatedFiles);
+    updatedFiles[fileIndex].processingResult = result;
+    updatedFiles[fileIndex].validationStatus = result.success ? 'validated' : 'error';
+    setFiles(updatedFiles);
+
+    // Update file in database if it was saved
+    if (file.id) {
+      await updateFileInDatabase(file.id, {
+        processing_status: result.success ? 'completed' : 'failed',
+        validation_result: result,
+        processed_data: {
+          ...file.processingResult,
+          file_content: file.fileContent,
+          processingResult: result
+        }
+      });
+    }
 
       if (result.success) {
         addToLog(`✓ Validation successful for ${file.name}`);
@@ -398,7 +599,26 @@ export default function DataProcessor() {
                   </p>
                 </div>
               </div>
-              
+
+              {/* Persistent Storage Info */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <Save className="text-green-600 mt-0.5" size={20} />
+                  <div>
+                    <h4 className="font-semibold text-green-800 mb-1">Persistent File Storage</h4>
+                    <p className="text-green-700 text-sm mb-2">
+                      Files uploaded to this scenario are automatically saved and will be available when you return.
+                    </p>
+                    <div className="text-xs text-green-600 space-y-1">
+                      <div>• Files are stored securely in the database</div>
+                      <div>• No need to re-upload files when switching between scenarios</div>
+                      <div>• Validation results and processing status are preserved</div>
+                      <div>• Green dot indicates files are saved 🟢</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="group relative">
                 <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors">
                   <input
@@ -413,7 +633,7 @@ export default function DataProcessor() {
                     <Upload className="mx-auto mb-4 text-gray-400" size={48} />
                     <p className="text-lg font-medium text-gray-700 mb-2">Upload Operational Data Files</p>
                     <p className="text-gray-500">Supports Excel (.xlsx, .xls) and CSV files</p>
-                    <p className="text-sm text-gray-400 mt-2">Files will be automatically analyzed and validated</p>
+                    <p className="text-sm text-gray-400 mt-2">Files will be automatically saved, analyzed and validated</p>
                   </label>
                 </div>
                 <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs font-semibold cursor-help">
@@ -426,6 +646,7 @@ export default function DataProcessor() {
                     <div>• <strong>Auto-detection:</strong> System automatically detects data types</div>
                     <div>• <strong>Supported formats:</strong> Excel (.xlsx, .xls) and CSV files</div>
                     <div>• <strong>Data types:</strong> Forecast, SKU, Network, Operational, Financial, Sales</div>
+                    <div>• <strong>Persistent storage:</strong> Files are automatically saved and will persist between sessions</div>
                     <div className="text-xs text-blue-600 mt-2">
                       💡 Check the "Data Templates" tab to see required column structures
                     </div>
@@ -433,39 +654,62 @@ export default function DataProcessor() {
                 </div>
               </div>
 
-              {files.length > 0 && (
+              {(files.length > 0 || loadingSavedFiles) && (
                 <div className="mt-6">
-                  <h4 className="text-lg font-semibold mb-4">Uploaded Files ({files.length})</h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold">Files ({files.length})</h4>
+                    {loadingSavedFiles && (
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <RefreshCw className="animate-spin" size={16} />
+                        <span className="text-sm">Loading saved files...</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-3">
                     {files.map((file, index) => (
                       <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <FileText className="text-blue-500" size={20} />
+                          <div className="relative">
+                            <FileText className="text-blue-500" size={20} />
+                            {file.saved && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full" title="File saved to database" />
+                            )}
+                          </div>
                           <div>
                             <p className="font-medium">{file.name}</p>
                             <p className="text-sm text-gray-600">
                               {Math.round(file.size / 1024)}KB • {file.detectedType}
                               {file.detectedTemplate && ` • ${file.detectedTemplate.name}`}
+                              {file.saved && ' • Saved'}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           {getStatusIcon(file.validationStatus)}
-                          {file.validationStatus === 'pending' && (
-                            <div className="group relative">
-                              <button
-                                onClick={() => validateFileData(index)}
-                                className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                                title="Click to validate this file's data structure and quality"
-                              >
-                                <Zap size={14} />
-                                Validate
-                              </button>
-                              <div className="absolute bottom-full mb-1 right-0 w-48 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                                Click to validate data structure, check for missing values, and ensure column mappings are correct
+                          <div className="flex items-center gap-2">
+                            {file.validationStatus === 'pending' && (
+                              <div className="group relative">
+                                <button
+                                  onClick={() => validateFileData(index)}
+                                  className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                  title="Click to validate this file's data structure and quality"
+                                >
+                                  <Zap size={14} />
+                                  Validate
+                                </button>
+                                <div className="absolute bottom-full mb-1 right-0 w-48 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                  Click to validate data structure, check for missing values, and ensure column mappings are correct
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                            <button
+                              onClick={() => removeFile(index)}
+                              className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200 transition-colors"
+                              title="Remove this file"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
