@@ -29,7 +29,7 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
     setChecking(true);
 
     try {
-      const reachable = await checkConnectivity();
+      const reachable = await checkConnectivity(newController.signal);
       if (isMounted && !newController.signal.aborted) { // Only update state if component is still mounted and request wasn't cancelled
         setServerReachable(reachable);
         setLastCheck(new Date());
