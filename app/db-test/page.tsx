@@ -84,8 +84,10 @@ export default function DbTest() {
     setLoading(true);
     try {
       addToOutput('Fetching all projects...');
-      const response = await fetch('/api/projects');
-      const result = await response.json();
+      const result = await robustFetchJson('/api/projects', {
+        timeout: 10000,
+        retries: 1
+      });
       addToOutput(`Fetch projects: ${result.success ? 'SUCCESS' : 'FAILED'}`);
       if (result.data) {
         addToOutput(`Found ${result.data.length} projects:`);
@@ -95,7 +97,11 @@ export default function DbTest() {
       }
       if (result.error) addToOutput(`Error: ${result.error}`);
     } catch (error) {
-      addToOutput(`Fetch failed: ${error}`);
+      if (error instanceof Error && error.message.includes('cancelled')) {
+        addToOutput('Fetch was cancelled');
+      } else {
+        addToOutput(`Fetch failed: ${error}`);
+      }
     }
     setLoading(false);
   };
