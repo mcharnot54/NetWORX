@@ -66,6 +66,10 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
 
     return () => {
       setIsMounted(false); // Mark component as unmounting
+      // Cancel any pending requests
+      if (abortController) {
+        abortController.abort();
+      }
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
       clearInterval(interval);
