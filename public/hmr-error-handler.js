@@ -186,18 +186,22 @@
     }
   });
 
-  // Additional protection: Override window.fetch to add AbortError handling
+  // Additional protection: Override window.fetch to add AbortError handling for HMR only
   const originalWindowFetch = window.fetch;
-  window.fetch = function(...args) {
-    return originalWindowFetch.apply(this, args).catch(error => {
+  window.fetch = function(resource, ...args) {
+    const url = typeof resource === 'string' ? resource : resource?.url;
+    const isAPIRequest = url && (url.includes('/api/') || url.startsWith('/api/'));
+
+    return originalWindowFetch.apply(this, [resource, ...args]).catch(error => {
       const errorName = String(error.name || '');
       const errorMessage = String(error.message || '');
 
-      if (errorName === 'AbortError' ||
+      // Only handle AbortErrors for non-API requests (HMR, static assets, etc.)
+      if (!isAPIRequest && (errorName === 'AbortError' ||
           errorMessage.includes('aborted') ||
           errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('aborted without reason')) {
-        console.debug('Global fetch AbortError suppression:', errorMessage);
+          errorMessage.includes('aborted without reason'))) {
+        console.debug('Global fetch AbortError suppression for non-API request:', errorMessage);
         throw new Error('Request was cancelled');
       }
       throw error;
