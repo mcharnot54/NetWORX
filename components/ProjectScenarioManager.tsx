@@ -6,7 +6,7 @@ import {
   Folder, ChevronDown, ChevronRight, Calendar, MapPin, Users,
   Target, Activity, Building
 } from 'lucide-react';
-import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
+import { robustFetchJson, robustPost, FetchError } from '../lib/fetch-utils';
 import ErrorBoundary, { FetchErrorFallback } from './ErrorBoundary';
 
 interface Project {
