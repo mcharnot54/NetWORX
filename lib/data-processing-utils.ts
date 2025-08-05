@@ -68,9 +68,9 @@ ${EnhancedDataProcessingUtils.generateQualityRecommendations(quality)}`;
 • Skipped/Invalid: ${summary.skippedRows}
 • Processing Quality: ${EnhancedDataProcessingUtils.getProcessingQualityComment(parseFloat(successRate))}
 
-${this.formatIssuesSummary(errors, warnings)}
+${EnhancedDataProcessingUtils.formatIssuesSummary(errors, warnings)}
 
-${this.generateProcessingInsights(result)}`;
+${EnhancedDataProcessingUtils.generateProcessingInsights(result)}`;
   }
 
   /**
