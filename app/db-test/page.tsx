@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { robustFetchJson } from '@/lib/fetch-utils';
 
 export default function DbTest() {
   const [output, setOutput] = useState<string>('');
