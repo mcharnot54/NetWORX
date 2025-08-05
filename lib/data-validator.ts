@@ -1,4 +1,4 @@
-// XLSX import is made dynamic to avoid server-side issues
+import * as XLSX from 'xlsx';
 import type {
   ComprehensiveOperationalData,
   DataQualityMetrics,
