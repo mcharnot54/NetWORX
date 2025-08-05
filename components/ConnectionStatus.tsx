@@ -17,7 +17,7 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
   const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   const checkServerConnectivity = async () => {
-    if (!isMounted) return; // Don't start new requests if component is unmounting
+    if (!isMounted) return;
 
     // Cancel any existing request
     if (abortController) {
@@ -30,25 +30,26 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
 
     try {
       const reachable = await checkConnectivity(newController.signal);
-      if (isMounted && !newController.signal.aborted) { // Only update state if component is still mounted and request wasn't cancelled
+      if (isMounted) {
         setServerReachable(reachable);
         setLastCheck(new Date());
       }
     } catch (error) {
-      // Ignore errors if the request was cancelled due to unmounting or new request
-      if (isMounted && !newController.signal.aborted && error instanceof Error && !error.message.includes('cancelled') && !error.message.includes('aborted')) {
+      // Only update state if component is mounted and error is not from cancellation
+      if (isMounted && error instanceof Error &&
+          !error.message.includes('cancelled') &&
+          !error.message.includes('aborted')) {
         setServerReachable(false);
         setLastCheck(new Date());
       }
     } finally {
-      if (isMounted && !newController.signal.aborted) {
+      if (isMounted) {
         setChecking(false);
       }
     }
   };
 
   useEffect(() => {
-    // Check browser connectivity
     const updateOnlineStatus = () => {
       setIsOnline(navigator.onLine);
     };
@@ -62,15 +63,18 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
     window.addEventListener('offline', updateOnlineStatus);
 
     // Check server connectivity periodically
-    const interval = setInterval(checkServerConnectivity, 30000); // Every 30 seconds
+    const interval = setInterval(checkServerConnectivity, 30000);
 
     return () => {
-      setIsMounted(false); // Mark component as unmounting
+      setIsMounted(false);
+      if (abortController) {
+        abortController.abort();
+      }
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
       clearInterval(interval);
     };
-  }, []);
+  }, [abortController]);
 
   // Cleanup abort controller on unmount
   useEffect(() => {
