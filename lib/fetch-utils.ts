@@ -427,17 +427,21 @@ export const robustPost = async <T = any>(
 };
 
 // Check if the current environment has connectivity issues
-export const checkConnectivity = async (): Promise<boolean> => {
+export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> => {
   return safeWrapper(async () => {
     try {
       // Try to fetch a simple endpoint
       await robustFetch('/api/health', {
         timeout: 5000,
         retries: 1,
+        signal
       });
       return true;
     } catch (error) {
-      console.warn('Connectivity check failed:', error);
+      // Don't log connectivity failures if request was cancelled
+      if (!error || !(error as Error).message?.includes('cancelled')) {
+        console.warn('Connectivity check failed:', error);
+      }
       return false;
     }
   }, 'checkConnectivity');
