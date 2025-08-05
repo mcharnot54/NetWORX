@@ -64,22 +64,32 @@ const calculateRetryDelay = (
 
 // Check if error is retryable
 const isRetryableError = (error: Error): boolean => {
-  // Ultimate safety check
+  // Ultimate safety check with completely defensive error handling
   try {
     // Safety check for error object
     if (!error || typeof error !== 'object') {
       return false;
     }
 
-    // Handle any AbortError immediately to prevent propagation
-    const errorName = String(error.name || '');
-    const errorMessage = String(error.message || '');
+    // Safely extract error information without accessing potentially dangerous properties
+    let errorName = '';
+    let errorMessage = '';
+
+    try {
+      errorName = String(error.name || '');
+      errorMessage = String(error.message || '');
+    } catch (nameError) {
+      // If we can't even safely get name/message, don't retry
+      console.debug('Cannot safely access error properties:', nameError);
+      return false;
+    }
 
     // Handle AbortErrors specifically with multiple detection methods
     if (errorName === 'AbortError' ||
         errorMessage.includes('aborted') ||
         errorMessage.includes('signal is aborted') ||
-        errorMessage.includes('aborted without reason')) {
+        errorMessage.includes('aborted without reason') ||
+        errorMessage.includes('The operation was aborted')) {
       // Only retry timeout aborts, not user-cancelled requests
       const isTimeout = errorMessage.includes('timeout');
       console.debug('AbortError detected in retry check:', { errorName, errorMessage, isTimeout });
@@ -101,14 +111,20 @@ const isRetryableError = (error: Error): boolean => {
       return false;
     }
 
-    // If it's a FetchError, check the status
+    // If it's a FetchError, check the status safely
     if (error instanceof FetchError) {
       // Don't retry cancelled requests, but retry timeouts and network errors
       if (errorMessage.includes('cancelled')) {
         return false;
       }
       // Retry on network errors, timeouts, or 5xx errors
-      return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
+      try {
+        return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
+      } catch (statusError) {
+        // If we can't access status safely, don't retry
+        console.debug('Cannot safely access FetchError properties:', statusError);
+        return false;
+      }
     }
 
     return false;
