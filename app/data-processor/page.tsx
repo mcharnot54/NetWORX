@@ -13,6 +13,7 @@ import {
   DATA_MAPPING_TEMPLATES
 } from "@/types/data-schema";
 import { AdaptiveTemplate } from "@/lib/adaptive-data-validator";
+import { FileStorageUtils } from "@/lib/file-storage-utils";
 import {
   Upload,
   FileText,
@@ -62,6 +63,7 @@ interface Scenario {
 }
 
 interface FileData {
+  id?: number;
   name: string;
   size: number;
   type: string;
@@ -76,6 +78,8 @@ interface FileData {
   columnNames?: string[];
   processingResult?: ProcessingResult;
   validationStatus?: 'pending' | 'processing' | 'validated' | 'error';
+  saved?: boolean;
+  fileContent?: string; // Base64 encoded file content
 }
 
 export default function DataProcessor() {
@@ -88,10 +92,156 @@ export default function DataProcessor() {
   const [processingLog, setProcessingLog] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<DataMappingTemplate | null>(null);
   const [validatedData, setValidatedData] = useState<ComprehensiveOperationalData | null>(null);
+  const [loadingSavedFiles, setLoadingSavedFiles] = useState(false);
 
   const addToLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  // Load saved files when scenario changes
+  useEffect(() => {
+    if (selectedScenario?.id) {
+      loadSavedFiles(selectedScenario.id);
+    } else {
+      setFiles([]);
+    }
+  }, [selectedScenario]);
+
+  const loadSavedFiles = async (scenarioId: number) => {
+    setLoadingSavedFiles(true);
+    addToLog('Loading previously uploaded files...');
+
+    try {
+      const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load files');
+      }
+
+      const { files: savedFiles } = await response.json();
+
+      if (savedFiles && savedFiles.length > 0) {
+        const reconstructedFiles: FileData[] = await Promise.all(
+          savedFiles.map(async (savedFile: any) => {
+            const fileContent = savedFile.processed_data?.file_content;
+            let file: File | undefined;
+            let parsedData: any[] | undefined;
+            let columnNames: string[] | undefined;
+
+            if (fileContent) {
+              try {
+                // Reconstruct File object from stored base64 data
+                file = FileStorageUtils.base64ToFile(
+                  fileContent,
+                  savedFile.file_name,
+                  savedFile.file_type
+                );
+
+                // Re-parse the file data
+                const { data, columnHeaders } = await DataValidator.parseFile(file);
+                parsedData = data;
+                columnNames = columnHeaders;
+              } catch (error) {
+                console.warn('Could not reconstruct file data:', error);
+              }
+            }
+
+            return {
+              id: savedFile.id,
+              name: savedFile.file_name,
+              size: savedFile.file_size || 0,
+              type: savedFile.file_type,
+              lastModified: new Date(savedFile.upload_date).getTime(),
+              detectedType: savedFile.data_type,
+              detectedTemplate: null, // Will be re-detected if needed
+              scenarioId: savedFile.scenario_id,
+              file,
+              parsedData,
+              columnNames,
+              processingResult: savedFile.processed_data?.processingResult,
+              validationStatus: savedFile.processing_status === 'completed' ? 'validated' :
+                              savedFile.processing_status === 'failed' ? 'error' : 'pending',
+              saved: true,
+              fileContent
+            } as FileData;
+          })
+        );
+
+        setFiles(reconstructedFiles);
+        addToLog(`✓ Loaded ${reconstructedFiles.length} previously uploaded file(s)`);
+      } else {
+        addToLog('No previously uploaded files found');
+      }
+    } catch (error) {
+      console.error('Error loading saved files:', error);
+      addToLog('⚠ Could not load previously uploaded files');
+    } finally {
+      setLoadingSavedFiles(false);
+    }
+  };
+
+  const saveFileToDatabase = async (fileData: FileData) => {
+    if (!fileData.file || !selectedScenario) return;
+
+    try {
+      // Convert file to base64 for storage
+      const fileContent = await FileStorageUtils.fileToBase64(fileData.file);
+
+      const saveData = {
+        scenario_id: selectedScenario.id,
+        file_name: fileData.name,
+        file_type: fileData.type,
+        file_size: fileData.size,
+        data_type: fileData.detectedType || 'unknown',
+        processing_status: 'pending',
+        validation_result: {},
+        processed_data: {
+          file_content: fileContent,
+          parsedData: fileData.parsedData,
+          columnNames: fileData.columnNames,
+          processingResult: fileData.processingResult
+        },
+        original_columns: fileData.columnNames,
+        mapped_columns: {}
+      };
+
+      const response = await fetch('/api/files', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(saveData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save file');
+      }
+
+      const { file: savedFile } = await response.json();
+      return savedFile.id;
+    } catch (error) {
+      console.error('Error saving file to database:', error);
+      addToLog(`⚠ Could not save ${fileData.name} to database`);
+      return null;
+    }
+  };
+
+  const updateFileInDatabase = async (fileId: number, updateData: any) => {
+    try {
+      const response = await fetch('/api/files', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: fileId, ...updateData }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update file');
+      }
+    } catch (error) {
+      console.error('Error updating file in database:', error);
+    }
   };
 
   const autoDetectDataType = (fileName: string): string => {
@@ -141,8 +291,17 @@ export default function DataProcessor() {
           file,
           parsedData: data,
           columnNames: columnHeaders,
-          validationStatus: 'pending'
+          validationStatus: 'pending',
+          saved: false
         };
+
+        // Save file to database
+        const savedFileId = await saveFileToDatabase(fileData);
+        if (savedFileId) {
+          fileData.id = savedFileId;
+          fileData.saved = true;
+          addToLog(`✓ Saved ${file.name} to database`);
+        }
 
         processedFiles.push(fileData);
         
@@ -182,9 +341,22 @@ export default function DataProcessor() {
       );
 
       // Update file with validation results
-      updatedFiles[fileIndex].processingResult = result;
-      updatedFiles[fileIndex].validationStatus = result.success ? 'validated' : 'error';
-      setFiles(updatedFiles);
+    updatedFiles[fileIndex].processingResult = result;
+    updatedFiles[fileIndex].validationStatus = result.success ? 'validated' : 'error';
+    setFiles(updatedFiles);
+
+    // Update file in database if it was saved
+    if (file.id) {
+      await updateFileInDatabase(file.id, {
+        processing_status: result.success ? 'completed' : 'failed',
+        validation_result: result,
+        processed_data: {
+          ...file.processingResult,
+          file_content: file.fileContent,
+          processingResult: result
+        }
+      });
+    }
 
       if (result.success) {
         addToLog(`✓ Validation successful for ${file.name}`);
@@ -433,19 +605,33 @@ export default function DataProcessor() {
                 </div>
               </div>
 
-              {files.length > 0 && (
+              {(files.length > 0 || loadingSavedFiles) && (
                 <div className="mt-6">
-                  <h4 className="text-lg font-semibold mb-4">Uploaded Files ({files.length})</h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold">Files ({files.length})</h4>
+                    {loadingSavedFiles && (
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <RefreshCw className="animate-spin" size={16} />
+                        <span className="text-sm">Loading saved files...</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-3">
                     {files.map((file, index) => (
                       <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <FileText className="text-blue-500" size={20} />
+                          <div className="relative">
+                            <FileText className="text-blue-500" size={20} />
+                            {file.saved && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full" title="File saved to database" />
+                            )}
+                          </div>
                           <div>
                             <p className="font-medium">{file.name}</p>
                             <p className="text-sm text-gray-600">
                               {Math.round(file.size / 1024)}KB • {file.detectedType}
                               {file.detectedTemplate && ` • ${file.detectedTemplate.name}`}
+                              {file.saved && ' • Saved'}
                             </p>
                           </div>
                         </div>
