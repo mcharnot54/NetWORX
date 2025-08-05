@@ -348,7 +348,8 @@ export class DataValidator {
     }
 
     try {
-      // Parse file using XLSX library
+      // Dynamically import XLSX to avoid SSR issues
+      const XLSX = await import('xlsx');
 
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
