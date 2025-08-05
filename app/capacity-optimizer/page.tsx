@@ -953,6 +953,175 @@ export default function CapacityOptimizer() {
           border: 1px solid #e5e7eb;
         }
 
+        .action-button.disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .error-message {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-bottom: 1rem;
+          color: #dc2626;
+        }
+
+        .loading-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          padding: 2rem;
+        }
+
+        .loading-spinner {
+          width: 2rem;
+          height: 2rem;
+          border: 3px solid #e5e7eb;
+          border-top: 3px solid #3b82f6;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .results-container {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .results-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0;
+        }
+
+        .summary-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+
+        .summary-card {
+          background: #f0f9ff;
+          border: 1px solid #bae6fd;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          text-align: center;
+        }
+
+        .summary-card h4 {
+          margin: 0 0 0.5rem 0;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.025em;
+        }
+
+        .summary-value {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #0369a1;
+        }
+
+        .yearly-results h4 {
+          margin: 0 0 1rem 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .results-table {
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          overflow: hidden;
+        }
+
+        .results-header {
+          display: grid;
+          grid-template-columns: 80px 120px 120px 100px 100px 1fr;
+          background: #f9fafb;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .results-row {
+          display: grid;
+          grid-template-columns: 80px 120px 120px 100px 100px 1fr;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .results-header > div,
+        .results-row > div {
+          padding: 0.75rem;
+          display: flex;
+          align-items: center;
+          min-height: 50px;
+        }
+
+        .gap-warning {
+          color: #dc2626;
+          font-weight: 600;
+        }
+
+        .gap-ok {
+          color: #059669;
+        }
+
+        .facilities-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .facility-recommendation {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+        }
+
+        .facility-type {
+          padding: 0.25rem 0.5rem;
+          border-radius: 0.25rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .facility-type.existing {
+          background: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        .facility-type.expansion {
+          background: #fef3c7;
+          color: #d97706;
+        }
+
+        .facility-type.new {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .facility-cost {
+          color: #374151;
+          font-weight: 500;
+        }
+
+        .no-action {
+          color: #6b7280;
+          font-style: italic;
+        }
+
         @media (max-width: 768px) {
           .table-header,
           .table-row {
@@ -970,6 +1139,20 @@ export default function CapacityOptimizer() {
 
           .tab-navigation {
             flex-wrap: wrap;
+          }
+
+          .results-header,
+          .results-row {
+            grid-template-columns: 1fr;
+          }
+
+          .results-header > div,
+          .results-row > div {
+            border-bottom: 1px solid #e5e7eb;
+          }
+
+          .summary-cards {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
