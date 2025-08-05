@@ -86,7 +86,8 @@ const isRetryableError = (error: Error): boolean => {
     try {
       if (errorMessage.includes('fetch') ||
           errorMessage.includes('network') ||
-          errorMessage.includes('timeout')) {
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('Failed to fetch')) {
         return true;
       }
     } catch (e) {
