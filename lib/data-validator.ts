@@ -357,7 +357,7 @@ export class DataValidator {
         reader.onload = (e) => {
           try {
             const data = e.target?.result;
-            let workbook: XLSX.WorkBook;
+            let workbook: any;
 
             if (file.type.includes('csv')) {
               workbook = XLSX.read(data, { type: 'binary' });
