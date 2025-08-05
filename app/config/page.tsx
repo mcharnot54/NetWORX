@@ -1618,7 +1618,7 @@ export default function Configuration() {
                     ConfigManager format).
                   </p>
                   <button className="button button-primary">
-                    <DownloadIcon size={16} />
+                    <Download size={16} />
                     Export as YAML
                   </button>
                 </div>
