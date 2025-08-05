@@ -5,9 +5,9 @@ import Navigation from "@/components/Navigation";
 import {
   Settings,
   Save,
-  RefreshCw,
+  RotateCcw,
   Upload,
-  DownloadIcon,
+  Download,
   CheckCircle,
   FileText,
   Monitor,
