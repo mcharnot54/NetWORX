@@ -278,7 +278,7 @@ async function storeAnalysisResults(
     `;
   } catch (error) {
     // If table doesn't exist, create it
-    await pool.query(`
+    await sql`
       CREATE TABLE IF NOT EXISTS capacity_analysis_results (
         id SERIAL PRIMARY KEY,
         scenario_id INTEGER REFERENCES scenarios(id) ON DELETE CASCADE,
@@ -287,10 +287,18 @@ async function storeAnalysisResults(
         updated_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(scenario_id)
       )
-    `);
-    
+    `;
+
     // Try again after creating table
-    await pool.query(query, [scenarioId, JSON.stringify(result)]);
+    await sql`
+      INSERT INTO capacity_analysis_results
+      (scenario_id, analysis_data, created_at)
+      VALUES (${scenarioId}, ${JSON.stringify(result)}, NOW())
+      ON CONFLICT (scenario_id)
+      DO UPDATE SET
+        analysis_data = ${JSON.stringify(result)},
+        updated_at = NOW()
+    `;
   }
 }
 
