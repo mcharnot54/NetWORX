@@ -33,7 +33,7 @@ export class EnhancedDataProcessingUtils {
     }
     
     // Add suggestions for common issues
-    output += this.generateValidationSuggestions(errorGroups);
+    output += EnhancedDataProcessingUtils.generateValidationSuggestions(errorGroups);
     
     return output;
   }
