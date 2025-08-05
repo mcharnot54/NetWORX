@@ -15,7 +15,7 @@ export class EnhancedDataProcessingUtils {
     if (errors.length === 0) return 'All data validation checks passed successfully.';
     
     // Group errors by type for better understanding
-    const errorGroups = this.groupErrorsByType(errors);
+    const errorGroups = EnhancedDataProcessingUtils.groupErrorsByType(errors);
     const totalFields = results.length;
     const errorRate = (errors.length / totalFields * 100).toFixed(1);
     
