@@ -82,11 +82,16 @@ const isRetryableError = (error: Error): boolean => {
       return false;
     }
 
-    // Retry network and timeout errors
-    if (errorMessage.includes('fetch') ||
-        errorMessage.includes('network') ||
-        errorMessage.includes('timeout')) {
-      return true;
+    // Retry network and timeout errors, but check safely
+    try {
+      if (errorMessage.includes('fetch') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('timeout')) {
+        return true;
+      }
+    } catch (e) {
+      // If we can't safely check the message, don't retry
+      return false;
     }
 
     // If it's a FetchError, check properties safely
