@@ -1320,7 +1320,7 @@ export default function Configuration() {
                       <option value="INFO">Info+</option>
                     </select>
                     <button className="button button-secondary">
-                      <RefreshCw size={16} />
+                      <RotateCcw size={16} />
                       Refresh
                     </button>
                     <button className="button button-secondary">
