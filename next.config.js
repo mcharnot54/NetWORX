@@ -70,6 +70,29 @@ const nextConfig = {
     optimisticClientCache: false,
   },
 
+  // Configure allowed dev origins for cross-origin requests
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.NODE_ENV === 'development' ? '*' : 'https://*.fly.dev',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With, Content-Type, Authorization',
+          },
+        ],
+      },
+    ];
+  },
+
   // Disable source maps in development to reduce memory usage
   productionBrowserSourceMaps: false,
 
