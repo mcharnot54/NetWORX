@@ -1,13 +1,13 @@
 import XLSX from 'xlsx';
-import {
+import type {
   ComprehensiveOperationalData,
   DataQualityMetrics,
   ValidationResult,
   ProcessingResult,
   DataFieldMapping,
-  DataMappingTemplate,
-  DATA_MAPPING_TEMPLATES
+  DataMappingTemplate
 } from '@/types/data-schema';
+import { DATA_MAPPING_TEMPLATES } from '@/types/data-schema';
 
 export class DataValidator {
   
