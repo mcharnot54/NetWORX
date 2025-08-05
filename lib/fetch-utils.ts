@@ -135,15 +135,27 @@ const fetchWithTimeout = async (
       throw new FetchError('Request was cancelled', undefined, undefined, false, false);
     }
 
-    // Listen for external abort
-    combinedSignal.addEventListener('abort', () => {
-      controller.abort();
-    });
+    // Listen for external abort with proper error handling
+    const abortHandler = () => {
+      try {
+        controller.abort();
+      } catch (error) {
+        // Ignore errors when aborting, as the controller might already be aborted
+        console.debug('Error while aborting controller:', error);
+      }
+    };
+
+    combinedSignal.addEventListener('abort', abortHandler, { once: true });
   }
 
-  // Set up timeout
+  // Set up timeout with proper error handling
   const timeoutId = setTimeout(() => {
-    controller.abort();
+    try {
+      controller.abort();
+    } catch (error) {
+      // Ignore errors when aborting timeout, the controller might already be aborted
+      console.debug('Error while aborting on timeout:', error);
+    }
   }, timeout);
 
   try {
@@ -161,9 +173,18 @@ const fetchWithTimeout = async (
     try {
       // Handle all types of abort errors more defensively
       if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-        // Check if this was cancelled by external signal or timeout
-        const isExternalCancel = options.signal?.aborted;
-        const isTimeoutAbort = !isExternalCancel && controller.signal.aborted;
+        // Safely check abort status to avoid accessing properties on aborted signals
+        let isExternalCancel = false;
+        let isTimeoutAbort = false;
+
+        try {
+          isExternalCancel = options.signal?.aborted === true;
+          isTimeoutAbort = !isExternalCancel && controller.signal.aborted === true;
+        } catch (signalError) {
+          // If we can't determine the abort reason, treat as external cancellation
+          console.debug('Error checking signal status:', signalError);
+          isExternalCancel = true;
+        }
 
         if (isExternalCancel) {
           // External cancellation (component unmount, user action, etc.)
@@ -184,9 +205,9 @@ const fetchWithTimeout = async (
             true
           );
         } else {
-          // Unknown abort reason
+          // Unknown abort reason - treat as cancellation to avoid propagating raw AbortError
           throw new FetchError(
-            `Request was aborted for ${url}`,
+            `Request was cancelled for ${url}`,
             undefined,
             undefined,
             false,
@@ -272,8 +293,16 @@ const _robustFetch = async (
 
       // Handle AbortError specifically to prevent propagation
       if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
-        // If it's an external cancellation (not timeout), don't retry
-        if (lastError.message?.includes('cancelled') || options.signal?.aborted) {
+        // Safely check if this was an external cancellation
+        let isExternalCancel = false;
+        try {
+          isExternalCancel = lastError.message?.includes('cancelled') || options.signal?.aborted === true;
+        } catch (signalError) {
+          // If we can't check signal status, assume external cancellation
+          isExternalCancel = true;
+        }
+
+        if (isExternalCancel) {
           console.debug('Request externally cancelled, not retrying:', lastError.message);
           throw new FetchError('Request was cancelled', undefined, undefined, false, false);
         }
@@ -305,25 +334,39 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
   try {
     return await fn();
   } catch (error) {
-    if (error instanceof Error) {
-      const errorName = String(error.name || '');
-      const errorMessage = String(error.message || '');
+    // Safely handle any type of error
+    try {
+      if (error instanceof Error) {
+        const errorName = String(error.name || '');
+        const errorMessage = String(error.message || '');
 
-      // Comprehensive AbortError detection
-      if (errorName === 'AbortError' ||
-          errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('aborted without reason') ||
-          errorMessage.includes('The operation was aborted')) {
-        console.debug(`AbortError suppressed in ${context}:`, errorMessage);
-        throw new FetchError(
-          `Request aborted in ${context}`,
-          undefined,
-          undefined,
-          false,
-          false
-        );
+        // Comprehensive AbortError detection
+        if (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted') ||
+            errorMessage.includes('aborted without reason') ||
+            errorMessage.includes('The operation was aborted') ||
+            errorMessage.includes('signal.reason')) {
+          console.debug(`AbortError suppressed in ${context}:`, errorMessage);
+          throw new FetchError(
+            `Request aborted in ${context}`,
+            undefined,
+            undefined,
+            false,
+            false
+          );
+        }
       }
+    } catch (handlingError) {
+      // If error inspection fails, create a safe fallback
+      console.debug(`Error handling failed in ${context}, creating fallback:`, handlingError);
+      throw new FetchError(
+        `Request failed in ${context}`,
+        undefined,
+        undefined,
+        true,
+        false
+      );
     }
     throw error;
   }
@@ -398,17 +441,21 @@ export const robustPost = async <T = any>(
 };
 
 // Check if the current environment has connectivity issues
-export const checkConnectivity = async (): Promise<boolean> => {
+export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> => {
   return safeWrapper(async () => {
     try {
       // Try to fetch a simple endpoint
       await robustFetch('/api/health', {
         timeout: 5000,
         retries: 1,
+        signal
       });
       return true;
     } catch (error) {
-      console.warn('Connectivity check failed:', error);
+      // Don't log connectivity failures if request was cancelled
+      if (!error || !(error as Error).message?.includes('cancelled')) {
+        console.warn('Connectivity check failed:', error);
+      }
       return false;
     }
   }, 'checkConnectivity');

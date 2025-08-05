@@ -12,6 +12,7 @@ import {
   ProcessingResult,
   DATA_MAPPING_TEMPLATES
 } from "@/types/data-schema";
+import { AdaptiveTemplate } from "@/lib/adaptive-data-validator";
 import {
   Upload,
   FileText,
@@ -68,7 +69,7 @@ interface FileData {
   sheets?: string[];
   selectedSheet?: string;
   detectedType?: string;
-  detectedTemplate?: DataMappingTemplate | null;
+  detectedTemplate?: DataMappingTemplate | AdaptiveTemplate | null;
   scenarioId?: number;
   file?: File;
   parsedData?: any[];
