@@ -116,7 +116,7 @@ ${EnhancedDataProcessingUtils.generateProcessingInsights(result)}`;
     if (hasQuantityData) analysis.dataCharacteristics.push('Contains quantities and measurements');
 
     // Generate processing recommendations
-    analysis.processingRecommendations = this.generateFileProcessingRecommendations(
+    analysis.processingRecommendations = EnhancedDataProcessingUtils.generateFileProcessingRecommendations(
       fileName, hasFinancialData, hasGeographicData, hasTemporalData, hasQuantityData
     );
 
