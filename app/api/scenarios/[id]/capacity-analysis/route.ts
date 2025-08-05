@@ -121,16 +121,15 @@ async function performCapacityAnalysis(
   // If no facilities provided, estimate baseline from market data
   if (baselineCapacity === 0) {
     // Try to get baseline from market data
-    const marketDataResult = await pool.query(
-      `SELECT SUM(COALESCE(inbound_volume, 0) + COALESCE(outbound_volume, 0)) as total_volume 
-       FROM market_data 
-       WHERE scenario_id = $1`,
-      [scenarioId]
-    );
-    
-    if (marketDataResult.rows[0]?.total_volume) {
+    const marketDataResult = await sql`
+      SELECT SUM(COALESCE(inbound_volume, 0) + COALESCE(outbound_volume, 0)) as total_volume
+      FROM market_data
+      WHERE scenario_id = ${scenarioId}
+    `;
+
+    if (marketDataResult[0]?.total_volume) {
       // Estimate capacity needs based on volume (rough heuristic: 1 unit capacity per 100 volume units)
-      baselineCapacity = Math.ceil(marketDataResult.rows[0].total_volume / 100);
+      baselineCapacity = Math.ceil(marketDataResult[0].total_volume / 100);
     } else {
       // Default baseline if no data available
       baselineCapacity = 10000;
