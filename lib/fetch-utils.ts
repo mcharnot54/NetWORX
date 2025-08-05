@@ -194,8 +194,26 @@ const fetchWithTimeout = async (
         let isTimeoutAbort = false;
 
         try {
-          isExternalCancel = options.signal?.aborted === true;
-          isTimeoutAbort = !isExternalCancel && controller.signal.aborted === true;
+          // More defensive signal checking to prevent "signal is aborted without reason"
+          if (options.signal) {
+            try {
+              isExternalCancel = Boolean(options.signal.aborted);
+            } catch (externalSignalError) {
+              // If external signal throws when checking aborted, assume it's cancelled
+              console.debug('Error checking external signal status:', externalSignalError);
+              isExternalCancel = true;
+            }
+          }
+
+          if (!isExternalCancel) {
+            try {
+              isTimeoutAbort = Boolean(controller.signal.aborted);
+            } catch (timeoutSignalError) {
+              // If timeout signal throws when checking aborted, assume it's a timeout
+              console.debug('Error checking timeout signal status:', timeoutSignalError);
+              isTimeoutAbort = true;
+            }
+          }
         } catch (signalError) {
           // If we can't determine the abort reason, treat as external cancellation
           console.debug('Error checking signal status:', signalError);
