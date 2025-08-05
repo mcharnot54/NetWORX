@@ -174,6 +174,17 @@ const fetchWithTimeout = async (
     }
 
     if (error instanceof Error) {
+      // Handle specific "Failed to fetch" errors in cloud environments
+      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+        throw new FetchError(
+          `Network connection failed for ${url}`,
+          undefined,
+          undefined,
+          true,
+          false
+        );
+      }
+
       throw new FetchError(
         `Network error: ${error.message}`,
         undefined,
