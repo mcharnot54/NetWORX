@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+// XLSX is imported dynamically in parseFile to avoid SSR issues
 import type {
   ComprehensiveOperationalData,
   DataQualityMetrics,
