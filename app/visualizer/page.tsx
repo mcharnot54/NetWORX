@@ -1,8 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Navigation from "@/components/Navigation";
-import { useData } from "@/context/DataContext";
+import { useState, useEffect } from 'react';
+import Navigation from '@/components/Navigation';
 import {
   BarChart,
   Bar,
@@ -19,6432 +18,1562 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  ScatterChart,
-  Scatter,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
   ComposedChart,
-  ReferenceLine,
-  Brush,
-  ReferenceArea,
-} from "recharts";
+} from 'recharts';
 import {
   Download,
-  RefreshCw,
-  Filter,
-  TrendingUp,
-  FileText,
   BarChart3,
-  PieChart as PieChartIcon,
-  LineChart as LineChartIcon,
-  Database,
-  CheckCircle,
-  AlertTriangle,
-  FileSpreadsheet,
-  BookOpen,
-  Globe,
-  Settings,
-  Users,
+  TrendingUp,
+  DollarSign,
+  Package,
+  Truck,
   Target,
+  Settings,
+  FileText,
+  Calculator,
+  Clock,
+  MapPin,
   Zap,
   Activity,
+  AlertTriangle,
+  CheckCircle,
+  Users,
+  Building,
+  Calendar,
   Layers,
-  TrendingDown,
-  DollarSign,
-  MapPin,
-  Gauge,
-  Eye,
-  Map,
-  Navigation as NavigationIcon,
-  Crosshair,
-  Layers as LayersIcon,
-  Package,
-} from "lucide-react";
+  PieChart as PieChartIcon,
+} from 'lucide-react';
 
-// Comprehensive Result Data Structures
-interface SavedScenario {
-  id: string;
-  name: string;
-  description: string;
-  savedAt: string;
-  transportResults?: any;
-  warehouseResults?: any;
-  inventoryResults?: any;
-  financialMetrics?: any;
-  yearlyBreakdown: YearlyBreakdown[];
-  totalCost: number;
-  viability: "High" | "Medium" | "Low";
-  strengths: string[];
-  weaknesses: string[];
+// Comprehensive KPI data structure
+interface ComprehensiveResults {
+  project_id: number;
+  project_name: string;
+  scenario_id: number;
+  scenario_name: string;
+  year_number: number;
+  
+  // Operational KPIs
+  peak_daily_orders_shipped: number;
+  average_daily_orders_shipped: number;
+  theoretical_max_throughput: number;
+  current_labor_force: number;
+  peak_inventory_units: number;
+  inventory_turns: number;
+  order_backlog: number;
+  throughput_bottleneck_process: string;
+  
+  // Capacity KPIs
+  candidate_dc_location: string;
+  est_new_dc_capacity: number;
+  est_new_dc_operational_cost: number;
+  automation_investment: number;
+  expansion_capacity_added: number;
+  expansion_cost: number;
+  
+  // Forecasting KPIs
+  projected_orders_units: number;
+  capacity_limit_threshold: number;
+  new_dc_golive_date: string;
+  incremental_capacity_added: number;
+  kpi_targets: string;
+  
+  // Performance KPIs
+  budget_constraint: number;
+  capital_investment_amount: number;
+  depreciation_period: number;
+  current_fulfillment_cost_per_order: number;
+  projected_fulfillment_cost_per_order: number;
+  
+  // Financial KPIs
+  annual_cost_savings: number;
+  annual_revenue_impact: number;
+  roi_percentage: number;
+  payback_period_months: number;
+  net_present_value: number;
+  total_cost_of_ownership: number;
+  
+  // Cost Breakdown
+  transportation_costs: number;
+  warehouse_operating_costs: number;
+  variable_labor_costs: number;
+  facility_rent_costs: number;
+  facility_capital_costs: number;
+  total_costs: number;
+  total_aggregated_costs: number;
+  total_costs_per_unit: number;
 }
 
-interface YearlyBreakdown {
-  year: number;
-  categories: {
-    transportation: number;
-    warehousing: number;
-    inventory: number;
-    labor: number;
-    facilities: number;
-    technology: number;
-    overhead: number;
-  };
-  totalCost: number;
-  costChange: number;
-}
-
-interface WarehouseResults {
-  results_df: Array<{
-    Year: number;
-    Facilities_Needed: number;
-    Gross_Area_SqFt: number;
-    Total_Cost_Annual: number;
-    ThirdParty_SqFt_Required: number;
-    Utilization_Percentage: number;
-    Volume_Growth_Rate: number;
-  }>;
-  optimization_summary: {
-    status: string;
-    objective_value: number;
-    total_facilities_added: number;
-    total_thirdparty_space: number;
-    solve_time: number;
-  };
-  performance_metrics: {
-    avg_utilization: number;
-    avg_cost_per_unit: number;
-    thirdparty_dependency: number;
-    volume_cagr: number;
-  };
-  yearly_details: { [year: string]: any };
-}
-
-interface TransportationResults {
-  assignments_df: Array<{
-    Facility: string;
-    Destination: string;
-    Demand: number;
-    Flow: number;
-    Cost: number;
-    Distance: number;
-  }>;
-  facility_metrics_df: Array<{
-    Facility: string;
-    Destinations_Served: number;
-    Total_Demand: number;
-    Capacity_Utilization: number;
-    Average_Distance: number;
-    Total_Cost: number;
-    Cost_Per_Unit: number;
-  }>;
-  optimization_summary: {
-    status: string;
-    objective_value: number;
-    facilities_opened: number;
-    total_demand_served: number;
-    total_transportation_cost: number;
-  };
-  network_metrics: {
-    service_level_achievement: number;
-    avg_cost_per_unit: number;
-    weighted_avg_distance: number;
-    avg_facility_utilization: number;
-    network_utilization: number;
-    destinations_per_facility: number;
-    total_transportation_cost: number;
-    demand_within_service_limit: number;
-  };
-  open_facilities: string[];
-}
-
-interface ExecutiveSummary {
-  report_timestamp: string;
-  project_overview: {
-    total_optimization_cost: number;
-    warehouse_facilities_planned: number;
-    network_facilities_opened: number;
-    average_utilization: number;
-    service_level_achievement: number;
-  };
-  warehouse_optimization: any;
-  transportation_optimization: any;
-  key_performance_indicators: {
-    total_annual_cost: number;
-    cost_per_unit: number;
-    warehouse_utilization_pct: number;
-    service_level_achievement_pct: number;
-    thirdparty_dependency_pct: number;
-    avg_transportation_distance: number;
-  };
-  recommendations: string[];
-}
-
-interface OutputFile {
-  type: string;
-  name: string;
-  description: string;
-  size: string;
-  generated_at: string;
-  download_url?: string;
-}
-
-interface LogEntry {
-  timestamp: string;
-  level: string;
-  message: string;
-  component: string;
+// P&L Comparison data
+interface PLComparison {
+  scenario_name: string;
+  year_number: number;
+  total_revenue: number;
+  cogs: number;
+  transportation_expense: number;
+  warehouse_expense: number;
+  labor_expense: number;
+  facility_expense: number;
+  other_operating_expense: number;
+  gross_profit: number;
+  operating_profit: number;
+  net_profit: number;
+  gross_margin_percentage: number;
+  operating_margin_percentage: number;
+  net_margin_percentage: number;
 }
 
 export default function Visualizer() {
-  const {
-    transportResults,
-    warehouseResults: warehouseResultsFromContext,
-    inventoryResults,
-    marketData,
-    financialParams,
-    setFinancialParams,
-    calculateFinancialMetrics,
-  } = useData();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'operational' | 'financial' | 'capacity' | 'scenarios' | 'reports'>('dashboard');
+  const [selectedYear, setSelectedYear] = useState(1);
+  const [selectedScenario, setSelectedScenario] = useState('scenario1');
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<
-    "analytics" | "outputs" | "reports" | "insights" | "financial" | "scenarios"
-  >("analytics");
-  const [selectedChart, setSelectedChart] = useState("warehouse");
-  const [advancedView, setAdvancedView] = useState(false);
-  const [dateRange, setDateRange] = useState("1year");
+  // Mock comprehensive data - in production, this would come from your API
+  const [comprehensiveResults, setComprehensiveResults] = useState<ComprehensiveResults[]>([]);
+  const [plComparisons, setPLComparisons] = useState<PLComparison[]>([]);
 
-  // Scenario Management State
-  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
-  const [currentScenarioName, setCurrentScenarioName] = useState("");
-  const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
-  const [scenarioComparisonView, setScenarioComparisonView] = useState("table");
+  useEffect(() => {
+    // Mock data generation
+    const mockResults: ComprehensiveResults[] = [];
+    const mockPL: PLComparison[] = [];
+    
+    const scenarios = [
+      { id: 1, name: 'Lowest Cost (ZIP to ZIP)' },
+      { id: 2, name: 'Best Service (Parcel Zone)' },
+      { id: 3, name: 'Lowest Miles (City to City)' }
+    ];
+    
+    scenarios.forEach(scenario => {
+      for (let year = 1; year <= 5; year++) {
+        const growthFactor = Math.pow(1.05, year - 1); // 5% annual growth
+        
+        mockResults.push({
+          project_id: 1,
+          project_name: 'NetWORX Optimization Project',
+          scenario_id: scenario.id,
+          scenario_name: scenario.name,
+          year_number: year,
+          
+          // Operational KPIs
+          peak_daily_orders_shipped: Math.floor((8500 + Math.random() * 1500) * growthFactor),
+          average_daily_orders_shipped: Math.floor((6200 + Math.random() * 800) * growthFactor),
+          theoretical_max_throughput: Math.floor((12000 + Math.random() * 2000) * growthFactor),
+          current_labor_force: Math.floor((245 + Math.random() * 55) * Math.pow(1.03, year - 1)),
+          peak_inventory_units: Math.floor((125000 + Math.random() * 25000) * growthFactor),
+          inventory_turns: Math.round((12.5 + Math.random() * 2.5) * 10) / 10,
+          order_backlog: Math.floor(150 + Math.random() * 100),
+          throughput_bottleneck_process: ['Picking', 'Packing', 'Shipping', 'Receiving'][Math.floor(Math.random() * 4)],
+          
+          // Capacity KPIs
+          candidate_dc_location: ['Dallas, TX', 'Denver, CO', 'Memphis, TN'][Math.floor(Math.random() * 3)],
+          est_new_dc_capacity: Math.floor((85000 + Math.random() * 35000) * growthFactor),
+          est_new_dc_operational_cost: Math.floor((2.8 + Math.random() * 1.2) * 1000000),
+          automation_investment: Math.floor((1.5 + Math.random() * 2.5) * 1000000),
+          expansion_capacity_added: Math.floor((25000 + Math.random() * 15000) * growthFactor),
+          expansion_cost: Math.floor((850000 + Math.random() * 350000) * Math.pow(1.04, year - 1)),
+          
+          // Forecasting KPIs
+          projected_orders_units: Math.floor((285000 + Math.random() * 65000) * growthFactor),
+          capacity_limit_threshold: 85 + Math.random() * 10,
+          new_dc_golive_date: `Q${Math.ceil(Math.random() * 4)} ${2024 + year}`,
+          incremental_capacity_added: Math.floor((18000 + Math.random() * 12000) * growthFactor),
+          kpi_targets: `${Math.floor(95 + Math.random() * 4)}% efficiency target`,
+          
+          // Performance KPIs
+          budget_constraint: Math.floor((15 + Math.random() * 10) * 1000000),
+          capital_investment_amount: Math.floor((3.2 + Math.random() * 2.8) * 1000000),
+          depreciation_period: 7 + Math.floor(Math.random() * 6),
+          current_fulfillment_cost_per_order: Math.round((8.50 + Math.random() * 2.50) * 100) / 100,
+          projected_fulfillment_cost_per_order: Math.round((7.20 + Math.random() * 1.80) * 100) / 100,
+          
+          // Financial KPIs
+          annual_cost_savings: Math.floor((850000 + Math.random() * 450000) * Math.pow(1.05, year - 1)),
+          annual_revenue_impact: Math.floor((2.4 + Math.random() * 1.6) * 1000000 * growthFactor),
+          roi_percentage: Math.round((15.5 + Math.random() * 8.5) * 10) / 10,
+          payback_period_months: Math.floor(18 + Math.random() * 18),
+          net_present_value: Math.floor((4.8 + Math.random() * 3.2) * 1000000 * Math.pow(1.08, year - 1)),
+          total_cost_of_ownership: Math.floor((28 + Math.random() * 12) * 1000000 * Math.pow(1.06, year - 1)),
+          
+          // Cost Breakdown
+          transportation_costs: Math.floor((5.2 + Math.random() * 2.8) * 1000000 * growthFactor),
+          warehouse_operating_costs: Math.floor((3.8 + Math.random() * 2.2) * 1000000 * growthFactor),
+          variable_labor_costs: Math.floor((2.1 + Math.random() * 1.4) * 1000000 * growthFactor),
+          facility_rent_costs: Math.floor((1.8 + Math.random() * 0.9) * 1000000 * Math.pow(1.03, year - 1)),
+          facility_capital_costs: Math.floor((0.8 + Math.random() * 0.6) * 1000000),
+          total_costs: 0, // Will be calculated
+          total_aggregated_costs: 0, // Will be calculated
+          total_costs_per_unit: 0 // Will be calculated
+        });
+        
+        // Calculate total costs
+        const lastResult = mockResults[mockResults.length - 1];
+        lastResult.total_costs = lastResult.transportation_costs + lastResult.warehouse_operating_costs + 
+                                lastResult.variable_labor_costs + lastResult.facility_rent_costs + 
+                                lastResult.facility_capital_costs;
+        lastResult.total_aggregated_costs = lastResult.total_costs * 1.12; // 12% overhead
+        lastResult.total_costs_per_unit = lastResult.total_costs / lastResult.projected_orders_units;
+        
+        // P&L Data
+        const revenue = (48 + Math.random() * 12) * 1000000 * growthFactor;
+        const cogs = revenue * (0.35 + Math.random() * 0.1);
+        const grossProfit = revenue - cogs;
+        const totalExpenses = lastResult.transportation_costs + lastResult.warehouse_operating_costs + 
+                             lastResult.variable_labor_costs + lastResult.facility_rent_costs + 
+                             (2.5 + Math.random() * 1.5) * 1000000;
+        const operatingProfit = grossProfit - totalExpenses;
+        const netProfit = operatingProfit * (0.85 + Math.random() * 0.1); // After taxes/interest
+        
+        mockPL.push({
+          scenario_name: scenario.name,
+          year_number: year,
+          total_revenue: revenue,
+          cogs: cogs,
+          transportation_expense: lastResult.transportation_costs,
+          warehouse_expense: lastResult.warehouse_operating_costs,
+          labor_expense: lastResult.variable_labor_costs,
+          facility_expense: lastResult.facility_rent_costs,
+          other_operating_expense: (2.5 + Math.random() * 1.5) * 1000000,
+          gross_profit: grossProfit,
+          operating_profit: operatingProfit,
+          net_profit: netProfit,
+          gross_margin_percentage: (grossProfit / revenue) * 100,
+          operating_margin_percentage: (operatingProfit / revenue) * 100,
+          net_margin_percentage: (netProfit / revenue) * 100
+        });
+      }
+    });
+    
+    setComprehensiveResults(mockResults);
+    setPLComparisons(mockPL);
+  }, []);
 
-  // Output Generation State
-  const [generating, setGenerating] = useState(false);
-  const [generatedFiles, setGeneratedFiles] = useState<OutputFile[]>([]);
-  const [executiveSummary, setExecutiveSummary] =
-    useState<ExecutiveSummary | null>(null);
-  const [outputLogs, setOutputLogs] = useState<LogEntry[]>([]);
-  const [selectedFormats, setSelectedFormats] = useState<string[]>([
-    "csv",
-    "json",
-    "excel",
-  ]);
-
-  // Mock comprehensive data
-  const [warehouseResults] = useState<WarehouseResults>({
-    results_df: [
-      {
-        Year: 2024,
-        Facilities_Needed: 3,
-        Gross_Area_SqFt: 450000,
-        Total_Cost_Annual: 2850000,
-        ThirdParty_SqFt_Required: 75000,
-        Utilization_Percentage: 78.5,
-        Volume_Growth_Rate: 8.2,
-      },
-      {
-        Year: 2025,
-        Facilities_Needed: 4,
-        Gross_Area_SqFt: 580000,
-        Total_Cost_Annual: 3420000,
-        ThirdParty_SqFt_Required: 95000,
-        Utilization_Percentage: 82.1,
-        Volume_Growth_Rate: 12.5,
-      },
-      {
-        Year: 2026,
-        Facilities_Needed: 5,
-        Gross_Area_SqFt: 720000,
-        Total_Cost_Annual: 4180000,
-        ThirdParty_SqFt_Required: 110000,
-        Utilization_Percentage: 85.3,
-        Volume_Growth_Rate: 15.8,
-      },
-      {
-        Year: 2027,
-        Facilities_Needed: 6,
-        Gross_Area_SqFt: 890000,
-        Total_Cost_Annual: 5020000,
-        ThirdParty_SqFt_Required: 125000,
-        Utilization_Percentage: 87.9,
-        Volume_Growth_Rate: 18.2,
-      },
-      {
-        Year: 2028,
-        Facilities_Needed: 7,
-        Gross_Area_SqFt: 1080000,
-        Total_Cost_Annual: 5950000,
-        ThirdParty_SqFt_Required: 140000,
-        Utilization_Percentage: 89.4,
-        Volume_Growth_Rate: 20.1,
-      },
-    ],
-    optimization_summary: {
-      status: "Optimal",
-      objective_value: 21420000,
-      total_facilities_added: 4,
-      total_thirdparty_space: 545000,
-      solve_time: 3.2,
-    },
-    performance_metrics: {
-      avg_utilization: 84.6,
-      avg_cost_per_unit: 12.45,
-      thirdparty_dependency: 0.24,
-      volume_cagr: 0.148,
-    },
-    yearly_details: {},
-  });
-
-  const [transportationResults] = useState<TransportationResults>({
-    assignments_df: [
-      {
-        Facility: "Chicago, IL",
-        Destination: "New York, NY",
-        Demand: 15000,
-        Flow: 15000,
-        Cost: 2100,
-        Distance: 840,
-      },
-      {
-        Facility: "Dallas, TX",
-        Destination: "Houston, TX",
-        Demand: 8000,
-        Flow: 8000,
-        Cost: 600,
-        Distance: 240,
-      },
-      {
-        Facility: "Los Angeles, CA",
-        Destination: "Phoenix, AZ",
-        Demand: 6000,
-        Flow: 6000,
-        Cost: 750,
-        Distance: 300,
-      },
-      {
-        Facility: "Chicago, IL",
-        Destination: "Philadelphia, PA",
-        Demand: 5000,
-        Flow: 5000,
-        Cost: 2250,
-        Distance: 900,
-      },
-      {
-        Facility: "Los Angeles, CA",
-        Destination: "Los Angeles, CA",
-        Demand: 12000,
-        Flow: 12000,
-        Cost: 0,
-        Distance: 0,
-      },
-    ],
-    facility_metrics_df: [
-      {
-        Facility: "Chicago, IL",
-        Destinations_Served: 2,
-        Total_Demand: 20000,
-        Capacity_Utilization: 0.8,
-        Average_Distance: 870,
-        Total_Cost: 87000,
-        Cost_Per_Unit: 4.35,
-      },
-      {
-        Facility: "Dallas, TX",
-        Destinations_Served: 1,
-        Total_Demand: 8000,
-        Capacity_Utilization: 0.4,
-        Average_Distance: 240,
-        Total_Cost: 4800,
-        Cost_Per_Unit: 0.6,
-      },
-      {
-        Facility: "Los Angeles, CA",
-        Destinations_Served: 2,
-        Total_Demand: 18000,
-        Capacity_Utilization: 0.6,
-        Average_Distance: 150,
-        Total_Cost: 9000,
-        Cost_Per_Unit: 0.5,
-      },
-    ],
-    optimization_summary: {
-      status: "Optimal",
-      objective_value: 400800,
-      facilities_opened: 3,
-      total_demand_served: 46000,
-      total_transportation_cost: 100800,
-    },
-    network_metrics: {
-      service_level_achievement: 0.96,
-      avg_cost_per_unit: 2.19,
-      weighted_avg_distance: 542.3,
-      avg_facility_utilization: 0.6,
-      network_utilization: 0.613,
-      destinations_per_facility: 1.67,
-      total_transportation_cost: 100800,
-      demand_within_service_limit: 44160,
-    },
-    open_facilities: ["Chicago, IL", "Dallas, TX", "Los Angeles, CA"],
-  });
-
-  // Geographic data for centers of gravity and heat maps
-  const geographicData = {
-    facilities: [
-      {
-        name: "Chicago, IL",
-        lat: 41.8781,
-        lng: -87.6298,
-        demand: 20000,
-        utilization: 80,
-        region: "Midwest",
-        coverage: 500,
-      },
-      {
-        name: "Dallas, TX",
-        lat: 32.7767,
-        lng: -96.797,
-        demand: 8000,
-        utilization: 40,
-        region: "South",
-        coverage: 400,
-      },
-      {
-        name: "Los Angeles, CA",
-        lat: 34.0522,
-        lng: -118.2437,
-        demand: 18000,
-        utilization: 60,
-        region: "West",
-        coverage: 600,
-      },
-    ],
-    destinations: [
-      {
-        name: "New York, NY",
-        lat: 40.7128,
-        lng: -74.006,
-        demand: 15000,
-        priority: "High",
-        served_by: "Chicago, IL",
-      },
-      {
-        name: "Los Angeles, CA",
-        lat: 34.0522,
-        lng: -118.2437,
-        demand: 12000,
-        priority: "High",
-        served_by: "Los Angeles, CA",
-      },
-      {
-        name: "Houston, TX",
-        lat: 29.7604,
-        lng: -95.3698,
-        demand: 8000,
-        priority: "Medium",
-        served_by: "Dallas, TX",
-      },
-      {
-        name: "Phoenix, AZ",
-        lat: 33.4484,
-        lng: -112.074,
-        demand: 6000,
-        priority: "Medium",
-        served_by: "Los Angeles, CA",
-      },
-      {
-        name: "Philadelphia, PA",
-        lat: 39.9526,
-        lng: -75.1652,
-        demand: 5000,
-        priority: "Low",
-        served_by: "Chicago, IL",
-      },
-    ],
-    centerOfGravity: {
-      demand_weighted: { lat: 36.2048, lng: -95.9928, total_demand: 46000 },
-      geographic: { lat: 36.1627, lng: -100.7785 },
-      cost_optimal: { lat: 35.8914, lng: -94.719 },
-    },
-    scenarios: [
-      {
-        name: "Cost Focused",
-        facilities: [
-          {
-            name: "Kansas City, MO",
-            lat: 39.0997,
-            lng: -94.5786,
-            coverage: 800,
-            cost_benefit: 0.85,
-          },
-          {
-            name: "Memphis, TN",
-            lat: 35.1495,
-            lng: -90.049,
-            coverage: 600,
-            cost_benefit: 0.78,
-          },
-        ],
-        center_of_gravity: { lat: 37.1249, lng: -92.6373 },
-      },
-      {
-        name: "Service Focused",
-        facilities: [
-          {
-            name: "Atlanta, GA",
-            lat: 33.749,
-            lng: -84.388,
-            coverage: 400,
-            cost_benefit: 0.92,
-          },
-          {
-            name: "Denver, CO",
-            lat: 39.7392,
-            lng: -104.9903,
-            coverage: 500,
-            cost_benefit: 0.88,
-          },
-          {
-            name: "Seattle, WA",
-            lat: 47.6062,
-            lng: -122.3321,
-            coverage: 350,
-            cost_benefit: 0.95,
-          },
-        ],
-        center_of_gravity: { lat: 40.0648, lng: -103.8679 },
-      },
-      {
-        name: "Balanced Approach",
-        facilities: [
-          {
-            name: "Indianapolis, IN",
-            lat: 39.7684,
-            lng: -86.1581,
-            coverage: 550,
-            cost_benefit: 0.9,
-          },
-          {
-            name: "Phoenix, AZ",
-            lat: 33.4484,
-            lng: -112.074,
-            coverage: 450,
-            cost_benefit: 0.87,
-          },
-        ],
-        center_of_gravity: { lat: 36.6084, lng: -99.1161 },
-      },
-    ],
-    heatmapData: [
-      {
-        region: "Northeast",
-        intensity: 85,
-        facilities: 1,
-        demand: 20000,
-        lat: 42.0,
-        lng: -75.0,
-      },
-      {
-        region: "Southeast",
-        intensity: 60,
-        facilities: 0,
-        demand: 8000,
-        lat: 33.0,
-        lng: -84.0,
-      },
-      {
-        region: "Midwest",
-        intensity: 95,
-        facilities: 1,
-        demand: 20000,
-        lat: 42.0,
-        lng: -87.0,
-      },
-      {
-        region: "Southwest",
-        intensity: 70,
-        facilities: 1,
-        demand: 14000,
-        lat: 33.0,
-        lng: -111.0,
-      },
-      {
-        region: "West",
-        intensity: 80,
-        facilities: 1,
-        demand: 18000,
-        lat: 37.0,
-        lng: -119.0,
-      },
-      {
-        region: "Northwest",
-        intensity: 45,
-        facilities: 0,
-        demand: 3000,
-        lat: 47.0,
-        lng: -120.0,
-      },
-      {
-        region: "Mountain",
-        intensity: 55,
-        facilities: 0,
-        demand: 6000,
-        lat: 39.0,
-        lng: -105.0,
-      },
-      {
-        region: "Plains",
-        intensity: 40,
-        facilities: 0,
-        demand: 4000,
-        lat: 41.0,
-        lng: -100.0,
-      },
-    ],
-  };
-
-  // Create service coverage circles data for visualization
-  const serviceCoverageData = geographicData.facilities.map((facility) => ({
-    facility: facility.name,
-    coverage_radius: facility.coverage,
-    lat: facility.lat,
-    lng: facility.lng,
-    utilization: facility.utilization,
-    demand_served: facility.demand,
-  }));
-
-  // Inventory Analytics Data
-  const inventoryData = {
-    skuMetrics: [
-      {
-        sku: "SKU_001",
-        abc_class: "A",
-        inventory_turns: 8.2,
-        days_on_hand: 44,
-        fill_rate: 98.5,
-        safety_stock: 75,
-        total_value: 12500,
-      },
-      {
-        sku: "SKU_002",
-        abc_class: "B",
-        inventory_turns: 6.1,
-        days_on_hand: 60,
-        fill_rate: 96.2,
-        safety_stock: 45,
-        total_value: 8750,
-      },
-      {
-        sku: "SKU_003",
-        abc_class: "A",
-        inventory_turns: 9.8,
-        days_on_hand: 37,
-        fill_rate: 99.1,
-        safety_stock: 25,
-        total_value: 5200,
-      },
-      {
-        sku: "SKU_004",
-        abc_class: "B",
-        inventory_turns: 5.4,
-        days_on_hand: 68,
-        fill_rate: 95.8,
-        safety_stock: 85,
-        total_value: 15600,
-      },
-      {
-        sku: "SKU_005",
-        abc_class: "C",
-        inventory_turns: 3.2,
-        days_on_hand: 114,
-        fill_rate: 91.4,
-        safety_stock: 35,
-        total_value: 4200,
-      },
-    ],
-    abcAnalysis: [
-      {
-        class: "A",
-        sku_count: 2,
-        total_value: 17700,
-        percentage: 72,
-        avg_turns: 9.0,
-      },
-      {
-        class: "B",
-        sku_count: 2,
-        total_value: 24350,
-        percentage: 23,
-        avg_turns: 5.8,
-      },
-      {
-        class: "C",
-        sku_count: 1,
-        total_value: 4200,
-        percentage: 5,
-        avg_turns: 3.2,
-      },
-    ],
-    serviceLevelData: [
-      {
-        category: "Pharma",
-        service_level: 98.5,
-        cv: 0.2,
-        safety_stock_investment: 15200,
-      },
-      {
-        category: "Apparel",
-        service_level: 96.2,
-        cv: 0.8,
-        safety_stock_investment: 8900,
-      },
-      {
-        category: "Consumer",
-        service_level: 99.1,
-        cv: 0.08,
-        safety_stock_investment: 5100,
-      },
-      {
-        category: "Electronics",
-        service_level: 95.8,
-        cv: 0.5,
-        safety_stock_investment: 12800,
-      },
-      {
-        category: "Industrial",
-        service_level: 91.4,
-        cv: 0.8,
-        safety_stock_investment: 6200,
-      },
-    ],
-    carryingCostAnalysis: [
-      {
-        year: "2024",
-        inventory_value: 1.2,
-        carrying_cost: 0.3,
-        turns: 6.8,
-        stockout_cost: 0.15,
-      },
-      {
-        year: "2025",
-        inventory_value: 1.4,
-        carrying_cost: 0.35,
-        turns: 7.2,
-        stockout_cost: 0.12,
-      },
-      {
-        year: "2026",
-        inventory_value: 1.6,
-        carrying_cost: 0.4,
-        turns: 7.8,
-        stockout_cost: 0.1,
-      },
-      {
-        year: "2027",
-        inventory_value: 1.8,
-        carrying_cost: 0.45,
-        turns: 8.1,
-        stockout_cost: 0.08,
-      },
-      {
-        year: "2028",
-        inventory_value: 2.0,
-        carrying_cost: 0.5,
-        turns: 8.5,
-        stockout_cost: 0.06,
-      },
-    ],
-  };
-
-  // Chart data derived from results
-  const warehouseChartData = warehouseResults.results_df.map((row) => ({
-    year: row.Year.toString(),
-    facilities: row.Facilities_Needed,
-    area: row.Gross_Area_SqFt / 1000, // Convert to thousands of sq ft
-    cost: row.Total_Cost_Annual / 1000000, // Convert to millions
-    utilization: row.Utilization_Percentage,
-    thirdparty: row.ThirdParty_SqFt_Required / 1000,
-    growth: row.Volume_Growth_Rate,
-  }));
-
-  const transportationChartData = transportationResults.assignments_df.map(
-    (assignment) => ({
-      route: `${assignment.Facility.split(",")[0]} → ${assignment.Destination.split(",")[0]}`,
-      demand: assignment.Demand,
-      cost: assignment.Cost,
-      distance: assignment.Distance,
-      efficiency: assignment.Demand / assignment.Cost,
-    }),
-  );
-
-  const costBreakdownData = [
-    {
-      name: "Warehouse Operations",
-      value: warehouseResults.optimization_summary.objective_value,
-      color: "#3b82f6",
-    },
-    {
-      name: "Transportation",
-      value:
-        transportationResults.optimization_summary.total_transportation_cost,
-      color: "#10b981",
-    },
-    {
-      name: "Third Party Storage",
-      value: warehouseResults.optimization_summary.total_thirdparty_space * 15,
-      color: "#f59e0b",
-    },
-    { name: "Administrative", value: 2500000, color: "#ef4444" },
-  ];
-
-  const networkPerformanceData = transportationResults.facility_metrics_df.map(
-    (facility) => ({
-      facility: facility.Facility.split(",")[0],
-      utilization: facility.Capacity_Utilization * 100,
-      destinations: facility.Destinations_Served,
-      avgDistance: facility.Average_Distance,
-      costPerUnit: facility.Cost_Per_Unit,
-      totalDemand: facility.Total_Demand / 1000, // Convert to thousands
-    }),
-  );
-
-  // Add log entry
-  const addLogEntry = (
-    level: string,
-    message: string,
-    component: string = "OutputGenerator",
-  ) => {
-    const entry: LogEntry = {
-      timestamp: new Date().toLocaleTimeString(),
-      level,
-      message,
-      component,
-    };
-    setOutputLogs((prev) => [...prev.slice(-49), entry]);
-    };
-
-  // Scenario Management Functions
-  const saveCurrentScenario = () => {
-    if (!currentScenarioName.trim()) {
-      alert("Please enter a scenario name");
-      return;
-    }
-
-    // Generate yearly breakdown data
-    const yearlyBreakdown: YearlyBreakdown[] = [];
-    const currentYear = new Date().getFullYear();
-
-    for (let i = 0; i < 8; i++) {
-      const year = currentYear + i;
-      const growthFactor = 1 + (i * 0.15); // 15% annual growth
-
-      const baseTransportCost = transportResults?.network_metrics?.total_transportation_cost || 2000000;
-      const baseWarehouseCost = warehouseResultsFromContext?.objective_value || 3000000;
-      const baseInventoryCost = inventoryResults?.totalValue || 1500000;
-
-      yearlyBreakdown.push({
-        year,
-        categories: {
-          transportation: Math.round(baseTransportCost * growthFactor),
-          warehousing: Math.round(baseWarehouseCost * growthFactor),
-          inventory: Math.round(baseInventoryCost * growthFactor),
-          labor: Math.round(500000 * growthFactor),
-          facilities: Math.round(800000 * growthFactor),
-          technology: Math.round(300000 * growthFactor),
-          overhead: Math.round(400000 * growthFactor),
-        },
-        totalCost: Math.round((baseTransportCost + baseWarehouseCost + baseInventoryCost + 500000 + 800000 + 300000 + 400000) * growthFactor),
-        costChange: i === 0 ? 0 : 15, // 15% growth
-      });
-    }
-
-    const totalCost = yearlyBreakdown[0]?.totalCost || 0;
-
-    // Determine viability based on financial metrics
-    const financialMetrics = calculateFinancialMetrics();
-    let viability: "High" | "Medium" | "Low" = "Medium";
-
-    if (financialMetrics.roic > 20 && financialMetrics.npv > 0 && financialMetrics.paybackPeriod < 3) {
-      viability = "High";
-    } else if (financialMetrics.roic < 10 || financialMetrics.npv < 0 || financialMetrics.paybackPeriod > 5) {
-      viability = "Low";
-    }
-
-    // Generate strengths and weaknesses based on results
-    const strengths: string[] = [];
-    const weaknesses: string[] = [];
-
-    if (transportResults?.network_metrics?.service_level_achievement > 0.95) {
-      strengths.push("High service level achievement");
-    } else {
-      weaknesses.push("Service level below target");
-    }
-
-    if (warehouseResultsFromContext?.performance_metrics?.avg_utilization > 80) {
-      strengths.push("Optimal warehouse utilization");
-    } else {
-      weaknesses.push("Low warehouse utilization");
-    }
-
-    if (financialMetrics.roic > 15) {
-      strengths.push("Strong return on investment");
-    } else {
-      weaknesses.push("Below target ROI");
-    }
-
-    if (financialMetrics.paybackPeriod < 4) {
-      strengths.push("Fast payback period");
-    } else {
-      weaknesses.push("Extended payback period");
-    }
-
-    const newScenario: SavedScenario = {
-      id: `scenario_${Date.now()}`,
-      name: currentScenarioName,
-      description: `Saved scenario with ${transportResults?.open_facilities?.length || 0} transport facilities and ${warehouseResultsFromContext?.optimization_summary?.total_facilities_added || 0} warehouse facilities`,
-      savedAt: new Date().toISOString(),
-      transportResults,
-      warehouseResults: warehouseResultsFromContext,
-      inventoryResults,
-      financialMetrics,
-      yearlyBreakdown,
-      totalCost,
-      viability,
-      strengths,
-      weaknesses,
-    };
-
-    setSavedScenarios(prev => [...prev, newScenario]);
-    setCurrentScenarioName("");
-    alert(`Scenario "${newScenario.name}" saved successfully!`);
-  };
-
-  const deleteScenario = (scenarioId: string) => {
-    if (confirm("Are you sure you want to delete this scenario?")) {
-      setSavedScenarios(prev => prev.filter(s => s.id !== scenarioId));
-      setSelectedScenarios(prev => prev.filter(id => id !== scenarioId));
-    }
-  };
-
-  const toggleScenarioSelection = (scenarioId: string) => {
-    setSelectedScenarios(prev =>
-      prev.includes(scenarioId)
-        ? prev.filter(id => id !== scenarioId)
-        : [...prev, scenarioId]
+  const getCurrentResults = () => {
+    return comprehensiveResults.filter(r => 
+      r.scenario_name === getScenarioName(selectedScenario) && r.year_number === selectedYear
     );
   };
 
-  const getScenarioComparisonData = () => {
-    const selectedScenarioData = savedScenarios.filter(s => selectedScenarios.includes(s.id));
+  const getScenarioName = (scenarioKey: string) => {
+    const scenarioMap: { [key: string]: string } = {
+      'scenario1': 'Lowest Cost (ZIP to ZIP)',
+      'scenario2': 'Best Service (Parcel Zone)',
+      'scenario3': 'Lowest Miles (City to City)'
+    };
+    return scenarioMap[scenarioKey] || 'Lowest Cost (ZIP to ZIP)';
+  };
 
-    // Prepare data for multi-scenario chart
-    const years = Array.from({length: 8}, (_, i) => new Date().getFullYear() + i);
+  const getMultiYearData = () => {
+    return comprehensiveResults.filter(r => r.scenario_name === getScenarioName(selectedScenario));
+  };
 
-    return years.map(year => {
-      const yearData: any = { year };
+  const getCostBreakdownData = () => {
+    const current = getCurrentResults()[0];
+    if (!current) return [];
+    
+    return [
+      { name: 'Transportation', value: current.transportation_costs, color: '#3b82f6' },
+      { name: 'Warehouse Operations', value: current.warehouse_operating_costs, color: '#10b981' },
+      { name: 'Variable Labor', value: current.variable_labor_costs, color: '#f59e0b' },
+      { name: 'Facility Rent', value: current.facility_rent_costs, color: '#ef4444' },
+      { name: 'Facility Capital', value: current.facility_capital_costs, color: '#8b5cf6' }
+    ];
+  };
 
-      selectedScenarioData.forEach(scenario => {
-        const yearBreakdown = scenario.yearlyBreakdown.find(yb => yb.year === year);
-        if (yearBreakdown) {
-          yearData[`${scenario.name}_Total`] = yearBreakdown.totalCost;
-          yearData[`${scenario.name}_Transport`] = yearBreakdown.categories.transportation;
-          yearData[`${scenario.name}_Warehouse`] = yearBreakdown.categories.warehousing;
-          yearData[`${scenario.name}_Inventory`] = yearBreakdown.categories.inventory;
-        }
-      });
+  const getPLData = () => {
+    return plComparisons.filter(p => p.scenario_name === getScenarioName(selectedScenario));
+  };
 
-      return yearData;
+  const generateComprehensiveReport = async () => {
+    setIsGenerating(true);
+    // Simulate report generation
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const blob = new Blob([JSON.stringify({
+      project_results: comprehensiveResults,
+      pl_comparisons: plComparisons,
+      generated_at: new Date().toISOString(),
+      scenario_summary: getScenarioComparison()
+    }, null, 2)], { type: 'application/json' });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comprehensive_analysis_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    setIsGenerating(false);
+  };
+
+  const getScenarioComparison = () => {
+    const scenarios = ['scenario1', 'scenario2', 'scenario3'];
+    return scenarios.map(scenario => {
+      const data = comprehensiveResults.filter(r => r.scenario_name === getScenarioName(scenario));
+      const totalCosts = data.reduce((sum, r) => sum + r.total_costs, 0);
+      const totalSavings = data.reduce((sum, r) => sum + r.annual_cost_savings, 0);
+      const avgROI = data.reduce((sum, r) => sum + r.roi_percentage, 0) / data.length;
+      
+      return {
+        scenario: getScenarioName(scenario),
+        total_5_year_costs: totalCosts,
+        total_5_year_savings: totalSavings,
+        average_roi: avgROI,
+        recommended: avgROI > 20 && totalSavings > 4000000
+      };
     });
   };
 
-  // Generate Executive Summary
-  const generateExecutiveSummary = (): ExecutiveSummary => {
-    const totalCost =
-      warehouseResults.optimization_summary.objective_value +
-      transportationResults.optimization_summary.total_transportation_cost;
-
-    return {
-      report_timestamp: new Date().toISOString(),
-      project_overview: {
-        total_optimization_cost: totalCost,
-        warehouse_facilities_planned:
-          warehouseResults.optimization_summary.total_facilities_added + 1,
-        network_facilities_opened:
-          transportationResults.optimization_summary.facilities_opened,
-        average_utilization:
-          warehouseResults.performance_metrics.avg_utilization,
-        service_level_achievement:
-          transportationResults.network_metrics.service_level_achievement * 100,
-      },
-      warehouse_optimization: warehouseResults.optimization_summary,
-      transportation_optimization: transportationResults.optimization_summary,
-      key_performance_indicators: {
-        total_annual_cost: totalCost,
-        cost_per_unit: warehouseResults.performance_metrics.avg_cost_per_unit,
-        warehouse_utilization_pct:
-          warehouseResults.performance_metrics.avg_utilization,
-        service_level_achievement_pct:
-          transportationResults.network_metrics.service_level_achievement * 100,
-        thirdparty_dependency_pct:
-          warehouseResults.performance_metrics.thirdparty_dependency * 100,
-        avg_transportation_distance:
-          transportationResults.network_metrics.weighted_avg_distance,
-      },
-      recommendations: generateRecommendations(),
-    };
-  };
-
-  // Generate strategic recommendations
-  const generateRecommendations = (): string[] => {
-    const recommendations = [];
-
-    // Warehouse analysis
-    if (warehouseResults.performance_metrics.avg_utilization < 80) {
-      recommendations.push(
-        "Consider consolidating facilities to improve utilization efficiency",
-      );
-    }
-    if (warehouseResults.performance_metrics.thirdparty_dependency > 0.25) {
-      recommendations.push(
-        "High 3PL dependency - evaluate building additional internal capacity",
-      );
-    }
-    if (warehouseResults.performance_metrics.volume_cagr > 0.15) {
-      recommendations.push(
-        "High volume growth expected - plan for phased capacity expansion",
-      );
-    }
-
-    // Transportation analysis
-    if (
-      transportationResults.network_metrics.service_level_achievement < 0.95
-    ) {
-      recommendations.push(
-        "Service level below target - consider additional facilities or revised constraints",
-      );
-    }
-    if (transportationResults.network_metrics.avg_cost_per_unit > 3.0) {
-      recommendations.push(
-        "Transportation cost per unit is high - evaluate route optimization",
-      );
-    }
-    if (transportationResults.network_metrics.network_utilization < 0.8) {
-      recommendations.push(
-        "Network utilization is low - consider facility consolidation",
-      );
-    }
-
-    return recommendations;
-  };
-
-  // Generate comprehensive outputs
-  const generateComprehensiveReport = async () => {
-    setGenerating(true);
-    setOutputLogs([]);
-    addLogEntry(
-      "INFO",
-      "Starting comprehensive optimization report generation",
-    );
-
-    try {
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .split("T")[0];
-      const generatedFiles: OutputFile[] = [];
-
-      // Simulate file generation process
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      addLogEntry("INFO", "Generating warehouse optimization outputs");
-
-      // Warehouse Results
-      if (selectedFormats.includes("csv")) {
-        generatedFiles.push({
-          type: "warehouse_results",
-          name: `warehouse_results_${timestamp}.csv`,
-          description: "Detailed warehouse capacity analysis by year",
-          size: "245 KB",
-          generated_at: new Date().toLocaleTimeString(),
-        });
-      }
-
-      if (selectedFormats.includes("json")) {
-        generatedFiles.push({
-          type: "warehouse_summary",
-          name: `warehouse_summary_${timestamp}.json`,
-          description: "Warehouse optimization summary and metrics",
-          size: "89 KB",
-          generated_at: new Date().toLocaleTimeString(),
-        });
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      addLogEntry("INFO", "Generating transportation network outputs");
-
-      // Transportation Results
-      if (selectedFormats.includes("csv")) {
-        generatedFiles.push({
-          type: "transportation_assignments",
-          name: `transportation_assignments_${timestamp}.csv`,
-          description: "Facility-destination assignments and routing",
-          size: "156 KB",
-          generated_at: new Date().toLocaleTimeString(),
-        });
-
-        generatedFiles.push({
-          type: "facility_metrics",
-          name: `facility_metrics_${timestamp}.csv`,
-          description: "Facility performance metrics and KPIs",
-          size: "98 KB",
-          generated_at: new Date().toLocaleTimeString(),
-        });
-      }
-
-      if (selectedFormats.includes("json")) {
-        generatedFiles.push({
-          type: "network_metrics",
-          name: `network_metrics_${timestamp}.json`,
-          description: "Transportation network performance metrics",
-          size: "67 KB",
-          generated_at: new Date().toLocaleTimeString(),
-        });
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      addLogEntry("INFO", "Generating executive summary and combined analysis");
-
-      // Executive Summary
-      const summary = generateExecutiveSummary();
-      setExecutiveSummary(summary);
-
-      generatedFiles.push({
-        type: "executive_summary",
-        name: `executive_summary_${timestamp}.json`,
-        description: "High-level summary with key metrics and recommendations",
-        size: "234 KB",
-        generated_at: new Date().toLocaleTimeString(),
-      });
-
-      // Combined Analysis
-      generatedFiles.push({
-        type: "combined_analysis",
-        name: `combined_analysis_${timestamp}.csv`,
-        description: "Integrated warehouse and transportation analysis",
-        size: "187 KB",
-        generated_at: new Date().toLocaleTimeString(),
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      addLogEntry("INFO", "Generating Excel workbook and documentation");
-
-      // Excel Export
-      if (selectedFormats.includes("excel")) {
-        generatedFiles.push({
-          type: "excel_workbook",
-          name: `network_optimization_results_${timestamp}.xlsx`,
-          description:
-            "Complete results in Excel workbook with multiple sheets",
-          size: "2.4 MB",
-          generated_at: new Date().toLocaleTimeString(),
-        });
-      }
-
-      // README Documentation
-      generatedFiles.push({
-        type: "documentation",
-        name: `README_${timestamp}.md`,
-        description: "Documentation and usage instructions for all outputs",
-        size: "45 KB",
-        generated_at: new Date().toLocaleTimeString(),
-      });
-
-      setGeneratedFiles(generatedFiles);
-      addLogEntry(
-        "SUCCESS",
-        `Generated ${generatedFiles.length} output files successfully`,
-      );
-      addLogEntry("INFO", "All outputs are ready for download and analysis");
-    } catch (error) {
-      addLogEntry("ERROR", `Error generating reports: ${error}`);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  // Simulate file download
-  const downloadFile = (file: OutputFile) => {
-    addLogEntry("INFO", `Downloading ${file.name}`);
-    // In a real app, this would trigger actual file download
-    alert(`Downloading ${file.name} - ${file.description}`);
-  };
-
-  // Download all files as ZIP
-  const downloadAllFiles = () => {
-    addLogEntry("INFO", "Creating ZIP archive with all generated files");
-    alert(
-      `Downloading complete optimization results package (${generatedFiles.length} files)`,
-    );
-  };
-
   return (
-    <>
+    <div className="main-container">
       <Navigation />
-      <main className="content-area">
-        <div className="card">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1.5rem",
-            }}
-          >
+      <div className="content-area">
+        <div className="results-container">
+          <div className="results-header">
             <div>
-              <h2 className="card-title">Results & Visualization</h2>
-              <p style={{ color: "#6b7280", margin: 0 }}>
-                Comprehensive analytics, visualizations, and robust output
-                generation for optimization results
+              <h1 className="page-title">Results & Visualization</h1>
+              <p className="page-description">
+                Comprehensive analysis of all optimization scenarios with detailed KPI metrics, 
+                financial projections, and P&L comparisons across the project timeline.
               </p>
             </div>
-            <div
-              style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}
+            <button 
+              className="action-button primary"
+              onClick={generateComprehensiveReport}
+              disabled={isGenerating}
             >
-              <select
-                className="form-input"
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                style={{ width: "auto" }}
+              {isGenerating ? (
+                <>
+                  <div className="loading-spinner"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download size={16} />
+                  Export Report
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Controls */}
+          <div className="controls-section">
+            <div className="control-group">
+              <label className="control-label">Scenario:</label>
+              <select 
+                className="control-select"
+                value={selectedScenario}
+                onChange={(e) => setSelectedScenario(e.target.value)}
               >
-                <option value="1month">Last Month</option>
-                <option value="3months">Last 3 Months</option>
-                <option value="6months">Last 6 Months</option>
-                <option value="1year">Last Year</option>
-                <option value="5years">5-Year Horizon</option>
+                <option value="scenario1">Lowest Cost (ZIP to ZIP)</option>
+                <option value="scenario2">Best Service (Parcel Zone)</option>
+                <option value="scenario3">Lowest Miles (City to City)</option>
               </select>
-              <button className="button button-secondary">
-                <Filter size={16} />
-                Filter
-              </button>
+            </div>
+            
+            <div className="control-group">
+              <label className="control-label">Year:</label>
+              <select 
+                className="control-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              >
+                {[1, 2, 3, 4, 5].map(year => (
+                  <option key={year} value={year}>Year {year}</option>
+                ))}
+              </select>
             </div>
           </div>
 
           {/* Tab Navigation */}
-          <div
-            style={{ borderBottom: "2px solid #e5e7eb", marginBottom: "2rem" }}
-          >
-            <div style={{ display: "flex", gap: "2rem" }}>
-              {[
-                {
-                  id: "analytics",
-                  label: "Analytics & Charts",
-                  icon: BarChart3,
-                },
-                { id: "outputs", label: "Output Generation", icon: Database },
-                { id: "reports", label: "Generated Reports", icon: FileText },
-                { id: "insights", label: "Strategic Insights", icon: Target },
-                {
-                  id: "financial",
-                  label: "Financial Analysis",
-                  icon: DollarSign,
-                },
-                {
-                  id: "scenarios",
-                  label: "Scenario Management",
-                  icon: Layers,
-                },
-              ].map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id as any)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    padding: "0.75rem 1rem",
-                    background: "none",
-                    border: "none",
-                    borderBottom:
-                      activeTab === id
-                        ? "2px solid #3b82f6"
-                        : "2px solid transparent",
-                    color: activeTab === id ? "#3b82f6" : "#6b7280",
-                    cursor: "pointer",
-                    fontSize: "0.875rem",
-                    fontWeight: activeTab === id ? "600" : "400",
-                  }}
-                >
-                  <Icon size={16} />
-                  {label}
-                </button>
-              ))}
-            </div>
+          <div className="tab-navigation">
+            <button 
+              className={`tab-button ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('dashboard')}
+            >
+              <Activity size={16} />
+              Dashboard
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'operational' ? 'active' : ''}`}
+              onClick={() => setActiveTab('operational')}
+            >
+              <Package size={16} />
+              Operational KPIs
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'financial' ? 'active' : ''}`}
+              onClick={() => setActiveTab('financial')}
+            >
+              <DollarSign size={16} />
+              Financial Analysis
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'capacity' ? 'active' : ''}`}
+              onClick={() => setActiveTab('capacity')}
+            >
+              <Building size={16} />
+              Capacity Planning
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'scenarios' ? 'active' : ''}`}
+              onClick={() => setActiveTab('scenarios')}
+            >
+              <BarChart3 size={16} />
+              Scenario Comparison
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'reports' ? 'active' : ''}`}
+              onClick={() => setActiveTab('reports')}
+            >
+              <FileText size={16} />
+              P&L Reports
+            </button>
           </div>
 
-          {/* Analytics & Charts Tab */}
-          {activeTab === "analytics" && (
-            <div>
-              <div style={{ marginBottom: "1.5rem" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "0.5rem",
-                    marginBottom: "1rem",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                  }}
-                >
-                  <button
-                    className={`button ${selectedChart === "warehouse" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("warehouse")}
-                  >
-                    <BarChart3 size={16} />
-                    Warehouse Analytics
-                  </button>
-                  <button
-                    className={`button ${selectedChart === "transport" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("transport")}
-                  >
-                    <LineChartIcon size={16} />
-                    Transport Analytics
-                  </button>
-                  <button
-                    className={`button ${selectedChart === "costs" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("costs")}
-                  >
-                    <PieChartIcon size={16} />
-                    Cost Analysis
-                  </button>
-                  <button
-                    className={`button ${selectedChart === "network" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("network")}
-                  >
-                    <Globe size={16} />
-                    Network Performance
-                  </button>
-                  <button
-                    className={`button ${selectedChart === "advanced" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("advanced")}
-                  >
-                    <Activity size={16} />
-                    Advanced Analytics
-                  </button>
-                  <button
-                    className={`button ${selectedChart === "executive" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("executive")}
-                  >
-                    <Eye size={16} />
-                    Executive Dashboard
-                  </button>
-                  <button
-                    className={`button ${selectedChart === "geographic" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("geographic")}
-                  >
-                    <Map size={16} />
-                    Geographic Analytics
-                  </button>
-                  <button
-                    className={`button ${selectedChart === "inventory" ? "button-primary" : "button-secondary"}`}
-                    onClick={() => setSelectedChart("inventory")}
-                  >
-                    <Package size={16} />
-                    Inventory Analytics
-                  </button>
-                </div>
-              </div>
-
-              {selectedChart === "warehouse" && (
-                <div>
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Facility Growth Projection
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <AreaChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Area
-                            type="monotone"
-                            dataKey="facilities"
-                            stackId="1"
-                            stroke="#3b82f6"
-                            fill="#3b82f6"
-                            name="Facilities"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Space & Cost Analysis
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis yAxisId="left" />
-                          <YAxis yAxisId="right" orientation="right" />
-                          <Tooltip />
-                          <Legend />
-                          <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="area"
-                            stroke="#10b981"
-                            strokeWidth={2}
-                            name="Area (K sq ft)"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="cost"
-                            stroke="#f59e0b"
-                            strokeWidth={2}
-                            name="Cost ($M)"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Utilization & Growth Trends
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar
-                            dataKey="utilization"
-                            fill="#8b5cf6"
-                            name="Utilization %"
-                          />
-                          <Bar
-                            dataKey="growth"
-                            fill="#ec4899"
-                            name="Growth Rate %"
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Third Party Dependency
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <AreaChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Area
-                            type="monotone"
-                            dataKey="area"
-                            stackId="1"
-                            stroke="#10b981"
-                            fill="#10b981"
-                            name="Internal (K sq ft)"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="thirdparty"
-                            stackId="1"
-                            stroke="#ef4444"
-                            fill="#ef4444"
-                            name="3PL (K sq ft)"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedChart === "transport" && (
-                <div>
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Route Demand Analysis
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={transportationChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="route"
-                            angle={-45}
-                            textAnchor="end"
-                            height={100}
-                          />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="demand" fill="#3b82f6" name="Demand" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Cost vs Distance Analysis
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ScatterChart data={transportationChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="distance" name="Distance" unit="mi" />
-                          <YAxis dataKey="cost" name="Cost" unit="$" />
-                          <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                          <Scatter
-                            name="Routes"
-                            dataKey="cost"
-                            fill="#10b981"
-                          />
-                        </ScatterChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Transportation Efficiency
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={transportationChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="route"
-                            angle={-45}
-                            textAnchor="end"
-                            height={100}
-                          />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="efficiency"
-                            stroke="#f59e0b"
-                            strokeWidth={2}
-                            name="Demand/Cost Ratio"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Route Performance Matrix
-                      </h3>
-                      <div style={{ padding: "1rem" }}>
-                        <table style={{ width: "100%", fontSize: "0.875rem" }}>
-                          <thead>
-                            <tr style={{ backgroundColor: "#f9fafb" }}>
-                              <th
-                                style={{ padding: "0.5rem", textAlign: "left" }}
-                              >
-                                Route
-                              </th>
-                              <th
-                                style={{
-                                  padding: "0.5rem",
-                                  textAlign: "right",
-                                }}
-                              >
-                                Demand
-                              </th>
-                              <th
-                                style={{
-                                  padding: "0.5rem",
-                                  textAlign: "right",
-                                }}
-                              >
-                                Cost
-                              </th>
-                              <th
-                                style={{
-                                  padding: "0.5rem",
-                                  textAlign: "right",
-                                }}
-                              >
-                                Efficiency
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {transportationChartData.map((route, index) => (
-                              <tr key={index}>
-                                <td style={{ padding: "0.5rem" }}>
-                                  {route.route}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "0.5rem",
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  {route.demand.toLocaleString()}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "0.5rem",
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  ${route.cost.toLocaleString()}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: "0.5rem",
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  {route.efficiency.toFixed(2)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedChart === "costs" && (
-                <div>
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Total Cost Distribution
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={costBreakdownData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) =>
-                              `${name} ${(percent * 100).toFixed(1)}%`
-                            }
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {costBreakdownData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value: any) => [
-                              `$${value.toLocaleString()}`,
-                              "Cost",
-                            ]}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Cost Components Over Time
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <AreaChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Area
-                            type="monotone"
-                            dataKey="cost"
-                            stackId="1"
-                            stroke="#3b82f6"
-                            fill="#3b82f6"
-                            name="Warehouse Cost ($M)"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Cost Analysis Summary
-                    </h3>
-                    <div className="grid grid-cols-4" style={{ gap: "1.5rem" }}>
-                      {costBreakdownData.map((item, index) => (
-                        <div
-                          key={index}
-                          style={{ textAlign: "center", padding: "1rem" }}
-                        >
-                          <div
-                            style={{
-                              width: "60px",
-                              height: "60px",
-                              backgroundColor: item.color,
-                              borderRadius: "50%",
-                              margin: "0 auto 0.75rem",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "white",
-                                fontWeight: "bold",
-                                fontSize: "0.875rem",
-                              }}
-                            >
-                              {(
-                                (item.value /
-                                  costBreakdownData.reduce(
-                                    (sum, c) => sum + c.value,
-                                    0,
-                                  )) *
-                                100
-                              ).toFixed(0)}
-                              %
-                            </span>
+          {/* Dashboard Tab */}
+          {activeTab === 'dashboard' && (
+            <div className="tab-content">
+              <div className="dashboard-metrics">
+                <div className="metrics-grid">
+                  {getCurrentResults().map(result => (
+                    <div key={result.scenario_id} className="metric-section">
+                      <h3 className="metric-section-title">Key Performance Summary</h3>
+                      <div className="metric-cards-grid">
+                        <div className="metric-card">
+                          <div className="metric-icon orders">
+                            <Package size={24} />
                           </div>
-                          <div
-                            style={{
-                              fontWeight: "600",
-                              color: "#111827",
-                              marginBottom: "0.25rem",
-                            }}
-                          >
-                            {item.name}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "1.25rem",
-                              fontWeight: "700",
-                              color: item.color,
-                            }}
-                          >
-                            ${(item.value / 1000000).toFixed(1)}M
+                          <div className="metric-content">
+                            <div className="metric-value">{result.peak_daily_orders_shipped.toLocaleString()}</div>
+                            <div className="metric-label">Peak Daily Orders</div>
+                            <div className="metric-sublabel">Avg: {result.average_daily_orders_shipped.toLocaleString()}</div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              {selectedChart === "network" && (
-                <div>
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Facility Performance Radar
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <RadarChart data={networkPerformanceData}>
-                          <PolarGrid />
-                          <PolarAngleAxis dataKey="facility" />
-                          <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                          <Radar
-                            name="Utilization"
-                            dataKey="utilization"
-                            stroke="#3b82f6"
-                            fill="#3b82f6"
-                            fillOpacity={0.3}
-                          />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Network Utilization Metrics
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={networkPerformanceData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="facility" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar
-                            dataKey="utilization"
-                            fill="#10b981"
-                            name="Utilization %"
-                          />
-                          <Bar
-                            dataKey="destinations"
-                            fill="#f59e0b"
-                            name="Destinations Served"
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Network Performance Summary
-                    </h3>
-                    <div className="grid grid-cols-3" style={{ gap: "2rem" }}>
-                      <div>
-                        <h4
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Service Metrics
-                        </h4>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Service Level Achievement:</span>
-                            <span
-                              style={{ fontWeight: "600", color: "#10b981" }}
-                            >
-                              {(
-                                transportationResults.network_metrics
-                                  .service_level_achievement * 100
-                              ).toFixed(1)}
-                              %
-                            </span>
+                        <div className="metric-card">
+                          <div className="metric-icon cost">
+                            <DollarSign size={24} />
                           </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Avg Transportation Distance:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {transportationResults.network_metrics.weighted_avg_distance.toFixed(
-                                0,
-                              )}{" "}
-                              mi
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span>Network Utilization:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {(
-                                transportationResults.network_metrics
-                                  .network_utilization * 100
-                              ).toFixed(1)}
-                              %
-                            </span>
+                          <div className="metric-content">
+                            <div className="metric-value">${(result.total_costs / 1000000).toFixed(1)}M</div>
+                            <div className="metric-label">Total Annual Costs</div>
+                            <div className="metric-sublabel">${result.total_costs_per_unit.toFixed(2)} per unit</div>
                           </div>
                         </div>
-                      </div>
 
-                      <div>
-                        <h4
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Cost Efficiency
-                        </h4>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Avg Cost per Unit:</span>
-                            <span
-                              style={{ fontWeight: "600", color: "#f59e0b" }}
-                            >
-                              $
-                              {transportationResults.network_metrics.avg_cost_per_unit.toFixed(
-                                2,
-                              )}
-                            </span>
+                        <div className="metric-card">
+                          <div className="metric-icon savings">
+                            <TrendingUp size={24} />
                           </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Total Transportation Cost:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              $
-                              {transportationResults.network_metrics.total_transportation_cost.toLocaleString()}
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span>Destinations per Facility:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {transportationResults.network_metrics.destinations_per_facility.toFixed(
-                                1,
-                              )}
-                            </span>
+                          <div className="metric-content">
+                            <div className="metric-value">{result.roi_percentage}%</div>
+                            <div className="metric-label">ROI</div>
+                            <div className="metric-sublabel">${(result.annual_cost_savings / 1000000).toFixed(1)}M savings</div>
                           </div>
                         </div>
-                      </div>
 
-                      <div>
-                        <h4
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Operational Metrics
-                        </h4>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Facilities Opened:</span>
-                            <span
-                              style={{ fontWeight: "600", color: "#3b82f6" }}
-                            >
-                              {
-                                transportationResults.optimization_summary
-                                  .facilities_opened
-                              }
-                            </span>
+                        <div className="metric-card">
+                          <div className="metric-icon capacity">
+                            <Building size={24} />
                           </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Total Demand Served:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {transportationResults.optimization_summary.total_demand_served.toLocaleString()}
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span>Avg Facility Utilization:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {(
-                                transportationResults.network_metrics
-                                  .avg_facility_utilization * 100
-                              ).toFixed(1)}
-                              %
-                            </span>
+                          <div className="metric-content">
+                            <div className="metric-value">{(result.peak_inventory_units / 1000).toFixed(0)}K</div>
+                            <div className="metric-label">Peak Inventory</div>
+                            <div className="metric-sublabel">{result.inventory_turns} turns/year</div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Advanced Analytics */}
-              {selectedChart === "advanced" && (
-                <div>
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    {/* Capacity Growth Over Time */}
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Capacity Growth Analysis
-                      </h3>
-                      <ResponsiveContainer width="100%" height={350}>
-                        <ComposedChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis yAxisId="left" />
-                          <YAxis yAxisId="right" orientation="right" />
-                          <Tooltip />
-                          <Legend />
-                          <Area
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="area"
-                            stackId="1"
-                            stroke="#3b82f6"
-                            fill="#3b82f6"
-                            fillOpacity={0.6}
-                            name="Gross Area (K sq ft)"
-                          />
-                          <Area
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="thirdparty"
-                            stackId="1"
-                            stroke="#ef4444"
-                            fill="#ef4444"
-                            fillOpacity={0.6}
-                            name="3PL Area (K sq ft)"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="facilities"
-                            stroke="#f59e0b"
-                            strokeWidth={3}
-                            name="Facilities Count"
-                          />
-                          <ReferenceLine
-                            yAxisId="left"
-                            y={80}
-                            stroke="red"
-                            strokeDasharray="5 5"
-                            label="Target"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Cost Analysis with Trends */}
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Integrated Cost Analysis
-                      </h3>
-                      <ResponsiveContainer width="100%" height={350}>
-                        <ComposedChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis yAxisId="left" />
-                          <YAxis yAxisId="right" orientation="right" />
-                          <Tooltip
-                            formatter={(value: any, name: string) => [
-                              name.includes("Cost")
-                                ? `$${value.toFixed(1)}M`
-                                : `${value.toFixed(1)}%`,
-                              name,
-                            ]}
-                          />
-                          <Legend />
-                          <Bar
-                            yAxisId="left"
-                            dataKey="cost"
-                            fill="#8b5cf6"
-                            name="Warehouse Cost ($M)"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="utilization"
-                            stroke="#10b981"
-                            strokeWidth={3}
-                            name="Utilization %"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="growth"
-                            stroke="#f59e0b"
-                            strokeWidth={2}
-                            strokeDasharray="5 5"
-                            name="Growth Rate %"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    {/* Distance Distribution Analysis */}
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Transportation Distance Distribution
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart
-                          data={[
-                            { range: "0-250 mi", count: 2, percentage: 40 },
-                            { range: "251-500 mi", count: 1, percentage: 20 },
-                            { range: "501-750 mi", count: 1, percentage: 20 },
-                            { range: "751-1000 mi", count: 1, percentage: 20 },
-                            { range: "1000+ mi", count: 0, percentage: 0 },
-                          ]}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="range"
-                            angle={-45}
-                            textAnchor="end"
-                            height={80}
-                          />
-                          <YAxis />
-                          <Tooltip />
-                          <Bar
-                            dataKey="count"
-                            fill="#06b6d4"
-                            name="Route Count"
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                      <div
-                        style={{
-                          marginTop: "1rem",
-                          fontSize: "0.875rem",
-                          color: "#6b7280",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Average Distance:</span>
-                          <span style={{ fontWeight: "600" }}>542.3 miles</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Within Service Limit (1000mi):</span>
-                          <span style={{ fontWeight: "600", color: "#10b981" }}>
-                            100%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Facility Load Distribution */}
-                    <div className="card">
-                      <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Facility Load Distribution
-                      </h3>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ComposedChart data={networkPerformanceData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="facility" />
-                          <YAxis yAxisId="left" />
-                          <YAxis yAxisId="right" orientation="right" />
-                          <Tooltip />
-                          <Legend />
-                          <Bar
-                            yAxisId="left"
-                            dataKey="totalDemand"
-                            fill="#f59e0b"
-                            name="Total Demand (K units)"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="utilization"
-                            stroke="#ef4444"
-                            strokeWidth={3}
-                            name="Utilization %"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* ROI Analysis */}
-                  <div className="card">
-                    <h3 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      ROI Analysis & Break-even Projection
-                    </h3>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <ComposedChart
-                        data={[
-                          {
-                            year: 2024,
-                            investment: 2.85,
-                            benefits: 0,
-                            cumInvestment: 2.85,
-                            cumBenefits: 0,
-                            netValue: -2.85,
-                          },
-                          {
-                            year: 2025,
-                            investment: 3.42,
-                            benefits: 1.2,
-                            cumInvestment: 6.27,
-                            cumBenefits: 1.2,
-                            netValue: -5.07,
-                          },
-                          {
-                            year: 2026,
-                            investment: 4.18,
-                            benefits: 2.8,
-                            cumInvestment: 10.45,
-                            cumBenefits: 4.0,
-                            netValue: -6.45,
-                          },
-                          {
-                            year: 2027,
-                            investment: 5.02,
-                            benefits: 4.5,
-                            cumInvestment: 15.47,
-                            cumBenefits: 8.5,
-                            netValue: -6.97,
-                          },
-                          {
-                            year: 2028,
-                            investment: 5.95,
-                            benefits: 6.8,
-                            cumInvestment: 21.42,
-                            cumBenefits: 15.3,
-                            netValue: -6.12,
-                          },
-                        ]}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="year" />
-                        <YAxis />
-                        <Tooltip
-                          formatter={(value: any) => [`$${value}M`, ""]}
-                        />
-                        <Legend />
-                        <Area
-                          type="monotone"
-                          dataKey="cumInvestment"
-                          stackId="1"
-                          stroke="#ef4444"
-                          fill="#ef4444"
-                          fillOpacity={0.6}
-                          name="Cumulative Investment"
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="cumBenefits"
-                          stackId="2"
-                          stroke="#10b981"
-                          fill="#10b981"
-                          fillOpacity={0.6}
-                          name="Cumulative Benefits"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="netValue"
-                          stroke="#8b5cf6"
-                          strokeWidth={3}
-                          name="Net Value"
-                        />
-                        <ReferenceLine
-                          y={0}
-                          stroke="#000"
-                          strokeDasharray="2 2"
-                        />
-                        <ReferenceLine
-                          x={2027}
-                          stroke="#f59e0b"
-                          strokeDasharray="5 5"
-                          label="Break-even"
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                    <div style={{ marginTop: "1rem" }}>
-                      <div className="grid grid-cols-3" style={{ gap: "2rem" }}>
-                        <div style={{ textAlign: "center" }}>
-                          <div
-                            style={{
-                              fontSize: "1.5rem",
-                              fontWeight: "700",
-                              color: "#ef4444",
-                            }}
-                          >
-                            2027
-                          </div>
-                          <div
-                            style={{ fontSize: "0.875rem", color: "#6b7280" }}
-                          >
-                            Break-even Year
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "center" }}>
-                          <div
-                            style={{
-                              fontSize: "1.5rem",
-                              fontWeight: "700",
-                              color: "#10b981",
-                            }}
-                          >
-                            $21.4M
-                          </div>
-                          <div
-                            style={{ fontSize: "0.875rem", color: "#6b7280" }}
-                          >
-                            Total Investment
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "center" }}>
-                          <div
-                            style={{
-                              fontSize: "1.5rem",
-                              fontWeight: "700",
-                              color: "#8b5cf6",
-                            }}
-                          >
-                            $15.3M
-                          </div>
-                          <div
-                            style={{ fontSize: "0.875rem", color: "#6b7280" }}
-                          >
-                            Projected Benefits
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Executive Dashboard */}
-              {selectedChart === "executive" && (
-                <div>
-                  <div style={{ marginBottom: "2rem" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "1rem",
-                      }}
-                    >
-                      <h3 style={{ color: "#111827" }}>
-                        Executive Performance Dashboard
-                      </h3>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button className="button button-secondary">
-                          <Download size={16} />
-                          Export Dashboard
-                        </button>
-                        <button className="button button-secondary">
-                          <RefreshCw size={16} />
-                          Refresh Data
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* KPI Summary Cards */}
-                  <div
-                    className="grid grid-cols-4"
-                    style={{ gap: "1.5rem", marginBottom: "2rem" }}
-                  >
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#fef3c7",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #f59e0b",
-                      }}
-                    >
-                      <DollarSign
-                        size={32}
-                        style={{
-                          color: "#92400e",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#92400e",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        $21.4M
-                      </div>
-                      <div
-                        style={{
-                          color: "#78350f",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Total Investment
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#a16207" }}>
-                        5-Year Horizon
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#dcfce7",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #16a34a",
-                      }}
-                    >
-                      <Gauge
-                        size={32}
-                        style={{
-                          color: "#15803d",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#15803d",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        84.6%
-                      </div>
-                      <div
-                        style={{
-                          color: "#166534",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Avg Utilization
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#16a34a" }}>
-                        ↑ Target: 80-90%
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#dbeafe",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #2563eb",
-                      }}
-                    >
-                      <Target
-                        size={32}
-                        style={{
-                          color: "#1d4ed8",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#1d4ed8",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        96.0%
-                      </div>
-                      <div
-                        style={{
-                          color: "#1e40af",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Service Level
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#2563eb" }}>
-                        Target: 95%+
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#f3e8ff",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #9333ea",
-                      }}
-                    >
-                      <TrendingUp
-                        size={32}
-                        style={{
-                          color: "#7c3aed",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#7c3aed",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        14.8%
-                      </div>
-                      <div
-                        style={{
-                          color: "#6b21a8",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Volume CAGR
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#8b5cf6" }}>
-                        5-year projection
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Executive Charts */}
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    {/* Network Efficiency Trends */}
-                    <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Network Efficiency Trends
-                      </h4>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ComposedChart data={warehouseChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis yAxisId="left" domain={[0, 100]} />
-                          <YAxis yAxisId="right" orientation="right" />
-                          <Tooltip />
-                          <Legend />
-                          <Area
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="utilization"
-                            stroke="#10b981"
-                            fill="#10b981"
-                            fillOpacity={0.3}
-                            name="Utilization %"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="cost"
-                            stroke="#ef4444"
-                            strokeWidth={3}
-                            name="Cost ($M)"
-                          />
-                          <ReferenceLine
-                            yAxisId="left"
-                            y={85}
-                            stroke="#f59e0b"
-                            strokeDasharray="5 5"
-                            label="Target"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Risk Assessment Matrix */}
-                    <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Risk Assessment Matrix
-                      </h4>
-                      <div style={{ padding: "1rem" }}>
-                        <div style={{ marginBottom: "1.5rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.75rem",
-                              marginBottom: "0.75rem",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: "12px",
-                                height: "12px",
-                                backgroundColor: "#ef4444",
-                                borderRadius: "50%",
-                              }}
-                            ></div>
-                            <span
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: "600",
-                              }}
-                            >
-                              High Risk
-                            </span>
-                          </div>
-                          <ul
-                            style={{
-                              margin: 0,
-                              paddingLeft: "1.5rem",
-                              fontSize: "0.875rem",
-                            }}
-                          >
-                            <li>
-                              High volume growth (14.8% CAGR) may strain
-                              capacity
-                            </li>
-                            <li>
-                              3PL dependency at 24% creates operational risk
-                            </li>
-                          </ul>
-                        </div>
-
-                        <div style={{ marginBottom: "1.5rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.75rem",
-                              marginBottom: "0.75rem",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: "12px",
-                                height: "12px",
-                                backgroundColor: "#f59e0b",
-                                borderRadius: "50%",
-                              }}
-                            ></div>
-                            <span
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: "600",
-                              }}
-                            >
-                              Medium Risk
-                            </span>
-                          </div>
-                          <ul
-                            style={{
-                              margin: 0,
-                              paddingLeft: "1.5rem",
-                              fontSize: "0.875rem",
-                            }}
-                          >
-                            <li>Network utilization optimization needed</li>
-                            <li>Transportation cost per unit monitoring</li>
-                          </ul>
-                        </div>
-
-                        <div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.75rem",
-                              marginBottom: "0.75rem",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: "12px",
-                                height: "12px",
-                                backgroundColor: "#10b981",
-                                borderRadius: "50%",
-                              }}
-                            ></div>
-                            <span
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: "600",
-                              }}
-                            >
-                              Low Risk
-                            </span>
-                          </div>
-                          <ul
-                            style={{
-                              margin: 0,
-                              paddingLeft: "1.5rem",
-                              fontSize: "0.875rem",
-                            }}
-                          >
-                            <li>Service level achievement exceeds target</li>
-                            <li>
-                              Optimization status: Optimal solutions achieved
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Strategic Recommendations */}
-                  <div className="card">
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Strategic Recommendations
-                    </h4>
-                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                      <div>
-                        <h5
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Immediate Actions (0-6 months)
-                        </h5>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <CheckCircle
-                              size={16}
-                              style={{ color: "#10b981" }}
-                            />
-                            <span>
-                              Monitor utilization trends for early warning
-                              signals
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <CheckCircle
-                              size={16}
-                              style={{ color: "#10b981" }}
-                            />
-                            <span>
-                              Evaluate 3PL contracts for cost optimization
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <CheckCircle
-                              size={16}
-                              style={{ color: "#10b981" }}
-                            />
-                            <span>
-                              Implement transportation route optimization
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <h5
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Long-term Strategy (6+ months)
-                        </h5>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <AlertTriangle
-                              size={16}
-                              style={{ color: "#f59e0b" }}
-                            />
-                            <span>
-                              Plan for phased capacity expansion by 2026
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <AlertTriangle
-                              size={16}
-                              style={{ color: "#f59e0b" }}
-                            />
-                            <span>
-                              Consider building additional internal capacity
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <AlertTriangle
-                              size={16}
-                              style={{ color: "#f59e0b" }}
-                            />
-                            <span>
-                              Develop contingency plans for demand volatility
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Geographic Analytics */}
-              {selectedChart === "geographic" && (
-                <div>
-                  <div style={{ marginBottom: "2rem" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "1rem",
-                      }}
-                    >
-                      <h3 style={{ color: "#111827" }}>
-                        Geographic Network Analytics
-                      </h3>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button className="button button-secondary">
-                          <Download size={16} />
-                          Export Maps
-                        </button>
-                        <button className="button button-secondary">
-                          <NavigationIcon size={16} />
-                          View in GIS
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Centers of Gravity Analysis */}
-                  <div className="card" style={{ marginBottom: "2rem" }}>
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Centers of Gravity Analysis
-                    </h4>
-                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                      {/* Center of Gravity Comparison */}
-                      <div>
-                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
-                          Optimal Location Analysis
-                        </h5>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <ScatterChart
-                            data={[
-                              {
-                                name: "Demand Weighted",
-                                lat: 36.2048,
-                                lng: -95.9928,
-                                type: "demand",
-                                size: 100,
-                              },
-                              {
-                                name: "Geographic Center",
-                                lat: 36.1627,
-                                lng: -100.7785,
-                                type: "geographic",
-                                size: 80,
-                              },
-                              {
-                                name: "Cost Optimal",
-                                lat: 35.8914,
-                                lng: -94.719,
-                                type: "cost",
-                                size: 120,
-                              },
-                              ...geographicData.facilities.map((f) => ({
-                                name: f.name,
-                                lat: f.lat,
-                                lng: f.lng,
-                                type: "facility",
-                                size: f.demand / 200,
-                              })),
-                            ]}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis
-                              dataKey="lng"
-                              type="number"
-                              domain={[-125, -70]}
-                              name="Longitude"
-                              label={{
-                                value: "Longitude",
-                                position: "insideBottom",
-                                offset: -5,
-                              }}
-                            />
-                            <YAxis
-                              dataKey="lat"
-                              type="number"
-                              domain={[25, 50]}
-                              name="Latitude"
-                              label={{
-                                value: "Latitude",
-                                angle: -90,
-                                position: "insideLeft",
-                              }}
-                            />
-                            <Tooltip
-                              formatter={(value, name, props) => [
-                                name === "lat"
-                                  ? `${value.toFixed(4)}°N`
-                                  : `${Math.abs(value).toFixed(4)}°W`,
-                                name === "lat" ? "Latitude" : "Longitude",
-                              ]}
-                              labelFormatter={(label) => `Location: ${label}`}
-                            />
-                            <Scatter
-                              name="Locations"
-                              dataKey="size"
-                              fill={(entry) => {
-                                const colors = {
-                                  demand: "#f59e0b",
-                                  geographic: "#8b5cf6",
-                                  cost: "#ef4444",
-                                  facility: "#10b981",
-                                };
-                                return colors[entry.type] || "#6b7280";
-                              }}
-                            />
-                          </ScatterChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      {/* Center of Gravity Summary */}
-                      <div>
-                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
-                          Center Analysis Summary
-                        </h5>
-                        <div style={{ padding: "1rem" }}>
-                          <div style={{ marginBottom: "1.5rem" }}>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                                marginBottom: "0.75rem",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: "12px",
-                                  height: "12px",
-                                  backgroundColor: "#f59e0b",
-                                  borderRadius: "50%",
-                                }}
-                              ></div>
-                              <span
-                                style={{
-                                  fontSize: "0.875rem",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                Demand-Weighted Center
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.875rem",
-                                paddingLeft: "1.5rem",
-                              }}
-                            >
-                              <div>Lat: 36.2048°N, Lng: 95.9928°W</div>
-                              <div>
-                                Total Demand:{" "}
-                                {geographicData.centerOfGravity.demand_weighted.total_demand.toLocaleString()}{" "}
-                                units
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ marginBottom: "1.5rem" }}>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                                marginBottom: "0.75rem",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: "12px",
-                                  height: "12px",
-                                  backgroundColor: "#8b5cf6",
-                                  borderRadius: "50%",
-                                }}
-                              ></div>
-                              <span
-                                style={{
-                                  fontSize: "0.875rem",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                Geographic Center
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.875rem",
-                                paddingLeft: "1.5rem",
-                              }}
-                            >
-                              <div>Lat: 36.1627°N, Lng: 100.7785°W</div>
-                              <div>Equal distance from all points</div>
-                            </div>
-                          </div>
-
-                          <div>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                                marginBottom: "0.75rem",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: "12px",
-                                  height: "12px",
-                                  backgroundColor: "#ef4444",
-                                  borderRadius: "50%",
-                                }}
-                              ></div>
-                              <span
-                                style={{
-                                  fontSize: "0.875rem",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                Cost-Optimal Center
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.875rem",
-                                paddingLeft: "1.5rem",
-                              }}
-                            >
-                              <div>Lat: 35.8914°N, Lng: 94.7190°W</div>
-                              <div>Minimizes total transportation cost</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Network Heat Map */}
-                  <div className="card" style={{ marginBottom: "2rem" }}>
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Regional Network Heat Map
-                    </h4>
-                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                      {/* Heat Map Visualization */}
-                      <div>
-                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
-                          Demand Intensity by Region
-                        </h5>
-                        <ResponsiveContainer width="100%" height={350}>
-                          <BarChart
-                            data={geographicData.heatmapData}
-                            layout="horizontal"
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" />
-                            <YAxis
-                              dataKey="region"
-                              type="category"
-                              width={80}
-                            />
-                            <Tooltip
-                              formatter={(value, name) => [
-                                name === "intensity"
-                                  ? `${value}%`
-                                  : name === "demand"
-                                    ? value.toLocaleString()
-                                    : value,
-                                name === "intensity"
-                                  ? "Intensity"
-                                  : name === "demand"
-                                    ? "Demand"
-                                    : "Facilities",
-                              ]}
-                            />
-                            <Legend />
-                            <Bar
-                              dataKey="intensity"
-                              fill="#f59e0b"
-                              name="Intensity %"
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      {/* Heat Map Data Table */}
-                      <div>
-                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
-                          Regional Analysis
-                        </h5>
-                        <div style={{ maxHeight: "350px", overflowY: "auto" }}>
-                          <table
-                            style={{ width: "100%", fontSize: "0.875rem" }}
-                          >
-                            <thead>
-                              <tr style={{ backgroundColor: "#f9fafb" }}>
-                                <th
-                                  style={{
-                                    padding: "0.5rem",
-                                    textAlign: "left",
-                                  }}
-                                >
-                                  Region
-                                </th>
-                                <th
-                                  style={{
-                                    padding: "0.5rem",
-                                    textAlign: "center",
-                                  }}
-                                >
-                                  Intensity
-                                </th>
-                                <th
-                                  style={{
-                                    padding: "0.5rem",
-                                    textAlign: "center",
-                                  }}
-                                >
-                                  Facilities
-                                </th>
-                                <th
-                                  style={{
-                                    padding: "0.5rem",
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  Demand
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {geographicData.heatmapData
-                                .sort((a, b) => b.intensity - a.intensity)
-                                .map((region, index) => (
-                                  <tr key={index}>
-                                    <td style={{ padding: "0.5rem" }}>
-                                      {region.region}
-                                    </td>
-                                    <td
-                                      style={{
-                                        padding: "0.5rem",
-                                        textAlign: "center",
-                                        backgroundColor:
-                                          region.intensity > 80
-                                            ? "#dcfce7"
-                                            : region.intensity > 60
-                                              ? "#fef3c7"
-                                              : "#fecaca",
-                                        color:
-                                          region.intensity > 80
-                                            ? "#166534"
-                                            : region.intensity > 60
-                                              ? "#92400e"
-                                              : "#991b1b",
-                                      }}
-                                    >
-                                      {region.intensity}%
-                                    </td>
-                                    <td
-                                      style={{
-                                        padding: "0.5rem",
-                                        textAlign: "center",
-                                      }}
-                                    >
-                                      {region.facilities}
-                                    </td>
-                                    <td
-                                      style={{
-                                        padding: "0.5rem",
-                                        textAlign: "right",
-                                      }}
-                                    >
-                                      {region.demand.toLocaleString()}
-                                    </td>
-                                  </tr>
-                                ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Scenario Network Models */}
-                  <div className="card" style={{ marginBottom: "2rem" }}>
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Scenario Network Models
-                    </h4>
-                    <div className="grid grid-cols-3" style={{ gap: "1.5rem" }}>
-                      {geographicData.scenarios.map((scenario, index) => (
-                        <div key={index} className="card">
-                          <h5
-                            style={{
-                              marginBottom: "0.75rem",
-                              color: "#374151",
-                            }}
-                          >
-                            {scenario.name}
-                          </h5>
-
-                          {/* Scenario Center of Gravity */}
-                          <div
-                            style={{
-                              marginBottom: "1rem",
-                              fontSize: "0.875rem",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.5rem",
-                                marginBottom: "0.5rem",
-                              }}
-                            >
-                              <Crosshair
-                                size={16}
-                                style={{ color: "#3b82f6" }}
-                              />
-                              <span style={{ fontWeight: "600" }}>
-                                Center of Gravity
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                paddingLeft: "1.5rem",
-                                color: "#6b7280",
-                              }}
-                            >
-                              {scenario.center_of_gravity.lat.toFixed(4)}°N,{" "}
-                              {Math.abs(scenario.center_of_gravity.lng).toFixed(
-                                4,
-                              )}
-                              °W
-                            </div>
-                          </div>
-
-                          {/* Scenario Facilities */}
-                          <div style={{ marginBottom: "1rem" }}>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.5rem",
-                                marginBottom: "0.5rem",
-                              }}
-                            >
-                              <MapPin size={16} style={{ color: "#10b981" }} />
-                              <span
-                                style={{
-                                  fontWeight: "600",
-                                  fontSize: "0.875rem",
-                                }}
-                              >
-                                Recommended Facilities
-                              </span>
-                            </div>
-                            <div style={{ fontSize: "0.875rem" }}>
-                              {scenario.facilities.map((facility, fIndex) => (
-                                <div
-                                  key={fIndex}
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    marginBottom: "0.25rem",
-                                    paddingLeft: "1.5rem",
-                                  }}
-                                >
-                                  <span>{facility.name}</span>
-                                  <span style={{ color: "#6b7280" }}>
-                                    {facility.coverage}mi
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Service Coverage Visualization */}
-                          <div style={{ marginBottom: "1rem" }}>
-                            <div
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: "600",
-                                marginBottom: "0.5rem",
-                              }}
-                            >
-                              Service Coverage
-                            </div>
-                            <ResponsiveContainer width="100%" height={150}>
-                              <BarChart data={scenario.facilities}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis
-                                  dataKey="name"
-                                  angle={-45}
-                                  textAnchor="end"
-                                  height={60}
-                                  fontSize={10}
-                                />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar
-                                  dataKey="coverage"
-                                  fill="#3b82f6"
-                                  name="Coverage (mi)"
-                                />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-
-                          {/* Cost Benefit Analysis */}
-                          <div
-                            style={{
-                              backgroundColor: "#f0f9ff",
-                              padding: "0.75rem",
-                              borderRadius: "0.5rem",
-                              border: "1px solid #0ea5e9",
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: "600",
-                                marginBottom: "0.5rem",
-                              }}
-                            >
-                              Average Cost Benefit
-                            </div>
-                            <div style={{ textAlign: "center" }}>
-                              <div
-                                style={{
-                                  fontSize: "1.5rem",
-                                  fontWeight: "700",
-                                  color: "#0c4a6e",
-                                }}
-                              >
-                                {(
-                                  (scenario.facilities.reduce(
-                                    (sum, f) => sum + f.cost_benefit,
-                                    0,
-                                  ) /
-                                    scenario.facilities.length) *
-                                  100
-                                ).toFixed(1)}
-                                %
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#075985",
-                                }}
-                              >
-                                Efficiency Score
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Service Coverage Analysis */}
-                  <div className="card">
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Current Network Service Coverage
-                    </h4>
-                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                      {/* Coverage Metrics */}
-                      <div>
-                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
-                          Coverage Analysis
-                        </h5>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <ComposedChart data={serviceCoverageData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis
-                              dataKey="facility"
-                              angle={-45}
-                              textAnchor="end"
-                              height={80}
-                            />
-                            <YAxis yAxisId="left" />
-                            <YAxis yAxisId="right" orientation="right" />
-                            <Tooltip />
-                            <Legend />
-                            <Bar
-                              yAxisId="left"
-                              dataKey="coverage_radius"
-                              fill="#3b82f6"
-                              name="Coverage Radius (mi)"
-                            />
-                            <Line
-                              yAxisId="right"
-                              type="monotone"
-                              dataKey="utilization"
-                              stroke="#ef4444"
-                              strokeWidth={3}
-                              name="Utilization %"
-                            />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      {/* Geographic Coverage Summary */}
-                      <div>
-                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
-                          Geographic Summary
-                        </h5>
-                        <div style={{ padding: "1rem" }}>
-                          <div
-                            className="grid grid-cols-2"
-                            style={{ gap: "1rem", marginBottom: "1.5rem" }}
-                          >
-                            <div style={{ textAlign: "center" }}>
-                              <div
-                                style={{
-                                  fontSize: "1.5rem",
-                                  fontWeight: "700",
-                                  color: "#3b82f6",
-                                }}
-                              >
-                                3
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                Active Facilities
-                              </div>
-                            </div>
-                            <div style={{ textAlign: "center" }}>
-                              <div
-                                style={{
-                                  fontSize: "1.5rem",
-                                  fontWeight: "700",
-                                  color: "#10b981",
-                                }}
-                              >
-                                500
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                Avg Coverage (mi)
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ fontSize: "0.875rem" }}>
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                marginBottom: "0.5rem",
-                              }}
-                            >
-                              <span>Total Service Area:</span>
-                              <span style={{ fontWeight: "600" }}>
-                                2.1M sq mi
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                marginBottom: "0.5rem",
-                              }}
-                            >
-                              <span>Population Covered:</span>
-                              <span style={{ fontWeight: "600" }}>
-                                215M people
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                marginBottom: "0.5rem",
-                              }}
-                            >
-                              <span>Avg Distance to Customer:</span>
-                              <span style={{ fontWeight: "600" }}>
-                                542 miles
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                              }}
-                            >
-                              <span>Service Level Achievement:</span>
-                              <span
-                                style={{ fontWeight: "600", color: "#10b981" }}
-                              >
-                                96.0%
-                              </span>
-                            </div>
-                          </div>
-
-                          <div
-                            style={{
-                              marginTop: "1rem",
-                              padding: "0.75rem",
-                              backgroundColor: "#dcfce7",
-                              borderRadius: "0.5rem",
-                              border: "1px solid #16a34a",
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: "600",
-                                color: "#166534",
-                              }}
-                            >
-                              Optimization Status: Optimal Coverage
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "#15803d",
-                                marginTop: "0.25rem",
-                              }}
-                            >
-                              Current network provides excellent geographic
-                              coverage with minimal overlap
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Inventory Analytics */}
-              {selectedChart === "inventory" && (
-                <div>
-                  <div style={{ marginBottom: "2rem" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "1rem",
-                      }}
-                    >
-                      <h3 style={{ color: "#111827" }}>
-                        Inventory Management Analytics
-                      </h3>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button className="button button-secondary">
-                          <Download size={16} />
-                          Export Inventory Report
-                        </button>
-                        <button className="button button-secondary">
-                          <RefreshCw size={16} />
-                          Refresh Metrics
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Inventory KPI Cards */}
-                  <div
-                    className="grid grid-cols-4"
-                    style={{ gap: "1.5rem", marginBottom: "2rem" }}
-                  >
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#fef3c7",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #f59e0b",
-                      }}
-                    >
-                      <DollarSign
-                        size={32}
-                        style={{
-                          color: "#92400e",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#92400e",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        $1.6M
-                      </div>
-                      <div
-                        style={{
-                          color: "#78350f",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Total Inventory Value
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#a16207" }}>
-                        Optimized Investment
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#dcfce7",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #16a34a",
-                      }}
-                    >
-                      <Target
-                        size={32}
-                        style={{
-                          color: "#15803d",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#15803d",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        6.5x
-                      </div>
-                      <div
-                        style={{
-                          color: "#166534",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Avg Inventory Turns
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#16a34a" }}>
-                        Target: 6.0x+
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#dbeafe",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #2563eb",
-                      }}
-                    >
-                      <CheckCircle
-                        size={32}
-                        style={{
-                          color: "#1d4ed8",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#1d4ed8",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        96.2%
-                      </div>
-                      <div
-                        style={{
-                          color: "#1e40af",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Avg Fill Rate
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#2563eb" }}>
-                        Service Level Achievement
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem 1rem",
-                        backgroundColor: "#f3e8ff",
-                        borderRadius: "0.75rem",
-                        border: "2px solid #9333ea",
-                      }}
-                    >
-                      <Activity
-                        size={32}
-                        style={{
-                          color: "#7c3aed",
-                          marginBottom: "0.5rem",
-                          margin: "0 auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: "bold",
-                          color: "#7c3aed",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        65
-                      </div>
-                      <div
-                        style={{
-                          color: "#6b21a8",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                        }}
-                      >
-                        Avg Days on Hand
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "#8b5cf6" }}>
-                        Inventory Velocity
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Inventory Charts */}
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    {/* ABC Analysis */}
-                    <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        ABC Analysis - Value Distribution
-                      </h4>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ComposedChart data={inventoryData.abcAnalysis}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="class" />
-                          <YAxis yAxisId="left" />
-                          <YAxis yAxisId="right" orientation="right" />
-                          <Tooltip />
-                          <Legend />
-                          <Bar
-                            yAxisId="left"
-                            dataKey="total_value"
-                            fill="#3b82f6"
-                            name="Total Value ($)"
-                          />
-                          <Bar
-                            yAxisId="left"
-                            dataKey="sku_count"
-                            fill="#8b5cf6"
-                            name="SKU Count"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="avg_turns"
-                            stroke="#ef4444"
-                            strokeWidth={3}
-                            name="Avg Turns"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                      <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <span>A-Class SKUs:</span>
-                          <span style={{ fontWeight: "600", color: "#10b981" }}>
-                            2 SKUs, 72% of value
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Total Annual Value:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            $
-                            {inventoryData.abcAnalysis
-                              .reduce((sum, item) => sum + item.total_value, 0)
-                              .toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Inventory Turns vs Service Level */}
-                    <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Inventory Performance Matrix
-                      </h4>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ScatterChart data={inventoryData.skuMetrics}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="inventory_turns"
-                            name="Inventory Turns"
-                            type="number"
-                            domain={[0, 12]}
-                          />
-                          <YAxis
-                            dataKey="fill_rate"
-                            name="Fill Rate"
-                            type="number"
-                            domain={[85, 100]}
-                          />
-                          <Tooltip
-                            formatter={(value, name) => [
-                              name === "inventory_turns"
-                                ? `${value.toFixed(1)}x`
-                                : `${value.toFixed(1)}%`,
-                              name === "inventory_turns"
-                                ? "Inventory Turns"
-                                : "Fill Rate",
-                            ]}
-                            labelFormatter={(label) => `SKU: ${label}`}
-                          />
-                          <Scatter
-                            name="SKUs"
-                            dataKey="total_value"
-                            fill="#10b981"
-                          />
-                          <ReferenceLine
-                            x={6}
-                            stroke="#f59e0b"
-                            strokeDasharray="5 5"
-                            label="Target Turns"
-                          />
-                          <ReferenceLine
-                            y={95}
-                            stroke="#ef4444"
-                            strokeDasharray="5 5"
-                            label="Min Fill Rate"
-                          />
-                        </ScatterChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div
-                    className="grid grid-cols-2"
-                    style={{ gap: "2rem", marginBottom: "2rem" }}
-                  >
-                    {/* Service Level by Category */}
-                    <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        Service Level by Category
-                      </h4>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ComposedChart data={inventoryData.serviceLevelData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="category"
-                            angle={-45}
-                            textAnchor="end"
-                            height={80}
-                          />
-                          <YAxis yAxisId="left" domain={[85, 100]} />
-                          <YAxis yAxisId="right" orientation="right" />
-                          <Tooltip />
-                          <Legend />
-                          <Bar
-                            yAxisId="right"
-                            dataKey="safety_stock_investment"
-                            fill="#8b5cf6"
-                            name="Safety Stock Investment ($)"
-                          />
-                          <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="service_level"
-                            stroke="#10b981"
-                            strokeWidth={3}
-                            name="Service Level %"
-                          />
-                          <ReferenceLine
-                            yAxisId="left"
-                            y={95}
-                            stroke="#ef4444"
-                            strokeDasharray="5 5"
-                            label="Target"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Carrying Cost Analysis */}
-                    <div className="card">
-                      <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                        5-Year Carrying Cost Projection
-                      </h4>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <AreaChart data={inventoryData.carryingCostAnalysis}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="year" />
-                          <YAxis />
-                          <Tooltip
-                            formatter={(value: any) => [`$${value}M`, ""]}
-                          />
-                          <Legend />
-                          <Area
-                            type="monotone"
-                            dataKey="inventory_value"
-                            stackId="1"
-                            stroke="#3b82f6"
-                            fill="#3b82f6"
-                            fillOpacity={0.6}
-                            name="Inventory Value"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="carrying_cost"
-                            stackId="2"
-                            stroke="#ef4444"
-                            fill="#ef4444"
-                            fillOpacity={0.6}
-                            name="Carrying Cost"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="turns"
-                            stroke="#10b981"
-                            strokeWidth={3}
-                            name="Inventory Turns"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Detailed SKU Metrics Table */}
-                  <div className="card">
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      SKU Performance Analysis
-                    </h4>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", fontSize: "0.875rem" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "#f9fafb" }}>
-                            <th
-                              style={{
-                                padding: "0.75rem",
-                                textAlign: "left",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              SKU
-                            </th>
-                            <th
-                              style={{
-                                padding: "0.75rem",
-                                textAlign: "center",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              ABC Class
-                            </th>
-                            <th
-                              style={{
-                                padding: "0.75rem",
-                                textAlign: "right",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              Inventory Turns
-                            </th>
-                            <th
-                              style={{
-                                padding: "0.75rem",
-                                textAlign: "right",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              Days on Hand
-                            </th>
-                            <th
-                              style={{
-                                padding: "0.75rem",
-                                textAlign: "right",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              Fill Rate (%)
-                            </th>
-                            <th
-                              style={{
-                                padding: "0.75rem",
-                                textAlign: "right",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              Safety Stock
-                            </th>
-                            <th
-                              style={{
-                                padding: "0.75rem",
-                                textAlign: "right",
-                                border: "1px solid #e5e7eb",
-                              }}
-                            >
-                              Total Value
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {inventoryData.skuMetrics.map((sku, index) => (
-                            <tr key={index}>
-                              <td
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                {sku.sku}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "center",
-                                  backgroundColor:
-                                    sku.abc_class === "A"
-                                      ? "#dcfce7"
-                                      : sku.abc_class === "B"
-                                        ? "#fef3c7"
-                                        : "#fecaca",
-                                  color:
-                                    sku.abc_class === "A"
-                                      ? "#166534"
-                                      : sku.abc_class === "B"
-                                        ? "#92400e"
-                                        : "#991b1b",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                {sku.abc_class}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "right",
-                                  color:
-                                    sku.inventory_turns > 6
-                                      ? "#10b981"
-                                      : sku.inventory_turns > 4
-                                        ? "#f59e0b"
-                                        : "#ef4444",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                {sku.inventory_turns.toFixed(1)}x
-                              </td>
-                              <td
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "right",
-                                }}
-                              >
-                                {sku.days_on_hand}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "right",
-                                  color:
-                                    sku.fill_rate > 97
-                                      ? "#10b981"
-                                      : sku.fill_rate > 95
-                                        ? "#f59e0b"
-                                        : "#ef4444",
-                                  fontWeight: "600",
-                                }}
-                              >
-                                {sku.fill_rate.toFixed(1)}%
-                              </td>
-                              <td
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "right",
-                                }}
-                              >
-                                {sku.safety_stock}
-                              </td>
-                              <td
-                                style={{
-                                  padding: "0.75rem",
-                                  border: "1px solid #e5e7eb",
-                                  textAlign: "right",
-                                }}
-                              >
-                                ${sku.total_value.toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Inventory Optimization Recommendations */}
-                  <div className="card">
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Inventory Optimization Recommendations
-                    </h4>
-                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                      <div>
-                        <h5
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Immediate Optimizations
-                        </h5>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <CheckCircle
-                              size={16}
-                              style={{ color: "#10b981" }}
-                            />
-                            <span>
-                              Reduce safety stock for SKU_005 (C-class, low
-                              turns)
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <CheckCircle
-                              size={16}
-                              style={{ color: "#10b981" }}
-                            />
-                            <span>Implement risk pooling for A-class SKUs</span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <CheckCircle
-                              size={16}
-                              style={{ color: "#10b981" }}
-                            />
-                            <span>Review reorder points for high CV items</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <h5
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Strategic Initiatives
-                        </h5>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <AlertTriangle
-                              size={16}
-                              style={{ color: "#f59e0b" }}
-                            />
-                            <span>
-                              Consider supplier lead time negotiations
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <AlertTriangle
-                              size={16}
-                              style={{ color: "#f59e0b" }}
-                            />
-                            <span>Evaluate postponement opportunities</span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <AlertTriangle
-                              size={16}
-                              style={{ color: "#f59e0b" }}
-                            />
-                            <span>Implement multi-echelon optimization</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* KPI Dashboard */}
-              <div className="card" style={{ marginTop: "2rem" }}>
-                <h3 style={{ marginBottom: "1.5rem", color: "#111827" }}>
-                  Key Performance Indicators
-                </h3>
-                <div className="grid grid-cols-4" style={{ gap: "1.5rem" }}>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "1.5rem",
-                      backgroundColor: "#fef3c7",
-                      borderRadius: "0.75rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "2.5rem",
-                        fontWeight: "bold",
-                        color: "#92400e",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      $
-                      {(
-                        (warehouseResults.optimization_summary.objective_value +
-                          transportationResults.optimization_summary
-                            .total_transportation_cost) /
-                        1000000
-                      ).toFixed(1)}
-                      M
-                    </div>
-                    <div style={{ color: "#78350f", fontWeight: "600" }}>
-                      Total Annual Cost
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "#a16207",
-                        marginTop: "0.5rem",
-                      }}
-                    >
-                      Warehouse + Transportation
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "1.5rem",
-                      backgroundColor: "#dcfce7",
-                      borderRadius: "0.75rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "2.5rem",
-                        fontWeight: "bold",
-                        color: "#15803d",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      {warehouseResults.performance_metrics.avg_utilization.toFixed(
-                        1,
-                      )}
-                      %
-                    </div>
-                    <div style={{ color: "#166534", fontWeight: "600" }}>
-                      Avg Utilization
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "#16a34a",
-                        marginTop: "0.5rem",
-                      }}
-                    >
-                      ↑ Optimal range 80-90%
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "1.5rem",
-                      backgroundColor: "#dbeafe",
-                      borderRadius: "0.75rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "2.5rem",
-                        fontWeight: "bold",
-                        color: "#1d4ed8",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      {(
-                        transportationResults.network_metrics
-                          .service_level_achievement * 100
-                      ).toFixed(1)}
-                      %
-                    </div>
-                    <div style={{ color: "#1e40af", fontWeight: "600" }}>
-                      Service Level
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "#2563eb",
-                        marginTop: "0.5rem",
-                      }}
-                    >
-                      Target: 95%+
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "1.5rem",
-                      backgroundColor: "#f3e8ff",
-                      borderRadius: "0.75rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "2.5rem",
-                        fontWeight: "bold",
-                        color: "#7c3aed",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      {(
-                        warehouseResults.performance_metrics.volume_cagr * 100
-                      ).toFixed(1)}
-                      %
-                    </div>
-                    <div style={{ color: "#6b21a8", fontWeight: "600" }}>
-                      Volume CAGR
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "#8b5cf6",
-                        marginTop: "0.5rem",
-                      }}
-                    >
-                      5-year projection
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Output Generation Tab */}
-          {activeTab === "outputs" && (
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "2rem",
-                }}
-              >
-                <h3 style={{ color: "#111827" }}>
-                  Comprehensive Output Generation
-                </h3>
-                <button
-                  className="button button-primary"
-                  onClick={generateComprehensiveReport}
-                  disabled={generating}
-                >
-                  {generating && <div className="loading-spinner"></div>}
-                  <Zap size={16} />
-                  {generating
-                    ? "Generating..."
-                    : "Generate Complete Report Package"}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                {/* Output Configuration */}
-                <div>
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Output Configuration
-                  </h4>
-
-                  <div className="card">
-                    <h5 style={{ marginBottom: "0.75rem", color: "#374151" }}>
-                      Export Formats
-                    </h5>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      {[
-                        {
-                          id: "csv",
-                          label: "CSV Files",
-                          desc: "Comma-separated values for analysis tools",
-                        },
-                        {
-                          id: "json",
-                          label: "JSON Files",
-                          desc: "Structured data for APIs and applications",
-                        },
-                        {
-                          id: "excel",
-                          label: "Excel Workbook",
-                          desc: "Complete results in multi-sheet workbook",
-                        },
-                      ].map((format) => (
-                        <label
-                          key={format.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.75rem",
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedFormats.includes(format.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedFormats([
-                                  ...selectedFormats,
-                                  format.id,
-                                ]);
-                              } else {
-                                setSelectedFormats(
-                                  selectedFormats.filter(
-                                    (f) => f !== format.id,
-                                  ),
-                                );
-                              }
-                            }}
-                          />
-                          <div>
-                            <div
-                              style={{ fontWeight: "600", color: "#111827" }}
-                            >
-                              {format.label}
-                            </div>
-                            <div
-                              style={{ fontSize: "0.875rem", color: "#6b7280" }}
-                            >
-                              {format.desc}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="card" style={{ marginTop: "1rem" }}>
-                    <h5 style={{ marginBottom: "0.75rem", color: "#374151" }}>
-                      Report Components
-                    </h5>
-                    <div style={{ fontSize: "0.875rem" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <CheckCircle size={16} style={{ color: "#10b981" }} />
-                        <span>
-                          Warehouse optimization results and projections
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <CheckCircle size={16} style={{ color: "#10b981" }} />
-                        <span>
-                          Transportation network assignments and metrics
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <CheckCircle size={16} style={{ color: "#10b981" }} />
-                        <span>
-                          Executive summary with KPIs and recommendations
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <CheckCircle size={16} style={{ color: "#10b981" }} />
-                        <span>Combined analysis with integrated insights</span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <CheckCircle size={16} style={{ color: "#10b981" }} />
-                        <span>Documentation and usage instructions</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Generation Status */}
-                <div>
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Generation Status
-                  </h4>
-
-                  {generating && (
-                    <div
-                      className="card"
-                      style={{
-                        backgroundColor: "#fef3c7",
-                        border: "1px solid #fbbf24",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.75rem",
-                          marginBottom: "1rem",
-                        }}
-                      >
-                        <div className="loading-spinner"></div>
-                        <span style={{ fontWeight: "600", color: "#92400e" }}>
-                          Generating comprehensive reports...
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          backgroundColor: "#f59e0b",
-                          height: "4px",
-                          borderRadius: "2px",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            backgroundColor: "#eab308",
-                            height: "100%",
-                            width: "70%",
-                            borderRadius: "2px",
-                            animation: "progress 2s ease-in-out infinite",
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {generatedFiles.length > 0 && (
-                    <div
-                      className="card"
-                      style={{
-                        backgroundColor: "#dcfce7",
-                        border: "1px solid #16a34a",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.75rem",
-                          marginBottom: "1rem",
-                        }}
-                      >
-                        <CheckCircle size={20} style={{ color: "#16a34a" }} />
-                        <span style={{ fontWeight: "600", color: "#15803d" }}>
-                          {generatedFiles.length} files generated successfully
-                        </span>
-                      </div>
-                      <button
-                        className="button button-secondary"
-                        onClick={downloadAllFiles}
-                        style={{ width: "100%" }}
-                      >
-                        <Download size={16} />
-                        Download Complete Package
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Real-time Generation Logs */}
-                  {outputLogs.length > 0 && (
-                    <div style={{ marginTop: "1rem" }}>
-                      <h5 style={{ marginBottom: "0.75rem", color: "#374151" }}>
-                        Generation Logs
-                      </h5>
-                      <div
-                        style={{
-                          backgroundColor: "#1f2937",
-                          color: "#f9fafb",
-                          padding: "1rem",
-                          borderRadius: "0.5rem",
-                          fontFamily: "monospace",
-                          fontSize: "0.75rem",
-                          maxHeight: "300px",
-                          overflowY: "auto",
-                        }}
-                      >
-                        {outputLogs.map((log, index) => (
-                          <div key={index} style={{ marginBottom: "0.25rem" }}>
-                            <span style={{ color: "#9ca3af" }}>
-                              [{log.timestamp}]
-                            </span>
-                            <span
-                              style={{
-                                color:
-                                  log.level === "ERROR"
-                                    ? "#ef4444"
-                                    : log.level === "SUCCESS"
-                                      ? "#10b981"
-                                      : log.level === "WARNING"
-                                        ? "#f59e0b"
-                                        : "#60a5fa",
-                                marginLeft: "0.5rem",
-                              }}
-                            >
-                              {log.level}
-                            </span>
-                            <span style={{ marginLeft: "0.5rem" }}>
-                              {log.message}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Generated Reports Tab */}
-          {activeTab === "reports" && (
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "2rem",
-                }}
-              >
-                <h3 style={{ color: "#111827" }}>Generated Report Files</h3>
-                {generatedFiles.length > 0 && (
-                  <button
-                    className="button button-primary"
-                    onClick={downloadAllFiles}
-                  >
-                    <Download size={16} />
-                    Download All ({generatedFiles.length} files)
-                  </button>
-                )}
-              </div>
-
-              {generatedFiles.length === 0 ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "3rem",
-                    color: "#6b7280",
-                  }}
-                >
-                  <FileText
-                    size={64}
-                    style={{ margin: "0 auto 1rem", color: "#d1d5db" }}
-                  />
-                  <h4 style={{ marginBottom: "0.5rem", color: "#374151" }}>
-                    No Reports Generated
-                  </h4>
-                  <p>
-                    Use the Output Generation tab to create comprehensive
-                    reports.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2" style={{ gap: "1.5rem" }}>
-                  {generatedFiles.map((file, index) => (
-                    <div key={index} className="card">
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          marginBottom: "1rem",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.75rem",
-                          }}
-                        >
-                          {file.type.includes("excel") ? (
-                            <FileSpreadsheet
-                              size={24}
-                              style={{ color: "#16a34a" }}
-                            />
-                          ) : file.type.includes("csv") ? (
-                            <Database size={24} style={{ color: "#3b82f6" }} />
-                          ) : file.type.includes("documentation") ? (
-                            <BookOpen size={24} style={{ color: "#8b5cf6" }} />
-                          ) : (
-                            <FileText size={24} style={{ color: "#f59e0b" }} />
-                          )}
-                          <div>
-                            <div
-                              style={{ fontWeight: "600", color: "#111827" }}
-                            >
-                              {file.name}
-                            </div>
-                            <div
-                              style={{ fontSize: "0.875rem", color: "#6b7280" }}
-                            >
-                              {file.size}
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          className="button button-secondary"
-                          onClick={() => downloadFile(file)}
-                          style={{ padding: "0.5rem" }}
-                        >
-                          <Download size={16} />
-                        </button>
-                      </div>
-
-                      <p
-                        style={{
-                          fontSize: "0.875rem",
-                          color: "#6b7280",
-                          marginBottom: "0.75rem",
-                        }}
-                      >
-                        {file.description}
-                      </p>
-
-                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-                        Generated at {file.generated_at}
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
 
-              {/* File Types Legend */}
-              {generatedFiles.length > 0 && (
-                <div className="card" style={{ marginTop: "2rem" }}>
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    File Types & Usage
-                  </h4>
-                  <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                    <div>
-                      <h5 style={{ marginBottom: "0.75rem", color: "#374151" }}>
-                        Data Files
-                      </h5>
-                      <div style={{ fontSize: "0.875rem" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
+                {/* Cost Breakdown Chart */}
+                <div className="chart-section">
+                  <h3 className="chart-title">Annual Cost Breakdown - Year {selectedYear}</h3>
+                  <div className="chart-container">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={getCostBreakdownData()}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, value }) => `${name}: $${(value / 1000000).toFixed(1)}M`}
                         >
-                          <Database size={16} style={{ color: "#3b82f6" }} />
-                          <span>
-                            <strong>CSV Files:</strong> Raw data for analysis in
-                            Excel, R, Python
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <FileText size={16} style={{ color: "#f59e0b" }} />
-                          <span>
-                            <strong>JSON Files:</strong> Structured data for
-                            APIs and web applications
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <FileSpreadsheet
-                            size={16}
-                            style={{ color: "#16a34a" }}
-                          />
-                          <span>
-                            <strong>Excel Workbook:</strong> Complete analysis
-                            with multiple sheets
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <h5 style={{ marginBottom: "0.75rem", color: "#374151" }}>
-                        Documentation
-                      </h5>
-                      <div style={{ fontSize: "0.875rem" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <BookOpen size={16} style={{ color: "#8b5cf6" }} />
-                          <span>
-                            <strong>README:</strong> Instructions and metadata
-                            for all files
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <Target size={16} style={{ color: "#ec4899" }} />
-                          <span>
-                            <strong>Executive Summary:</strong> High-level
-                            insights and recommendations
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Strategic Insights Tab */}
-          {activeTab === "insights" && (
-            <div>
-              <h3 style={{ marginBottom: "2rem", color: "#111827" }}>
-                Strategic Insights & Recommendations
-              </h3>
-
-              {/* Executive Summary */}
-              {executiveSummary && (
-                <div>
-                  <div
-                    className="card"
-                    style={{
-                      marginBottom: "2rem",
-                      backgroundColor: "#f0f9ff",
-                      border: "1px solid #0ea5e9",
-                    }}
-                  >
-                    <h4 style={{ marginBottom: "1rem", color: "#0c4a6e" }}>
-                      Executive Summary
-                    </h4>
-                    <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                      <div>
-                        <h5
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Project Overview
-                        </h5>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Total Optimization Cost:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              $
-                              {(
-                                executiveSummary.project_overview
-                                  .total_optimization_cost / 1000000
-                              ).toFixed(1)}
-                              M
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Warehouse Facilities Planned:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {
-                                executiveSummary.project_overview
-                                  .warehouse_facilities_planned
-                              }
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Network Facilities Opened:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {
-                                executiveSummary.project_overview
-                                  .network_facilities_opened
-                              }
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span>Service Level Achievement:</span>
-                            <span
-                              style={{ fontWeight: "600", color: "#10b981" }}
-                            >
-                              {executiveSummary.project_overview.service_level_achievement.toFixed(
-                                1,
-                              )}
-                              %
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <h5
-                          style={{ marginBottom: "0.75rem", color: "#374151" }}
-                        >
-                          Key Performance Indicators
-                        </h5>
-                        <div style={{ fontSize: "0.875rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Warehouse Utilization:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {executiveSummary.key_performance_indicators.warehouse_utilization_pct.toFixed(
-                                1,
-                              )}
-                              %
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>Cost per Unit:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              $
-                              {executiveSummary.key_performance_indicators.cost_per_unit.toFixed(
-                                2,
-                              )}
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span>3PL Dependency:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {executiveSummary.key_performance_indicators.thirdparty_dependency_pct.toFixed(
-                                1,
-                              )}
-                              %
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span>Avg Transportation Distance:</span>
-                            <span style={{ fontWeight: "600" }}>
-                              {executiveSummary.key_performance_indicators.avg_transportation_distance.toFixed(
-                                0,
-                              )}{" "}
-                              mi
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Strategic Recommendations */}
-                  <div className="card" style={{ marginBottom: "2rem" }}>
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Strategic Recommendations
-                    </h4>
-                    <div style={{ display: "grid", gap: "1rem" }}>
-                      {executiveSummary.recommendations.map(
-                        (recommendation, index) => (
-                          <div
-                            key={index}
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: "0.75rem",
-                              padding: "1rem",
-                              backgroundColor: "#fef9e7",
-                              borderRadius: "0.5rem",
-                              border: "1px solid #fbbf24",
-                            }}
-                          >
-                            <AlertTriangle
-                              size={20}
-                              style={{
-                                color: "#f59e0b",
-                                marginTop: "0.125rem",
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span style={{ color: "#92400e" }}>
-                              {recommendation}
-                            </span>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Performance Analysis */}
-              <div className="grid grid-cols-2" style={{ gap: "2rem" }}>
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Warehouse Optimization Analysis
-                  </h4>
-                  <div style={{ fontSize: "0.875rem" }}>
-                    <div style={{ marginBottom: "1rem" }}>
-                      <div
-                        style={{
-                          fontWeight: "600",
-                          color: "#374151",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        Optimization Status:
-                        <span
-                          style={{ color: "#10b981", marginLeft: "0.5rem" }}
-                        >
-                          {warehouseResults.optimization_summary.status}
-                        </span>
-                      </div>
-                      <div>
-                        Solved in{" "}
-                        {warehouseResults.optimization_summary.solve_time}{" "}
-                        seconds with $
-                        {(
-                          warehouseResults.optimization_summary
-                            .objective_value / 1000000
-                        ).toFixed(1)}
-                        M total cost
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom: "1rem" }}>
-                      <div
-                        style={{
-                          fontWeight: "600",
-                          color: "#374151",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        Capacity Planning Insights:
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: "1.5rem" }}>
-                        <li>
-                          Requires{" "}
-                          {
-                            warehouseResults.optimization_summary
-                              .total_facilities_added
-                          }{" "}
-                          additional facilities over 5 years
-                        </li>
-                        <li>
-                          Average utilization of{" "}
-                          {warehouseResults.performance_metrics.avg_utilization.toFixed(
-                            1,
-                          )}
-                          % indicates efficient space planning
-                        </li>
-                        <li>
-                          3PL dependency at{" "}
-                          {(
-                            warehouseResults.performance_metrics
-                              .thirdparty_dependency * 100
-                          ).toFixed(1)}
-                          % provides operational flexibility
-                        </li>
-                        <li>
-                          Volume CAGR of{" "}
-                          {(
-                            warehouseResults.performance_metrics.volume_cagr *
-                            100
-                          ).toFixed(1)}
-                          % drives expansion requirements
-                        </li>
-                      </ul>
-                    </div>
+                          {getCostBreakdownData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => `$${(value / 1000000).toFixed(2)}M`} />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Transportation Network Analysis
-                  </h4>
-                  <div style={{ fontSize: "0.875rem" }}>
-                    <div style={{ marginBottom: "1rem" }}>
-                      <div
-                        style={{
-                          fontWeight: "600",
-                          color: "#374151",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        Network Status:
-                        <span
-                          style={{ color: "#10b981", marginLeft: "0.5rem" }}
-                        >
-                          {transportationResults.optimization_summary.status}
-                        </span>
-                      </div>
-                      <div>
-                        Optimized{" "}
-                        {
-                          transportationResults.optimization_summary
-                            .facilities_opened
-                        }{" "}
-                        facilities serving
-                        {transportationResults.optimization_summary.total_demand_served.toLocaleString()}{" "}
-                        units
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom: "1rem" }}>
-                      <div
-                        style={{
-                          fontWeight: "600",
-                          color: "#374151",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        Network Performance Insights:
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: "1.5rem" }}>
-                        <li>
-                          Service level of{" "}
-                          {(
-                            transportationResults.network_metrics
-                              .service_level_achievement * 100
-                          ).toFixed(1)}
-                          % meets operational targets
-                        </li>
-                        <li>
-                          Average cost per unit of $
-                          {transportationResults.network_metrics.avg_cost_per_unit.toFixed(
-                            2,
-                          )}{" "}
-                          enables competitive pricing
-                        </li>
-                        <li>
-                          Network utilization at{" "}
-                          {(
-                            transportationResults.network_metrics
-                              .network_utilization * 100
-                          ).toFixed(1)}
-                          % indicates balanced capacity
-                        </li>
-                        <li>
-                          Weighted average distance of{" "}
-                          {transportationResults.network_metrics.weighted_avg_distance.toFixed(
-                            0,
-                          )}{" "}
-                          miles optimizes delivery times
-                        </li>
-                      </ul>
-                    </div>
+                {/* Multi-Year Trend */}
+                <div className="chart-section">
+                  <h3 className="chart-title">5-Year Cost & Savings Projection</h3>
+                  <div className="chart-container">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <ComposedChart data={getMultiYearData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="year_number" />
+                        <YAxis yAxisId="left" />
+                        <YAxis yAxisId="right" orientation="right" />
+                        <Tooltip formatter={(value: number) => `$${(value / 1000000).toFixed(2)}M`} />
+                        <Legend />
+                        <Bar yAxisId="left" dataKey="total_costs" fill="#ef4444" name="Total Costs" />
+                        <Line yAxisId="right" type="monotone" dataKey="annual_cost_savings" stroke="#10b981" strokeWidth={3} name="Annual Savings" />
+                        <Line yAxisId="right" type="monotone" dataKey="roi_percentage" stroke="#3b82f6" strokeWidth={2} name="ROI %" />
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* Risk Assessment */}
-              <div className="card" style={{ marginTop: "2rem" }}>
-                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  Risk Assessment & Mitigation
-                </h4>
-                <div className="grid grid-cols-3" style={{ gap: "2rem" }}>
-                  <div>
-                    <h5 style={{ marginBottom: "0.75rem", color: "#dc2626" }}>
-                      High Risk Areas
-                    </h5>
-                    <div style={{ fontSize: "0.875rem" }}>
-                      {warehouseResults.performance_metrics.volume_cagr >
-                        0.15 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <AlertTriangle
-                            size={16}
-                            style={{ color: "#dc2626" }}
-                          />
-                          <span>High volume growth may strain capacity</span>
+          {/* Operational KPIs Tab */}
+          {activeTab === 'operational' && (
+            <div className="tab-content">
+              <div className="kpi-sections">
+                {getCurrentResults().map(result => (
+                  <div key={result.scenario_id}>
+                    {/* Throughput & Capacity Metrics */}
+                    <div className="kpi-section">
+                      <h3 className="kpi-section-title">Throughput & Capacity Performance</h3>
+                      <div className="kpi-grid">
+                        <div className="kpi-item">
+                          <div className="kpi-label">Peak Daily Orders Shipped</div>
+                          <div className="kpi-value">{result.peak_daily_orders_shipped.toLocaleString()}</div>
+                          <div className="kpi-description">Highest daily order volume shipped</div>
                         </div>
-                      )}
-                      {warehouseResults.performance_metrics
-                        .thirdparty_dependency > 0.3 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <AlertTriangle
-                            size={16}
-                            style={{ color: "#dc2626" }}
-                          />
-                          <span>
-                            High 3PL dependency creates operational risk
-                          </span>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Average Daily Orders Shipped</div>
+                          <div className="kpi-value">{result.average_daily_orders_shipped.toLocaleString()}</div>
+                          <div className="kpi-description">Typical daily throughput</div>
                         </div>
-                      )}
-                      {transportationResults.network_metrics
-                        .service_level_achievement < 0.95 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <AlertTriangle
-                            size={16}
-                            style={{ color: "#dc2626" }}
-                          />
-                          <span>Service level below optimal threshold</span>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Theoretical Max Throughput</div>
+                          <div className="kpi-value">{result.theoretical_max_throughput.toLocaleString()}</div>
+                          <div className="kpi-description">Maximum daily throughput based on staffing/equipment</div>
                         </div>
-                      )}
+                        <div className="kpi-item">
+                          <div className="kpi-label">Current Labor Force</div>
+                          <div className="kpi-value">{result.current_labor_force}</div>
+                          <div className="kpi-description">Warehouse labor headcount</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Peak Inventory Units</div>
+                          <div className="kpi-value">{result.peak_inventory_units.toLocaleString()}</div>
+                          <div className="kpi-description">Highest units on hand during peak periods</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Inventory Turns</div>
+                          <div className="kpi-value">{result.inventory_turns}</div>
+                          <div className="kpi-description">Number of inventory turns per year</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Order Backlog</div>
+                          <div className="kpi-value">{result.order_backlog}</div>
+                          <div className="kpi-description">Number of delayed or unfulfilled orders</div>
+                        </div>
+                        <div className="kpi-item bottleneck">
+                          <div className="kpi-label">Throughput Bottleneck Process</div>
+                          <div className="kpi-value">{result.throughput_bottleneck_process}</div>
+                          <div className="kpi-description">Process step limiting throughput</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Operational Performance Chart */}
+                    <div className="chart-section">
+                      <h3 className="chart-title">Daily Throughput Analysis</h3>
+                      <div className="chart-container">
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={[
+                            { name: 'Average Daily', value: result.average_daily_orders_shipped, color: '#3b82f6' },
+                            { name: 'Peak Daily', value: result.peak_daily_orders_shipped, color: '#10b981' },
+                            { name: 'Theoretical Max', value: result.theoretical_max_throughput, color: '#f59e0b' }
+                          ]}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Bar dataKey="value" fill="#3b82f6" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
-
-                  <div>
-                    <h5 style={{ marginBottom: "0.75rem", color: "#f59e0b" }}>
-                      Medium Risk Areas
-                    </h5>
-                    <div style={{ fontSize: "0.875rem" }}>
-                      {warehouseResults.performance_metrics.avg_utilization <
-                        80 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <AlertTriangle
-                            size={16}
-                            style={{ color: "#f59e0b" }}
-                          />
-                          <span>Utilization below optimal efficiency</span>
-                        </div>
-                      )}
-                      {transportationResults.network_metrics
-                        .network_utilization < 0.8 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <AlertTriangle
-                            size={16}
-                            style={{ color: "#f59e0b" }}
-                          />
-                          <span>Network underutilization affects ROI</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h5 style={{ marginBottom: "0.75rem", color: "#10b981" }}>
-                      Strengths
-                    </h5>
-                    <div style={{ fontSize: "0.875rem" }}>
-                      {warehouseResults.optimization_summary.status ===
-                        "Optimal" && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <CheckCircle size={16} style={{ color: "#10b981" }} />
-                          <span>
-                            Warehouse optimization achieved optimal solution
-                          </span>
-                        </div>
-                      )}
-                      {transportationResults.optimization_summary.status ===
-                        "Optimal" && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <CheckCircle size={16} style={{ color: "#10b981" }} />
-                          <span>
-                            Transportation network optimally configured
-                          </span>
-                        </div>
-                      )}
-                      {transportationResults.network_metrics
-                        .service_level_achievement >= 0.95 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          <CheckCircle size={16} style={{ color: "#10b981" }} />
-                          <span>Service level targets exceeded</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* Financial Analysis Tab */}
-          {activeTab === "financial" && (
-            <div>
-              <h3 style={{ marginBottom: "2rem", color: "#111827" }}>
-                Financial Analysis & ROI
-              </h3>
-
-              {/* Financial Parameters */}
-              <div className="card" style={{ marginBottom: "2rem" }}>
-                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  Financial Parameters
-                </h4>
-                <div className="grid grid-cols-4" style={{ gap: "1rem" }}>
-                  <div className="form-group">
-                    <label className="form-label">Discount Rate (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      className="form-input"
-                      value={financialParams.discountRate * 100}
-                      onChange={(e) =>
-                        setFinancialParams({
-                          ...financialParams,
-                          discountRate: parseFloat(e.target.value) / 100,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Analysis Period (Years)
-                    </label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={financialParams.analysisYears}
-                      onChange={(e) =>
-                        setFinancialParams({
-                          ...financialParams,
-                          analysisYears: parseInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Current State Cost ($M)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      className="form-input"
-                      value={
-                        financialParams.currentStateBaseline.totalCost / 1000000
-                      }
-                      onChange={(e) =>
-                        setFinancialParams({
-                          ...financialParams,
-                          currentStateBaseline: {
-                            ...financialParams.currentStateBaseline,
-                            totalCost: parseFloat(e.target.value) * 1000000,
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Future State Investment ($M)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      className="form-input"
-                      value={
-                        financialParams.futureStateProjections.totalInvestment /
-                        1000000
-                      }
-                      onChange={(e) =>
-                        setFinancialParams({
-                          ...financialParams,
-                          futureStateProjections: {
-                            ...financialParams.futureStateProjections,
-                            totalInvestment:
-                              parseFloat(e.target.value) * 1000000,
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Financial Metrics */}
-              <div
-                className="grid grid-cols-2"
-                style={{ gap: "2rem", marginBottom: "2rem" }}
-              >
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Investment Analysis
-                  </h4>
-                  <div>
-                    {(() => {
-                      const metrics = calculateFinancialMetrics();
-                      return (
-                        <div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: "1rem",
-                              padding: "1rem",
-                              backgroundColor: "#f0f9ff",
-                              borderRadius: "0.5rem",
-                            }}
-                          >
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                Return on Invested Capital
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "1.875rem",
-                                  fontWeight: "700",
-                                  color:
-                                    metrics.roic > 15 ? "#10b981" : "#ef4444",
-                                }}
-                              >
-                                {metrics.roic.toFixed(1)}%
-                              </div>
-                            </div>
-                            <div style={{ fontSize: "2rem" }}>💰</div>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: "1rem",
-                              padding: "1rem",
-                              backgroundColor: "#f0fdf4",
-                              borderRadius: "0.5rem",
-                            }}
-                          >
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                Net Present Value
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "1.875rem",
-                                  fontWeight: "700",
-                                  color:
-                                    metrics.npv > 0 ? "#10b981" : "#ef4444",
-                                }}
-                              >
-                                ${(metrics.npv / 1000000).toFixed(1)}M
-                              </div>
-                            </div>
-                            <div style={{ fontSize: "2rem" }}>���</div>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              marginBottom: "1rem",
-                              padding: "1rem",
-                              backgroundColor: "#fefce8",
-                              borderRadius: "0.5rem",
-                            }}
-                          >
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                Internal Rate of Return
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "1.875rem",
-                                  fontWeight: "700",
-                                  color:
-                                    metrics.irr >
-                                    financialParams.discountRate * 100
-                                      ? "#10b981"
-                                      : "#ef4444",
-                                }}
-                              >
-                                {metrics.irr.toFixed(1)}%
-                              </div>
-                            </div>
-                            <div style={{ fontSize: "2rem" }}>⚡</div>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "1rem",
-                              backgroundColor: "#fdf2f8",
-                              borderRadius: "0.5rem",
-                            }}
-                          >
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                Payback Period
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "1.875rem",
-                                  fontWeight: "700",
-                                  color:
-                                    metrics.paybackPeriod < 3
-                                      ? "#10b981"
-                                      : "#ef4444",
-                                }}
-                              >
-                                {metrics.paybackPeriod.toFixed(1)} years
-                              </div>
-                            </div>
-                            <div style={{ fontSize: "2rem" }}>⏱️</div>
-                          </div>
+          {activeTab === 'financial' && (
+            <div className="tab-content">
+              <div className="financial-sections">
+                {getCurrentResults().map(result => (
+                  <div key={result.scenario_id}>
+                    {/* Cost Performance Metrics */}
+                    <div className="kpi-section">
+                      <h3 className="kpi-section-title">Cost Performance & ROI Analysis</h3>
+                      <div className="kpi-grid">
+                        <div className="kpi-item">
+                          <div className="kpi-label">Current Fulfillment Cost Per Order</div>
+                          <div className="kpi-value">${result.current_fulfillment_cost_per_order}</div>
+                          <div className="kpi-description">Baseline cost per order in current state</div>
                         </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Cost Comparison
-                  </h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
-                      data={[
-                        {
-                          scenario: "Current State",
-                          totalCost:
-                            financialParams.currentStateBaseline.totalCost /
-                            1000000,
-                          investment:
-                            financialParams.currentStateBaseline
-                              .totalInvestment / 1000000,
-                        },
-                        {
-                          scenario: "Future State",
-                          totalCost:
-                            financialParams.futureStateProjections.totalCost /
-                            1000000,
-                          investment:
-                            financialParams.futureStateProjections
-                              .totalInvestment / 1000000,
-                        },
-                      ]}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="scenario" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => [`$${value}M`, ""]} />
-                      <Legend />
-                      <Bar
-                        dataKey="totalCost"
-                        fill="#3b82f6"
-                        name="Annual Operating Cost"
-                      />
-                      <Bar
-                        dataKey="investment"
-                        fill="#10b981"
-                        name="Investment Required"
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Optimizer Results Integration */}
-              <div
-                className="grid grid-cols-3"
-                style={{ gap: "2rem", marginBottom: "2rem" }}
-              >
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Transportation Optimization Impact
-                  </h4>
-                  {transportResults ? (
-                    <div>
-                      <div
-                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Facilities Opened:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            {transportResults.open_facilities?.length || 0}
-                          </span>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Projected Fulfillment Cost Per Order</div>
+                          <div className="kpi-value">${result.projected_fulfillment_cost_per_order}</div>
+                          <div className="kpi-description">Expected cost per order after improvements</div>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Total Transportation Cost:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            $
-                            {(
-                              transportResults.network_metrics
-                                ?.total_transportation_cost || 0
-                            ).toLocaleString()}
-                          </span>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Annual Cost Savings</div>
+                          <div className="kpi-value">${(result.annual_cost_savings / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Expected operational cost savings per year</div>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Service Level:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            {(
-                              (transportResults.network_metrics
-                                ?.service_level_achievement || 0) * 100
-                            ).toFixed(1)}
-                            %
-                          </span>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Annual Revenue Impact</div>
+                          <div className="kpi-value">${(result.annual_revenue_impact / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Additional revenue protected or gained</div>
+                        </div>
+                        <div className="kpi-item success">
+                          <div className="kpi-label">ROI Percentage</div>
+                          <div className="kpi-value">{result.roi_percentage}%</div>
+                          <div className="kpi-description">Return on investment</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Payback Period</div>
+                          <div className="kpi-value">{result.payback_period_months} months</div>
+                          <div className="kpi-description">Timeframe to recoup investment cost</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Net Present Value (NPV)</div>
+                          <div className="kpi-value">${(result.net_present_value / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Value of discounted cash flows</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Total Cost of Ownership</div>
+                          <div className="kpi-value">${(result.total_cost_of_ownership / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Total costs over project life</div>
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
-                      Run Transportation Optimizer to see cost impact
-                    </p>
-                  )}
-                </div>
 
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Warehouse Optimization Impact
-                  </h4>
-                  {warehouseResultsFromContext ? (
-                    <div>
-                      <div
-                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Facilities Added:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            {warehouseResultsFromContext.optimization_summary
-                              ?.total_facilities_added || 0}
-                          </span>
+                    {/* Detailed Cost Breakdown */}
+                    <div className="kpi-section">
+                      <h3 className="kpi-section-title">Detailed Cost Breakdown</h3>
+                      <div className="cost-breakdown-table">
+                        <div className="cost-breakdown-header">
+                          <div>Cost Category</div>
+                          <div>Annual Amount</div>
+                          <div>Percentage</div>
+                          <div>Per Unit</div>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Annual Cost:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            $
-                            {(
-                              warehouseResultsFromContext.objective_value || 0
-                            ).toLocaleString()}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Volume CAGR:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            {(
-                              (warehouseResultsFromContext.performance_metrics
-                                ?.volume_cagr || 0) * 100
-                            ).toFixed(1)}
-                            %
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
-                      Run Warehouse Optimizer to see cost impact
-                    </p>
-                  )}
-                </div>
-
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Inventory Optimization Impact
-                  </h4>
-                  {inventoryResults ? (
-                    <div>
-                      <div
-                        style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>SKUs Analyzed:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            {inventoryResults.skuData?.length || 0}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>Total Inventory Value:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            $
-                            {(
-                              inventoryResults.totalValue || 0
-                            ).toLocaleString()}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>A-Class SKUs:</span>
-                          <span style={{ fontWeight: "600" }}>
-                            {inventoryResults.abcDistribution?.a_class || 0}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
-                      Run Inventory Optimizer to see cost impact
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Market Data */}
-              {marketData && marketData.length > 0 && (
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Market Data Analysis
-                  </h4>
-                  <div style={{ overflowX: "auto" }}>
-                    <table
-                      style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                      <thead>
-                        <tr style={{ backgroundColor: "#f9fafb" }}>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              fontSize: "0.875rem",
-                              fontWeight: "600",
-                            }}
-                          >
-                            Location
-                          </th>
-                                                    <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              fontSize: "0.875rem",
-                              fontWeight: "600",
-                            }}
-                          >
-                            Straight Labor Rate
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              fontSize: "0.875rem",
-                              fontWeight: "600",
-                            }}
-                          >
-                            Fully Burdened Rate
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              fontSize: "0.875rem",
-                              fontWeight: "600",
-                            }}
-                          >
-                            Lease Rate/SqFt
-                          </th>
-                          <th
-                            style={{
-                              padding: "0.75rem",
-                              textAlign: "left",
-                              fontSize: "0.875rem",
-                              fontWeight: "600",
-                            }}
-                          >
-                            3PL Cost/Unit
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {marketData.map((market, index) => (
-                          <tr
-                            key={index}
-                            style={{ borderTop: "1px solid #e5e7eb" }}
-                          >
-                            <td
-                              style={{
-                                padding: "0.75rem",
-                                fontSize: "0.875rem",
-                              }}
-                            >
-                              {market.location}
-                            </td>
-                                                        <td
-                              style={{
-                                padding: "0.75rem",
-                                fontSize: "0.875rem",
-                              }}
-                            >
-                              ${market.straightLaborRate?.toFixed(2) || market.laborCostPerHour?.toFixed(2) || 'N/A'}
-                            </td>
-                            <td
-                              style={{
-                                padding: "0.75rem",
-                                fontSize: "0.875rem",
-                              }}
-                            >
-                              ${market.fullyBurdendedLaborRate?.toFixed(2) || (market.laborCostPerHour * 1.4)?.toFixed(2) || 'N/A'}
-                            </td>
-                            <td
-                              style={{
-                                padding: "0.75rem",
-                                fontSize: "0.875rem",
-                              }}
-                            >
-                              ${market.leaseRatePerSqFt.toFixed(2)}
-                            </td>
-                            <td
-                              style={{
-                                padding: "0.75rem",
-                                fontSize: "0.875rem",
-                              }}
-                            >
-                              ${market.threePLCostPerUnit.toFixed(2)}
-                            </td>
-                          </tr>
+                        {[
+                          { name: 'Transportation Costs', value: result.transportation_costs, color: '#3b82f6' },
+                          { name: 'Warehouse Operating Costs', value: result.warehouse_operating_costs, color: '#10b981' },
+                          { name: 'Variable Labor Costs', value: result.variable_labor_costs, color: '#f59e0b' },
+                          { name: 'Facility Rent Costs', value: result.facility_rent_costs, color: '#ef4444' },
+                          { name: 'Facility Capital Costs', value: result.facility_capital_costs, color: '#8b5cf6' }
+                        ].map((cost, index) => (
+                          <div key={index} className="cost-breakdown-row">
+                            <div className="cost-category">
+                              <div className="cost-color" style={{ backgroundColor: cost.color }}></div>
+                              {cost.name}
+                            </div>
+                            <div className="cost-amount">${(cost.value / 1000000).toFixed(2)}M</div>
+                            <div className="cost-percentage">{((cost.value / result.total_costs) * 100).toFixed(1)}%</div>
+                            <div className="cost-per-unit">${(cost.value / result.projected_orders_units).toFixed(2)}</div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
+                        <div className="cost-breakdown-total">
+                          <div className="cost-category"><strong>Total Costs</strong></div>
+                          <div className="cost-amount"><strong>${(result.total_costs / 1000000).toFixed(2)}M</strong></div>
+                          <div className="cost-percentage"><strong>100.0%</strong></div>
+                          <div className="cost-per-unit"><strong>${result.total_costs_per_unit.toFixed(2)}</strong></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-                    )}
+          )}
 
-          {/* Scenario Management Tab */}
-          {activeTab === "scenarios" && (
-            <div>
-              <h3 style={{ marginBottom: "2rem", color: "#111827" }}>
-                Scenario Management & Comparison
-              </h3>
-
-              {/* Save Current Scenario */}
-              <div className="card" style={{ marginBottom: "2rem" }}>
-                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  Save Current Scenario
-                </h4>
-                <div style={{ display: "flex", gap: "1rem", alignItems: "end" }}>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label className="form-label">Scenario Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={currentScenarioName}
-                      onChange={(e) => setCurrentScenarioName(e.target.value)}
-                      placeholder="Enter scenario name (e.g., 'Baseline 2024', 'Expansion East Coast')"
-                    />
-                  </div>
-                  <button
-                    onClick={saveCurrentScenario}
-                    disabled={!currentScenarioName.trim()}
-                    style={{
-                      padding: "0.75rem 1.5rem",
-                      backgroundColor: currentScenarioName.trim() ? "#10b981" : "#9ca3af",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "0.375rem",
-                      fontSize: "0.875rem",
-                      fontWeight: "600",
-                      cursor: currentScenarioName.trim() ? "pointer" : "not-allowed"
-                    }}
-                  >
-                    Save Scenario
-                  </button>
-                </div>
-              </div>
-
-              {/* Saved Scenarios Overview */}
-              <div className="card" style={{ marginBottom: "2rem" }}>
-                <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                  Saved Scenarios ({savedScenarios.length})
-                </h4>
-                {savedScenarios.length === 0 ? (
-                  <p style={{ color: "#6b7280", textAlign: "center", padding: "2rem" }}>
-                    No scenarios saved yet. Save your current optimization results as a scenario to begin comparison analysis.
-                  </p>
-                ) : (
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr style={{ backgroundColor: "#f9fafb" }}>
-                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>
-                            <input
-                              type="checkbox"
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedScenarios(savedScenarios.map(s => s.id));
-                                } else {
-                                  setSelectedScenarios([]);
-                                }
-                              }}
-                              checked={selectedScenarios.length === savedScenarios.length && savedScenarios.length > 0}
-                            />
-                          </th>
-                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Scenario</th>
-                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Viability</th>
-                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Total Cost (Year 1)</th>
-                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Cost Projection (Year 8)</th>
-                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Saved At</th>
-                          <th style={{ padding: "0.75rem", textAlign: "left", fontSize: "0.875rem", fontWeight: "600" }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {savedScenarios.map((scenario, index) => (
-                          <tr key={scenario.id} style={{ borderTop: "1px solid #e5e7eb" }}>
-                            <td style={{ padding: "0.75rem" }}>
-                              <input
-                                type="checkbox"
-                                checked={selectedScenarios.includes(scenario.id)}
-                                onChange={() => toggleScenarioSelection(scenario.id)}
-                              />
-                            </td>
-                            <td style={{ padding: "0.75rem" }}>
-                              <div>
-                                <div style={{ fontWeight: "600", fontSize: "0.875rem" }}>{scenario.name}</div>
-                                <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{scenario.description}</div>
-                              </div>
-                            </td>
-                            <td style={{ padding: "0.75rem" }}>
-                              <span style={{
-                                padding: "0.25rem 0.5rem",
-                                borderRadius: "0.25rem",
-                                fontSize: "0.75rem",
-                                fontWeight: "600",
-                                backgroundColor: scenario.viability === "High" ? "#dcfce7" : scenario.viability === "Medium" ? "#fef3c7" : "#fee2e2",
-                                color: scenario.viability === "High" ? "#166534" : scenario.viability === "Medium" ? "#92400e" : "#991b1b"
-                              }}>
-                                {scenario.viability}
-                              </span>
-                            </td>
-                            <td style={{ padding: "0.75rem", fontSize: "0.875rem", fontWeight: "600" }}>
-                              ${(scenario.yearlyBreakdown[0]?.totalCost || 0).toLocaleString()}
-                            </td>
-                            <td style={{ padding: "0.75rem", fontSize: "0.875rem" }}>
-                              ${(scenario.yearlyBreakdown[7]?.totalCost || 0).toLocaleString()}
-                            </td>
-                            <td style={{ padding: "0.75rem", fontSize: "0.875rem", color: "#6b7280" }}>
-                              {new Date(scenario.savedAt).toLocaleDateString()}
-                            </td>
-                            <td style={{ padding: "0.75rem" }}>
-                              <button
-                                onClick={() => deleteScenario(scenario.id)}
-                                style={{
-                                  padding: "0.25rem 0.5rem",
-                                  backgroundColor: "#ef4444",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: "0.25rem",
-                                  fontSize: "0.75rem",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* Scenario Comparison */}
-              {selectedScenarios.length > 1 && (
-                <div>
-                  <div className="card" style={{ marginBottom: "2rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                      <h4 style={{ color: "#111827" }}>
-                        Scenario Comparison ({selectedScenarios.length} scenarios)
-                      </h4>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button
-                          onClick={() => setScenarioComparisonView("table")}
-                          style={{
-                            padding: "0.5rem 1rem",
-                            backgroundColor: scenarioComparisonView === "table" ? "#3b82f6" : "#f3f4f6",
-                            color: scenarioComparisonView === "table" ? "white" : "#374151",
-                            border: "none",
-                            borderRadius: "0.375rem",
-                            fontSize: "0.875rem",
-                            cursor: "pointer"
-                          }}
-                        >
-                          Table View
-                        </button>
-                        <button
-                          onClick={() => setScenarioComparisonView("chart")}
-                          style={{
-                            padding: "0.5rem 1rem",
-                            backgroundColor: scenarioComparisonView === "chart" ? "#3b82f6" : "#f3f4f6",
-                            color: scenarioComparisonView === "chart" ? "white" : "#374151",
-                            border: "none",
-                            borderRadius: "0.375rem",
-                            fontSize: "0.875rem",
-                            cursor: "pointer"
-                          }}
-                        >
-                          Chart View
-                        </button>
+          {/* Capacity Planning Tab */}
+          {activeTab === 'capacity' && (
+            <div className="tab-content">
+              <div className="capacity-sections">
+                {getCurrentResults().map(result => (
+                  <div key={result.scenario_id}>
+                    {/* Capacity & Expansion Metrics */}
+                    <div className="kpi-section">
+                      <h3 className="kpi-section-title">Capacity Planning & Expansion Analysis</h3>
+                      <div className="kpi-grid">
+                        <div className="kpi-item">
+                          <div className="kpi-label">Candidate DC Location</div>
+                          <div className="kpi-value">{result.candidate_dc_location}</div>
+                          <div className="kpi-description">Proposed new DC location</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Est New DC Capacity</div>
+                          <div className="kpi-value">{result.est_new_dc_capacity.toLocaleString()}</div>
+                          <div className="kpi-description">Estimated capacity for new DC</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Est New DC Operational Cost</div>
+                          <div className="kpi-value">${(result.est_new_dc_operational_cost / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Annual operating cost for new DC</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Automation Investment</div>
+                          <div className="kpi-value">${(result.automation_investment / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Capital cost for automation solutions</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Expansion Capacity Added</div>
+                          <div className="kpi-value">{result.expansion_capacity_added.toLocaleString()}</div>
+                          <div className="kpi-description">Capacity gain from facility expansion</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Expansion Cost</div>
+                          <div className="kpi-value">${(result.expansion_cost / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">One-time capital cost of expansion</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Projected Orders Units</div>
+                          <div className="kpi-value">{result.projected_orders_units.toLocaleString()}</div>
+                          <div className="kpi-description">Forecasted order and unit volume</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Capacity Limit Threshold</div>
+                          <div className="kpi-value">{result.capacity_limit_threshold.toFixed(1)}%</div>
+                          <div className="kpi-description">When projected volume exceeds capacity</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">New DC Go-Live Date</div>
+                          <div className="kpi-value">{result.new_dc_golive_date}</div>
+                          <div className="kpi-description">Target operational date of new DC</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Incremental Capacity Added</div>
+                          <div className="kpi-value">{result.incremental_capacity_added.toLocaleString()}</div>
+                          <div className="kpi-description">Capacity added by strategic initiatives</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">KPI Targets</div>
+                          <div className="kpi-value">{result.kpi_targets}</div>
+                          <div className="kpi-description">Future performance goals</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Budget Constraint</div>
+                          <div className="kpi-value">${(result.budget_constraint / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Annual or project-level investment limit</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Capital Investment Amount</div>
+                          <div className="kpi-value">${(result.capital_investment_amount / 1000000).toFixed(2)}M</div>
+                          <div className="kpi-description">Upfront capital required for initiatives</div>
+                        </div>
+                        <div className="kpi-item">
+                          <div className="kpi-label">Depreciation Period</div>
+                          <div className="kpi-value">{result.depreciation_period} years</div>
+                          <div className="kpi-description">Asset life period for capital investments</div>
+                        </div>
                       </div>
                     </div>
 
-                    {scenarioComparisonView === "table" && (
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
-                          <thead>
-                            <tr style={{ backgroundColor: "#f9fafb" }}>
-                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Scenario</th>
-                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Strengths</th>
-                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Viability</th>
-                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Reason</th>
-                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>2025 Cost</th>
-                              <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>2032 Cost</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario) => (
-                              <tr key={scenario.id} style={{ borderTop: "1px solid #e5e7eb" }}>
-                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>{scenario.name}</td>
-                                <td style={{ padding: "0.75rem" }}>
-                                  <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
-                                    {scenario.strengths.map((strength, idx) => (
-                                      <span key={idx} style={{
-                                        padding: "0.125rem 0.375rem",
-                                        backgroundColor: "#dcfce7",
-                                        color: "#166534",
-                                        borderRadius: "0.25rem",
-                                        fontSize: "0.75rem"
-                                      }}>
-                                        ✓
-                                      </span>
-                                    ))}
-                                  </div>
-                                </td>
-                                <td style={{ padding: "0.75rem" }}>
-                                  <span style={{
-                                    padding: "0.25rem 0.5rem",
-                                    borderRadius: "0.25rem",
-                                    fontSize: "0.75rem",
-                                    fontWeight: "600",
-                                    backgroundColor: scenario.viability === "High" ? "#dcfce7" : scenario.viability === "Medium" ? "#fef3c7" : "#fee2e2",
-                                    color: scenario.viability === "High" ? "#166534" : scenario.viability === "Medium" ? "#92400e" : "#991b1b"
-                                  }}>
-                                    {scenario.viability}
-                                  </span>
-                                </td>
-                                <td style={{ padding: "0.75rem" }}>
-                                  {scenario.viability === "High" ? "Optimal Cost and Service" :
-                                   scenario.viability === "Medium" ? "Acceptable Trade-offs" :
-                                   "High Risk or Cost"}
-                                </td>
-                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>
-                                  ${(scenario.yearlyBreakdown[1]?.totalCost || 0).toLocaleString()}
-                                </td>
-                                <td style={{ padding: "0.75rem", fontWeight: "600" }}>
-                                  ${(scenario.yearlyBreakdown[7]?.totalCost || 0).toLocaleString()}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    {scenarioComparisonView === "chart" && (
-                      <div>
-                        <ResponsiveContainer width="100%" height={400}>
-                          <ComposedChart data={getScenarioComparisonData()}>
+                    {/* Capacity Growth Chart */}
+                    <div className="chart-section">
+                      <h3 className="chart-title">Capacity Growth & Investment Timeline</h3>
+                      <div className="chart-container">
+                        <ResponsiveContainer width="100%" height={350}>
+                          <AreaChart data={getMultiYearData()}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="year" />
+                            <XAxis dataKey="year_number" />
                             <YAxis />
-                            <Tooltip
-                              formatter={(value: any, name: string) => [
-                                `$${value?.toLocaleString()}`,
-                                name.replace('_Total', '').replace('_', ' ')
-                              ]}
-                            />
+                            <Tooltip />
                             <Legend />
-                            {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario, index) => {
-                              const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
-                              return (
-                                <Line
-                                  key={scenario.id}
-                                  type="monotone"
-                                  dataKey={`${scenario.name}_Total`}
-                                  stroke={colors[index % colors.length]}
-                                  strokeWidth={3}
-                                  dot={{ fill: colors[index % colors.length], strokeWidth: 2, r: 4 }}
-                                />
-                              );
-                            })}
-                          </ComposedChart>
+                            <Area type="monotone" dataKey="projected_orders_units" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} name="Projected Orders" />
+                            <Area type="monotone" dataKey="expansion_capacity_added" stackId="2" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Capacity Added" />
+                          </AreaChart>
                         </ResponsiveContainer>
                       </div>
-                    )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Scenario Comparison Tab */}
+          {activeTab === 'scenarios' && (
+            <div className="tab-content">
+              <div className="scenario-comparison">
+                <h3 className="section-title">Multi-Scenario Performance Comparison</h3>
+                
+                <div className="comparison-table">
+                  <div className="comparison-header">
+                    <div>Scenario</div>
+                    <div>Total 5-Year Costs</div>
+                    <div>Total 5-Year Savings</div>
+                    <div>Average ROI</div>
+                    <div>Recommendation</div>
+                  </div>
+                  {getScenarioComparison().map((scenario, index) => (
+                    <div key={index} className={`comparison-row ${scenario.recommended ? 'recommended' : ''}`}>
+                      <div className="scenario-name">{scenario.scenario}</div>
+                      <div className="scenario-metric">${(scenario.total_5_year_costs / 1000000).toFixed(1)}M</div>
+                      <div className="scenario-metric">${(scenario.total_5_year_savings / 1000000).toFixed(1)}M</div>
+                      <div className="scenario-metric">{scenario.average_roi.toFixed(1)}%</div>
+                      <div className="scenario-recommendation">
+                        {scenario.recommended ? (
+                          <span className="recommended-badge">Recommended</span>
+                        ) : (
+                          <span className="alternative-badge">Alternative</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Scenario Comparison Charts */}
+                <div className="comparison-charts">
+                  <div className="chart-section">
+                    <h3 className="chart-title">Cost Comparison by Scenario</h3>
+                    <div className="chart-container">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={getScenarioComparison()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="scenario" />
+                          <YAxis />
+                          <Tooltip formatter={(value: number) => `$${(value / 1000000).toFixed(2)}M`} />
+                          <Legend />
+                          <Bar dataKey="total_5_year_costs" fill="#ef4444" name="5-Year Costs" />
+                          <Bar dataKey="total_5_year_savings" fill="#10b981" name="5-Year Savings" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
 
-                  {/* Yearly Breakdown by Category */}
-                  <div className="card">
-                    <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                      Yearly Cost Breakdown by Category
-                    </h4>
-                    {savedScenarios.filter(s => selectedScenarios.includes(s.id)).map((scenario) => (
-                      <div key={scenario.id} style={{ marginBottom: "2rem" }}>
-                        <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
-                          {scenario.name} - Detailed Breakdown
-                        </h5>
-                        <div style={{ overflowX: "auto" }}>
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
-                            <thead>
-                              <tr style={{ backgroundColor: "#f9fafb" }}>
-                                <th style={{ padding: "0.5rem", textAlign: "left", fontWeight: "600" }}>Year</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Transportation</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Warehousing</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Inventory</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Labor</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Facilities</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Technology</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Overhead</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600", backgroundColor: "#e5e7eb" }}>Total Cost</th>
-                                <th style={{ padding: "0.5rem", textAlign: "right", fontWeight: "600" }}>Change %</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scenario.yearlyBreakdown.map((year, index) => (
-                                <tr key={year.year} style={{ borderTop: "1px solid #e5e7eb" }}>
-                                  <td style={{ padding: "0.5rem", fontWeight: "600" }}>{year.year}</td>
-                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.transportation.toLocaleString()}</td>
-                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.warehousing.toLocaleString()}</td>
-                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.inventory.toLocaleString()}</td>
-                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.labor.toLocaleString()}</td>
-                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.facilities.toLocaleString()}</td>
-                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.technology.toLocaleString()}</td>
-                                  <td style={{ padding: "0.5rem", textAlign: "right" }}>${year.categories.overhead.toLocaleString()}</td>
-                                  <td style={{
-                                    padding: "0.5rem",
-                                    textAlign: "right",
-                                    fontWeight: "600",
-                                    backgroundColor: "#f3f4f6"
-                                  }}>
-                                    ${year.totalCost.toLocaleString()}
-                                  </td>
-                                  <td style={{
-                                    padding: "0.5rem",
-                                    textAlign: "right",
-                                    color: year.costChange > 0 ? "#ef4444" : year.costChange < 0 ? "#10b981" : "#6b7280"
-                                  }}>
-                                    {year.costChange > 0 ? '+' : ''}{year.costChange}%
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+                  <div className="chart-section">
+                    <h3 className="chart-title">ROI Comparison by Scenario</h3>
+                    <div className="chart-container">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={getScenarioComparison()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="scenario" />
+                          <YAxis />
+                          <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
+                          <Line type="monotone" dataKey="average_roi" stroke="#3b82f6" strokeWidth={3} name="Average ROI" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* P&L Reports Tab */}
+          {activeTab === 'reports' && (
+            <div className="tab-content">
+              <div className="pl-reports">
+                <h3 className="section-title">P&L Statement Comparison - {getScenarioName(selectedScenario)}</h3>
+                
+                <div className="pl-table">
+                  <div className="pl-header">
+                    <div>P&L Item</div>
+                    {[1, 2, 3, 4, 5].map(year => (
+                      <div key={year}>Year {year}</div>
                     ))}
                   </div>
-                )}
-              )}
-
-              {selectedScenarios.length === 1 && (
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Select multiple scenarios to enable comparison analysis
-                  </h4>
-                  <p style={{ color: "#6b7280" }}>
-                    Check the boxes next to 2 or more scenarios above to compare their performance over time.
-                  </p>
+                  
+                  {getPLData().length > 0 && (
+                    <>
+                      <div className="pl-section-header">Revenue</div>
+                      <div className="pl-row">
+                        <div className="pl-item">Total Revenue</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">${(pl.total_revenue / 1000000).toFixed(2)}M</div>
+                        ))}
+                      </div>
+                      
+                      <div className="pl-section-header">Cost of Goods Sold</div>
+                      <div className="pl-row">
+                        <div className="pl-item">COGS</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">${(pl.cogs / 1000000).toFixed(2)}M</div>
+                        ))}
+                      </div>
+                      
+                      <div className="pl-row total">
+                        <div className="pl-item"><strong>Gross Profit</strong></div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value"><strong>${(pl.gross_profit / 1000000).toFixed(2)}M</strong></div>
+                        ))}
+                      </div>
+                      
+                      <div className="pl-section-header">Operating Expenses</div>
+                      <div className="pl-row">
+                        <div className="pl-item">Transportation Expense</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">${(pl.transportation_expense / 1000000).toFixed(2)}M</div>
+                        ))}
+                      </div>
+                      <div className="pl-row">
+                        <div className="pl-item">Warehouse Expense</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">${(pl.warehouse_expense / 1000000).toFixed(2)}M</div>
+                        ))}
+                      </div>
+                      <div className="pl-row">
+                        <div className="pl-item">Labor Expense</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">${(pl.labor_expense / 1000000).toFixed(2)}M</div>
+                        ))}
+                      </div>
+                      <div className="pl-row">
+                        <div className="pl-item">Facility Expense</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">${(pl.facility_expense / 1000000).toFixed(2)}M</div>
+                        ))}
+                      </div>
+                      <div className="pl-row">
+                        <div className="pl-item">Other Operating Expense</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">${(pl.other_operating_expense / 1000000).toFixed(2)}M</div>
+                        ))}
+                      </div>
+                      
+                      <div className="pl-row total">
+                        <div className="pl-item"><strong>Operating Profit</strong></div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value"><strong>${(pl.operating_profit / 1000000).toFixed(2)}M</strong></div>
+                        ))}
+                      </div>
+                      
+                      <div className="pl-row total">
+                        <div className="pl-item"><strong>Net Profit</strong></div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value"><strong>${(pl.net_profit / 1000000).toFixed(2)}M</strong></div>
+                        ))}
+                      </div>
+                      
+                      <div className="pl-section-header">Margins</div>
+                      <div className="pl-row">
+                        <div className="pl-item">Gross Margin %</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">{pl.gross_margin_percentage.toFixed(1)}%</div>
+                        ))}
+                      </div>
+                      <div className="pl-row">
+                        <div className="pl-item">Operating Margin %</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">{pl.operating_margin_percentage.toFixed(1)}%</div>
+                        ))}
+                      </div>
+                      <div className="pl-row">
+                        <div className="pl-item">Net Margin %</div>
+                        {getPLData().map(pl => (
+                          <div key={pl.year_number} className="pl-value">{pl.net_margin_percentage.toFixed(1)}%</div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
 
-              {selectedScenarios.length === 0 && savedScenarios.length > 0 && (
-                <div className="card">
-                  <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
-                    Select scenarios to compare
-                  </h4>
-                  <p style={{ color: "#6b7280" }}>
-                    Check the boxes next to scenarios above to analyze and compare their performance.
-                  </p>
+                {/* P&L Trend Chart */}
+                <div className="chart-section">
+                  <h3 className="chart-title">Profit & Loss Trend Analysis</h3>
+                  <div className="chart-container">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <LineChart data={getPLData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="year_number" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => `$${(value / 1000000).toFixed(2)}M`} />
+                        <Legend />
+                        <Line type="monotone" dataKey="total_revenue" stroke="#3b82f6" strokeWidth={3} name="Revenue" />
+                        <Line type="monotone" dataKey="gross_profit" stroke="#10b981" strokeWidth={2} name="Gross Profit" />
+                        <Line type="monotone" dataKey="operating_profit" stroke="#f59e0b" strokeWidth={2} name="Operating Profit" />
+                        <Line type="monotone" dataKey="net_profit" stroke="#ef4444" strokeWidth={2} name="Net Profit" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
-      </main>
-    </>
+      </div>
+
+      <style jsx>{`
+        .results-container {
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+
+        .page-title {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 0.5rem;
+        }
+
+        .page-description {
+          color: #6b7280;
+          margin-bottom: 2rem;
+          line-height: 1.6;
+        }
+
+        .results-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 2rem;
+          gap: 2rem;
+        }
+
+        .controls-section {
+          display: flex;
+          gap: 2rem;
+          margin-bottom: 2rem;
+          padding: 1.5rem;
+          background: white;
+          border-radius: 0.5rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .control-label {
+          font-weight: 500;
+          color: #374151;
+          font-size: 0.875rem;
+        }
+
+        .control-select {
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          min-width: 200px;
+        }
+
+        .control-select:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .tab-navigation {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 2rem;
+          border-bottom: 2px solid #e5e7eb;
+          overflow-x: auto;
+        }
+
+        .tab-button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          background: none;
+          color: #6b7280;
+          font-weight: 500;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          transition: all 0.2s;
+          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .tab-button:hover {
+          color: #374151;
+          background-color: #f9fafb;
+        }
+
+        .tab-button.active {
+          color: #3b82f6;
+          border-bottom-color: #3b82f6;
+        }
+
+        .tab-content {
+          background: white;
+          border-radius: 0.5rem;
+          padding: 2rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .action-button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.375rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .action-button.primary {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .action-button.primary:hover:not(:disabled) {
+          background: #2563eb;
+        }
+
+        .action-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .loading-spinner {
+          width: 1rem;
+          height: 1rem;
+          border: 2px solid transparent;
+          border-top: 2px solid currentColor;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* Dashboard Styles */
+        .dashboard-metrics {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .metric-section {
+          background: #f9fafb;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+
+        .metric-section-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 1.5rem;
+        }
+
+        .metric-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1rem;
+        }
+
+        .metric-card {
+          background: white;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-icon {
+          width: 3rem;
+          height: 3rem;
+          border-radius: 0.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+        }
+
+        .metric-icon.orders {
+          background: #3b82f6;
+        }
+
+        .metric-icon.cost {
+          background: #ef4444;
+        }
+
+        .metric-icon.savings {
+          background: #10b981;
+        }
+
+        .metric-icon.capacity {
+          background: #f59e0b;
+        }
+
+        .metric-content {
+          flex: 1;
+        }
+
+        .metric-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1f2937;
+          line-height: 1;
+        }
+
+        .metric-label {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #6b7280;
+          margin-top: 0.25rem;
+        }
+
+        .metric-sublabel {
+          font-size: 0.75rem;
+          color: #9ca3af;
+          margin-top: 0.125rem;
+        }
+
+        .chart-section {
+          background: white;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 1rem;
+        }
+
+        .chart-container {
+          margin-top: 1rem;
+        }
+
+        /* KPI Styles */
+        .kpi-sections {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .kpi-section {
+          background: white;
+          border-radius: 0.5rem;
+          padding: 2rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-section-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 1.5rem;
+          padding-bottom: 0.75rem;
+          border-bottom: 2px solid #e5e7eb;
+        }
+
+        .kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .kpi-item {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+
+        .kpi-item.success {
+          background: #f0fdf4;
+          border-color: #10b981;
+        }
+
+        .kpi-item.bottleneck {
+          background: #fef3c7;
+          border-color: #f59e0b;
+        }
+
+        .kpi-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 0.5rem;
+        }
+
+        .kpi-description {
+          font-size: 0.75rem;
+          color: #6b7280;
+          line-height: 1.4;
+        }
+
+        /* Financial Styles */
+        .financial-sections {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .cost-breakdown-table {
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          overflow: hidden;
+        }
+
+        .cost-breakdown-header {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          background: #f9fafb;
+          font-weight: 600;
+          color: #374151;
+          padding: 1rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .cost-breakdown-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          padding: 1rem;
+          border-bottom: 1px solid #f3f4f6;
+          align-items: center;
+        }
+
+        .cost-breakdown-total {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          padding: 1rem;
+          background: #f9fafb;
+          border-top: 2px solid #e5e7eb;
+          align-items: center;
+        }
+
+        .cost-category {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .cost-color {
+          width: 1rem;
+          height: 1rem;
+          border-radius: 0.25rem;
+        }
+
+        .cost-amount,
+        .cost-percentage,
+        .cost-per-unit {
+          font-weight: 500;
+          color: #1f2937;
+        }
+
+        /* Scenario Comparison Styles */
+        .scenario-comparison {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .section-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 1.5rem;
+        }
+
+        .comparison-table {
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          margin-bottom: 2rem;
+        }
+
+        .comparison-header {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+          background: #f9fafb;
+          font-weight: 600;
+          color: #374151;
+          padding: 1rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .comparison-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+          padding: 1rem;
+          border-bottom: 1px solid #f3f4f6;
+          align-items: center;
+        }
+
+        .comparison-row.recommended {
+          background: #f0fdf4;
+          border-left: 4px solid #10b981;
+        }
+
+        .scenario-name {
+          font-weight: 500;
+          color: #1f2937;
+        }
+
+        .scenario-metric {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .recommended-badge {
+          background: #dcfce7;
+          color: #166534;
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .alternative-badge {
+          background: #f3f4f6;
+          color: #6b7280;
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .comparison-charts {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+        }
+
+        /* P&L Styles */
+        .pl-reports {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .pl-table {
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          margin-bottom: 2rem;
+        }
+
+        .pl-header {
+          display: grid;
+          grid-template-columns: 2fr repeat(5, 1fr);
+          background: #f9fafb;
+          font-weight: 600;
+          color: #374151;
+          padding: 1rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .pl-section-header {
+          grid-column: 1 / -1;
+          background: #1f2937;
+          color: white;
+          padding: 0.75rem 1rem;
+          font-weight: 600;
+          font-size: 0.875rem;
+        }
+
+        .pl-row {
+          display: grid;
+          grid-template-columns: 2fr repeat(5, 1fr);
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid #f3f4f6;
+          align-items: center;
+        }
+
+        .pl-row.total {
+          background: #f9fafb;
+          border-top: 1px solid #e5e7eb;
+          border-bottom: 2px solid #e5e7eb;
+        }
+
+        .pl-item {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .pl-value {
+          font-weight: 500;
+          color: #1f2937;
+          text-align: right;
+        }
+
+        @media (max-width: 1024px) {
+          .metric-cards-grid,
+          .kpi-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .comparison-charts {
+            grid-template-columns: 1fr;
+          }
+
+          .cost-breakdown-header,
+          .cost-breakdown-row,
+          .cost-breakdown-total {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+          }
+
+          .comparison-header,
+          .comparison-row {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+          }
+
+          .pl-header,
+          .pl-row {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+          }
+
+          .controls-section {
+            flex-direction: column;
+            gap: 1rem;
+          }
+
+          .results-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .tab-navigation {
+            overflow-x: auto;
+          }
+
+          .tab-button {
+            flex-shrink: 0;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
