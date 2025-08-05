@@ -1588,7 +1588,7 @@ export default function Configuration() {
                     className="button button-secondary"
                     style={{ width: "100%", marginBottom: "0.5rem" }}
                   >
-                    <RefreshCw size={16} />
+                    <RotateCcw size={16} />
                     Rotate Log Files
                   </button>
                   <button
