@@ -20,8 +20,12 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
     if (!isMounted) return;
 
     // Cancel any existing request
-    if (abortController) {
-      abortController.abort();
+    if (abortController && !abortController.signal.aborted) {
+      try {
+        abortController.abort('Starting new connectivity check');
+      } catch (e) {
+        // Ignore abort errors
+      }
     }
 
     const newController = new AbortController();
@@ -30,20 +34,22 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
 
     try {
       const reachable = await checkConnectivity(newController.signal);
-      if (isMounted) {
+      if (isMounted && !newController.signal.aborted) {
         setServerReachable(reachable);
         setLastCheck(new Date());
       }
     } catch (error) {
       // Only update state if component is mounted and error is not from cancellation
-      if (isMounted && error instanceof Error &&
+      if (isMounted && !newController.signal.aborted && error instanceof Error &&
           !error.message.includes('cancelled') &&
-          !error.message.includes('aborted')) {
+          !error.message.includes('aborted') &&
+          !error.message.includes('Failed to fetch')) {
         setServerReachable(false);
         setLastCheck(new Date());
+        console.debug('Server connectivity check failed:', error.message);
       }
     } finally {
-      if (isMounted) {
+      if (isMounted && !newController.signal.aborted) {
         setChecking(false);
       }
     }
@@ -67,8 +73,12 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
 
     return () => {
       setIsMounted(false);
-      if (abortController) {
-        abortController.abort();
+      if (abortController && !abortController.signal.aborted) {
+        try {
+          abortController.abort('Component unmounting');
+        } catch (e) {
+          // Ignore abort errors during cleanup
+        }
       }
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
@@ -79,8 +89,12 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
   // Cleanup abort controller on unmount
   useEffect(() => {
     return () => {
-      if (abortController) {
-        abortController.abort();
+      if (abortController && !abortController.signal.aborted) {
+        try {
+          abortController.abort('Controller cleanup');
+        } catch (e) {
+          // Ignore abort errors during cleanup
+        }
       }
     };
   }, [abortController]);

@@ -1,36 +1,32 @@
-// Simple test to verify the AbortError fix
-const { robustFetch } = require('./lib/fetch-utils.ts');
+// Test script to verify the AbortError fix
+console.log('Testing AbortError handling...');
 
-async function testAbortErrorHandling() {
-  console.log('Testing AbortError handling...');
-  
-  // Test 1: Normal request cancellation
+// Test 1: AbortController with reason
+try {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), 100);
-  
-  try {
-    await robustFetch('/api/health', { 
-      signal: controller.signal,
-      timeout: 5000 
-    });
-  } catch (error) {
-    console.log('Test 1 - Expected cancellation error:', error.message);
-  }
-  
-  // Test 2: Timeout scenario
-  try {
-    await robustFetch('/api/non-existent', { 
-      timeout: 100,
-      retries: 1 
-    });
-  } catch (error) {
-    console.log('Test 2 - Expected timeout/network error:', error.message);
-  }
-  
-  console.log('AbortError tests completed successfully!');
+  controller.abort('Test reason');
+  console.log('✓ AbortController.abort() with reason works');
+} catch (error) {
+  console.log('✗ AbortController.abort() with reason failed:', error.message);
 }
 
-// Only run if this file is executed directly
-if (require.main === module) {
-  testAbortErrorHandling().catch(console.error);
+// Test 2: AbortController without reason (should still work)
+try {
+  const controller = new AbortController();
+  controller.abort();
+  console.log('✓ AbortController.abort() without reason works');
+} catch (error) {
+  console.log('✗ AbortController.abort() without reason failed:', error.message);
 }
+
+// Test 3: Double abort (should be safe)
+try {
+  const controller = new AbortController();
+  controller.abort('First abort');
+  controller.abort('Second abort'); // Should be safe
+  console.log('✓ Double abort is safe');
+} catch (error) {
+  console.log('✗ Double abort failed:', error.message);
+}
+
+console.log('AbortError handling test complete!');

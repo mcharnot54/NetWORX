@@ -82,11 +82,17 @@ const isRetryableError = (error: Error): boolean => {
       return false;
     }
 
-    // Retry network and timeout errors
-    if (errorMessage.includes('fetch') ||
-        errorMessage.includes('network') ||
-        errorMessage.includes('timeout')) {
-      return true;
+    // Retry network and timeout errors, but check safely
+    try {
+      if (errorMessage.includes('fetch') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('Failed to fetch')) {
+        return true;
+      }
+    } catch (e) {
+      // If we can't safely check the message, don't retry
+      return false;
     }
 
     // If it's a FetchError, check properties safely
@@ -156,8 +162,10 @@ const fetchWithTimeout = async (
           true
         );
       } else {
+        // Provide a more specific error message for cancelled requests
+        const reason = error.message || 'Request was cancelled';
         throw new FetchError(
-          `Request was cancelled for ${url}`,
+          `Request cancelled for ${url}: ${reason}`,
           undefined,
           undefined,
           false,
@@ -167,6 +175,17 @@ const fetchWithTimeout = async (
     }
 
     if (error instanceof Error) {
+      // Handle specific "Failed to fetch" errors in cloud environments
+      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+        throw new FetchError(
+          `Network connection failed for ${url}`,
+          undefined,
+          undefined,
+          true,
+          false
+        );
+      }
+
       throw new FetchError(
         `Network error: ${error.message}`,
         undefined,
@@ -227,7 +246,8 @@ const _robustFetch = async (
 
       // Handle AbortError - never retry aborted requests
       if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
-        throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+        const reason = lastError.message || 'Request was cancelled';
+        throw new FetchError(`Request was cancelled: ${reason}`, undefined, undefined, false, false);
       }
 
       // If this is the last attempt, throw the error
@@ -259,10 +279,11 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
       const errorName = String(error.name || '');
       const errorMessage = String(error.message || '');
 
-      // Convert AbortErrors to FetchErrors
+      // Convert AbortErrors to FetchErrors with more context
       if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+        const reason = errorMessage || 'unknown reason';
         throw new FetchError(
-          `Request aborted in ${context}`,
+          `Request aborted in ${context}: ${reason}`,
           undefined,
           undefined,
           false,
@@ -319,17 +340,21 @@ export const robustPost = async <T = any>(
 export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> => {
   return safeWrapper(async () => {
     try {
-      // Try to fetch a simple endpoint
+      // Try to fetch a simple endpoint with minimal retries for connectivity check
       await robustFetch('/api/health', {
-        timeout: 5000,
-        retries: 1,
+        timeout: 8000, // Increased timeout for cloud environments
+        retries: 0, // No retries for connectivity check to avoid cascading failures
         signal
       });
       return true;
     } catch (error) {
-      // Don't log connectivity failures if request was cancelled
+      // Don't log connectivity failures if request was cancelled or in cloud environment
       if (!error || !(error as Error).message?.includes('cancelled')) {
-        console.warn('Connectivity check failed:', error);
+        const errorMessage = (error as Error)?.message || 'Unknown error';
+        // Suppress logs for common cloud environment issues
+        if (!errorMessage.includes('Failed to fetch') && !errorMessage.includes('Network connection failed')) {
+          console.debug('Connectivity check failed:', errorMessage);
+        }
       }
       return false;
     }

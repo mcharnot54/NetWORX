@@ -89,8 +89,13 @@ export default function ProjectScenarioManager({
 
     return () => {
       clearTimeout(timer);
-      if (abortController) {
-        abortController.abort();
+      if (abortController && !abortController.signal.aborted) {
+        try {
+          abortController.abort('Component unmounting');
+        } catch (error) {
+          // Ignore errors when aborting
+          console.debug('Error aborting controller on unmount:', error);
+        }
       }
       setIsMounted(false);
     };
@@ -109,7 +114,12 @@ export default function ProjectScenarioManager({
         signal, // Pass abort signal to fetch
       });
 
-      if (!isMounted || signal?.aborted) return; // Check again after async operation
+      // Check if component is still mounted and request wasn't aborted
+      if (!isMounted) return;
+      if (signal?.aborted) {
+        console.debug('Request was aborted, stopping project fetch');
+        return;
+      }
 
       if (!projectsResult.success) {
         throw new Error(projectsResult.error || 'Failed to fetch projects');
