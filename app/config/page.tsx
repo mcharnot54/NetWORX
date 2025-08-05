@@ -1324,7 +1324,7 @@ export default function Configuration() {
                       Refresh
                     </button>
                     <button className="button button-secondary">
-                      <DownloadIcon size={16} />
+                      <Download size={16} />
                       Export Logs
                     </button>
                   </div>
