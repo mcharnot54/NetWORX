@@ -126,12 +126,26 @@ const fetchWithTimeout = async (
 ): Promise<Response> => {
   const timeout = options.timeout || DEFAULT_TIMEOUT;
   const controller = new AbortController();
-  
+
+  // Combine external signal with timeout signal
+  const combinedSignal = options.signal;
+  if (combinedSignal) {
+    // If external signal is already aborted, abort immediately
+    if (combinedSignal.aborted) {
+      throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+    }
+
+    // Listen for external abort
+    combinedSignal.addEventListener('abort', () => {
+      controller.abort();
+    });
+  }
+
   // Set up timeout
   const timeoutId = setTimeout(() => {
     controller.abort();
   }, timeout);
-  
+
   try {
     const response = await fetch(url, {
       ...options,
