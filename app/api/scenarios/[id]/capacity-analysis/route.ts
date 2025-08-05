@@ -75,12 +75,11 @@ export async function POST(
     const data: CapacityAnalysisRequest = await request.json();
 
     // Validate scenario exists
-    const scenarioResult = await pool.query(
-      'SELECT * FROM scenarios WHERE id = $1',
-      [scenarioId]
-    );
+    const scenarioResult = await sql`
+      SELECT * FROM scenarios WHERE id = ${scenarioId}
+    `;
 
-    if (scenarioResult.rows.length === 0) {
+    if (scenarioResult.length === 0) {
       return NextResponse.json(
         { error: 'Scenario not found' },
         { status: 404 }
