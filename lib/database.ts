@@ -434,7 +434,7 @@ export class DataFileService {
 
   static async updateDataFile(id: number, data: Partial<DataFile>): Promise<DataFile> {
     const [file] = await sql`
-      UPDATE data_files 
+      UPDATE data_files
       SET processing_status = COALESCE(${data.processing_status}, processing_status),
           validation_result = COALESCE(${JSON.stringify(data.validation_result)}, validation_result),
           processed_data = COALESCE(${JSON.stringify(data.processed_data)}, processed_data)
@@ -442,6 +442,17 @@ export class DataFileService {
       RETURNING *
     `;
     return file as DataFile;
+  }
+
+  static async getDataFile(id: number): Promise<DataFile | null> {
+    const [file] = await sql`
+      SELECT * FROM data_files WHERE id = ${id}
+    `;
+    return file as DataFile || null;
+  }
+
+  static async deleteDataFile(id: number): Promise<void> {
+    await sql`DELETE FROM data_files WHERE id = ${id}`;
   }
 }
 
