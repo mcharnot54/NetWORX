@@ -5,7 +5,7 @@ import Navigation from "@/components/Navigation";
 import {
   Settings,
   Save,
-  RefreshCw,
+  RotateCcw,
   Upload,
   Download,
   CheckCircle,
@@ -240,7 +240,7 @@ export default function Configuration() {
                 className="button button-secondary"
                 onClick={resetToDefaults}
               >
-                <RefreshCw size={16} />
+                <RotateCcw size={16} />
                 Reset Defaults
               </button>
               <button
@@ -1320,7 +1320,7 @@ export default function Configuration() {
                       <option value="INFO">Info+</option>
                     </select>
                     <button className="button button-secondary">
-                      <RefreshCw size={16} />
+                      <RotateCcw size={16} />
                       Refresh
                     </button>
                     <button className="button button-secondary">
@@ -1588,7 +1588,7 @@ export default function Configuration() {
                     className="button button-secondary"
                     style={{ width: "100%", marginBottom: "0.5rem" }}
                   >
-                    <RefreshCw size={16} />
+                    <RotateCcw size={16} />
                     Rotate Log Files
                   </button>
                   <button

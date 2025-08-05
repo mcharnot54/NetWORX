@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pool } from '@/lib/database';
+import { sql } from '@/lib/database';
 
 interface CapacityAnalysisRequest {
   projectConfig: {
@@ -75,12 +75,11 @@ export async function POST(
     const data: CapacityAnalysisRequest = await request.json();
 
     // Validate scenario exists
-    const scenarioResult = await pool.query(
-      'SELECT * FROM scenarios WHERE id = $1',
-      [scenarioId]
-    );
+    const scenarioResult = await sql`
+      SELECT * FROM scenarios WHERE id = ${scenarioId}
+    `;
 
-    if (scenarioResult.rows.length === 0) {
+    if (scenarioResult.length === 0) {
       return NextResponse.json(
         { error: 'Scenario not found' },
         { status: 404 }
@@ -94,10 +93,9 @@ export async function POST(
     await storeAnalysisResults(scenarioId, analysisResult);
 
     // Update scenario to mark capacity analysis as completed
-    await pool.query(
-      'UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = $1',
-      [scenarioId]
-    );
+    await sql`
+      UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = ${scenarioId}
+    `;
 
     return NextResponse.json(analysisResult);
   } catch (error) {
@@ -123,16 +121,15 @@ async function performCapacityAnalysis(
   // If no facilities provided, estimate baseline from market data
   if (baselineCapacity === 0) {
     // Try to get baseline from market data
-    const marketDataResult = await pool.query(
-      `SELECT SUM(COALESCE(inbound_volume, 0) + COALESCE(outbound_volume, 0)) as total_volume 
-       FROM market_data 
-       WHERE scenario_id = $1`,
-      [scenarioId]
-    );
-    
-    if (marketDataResult.rows[0]?.total_volume) {
+    const marketDataResult = await sql`
+      SELECT SUM(COALESCE(inbound_volume, 0) + COALESCE(outbound_volume, 0)) as total_volume
+      FROM market_data
+      WHERE scenario_id = ${scenarioId}
+    `;
+
+    if (marketDataResult[0]?.total_volume) {
       // Estimate capacity needs based on volume (rough heuristic: 1 unit capacity per 100 volume units)
-      baselineCapacity = Math.ceil(marketDataResult.rows[0].total_volume / 100);
+      baselineCapacity = Math.ceil(marketDataResult[0].total_volume / 100);
     } else {
       // Default baseline if no data available
       baselineCapacity = 10000;
@@ -269,22 +266,19 @@ async function storeAnalysisResults(
   scenarioId: number,
   result: CapacityAnalysisResult
 ): Promise<void> {
-  // Store the analysis results in a results table
-  const query = `
-    INSERT INTO capacity_analysis_results 
-    (scenario_id, analysis_data, created_at) 
-    VALUES ($1, $2, NOW())
-    ON CONFLICT (scenario_id) 
-    DO UPDATE SET 
-      analysis_data = $2, 
-      updated_at = NOW()
-  `;
-  
   try {
-    await pool.query(query, [scenarioId, JSON.stringify(result)]);
+    await sql`
+      INSERT INTO capacity_analysis_results
+      (scenario_id, analysis_data, created_at)
+      VALUES (${scenarioId}, ${JSON.stringify(result)}, NOW())
+      ON CONFLICT (scenario_id)
+      DO UPDATE SET
+        analysis_data = ${JSON.stringify(result)},
+        updated_at = NOW()
+    `;
   } catch (error) {
     // If table doesn't exist, create it
-    await pool.query(`
+    await sql`
       CREATE TABLE IF NOT EXISTS capacity_analysis_results (
         id SERIAL PRIMARY KEY,
         scenario_id INTEGER REFERENCES scenarios(id) ON DELETE CASCADE,
@@ -293,10 +287,18 @@ async function storeAnalysisResults(
         updated_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(scenario_id)
       )
-    `);
-    
+    `;
+
     // Try again after creating table
-    await pool.query(query, [scenarioId, JSON.stringify(result)]);
+    await sql`
+      INSERT INTO capacity_analysis_results
+      (scenario_id, analysis_data, created_at)
+      VALUES (${scenarioId}, ${JSON.stringify(result)}, NOW())
+      ON CONFLICT (scenario_id)
+      DO UPDATE SET
+        analysis_data = ${JSON.stringify(result)},
+        updated_at = NOW()
+    `;
   }
 }
 
@@ -307,19 +309,18 @@ export async function GET(
   try {
     const scenarioId = parseInt(params.id);
     
-    const result = await pool.query(
-      'SELECT analysis_data FROM capacity_analysis_results WHERE scenario_id = $1',
-      [scenarioId]
-    );
+    const result = await sql`
+      SELECT analysis_data FROM capacity_analysis_results WHERE scenario_id = ${scenarioId}
+    `;
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'No capacity analysis found for this scenario' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(result.rows[0].analysis_data);
+    return NextResponse.json(result[0].analysis_data);
   } catch (error) {
     console.error('Error fetching capacity analysis:', error);
     return NextResponse.json(
