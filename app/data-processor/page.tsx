@@ -32,6 +32,8 @@ import {
   TrendingUp,
   Shield,
   Building,
+  X,
+  Trash2,
 } from "lucide-react";
 
 interface Project {
@@ -242,6 +244,33 @@ export default function DataProcessor() {
     } catch (error) {
       console.error('Error updating file in database:', error);
     }
+  };
+
+  const removeFile = async (fileIndex: number) => {
+    const file = files[fileIndex];
+
+    // Remove from database if it was saved
+    if (file.id) {
+      try {
+        const response = await fetch(`/api/files/${file.id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete file from database');
+        }
+
+        addToLog(`✓ Removed ${file.name} from database`);
+      } catch (error) {
+        console.error('Error deleting file from database:', error);
+        addToLog(`⚠ Could not remove ${file.name} from database`);
+      }
+    }
+
+    // Remove from local state
+    const updatedFiles = files.filter((_, index) => index !== fileIndex);
+    setFiles(updatedFiles);
+    addToLog(`Removed ${file.name} from current session`);
   };
 
   const autoDetectDataType = (fileName: string): string => {
@@ -637,21 +666,30 @@ export default function DataProcessor() {
                         </div>
                         <div className="flex items-center gap-3">
                           {getStatusIcon(file.validationStatus)}
-                          {file.validationStatus === 'pending' && (
-                            <div className="group relative">
-                              <button
-                                onClick={() => validateFileData(index)}
-                                className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                                title="Click to validate this file's data structure and quality"
-                              >
-                                <Zap size={14} />
-                                Validate
-                              </button>
-                              <div className="absolute bottom-full mb-1 right-0 w-48 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                                Click to validate data structure, check for missing values, and ensure column mappings are correct
+                          <div className="flex items-center gap-2">
+                            {file.validationStatus === 'pending' && (
+                              <div className="group relative">
+                                <button
+                                  onClick={() => validateFileData(index)}
+                                  className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                  title="Click to validate this file's data structure and quality"
+                                >
+                                  <Zap size={14} />
+                                  Validate
+                                </button>
+                                <div className="absolute bottom-full mb-1 right-0 w-48 bg-gray-900 text-white p-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                  Click to validate data structure, check for missing values, and ensure column mappings are correct
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                            <button
+                              onClick={() => removeFile(index)}
+                              className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200 transition-colors"
+                              title="Remove this file"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
