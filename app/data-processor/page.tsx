@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import ProjectScenarioManager from "@/components/ProjectScenarioManager";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useData } from "@/context/DataContext";
 import { DataValidator } from "@/lib/data-validator";
 import { DataProcessingUtils, EnhancedDataProcessingUtils } from "@/lib/data-processing-utils";
