@@ -309,19 +309,18 @@ export async function GET(
   try {
     const scenarioId = parseInt(params.id);
     
-    const result = await pool.query(
-      'SELECT analysis_data FROM capacity_analysis_results WHERE scenario_id = $1',
-      [scenarioId]
-    );
+    const result = await sql`
+      SELECT analysis_data FROM capacity_analysis_results WHERE scenario_id = ${scenarioId}
+    `;
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'No capacity analysis found for this scenario' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(result.rows[0].analysis_data);
+    return NextResponse.json(result[0].analysis_data);
   } catch (error) {
     console.error('Error fetching capacity analysis:', error);
     return NextResponse.json(
