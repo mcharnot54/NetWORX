@@ -335,7 +335,7 @@ export default function DataProcessor() {
         processedFiles.push(fileData);
         
         if (detectedTemplate) {
-          addToLog(`✓ Detected template: ${detectedTemplate.name}`);
+          addToLog(`�� Detected template: ${detectedTemplate.name}`);
         } else {
           addToLog(`⚠ No template detected for ${file.name} - manual mapping required`);
         }
@@ -599,7 +599,26 @@ export default function DataProcessor() {
                   </p>
                 </div>
               </div>
-              
+
+              {/* Persistent Storage Info */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <Save className="text-green-600 mt-0.5" size={20} />
+                  <div>
+                    <h4 className="font-semibold text-green-800 mb-1">Persistent File Storage</h4>
+                    <p className="text-green-700 text-sm mb-2">
+                      Files uploaded to this scenario are automatically saved and will be available when you return.
+                    </p>
+                    <div className="text-xs text-green-600 space-y-1">
+                      <div>• Files are stored securely in the database</div>
+                      <div>• No need to re-upload files when switching between scenarios</div>
+                      <div>• Validation results and processing status are preserved</div>
+                      <div>• Green dot indicates files are saved 🟢</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="group relative">
                 <div className="file-upload bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors">
                   <input
