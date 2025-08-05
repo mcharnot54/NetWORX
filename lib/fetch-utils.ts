@@ -340,17 +340,21 @@ export const robustPost = async <T = any>(
 export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> => {
   return safeWrapper(async () => {
     try {
-      // Try to fetch a simple endpoint
+      // Try to fetch a simple endpoint with minimal retries for connectivity check
       await robustFetch('/api/health', {
-        timeout: 5000,
-        retries: 1,
+        timeout: 8000, // Increased timeout for cloud environments
+        retries: 0, // No retries for connectivity check to avoid cascading failures
         signal
       });
       return true;
     } catch (error) {
-      // Don't log connectivity failures if request was cancelled
+      // Don't log connectivity failures if request was cancelled or in cloud environment
       if (!error || !(error as Error).message?.includes('cancelled')) {
-        console.warn('Connectivity check failed:', error);
+        const errorMessage = (error as Error)?.message || 'Unknown error';
+        // Suppress logs for common cloud environment issues
+        if (!errorMessage.includes('Failed to fetch') && !errorMessage.includes('Network connection failed')) {
+          console.debug('Connectivity check failed:', errorMessage);
+        }
       }
       return false;
     }
