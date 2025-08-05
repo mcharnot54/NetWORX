@@ -579,17 +579,99 @@ export default function CapacityOptimizer() {
 
                   <div className="analysis-actions">
                     <button
-                      className="action-button primary large"
+                      className={`action-button primary large ${isAnalyzing ? 'disabled' : ''}`}
                       onClick={runCapacityAnalysis}
+                      disabled={isAnalyzing}
                     >
-                      Run Capacity Analysis
+                      {isAnalyzing ? 'Running Analysis...' : 'Run Capacity Analysis'}
                     </button>
                   </div>
 
+                  {analysisError && (
+                    <div className="error-message">
+                      <p>{analysisError}</p>
+                    </div>
+                  )}
+
                   <div className="analysis-results">
-                    <p className="placeholder-text">
-                      Analysis results will appear here after running the capacity analysis.
-                    </p>
+                    {isAnalyzing ? (
+                      <div className="loading-state">
+                        <p>Analyzing capacity requirements...</p>
+                        <div className="loading-spinner"></div>
+                      </div>
+                    ) : analysisResults ? (
+                      <div className="results-container">
+                        <h3 className="results-title">Capacity Analysis Results</h3>
+
+                        <div className="summary-cards">
+                          <div className="summary-card">
+                            <h4>Total Investment</h4>
+                            <p className="summary-value">${analysisResults.total_investment_required.toLocaleString()}</p>
+                          </div>
+                          <div className="summary-card">
+                            <h4>Peak Capacity Required</h4>
+                            <p className="summary-value">{analysisResults.summary.peak_capacity_required.toLocaleString()} units</p>
+                          </div>
+                          <div className="summary-card">
+                            <h4>Average Utilization</h4>
+                            <p className="summary-value">{analysisResults.summary.average_utilization}%</p>
+                          </div>
+                          <div className="summary-card">
+                            <h4>Investment per Unit</h4>
+                            <p className="summary-value">${analysisResults.summary.investment_per_unit.toFixed(2)}</p>
+                          </div>
+                        </div>
+
+                        <div className="yearly-results">
+                          <h4>Year-by-Year Analysis</h4>
+                          <div className="results-table">
+                            <div className="results-header">
+                              <div>Year</div>
+                              <div>Required</div>
+                              <div>Available</div>
+                              <div>Gap</div>
+                              <div>Utilization</div>
+                              <div>Recommended Actions</div>
+                            </div>
+                            {analysisResults.yearly_results.map((yearResult) => (
+                              <div key={yearResult.year} className="results-row">
+                                <div>{yearResult.year}</div>
+                                <div>{yearResult.required_capacity.toLocaleString()}</div>
+                                <div>{yearResult.available_capacity.toLocaleString()}</div>
+                                <div className={yearResult.capacity_gap > 0 ? 'gap-warning' : 'gap-ok'}>
+                                  {yearResult.capacity_gap.toLocaleString()}
+                                </div>
+                                <div>{yearResult.utilization_rate}%</div>
+                                <div className="facilities-list">
+                                  {yearResult.recommended_facilities.length > 0 ? (
+                                    yearResult.recommended_facilities.map((facility, index) => (
+                                      <div key={index} className="facility-recommendation">
+                                        <span className={`facility-type ${facility.type}`}>
+                                          {facility.type.toUpperCase()}
+                                        </span>
+                                        <span>{facility.name}</span>
+                                        <span>({facility.capacity_units.toLocaleString()} units)</span>
+                                        {facility.estimated_cost && (
+                                          <span className="facility-cost">
+                                            ${facility.estimated_cost.toLocaleString()}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span className="no-action">No action needed</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="placeholder-text">
+                        Analysis results will appear here after running the capacity analysis.
+                      </p>
+                    )}
                   </div>
                 </>
               ) : (
