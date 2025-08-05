@@ -4,6 +4,7 @@ interface FetchOptions extends RequestInit {
   timeout?: number;
   retries?: number;
   retryDelay?: number;
+  signal?: AbortSignal;
 }
 
 interface RetryConfig {
