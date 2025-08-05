@@ -76,20 +76,26 @@ export default function ProjectScenarioManager({
   });
 
   useEffect(() => {
+    let abortController: AbortController | null = null;
+
     // Add a small delay to ensure the app is fully loaded
     const timer = setTimeout(() => {
       if (isMounted) {
-        fetchProjects();
+        abortController = new AbortController();
+        fetchProjects(abortController.signal);
       }
     }, 100);
 
     return () => {
       clearTimeout(timer);
+      if (abortController) {
+        abortController.abort();
+      }
       setIsMounted(false);
     };
   }, []);
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (signal?: AbortSignal) => {
     if (!isMounted) return;
 
     try {
@@ -99,9 +105,10 @@ export default function ProjectScenarioManager({
       const projectsResult = await robustFetchJson('/api/projects', {
         timeout: 10000,
         retries: 2,
+        signal, // Pass abort signal to fetch
       });
 
-      if (!isMounted) return; // Check again after async operation
+      if (!isMounted || signal?.aborted) return; // Check again after async operation
 
       if (!projectsResult.success) {
         throw new Error(projectsResult.error || 'Failed to fetch projects');
