@@ -334,25 +334,39 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
   try {
     return await fn();
   } catch (error) {
-    if (error instanceof Error) {
-      const errorName = String(error.name || '');
-      const errorMessage = String(error.message || '');
+    // Safely handle any type of error
+    try {
+      if (error instanceof Error) {
+        const errorName = String(error.name || '');
+        const errorMessage = String(error.message || '');
 
-      // Comprehensive AbortError detection
-      if (errorName === 'AbortError' ||
-          errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('aborted without reason') ||
-          errorMessage.includes('The operation was aborted')) {
-        console.debug(`AbortError suppressed in ${context}:`, errorMessage);
-        throw new FetchError(
-          `Request aborted in ${context}`,
-          undefined,
-          undefined,
-          false,
-          false
-        );
+        // Comprehensive AbortError detection
+        if (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted') ||
+            errorMessage.includes('aborted without reason') ||
+            errorMessage.includes('The operation was aborted') ||
+            errorMessage.includes('signal.reason')) {
+          console.debug(`AbortError suppressed in ${context}:`, errorMessage);
+          throw new FetchError(
+            `Request aborted in ${context}`,
+            undefined,
+            undefined,
+            false,
+            false
+          );
+        }
       }
+    } catch (handlingError) {
+      // If error inspection fails, create a safe fallback
+      console.debug(`Error handling failed in ${context}, creating fallback:`, handlingError);
+      throw new FetchError(
+        `Request failed in ${context}`,
+        undefined,
+        undefined,
+        true,
+        false
+      );
     }
     throw error;
   }
