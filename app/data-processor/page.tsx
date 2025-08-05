@@ -68,7 +68,7 @@ interface FileData {
   sheets?: string[];
   selectedSheet?: string;
   detectedType?: string;
-  detectedTemplate?: DataMappingTemplate | null;
+  detectedTemplate?: DataMappingTemplate | AdaptiveTemplate | null;
   scenarioId?: number;
   file?: File;
   parsedData?: any[];
