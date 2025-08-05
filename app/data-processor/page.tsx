@@ -9,6 +9,7 @@ import { DataProcessingUtils, EnhancedDataProcessingUtils } from "@/lib/data-pro
 import {
   ComprehensiveOperationalData,
   DataMappingTemplate,
+  AdaptiveTemplate,
   ProcessingResult,
   DATA_MAPPING_TEMPLATES
 } from "@/types/data-schema";
