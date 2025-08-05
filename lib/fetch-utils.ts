@@ -330,9 +330,19 @@ const _robustFetch = async (
         // Safely check if this was an external cancellation
         let isExternalCancel = false;
         try {
-          isExternalCancel = lastError.message?.includes('cancelled') || options.signal?.aborted === true;
+          isExternalCancel = lastError.message?.includes('cancelled');
+          if (!isExternalCancel && options.signal) {
+            try {
+              isExternalCancel = Boolean(options.signal.aborted);
+            } catch (signalCheckError) {
+              // If signal check throws, assume external cancellation
+              console.debug('Error checking signal in _robustFetch:', signalCheckError);
+              isExternalCancel = true;
+            }
+          }
         } catch (signalError) {
           // If we can't check signal status, assume external cancellation
+          console.debug('Error in abort handling:', signalError);
           isExternalCancel = true;
         }
 
