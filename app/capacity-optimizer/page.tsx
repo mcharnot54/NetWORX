@@ -150,12 +150,12 @@ export default function CapacityOptimizer() {
         }),
       });
 
-      const results = await response.json();
-
       if (!response.ok) {
-        throw new Error(results.error || 'Failed to run capacity analysis');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to run capacity analysis');
       }
 
+      const results = await response.json();
       setAnalysisResults(results);
       setAnalysisError(null);
     } catch (error) {
