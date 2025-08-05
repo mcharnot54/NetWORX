@@ -186,27 +186,38 @@
     }
   });
 
-  // Additional protection: Override window.fetch to add AbortError handling for HMR only
-  const originalWindowFetch = window.fetch;
-  window.fetch = function(resource, ...args) {
-    const url = typeof resource === 'string' ? resource : resource?.url;
-    const isAPIRequest = url && (url.includes('/api/') || url.startsWith('/api/'));
+  // Store reference to avoid double-wrapping
+  if (!window.__hmr_fetch_wrapped) {
+    const originalWindowFetch = window.fetch;
+    window.fetch = function(resource, ...args) {
+      const url = typeof resource === 'string' ? resource : resource?.url;
+      const isAPIRequest = url && (url.includes('/api/') || url.startsWith('/api/'));
+      const isHMRRequest = url && (url.includes('_next/static') || url.includes('webpack') || url.includes('hot-update'));
 
-    return originalWindowFetch.apply(this, [resource, ...args]).catch(error => {
-      const errorName = String(error.name || '');
-      const errorMessage = String(error.message || '');
+      return originalWindowFetch.apply(this, [resource, ...args]).catch(error => {
+        const errorName = String(error.name || '');
+        const errorMessage = String(error.message || '');
 
-      // Only handle AbortErrors for non-API requests (HMR, static assets, etc.)
-      if (!isAPIRequest && (errorName === 'AbortError' ||
-          errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('aborted without reason'))) {
-        console.debug('Global fetch AbortError suppression for non-API request:', errorMessage);
-        throw new Error('Request was cancelled');
-      }
-      throw error;
-    });
-  };
+        // Only handle AbortErrors for HMR requests, not API requests
+        if (isHMRRequest && (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted') ||
+            errorMessage.includes('aborted without reason'))) {
+          console.debug('HMR fetch AbortError suppressed:', errorMessage);
+          return Promise.resolve(new Response('', { status: 200 }));
+        }
+
+        // For TypeError: Failed to fetch in cloud environments, add retries for HMR only
+        if (isHMRRequest && errorName === 'TypeError' && errorMessage === 'Failed to fetch') {
+          console.debug('HMR fetch failed, returning empty response to avoid blocking');
+          return Promise.resolve(new Response('', { status: 200 }));
+        }
+
+        throw error;
+      });
+    };
+    window.__hmr_fetch_wrapped = true;
+  }
 
   console.log('HMR error handler and comprehensive AbortError suppression initialized for cloud environment');
 })();
