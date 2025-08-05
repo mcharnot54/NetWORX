@@ -148,9 +148,14 @@ const fetchWithTimeout = async (
     combinedSignal.addEventListener('abort', abortHandler, { once: true });
   }
 
-  // Set up timeout
+  // Set up timeout with proper error handling
   const timeoutId = setTimeout(() => {
-    controller.abort();
+    try {
+      controller.abort();
+    } catch (error) {
+      // Ignore errors when aborting timeout, the controller might already be aborted
+      console.debug('Error while aborting on timeout:', error);
+    }
   }, timeout);
 
   try {
