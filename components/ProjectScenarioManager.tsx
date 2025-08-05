@@ -89,8 +89,13 @@ export default function ProjectScenarioManager({
 
     return () => {
       clearTimeout(timer);
-      if (abortController) {
-        abortController.abort();
+      if (abortController && !abortController.signal.aborted) {
+        try {
+          abortController.abort('Component unmounting');
+        } catch (error) {
+          // Ignore errors when aborting
+          console.debug('Error aborting controller on unmount:', error);
+        }
       }
       setIsMounted(false);
     };
