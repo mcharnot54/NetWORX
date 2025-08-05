@@ -173,9 +173,18 @@ const fetchWithTimeout = async (
     try {
       // Handle all types of abort errors more defensively
       if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-        // Check if this was cancelled by external signal or timeout
-        const isExternalCancel = options.signal?.aborted;
-        const isTimeoutAbort = !isExternalCancel && controller.signal.aborted;
+        // Safely check abort status to avoid accessing properties on aborted signals
+        let isExternalCancel = false;
+        let isTimeoutAbort = false;
+
+        try {
+          isExternalCancel = options.signal?.aborted === true;
+          isTimeoutAbort = !isExternalCancel && controller.signal.aborted === true;
+        } catch (signalError) {
+          // If we can't determine the abort reason, treat as external cancellation
+          console.debug('Error checking signal status:', signalError);
+          isExternalCancel = true;
+        }
 
         if (isExternalCancel) {
           // External cancellation (component unmount, user action, etc.)
@@ -196,9 +205,9 @@ const fetchWithTimeout = async (
             true
           );
         } else {
-          // Unknown abort reason
+          // Unknown abort reason - treat as cancellation to avoid propagating raw AbortError
           throw new FetchError(
-            `Request was aborted for ${url}`,
+            `Request was cancelled for ${url}`,
             undefined,
             undefined,
             false,
