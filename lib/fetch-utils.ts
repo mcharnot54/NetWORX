@@ -135,10 +135,17 @@ const fetchWithTimeout = async (
       throw new FetchError('Request was cancelled', undefined, undefined, false, false);
     }
 
-    // Listen for external abort
-    combinedSignal.addEventListener('abort', () => {
-      controller.abort();
-    });
+    // Listen for external abort with proper error handling
+    const abortHandler = () => {
+      try {
+        controller.abort();
+      } catch (error) {
+        // Ignore errors when aborting, as the controller might already be aborted
+        console.debug('Error while aborting controller:', error);
+      }
+    };
+
+    combinedSignal.addEventListener('abort', abortHandler, { once: true });
   }
 
   // Set up timeout
