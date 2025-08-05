@@ -45,8 +45,8 @@ export class EnhancedDataProcessingUtils {
     const qualityGrade = EnhancedDataProcessingUtils.calculateQualityGrade(quality);
     
     return `Data Quality Assessment (Grade: ${qualityGrade}):
-• Completeness: ${quality.completeness.toFixed(1)}% - ${this.getCompletenessComment(quality.completeness)}
-• Accuracy: ${quality.accuracy.toFixed(1)}% - ${this.getAccuracyComment(quality.accuracy)}
+• Completeness: ${quality.completeness.toFixed(1)}% - ${EnhancedDataProcessingUtils.getCompletenessComment(quality.completeness)}
+• Accuracy: ${quality.accuracy.toFixed(1)}% - ${EnhancedDataProcessingUtils.getAccuracyComment(quality.accuracy)}
 • Valid Records: ${quality.validRecords}/${quality.totalRecords} processed successfully
 ${quality.missingFields.length > 0 ? `• Missing Fields: ${quality.missingFields.slice(0, 5).join(', ')}${quality.missingFields.length > 5 ? '...' : ''}` : ''}
 ${quality.invalidValues.length > 0 ? `• Data Issues: ${quality.invalidValues.length} found` : ''}
