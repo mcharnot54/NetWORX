@@ -272,9 +272,9 @@ const _robustFetch = async (
 
       // Handle AbortError specifically to prevent propagation
       if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
-        // If it's a cancellation, don't retry and throw a more specific error
-        if (lastError.message?.includes('cancelled') || lastError.message?.includes('aborted without reason')) {
-          console.debug('Request cancelled, not retrying:', lastError.message);
+        // If it's an external cancellation (not timeout), don't retry
+        if (lastError.message?.includes('cancelled') || options.signal?.aborted) {
+          console.debug('Request externally cancelled, not retrying:', lastError.message);
           throw new FetchError('Request was cancelled', undefined, undefined, false, false);
         }
         // If it's a timeout, allow retry logic to proceed
