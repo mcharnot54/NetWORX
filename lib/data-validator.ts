@@ -319,52 +319,59 @@ export class DataValidator {
       throw new Error('File parsing is only available on the client side');
     }
 
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const data = e.target?.result;
-          let workbook: XLSX.WorkBook;
-          
-          if (file.type.includes('csv')) {
-            workbook = XLSX.read(data, { type: 'binary' });
-          } else {
-            workbook = XLSX.read(data, { type: 'array' });
-          }
-          
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          
-          if (jsonData.length === 0) {
-            reject(new Error('File contains no data'));
-            return;
-          }
-          
-          const columnHeaders = jsonData[0] as string[];
-          const dataRows = jsonData.slice(1).map(row => {
-            const rowObj: any = {};
-            columnHeaders.forEach((header, index) => {
-              rowObj[header] = (row as any[])[index];
+    try {
+      // Dynamic import to avoid SSR issues
+      const XLSX = await import('xlsx');
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          try {
+            const data = e.target?.result;
+            let workbook: XLSX.WorkBook;
+
+            if (file.type.includes('csv')) {
+              workbook = XLSX.read(data, { type: 'binary' });
+            } else {
+              workbook = XLSX.read(data, { type: 'array' });
+            }
+
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (jsonData.length === 0) {
+              reject(new Error('File contains no data'));
+              return;
+            }
+
+            const columnHeaders = jsonData[0] as string[];
+            const dataRows = jsonData.slice(1).map(row => {
+              const rowObj: any = {};
+              columnHeaders.forEach((header, index) => {
+                rowObj[header] = (row as any[])[index];
+              });
+              return rowObj;
             });
-            return rowObj;
-          });
-          
-          resolve({ data: dataRows, columnHeaders });
-        } catch (error) {
-          reject(new Error(`Failed to parse file: ${error}`));
+
+            resolve({ data: dataRows, columnHeaders });
+          } catch (error) {
+            reject(new Error(`Failed to parse file: ${error}`));
+          }
+        };
+
+        reader.onerror = () => reject(new Error('Failed to read file'));
+
+        if (file.type.includes('csv')) {
+          reader.readAsText(file);
+        } else {
+          reader.readAsArrayBuffer(file);
         }
-      };
-      
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      
-      if (file.type.includes('csv')) {
-        reader.readAsText(file);
-      } else {
-        reader.readAsArrayBuffer(file);
-      }
-    });
+      });
+    } catch (error) {
+      throw new Error(`Failed to load XLSX library: ${error}`);
+    }
   }
 }
 
