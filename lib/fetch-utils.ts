@@ -64,22 +64,32 @@ const calculateRetryDelay = (
 
 // Check if error is retryable
 const isRetryableError = (error: Error): boolean => {
-  // Ultimate safety check
+  // Ultimate safety check with completely defensive error handling
   try {
     // Safety check for error object
     if (!error || typeof error !== 'object') {
       return false;
     }
 
-    // Handle any AbortError immediately to prevent propagation
-    const errorName = String(error.name || '');
-    const errorMessage = String(error.message || '');
+    // Safely extract error information without accessing potentially dangerous properties
+    let errorName = '';
+    let errorMessage = '';
+
+    try {
+      errorName = String(error.name || '');
+      errorMessage = String(error.message || '');
+    } catch (nameError) {
+      // If we can't even safely get name/message, don't retry
+      console.debug('Cannot safely access error properties:', nameError);
+      return false;
+    }
 
     // Handle AbortErrors specifically with multiple detection methods
     if (errorName === 'AbortError' ||
         errorMessage.includes('aborted') ||
         errorMessage.includes('signal is aborted') ||
-        errorMessage.includes('aborted without reason')) {
+        errorMessage.includes('aborted without reason') ||
+        errorMessage.includes('The operation was aborted')) {
       // Only retry timeout aborts, not user-cancelled requests
       const isTimeout = errorMessage.includes('timeout');
       console.debug('AbortError detected in retry check:', { errorName, errorMessage, isTimeout });
@@ -101,14 +111,20 @@ const isRetryableError = (error: Error): boolean => {
       return false;
     }
 
-    // If it's a FetchError, check the status
+    // If it's a FetchError, check the status safely
     if (error instanceof FetchError) {
       // Don't retry cancelled requests, but retry timeouts and network errors
       if (errorMessage.includes('cancelled')) {
         return false;
       }
       // Retry on network errors, timeouts, or 5xx errors
-      return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
+      try {
+        return error.isNetworkError || error.isTimeoutError || Boolean(error.status && error.status >= 500);
+      } catch (statusError) {
+        // If we can't access status safely, don't retry
+        console.debug('Cannot safely access FetchError properties:', statusError);
+        return false;
+      }
     }
 
     return false;
@@ -131,7 +147,13 @@ const fetchWithTimeout = async (
   const combinedSignal = options.signal;
   if (combinedSignal) {
     // If external signal is already aborted, abort immediately
-    if (combinedSignal.aborted) {
+    try {
+      if (combinedSignal.aborted) {
+        throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+      }
+    } catch (signalCheckError) {
+      // If checking aborted status throws, treat as cancelled
+      console.debug('Error checking initial signal status:', signalCheckError);
       throw new FetchError('Request was cancelled', undefined, undefined, false, false);
     }
 
@@ -178,8 +200,26 @@ const fetchWithTimeout = async (
         let isTimeoutAbort = false;
 
         try {
-          isExternalCancel = options.signal?.aborted === true;
-          isTimeoutAbort = !isExternalCancel && controller.signal.aborted === true;
+          // More defensive signal checking to prevent "signal is aborted without reason"
+          if (options.signal) {
+            try {
+              isExternalCancel = Boolean(options.signal.aborted);
+            } catch (externalSignalError) {
+              // If external signal throws when checking aborted, assume it's cancelled
+              console.debug('Error checking external signal status:', externalSignalError);
+              isExternalCancel = true;
+            }
+          }
+
+          if (!isExternalCancel) {
+            try {
+              isTimeoutAbort = Boolean(controller.signal.aborted);
+            } catch (timeoutSignalError) {
+              // If timeout signal throws when checking aborted, assume it's a timeout
+              console.debug('Error checking timeout signal status:', timeoutSignalError);
+              isTimeoutAbort = true;
+            }
+          }
         } catch (signalError) {
           // If we can't determine the abort reason, treat as external cancellation
           console.debug('Error checking signal status:', signalError);
@@ -296,9 +336,19 @@ const _robustFetch = async (
         // Safely check if this was an external cancellation
         let isExternalCancel = false;
         try {
-          isExternalCancel = lastError.message?.includes('cancelled') || options.signal?.aborted === true;
+          isExternalCancel = lastError.message?.includes('cancelled');
+          if (!isExternalCancel && options.signal) {
+            try {
+              isExternalCancel = Boolean(options.signal.aborted);
+            } catch (signalCheckError) {
+              // If signal check throws, assume external cancellation
+              console.debug('Error checking signal in _robustFetch:', signalCheckError);
+              isExternalCancel = true;
+            }
+          }
         } catch (signalError) {
           // If we can't check signal status, assume external cancellation
+          console.debug('Error in abort handling:', signalError);
           isExternalCancel = true;
         }
 
