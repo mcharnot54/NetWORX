@@ -234,7 +234,8 @@ const _robustFetch = async (
 
       // Handle AbortError - never retry aborted requests
       if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
-        throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+        const reason = lastError.message || 'Request was cancelled';
+        throw new FetchError(`Request was cancelled: ${reason}`, undefined, undefined, false, false);
       }
 
       // If this is the last attempt, throw the error
