@@ -7,7 +7,8 @@ import {
   Target, Activity, Building
 } from 'lucide-react';
 import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
-import ErrorBoundary, { FetchErrorFallback } from './ErrorBoundary';
+import ErrorBoundary from './ErrorBoundary';
+import { FetchErrorFallback } from './ErrorBoundary';
 
 interface Project {
   id: number;
