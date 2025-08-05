@@ -42,7 +42,7 @@ export class EnhancedDataProcessingUtils {
    * Format data quality metrics with enhanced insights for adaptive processing
    */
   static formatDataQuality(quality: DataQualityMetrics): string {
-    const qualityGrade = this.calculateQualityGrade(quality);
+    const qualityGrade = EnhancedDataProcessingUtils.calculateQualityGrade(quality);
     
     return `Data Quality Assessment (Grade: ${qualityGrade}):
 • Completeness: ${quality.completeness.toFixed(1)}% - ${this.getCompletenessComment(quality.completeness)}
