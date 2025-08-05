@@ -66,7 +66,7 @@ ${EnhancedDataProcessingUtils.generateQualityRecommendations(quality)}`;
 • Total Rows: ${summary.totalRows}
 • Successfully Processed: ${summary.validRows} (${successRate}%)
 • Skipped/Invalid: ${summary.skippedRows}
-• Processing Quality: ${this.getProcessingQualityComment(parseFloat(successRate))}
+• Processing Quality: ${EnhancedDataProcessingUtils.getProcessingQualityComment(parseFloat(successRate))}
 
 ${this.formatIssuesSummary(errors, warnings)}
 
