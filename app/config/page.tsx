@@ -7,7 +7,7 @@ import {
   Save,
   RefreshCw,
   Upload,
-  Download,
+  DownloadIcon,
   CheckCircle,
   FileText,
   Monitor,
