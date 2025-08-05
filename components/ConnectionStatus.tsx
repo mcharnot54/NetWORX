@@ -66,15 +66,20 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
 
     return () => {
       setIsMounted(false); // Mark component as unmounting
-      // Cancel any pending requests
-      if (abortController) {
-        abortController.abort();
-      }
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
       clearInterval(interval);
     };
   }, []);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortController) {
+        abortController.abort();
+      }
+    };
+  }, [abortController]);
 
   const getStatusColor = () => {
     if (!isOnline) return '#ef4444'; // red
