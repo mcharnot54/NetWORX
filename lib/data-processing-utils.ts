@@ -60,7 +60,7 @@ ${EnhancedDataProcessingUtils.generateQualityRecommendations(quality)}`;
   static generateProcessingSummary(result: ProcessingResult): string {
     const { summary, errors, warnings } = result;
     const successRate = ((summary.validRows / summary.totalRows) * 100).toFixed(1);
-    const processingMode = this.detectProcessingMode(result);
+    const processingMode = EnhancedDataProcessingUtils.detectProcessingMode(result);
     
     return `Processing Complete (${processingMode} Mode):
 • Total Rows: ${summary.totalRows}
