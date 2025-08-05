@@ -93,10 +93,9 @@ export async function POST(
     await storeAnalysisResults(scenarioId, analysisResult);
 
     // Update scenario to mark capacity analysis as completed
-    await pool.query(
-      'UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = $1',
-      [scenarioId]
-    );
+    await sql`
+      UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = ${scenarioId}
+    `;
 
     return NextResponse.json(analysisResult);
   } catch (error) {
