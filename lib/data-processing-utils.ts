@@ -15,7 +15,7 @@ export class EnhancedDataProcessingUtils {
     if (errors.length === 0) return 'All data validation checks passed successfully.';
     
     // Group errors by type for better understanding
-    const errorGroups = this.groupErrorsByType(errors);
+    const errorGroups = EnhancedDataProcessingUtils.groupErrorsByType(errors);
     const totalFields = results.length;
     const errorRate = (errors.length / totalFields * 100).toFixed(1);
     
@@ -33,7 +33,7 @@ export class EnhancedDataProcessingUtils {
     }
     
     // Add suggestions for common issues
-    output += this.generateValidationSuggestions(errorGroups);
+    output += EnhancedDataProcessingUtils.generateValidationSuggestions(errorGroups);
     
     return output;
   }
@@ -42,16 +42,16 @@ export class EnhancedDataProcessingUtils {
    * Format data quality metrics with enhanced insights for adaptive processing
    */
   static formatDataQuality(quality: DataQualityMetrics): string {
-    const qualityGrade = this.calculateQualityGrade(quality);
+    const qualityGrade = EnhancedDataProcessingUtils.calculateQualityGrade(quality);
     
     return `Data Quality Assessment (Grade: ${qualityGrade}):
-• Completeness: ${quality.completeness.toFixed(1)}% - ${this.getCompletenessComment(quality.completeness)}
-• Accuracy: ${quality.accuracy.toFixed(1)}% - ${this.getAccuracyComment(quality.accuracy)}
+• Completeness: ${quality.completeness.toFixed(1)}% - ${EnhancedDataProcessingUtils.getCompletenessComment(quality.completeness)}
+• Accuracy: ${quality.accuracy.toFixed(1)}% - ${EnhancedDataProcessingUtils.getAccuracyComment(quality.accuracy)}
 • Valid Records: ${quality.validRecords}/${quality.totalRecords} processed successfully
 ${quality.missingFields.length > 0 ? `• Missing Fields: ${quality.missingFields.slice(0, 5).join(', ')}${quality.missingFields.length > 5 ? '...' : ''}` : ''}
 ${quality.invalidValues.length > 0 ? `• Data Issues: ${quality.invalidValues.length} found` : ''}
 
-${this.generateQualityRecommendations(quality)}`;
+${EnhancedDataProcessingUtils.generateQualityRecommendations(quality)}`;
   }
 
   /**
@@ -60,17 +60,17 @@ ${this.generateQualityRecommendations(quality)}`;
   static generateProcessingSummary(result: ProcessingResult): string {
     const { summary, errors, warnings } = result;
     const successRate = ((summary.validRows / summary.totalRows) * 100).toFixed(1);
-    const processingMode = this.detectProcessingMode(result);
+    const processingMode = EnhancedDataProcessingUtils.detectProcessingMode(result);
     
     return `Processing Complete (${processingMode} Mode):
 • Total Rows: ${summary.totalRows}
 • Successfully Processed: ${summary.validRows} (${successRate}%)
 • Skipped/Invalid: ${summary.skippedRows}
-• Processing Quality: ${this.getProcessingQualityComment(parseFloat(successRate))}
+• Processing Quality: ${EnhancedDataProcessingUtils.getProcessingQualityComment(parseFloat(successRate))}
 
-${this.formatIssuesSummary(errors, warnings)}
+${EnhancedDataProcessingUtils.formatIssuesSummary(errors, warnings)}
 
-${this.generateProcessingInsights(result)}`;
+${EnhancedDataProcessingUtils.generateProcessingInsights(result)}`;
   }
 
   /**
@@ -93,10 +93,10 @@ ${this.generateProcessingInsights(result)}`;
     const sampleRow = data[0];
     
     // Analyze content patterns
-    const hasFinancialData = this.detectFinancialData(columnNames, sampleRow);
-    const hasGeographicData = this.detectGeographicData(columnNames, sampleRow);
-    const hasTemporalData = this.detectTemporalData(columnNames, sampleRow);
-    const hasQuantityData = this.detectQuantityData(columnNames, sampleRow);
+    const hasFinancialData = EnhancedDataProcessingUtils.detectFinancialData(columnNames, sampleRow);
+    const hasGeographicData = EnhancedDataProcessingUtils.detectGeographicData(columnNames, sampleRow);
+    const hasTemporalData = EnhancedDataProcessingUtils.detectTemporalData(columnNames, sampleRow);
+    const hasQuantityData = EnhancedDataProcessingUtils.detectQuantityData(columnNames, sampleRow);
     
     // Suggest categories based on patterns
     if (hasFinancialData) {
@@ -116,7 +116,7 @@ ${this.generateProcessingInsights(result)}`;
     if (hasQuantityData) analysis.dataCharacteristics.push('Contains quantities and measurements');
 
     // Generate processing recommendations
-    analysis.processingRecommendations = this.generateFileProcessingRecommendations(
+    analysis.processingRecommendations = EnhancedDataProcessingUtils.generateFileProcessingRecommendations(
       fileName, hasFinancialData, hasGeographicData, hasTemporalData, hasQuantityData
     );
 
