@@ -89,8 +89,12 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
   // Cleanup abort controller on unmount
   useEffect(() => {
     return () => {
-      if (abortController) {
-        abortController.abort();
+      if (abortController && !abortController.signal.aborted) {
+        try {
+          abortController.abort('Controller cleanup');
+        } catch (e) {
+          // Ignore abort errors during cleanup
+        }
       }
     };
   }, [abortController]);
