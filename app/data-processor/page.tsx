@@ -9,10 +9,10 @@ import { DataProcessingUtils, EnhancedDataProcessingUtils } from "@/lib/data-pro
 import {
   ComprehensiveOperationalData,
   DataMappingTemplate,
-  AdaptiveTemplate,
   ProcessingResult,
   DATA_MAPPING_TEMPLATES
 } from "@/types/data-schema";
+import { AdaptiveTemplate } from "@/lib/adaptive-data-validator";
 import {
   Upload,
   FileText,
