@@ -39,9 +39,40 @@ interface ProjectConfiguration {
   base_year: number;
 }
 
+interface CapacityAnalysisResult {
+  scenario_id: number;
+  analysis_date: string;
+  project_duration_years: number;
+  base_year: number;
+  total_investment_required: number;
+  yearly_results: Array<{
+    year: number;
+    required_capacity: number;
+    available_capacity: number;
+    capacity_gap: number;
+    utilization_rate: number;
+    recommended_facilities: Array<{
+      name: string;
+      type: 'existing' | 'expansion' | 'new';
+      capacity_units: number;
+      square_feet: number;
+      estimated_cost?: number;
+    }>;
+  }>;
+  summary: {
+    peak_capacity_required: number;
+    total_facilities_recommended: number;
+    average_utilization: number;
+    investment_per_unit: number;
+  };
+}
+
 export default function CapacityOptimizer() {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [selectedScenario, setSelectedScenario] = useState<any>(null);
+  const [analysisResults, setAnalysisResults] = useState<CapacityAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const [projectConfig, setProjectConfig] = useState<ProjectConfiguration>({
     default_lease_term_years: 7,
