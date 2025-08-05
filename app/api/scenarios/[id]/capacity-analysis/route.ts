@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pool } from '@/lib/database';
+import { sql } from '@/lib/database';
 
 interface CapacityAnalysisRequest {
   projectConfig: {
