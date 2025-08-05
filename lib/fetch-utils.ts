@@ -147,7 +147,13 @@ const fetchWithTimeout = async (
   const combinedSignal = options.signal;
   if (combinedSignal) {
     // If external signal is already aborted, abort immediately
-    if (combinedSignal.aborted) {
+    try {
+      if (combinedSignal.aborted) {
+        throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+      }
+    } catch (signalCheckError) {
+      // If checking aborted status throws, treat as cancelled
+      console.debug('Error checking initial signal status:', signalCheckError);
       throw new FetchError('Request was cancelled', undefined, undefined, false, false);
     }
 
