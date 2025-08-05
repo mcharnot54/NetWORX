@@ -93,10 +93,10 @@ ${EnhancedDataProcessingUtils.generateProcessingInsights(result)}`;
     const sampleRow = data[0];
     
     // Analyze content patterns
-    const hasFinancialData = this.detectFinancialData(columnNames, sampleRow);
-    const hasGeographicData = this.detectGeographicData(columnNames, sampleRow);
-    const hasTemporalData = this.detectTemporalData(columnNames, sampleRow);
-    const hasQuantityData = this.detectQuantityData(columnNames, sampleRow);
+    const hasFinancialData = EnhancedDataProcessingUtils.detectFinancialData(columnNames, sampleRow);
+    const hasGeographicData = EnhancedDataProcessingUtils.detectGeographicData(columnNames, sampleRow);
+    const hasTemporalData = EnhancedDataProcessingUtils.detectTemporalData(columnNames, sampleRow);
+    const hasQuantityData = EnhancedDataProcessingUtils.detectQuantityData(columnNames, sampleRow);
     
     // Suggest categories based on patterns
     if (hasFinancialData) {
