@@ -465,13 +465,13 @@ export class AdaptiveDataValidator {
       
       if (category === 'operationalReporting') {
         if (!result.operationalReporting) result.operationalReporting = {};
-        result.operationalReporting[subcategory] = aggregatedData;
+        (result.operationalReporting as any)[subcategory] = aggregatedData;
       } else if (category === 'businessFinancials') {
         if (!result.businessFinancials) result.businessFinancials = {};
-        result.businessFinancials[subcategory] = aggregatedData;
+        (result.businessFinancials as any)[subcategory] = aggregatedData;
       } else if (category === 'salesGrowthTrajectory') {
         if (!result.salesGrowthTrajectory) result.salesGrowthTrajectory = {};
-        result.salesGrowthTrajectory[subcategory] = aggregatedData;
+        (result.salesGrowthTrajectory as any)[subcategory] = aggregatedData;
       }
     }
 

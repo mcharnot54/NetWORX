@@ -1,4 +1,5 @@
 // XLSX is imported dynamically in parseFile to avoid SSR issues
+import * as XLSX from 'xlsx';
 import type {
   ComprehensiveOperationalData,
   DataQualityMetrics,
@@ -348,8 +349,7 @@ export class DataValidator {
     }
 
     try {
-      // Dynamic import to avoid SSR issues
-      const XLSX = await import('xlsx');
+      // Parse file using XLSX library
 
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -398,7 +398,7 @@ export class DataValidator {
         }
       });
     } catch (error) {
-      throw new Error(`Failed to load XLSX library: ${error}`);
+      throw new Error(`Failed to process file: ${error}`);
     }
   }
 }
