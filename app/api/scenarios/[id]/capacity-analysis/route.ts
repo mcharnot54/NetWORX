@@ -118,20 +118,24 @@ async function performCapacityAnalysis(
   // Get baseline capacity from current year (assuming we have some initial data)
   let baselineCapacity = facilities.reduce((sum, facility) => sum + facility.capacity_units, 0);
   
-  // If no facilities provided, estimate baseline from market data
+  // If no facilities provided, estimate baseline from scenario data or use default
   if (baselineCapacity === 0) {
-    // Try to get baseline from market data
-    const marketDataResult = await sql`
-      SELECT SUM(COALESCE(inbound_volume, 0) + COALESCE(outbound_volume, 0)) as total_volume
-      FROM market_data
-      WHERE scenario_id = ${scenarioId}
-    `;
+    try {
+      // Try to get baseline from scenario metadata or other sources
+      const scenarioData = await sql`
+        SELECT metadata FROM scenarios WHERE id = ${scenarioId}
+      `;
 
-    if (marketDataResult[0]?.total_volume) {
-      // Estimate capacity needs based on volume (rough heuristic: 1 unit capacity per 100 volume units)
-      baselineCapacity = Math.ceil(marketDataResult[0].total_volume / 100);
-    } else {
-      // Default baseline if no data available
+      if (scenarioData[0]?.metadata?.estimated_volume) {
+        // Estimate capacity needs based on volume (rough heuristic: 1 unit capacity per 100 volume units)
+        baselineCapacity = Math.ceil(scenarioData[0].metadata.estimated_volume / 100);
+      } else {
+        // Default baseline if no data available
+        baselineCapacity = 10000;
+      }
+    } catch (error) {
+      // If any database query fails, use a reasonable default
+      console.warn('Could not retrieve baseline capacity data, using default:', error);
       baselineCapacity = 10000;
     }
   }
