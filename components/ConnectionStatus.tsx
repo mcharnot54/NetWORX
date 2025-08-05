@@ -14,25 +14,34 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [checking, setChecking] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   const checkServerConnectivity = async () => {
     if (!isMounted) return; // Don't start new requests if component is unmounting
 
+    // Cancel any existing request
+    if (abortController) {
+      abortController.abort();
+    }
+
+    const newController = new AbortController();
+    setAbortController(newController);
     setChecking(true);
+
     try {
       const reachable = await checkConnectivity();
-      if (isMounted) { // Only update state if component is still mounted
+      if (isMounted && !newController.signal.aborted) { // Only update state if component is still mounted and request wasn't cancelled
         setServerReachable(reachable);
         setLastCheck(new Date());
       }
     } catch (error) {
-      // Ignore errors if the request was cancelled due to unmounting
-      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
+      // Ignore errors if the request was cancelled due to unmounting or new request
+      if (isMounted && !newController.signal.aborted && error instanceof Error && !error.message.includes('cancelled') && !error.message.includes('aborted')) {
         setServerReachable(false);
         setLastCheck(new Date());
       }
     } finally {
-      if (isMounted) {
+      if (isMounted && !newController.signal.aborted) {
         setChecking(false);
       }
     }
