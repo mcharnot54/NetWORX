@@ -507,12 +507,20 @@ export default function DataProcessor() {
           </div>
           
           <div style={{ marginBottom: "2rem" }}>
-            <ProjectScenarioManager
-              selectedProject={selectedProject}
-              selectedScenario={selectedScenario}
-              onSelectProject={setSelectedProject}
-              onSelectScenario={setSelectedScenario}
-            />
+            <ErrorBoundary fallback={({ error, retry }) => (
+              <div className="error-boundary-fallback">
+                <h3>Error Loading Project Manager</h3>
+                <p>{error.message}</p>
+                <button onClick={retry}>Retry</button>
+              </div>
+            )}>
+              <ProjectScenarioManager
+                selectedProject={selectedProject}
+                selectedScenario={selectedScenario}
+                onSelectProject={setSelectedProject}
+                onSelectScenario={setSelectedScenario}
+              />
+            </ErrorBoundary>
           </div>
 
           {/* Navigation Cards */}
