@@ -1911,6 +1911,27 @@ export default function TransportOptimizer() {
           color: #16a34a;
         }
 
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .results-actions {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .action-button.success {
+          background: #10b981;
+          color: white;
+        }
+
+        .action-button.success:hover {
+          background: #059669;
+        }
+
         .warning-message {
           background: #fef3c7;
           border: 1px solid #f59e0b;
