@@ -222,15 +222,24 @@ export default function DataProcessor() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(`Failed to save file: ${errorData.error || response.statusText}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          console.error('Failed to parse error response:', jsonError);
+          throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
+        }
+        const errorMessage = errorData.error || errorData.message || errorData.details || 'Server error';
+        console.error('File save error details:', errorData);
+        throw new Error(`Failed to save file: ${errorMessage}`);
       }
 
       const { file: savedFile } = await response.json();
       return savedFile.id;
     } catch (error) {
       console.error('Error saving file to database:', error);
-      addToLog(`⚠ Could not save ${fileData.name} to database`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      addToLog(`⚠ Could not save ${fileData.name} to database: ${errorMessage}`);
       return null;
     }
   };
@@ -706,7 +715,7 @@ export default function DataProcessor() {
                             <p className="text-sm text-gray-600">
                               {Math.round(file.size / 1024)}KB • {file.detectedType}
                               {file.detectedTemplate && ` • ${file.detectedTemplate.name}`}
-                              {file.saved && ' • Saved'}
+                              {file.saved && ' �� Saved'}
                             </p>
                           </div>
                         </div>
