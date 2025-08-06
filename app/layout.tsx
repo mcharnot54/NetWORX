@@ -28,6 +28,11 @@ export default function RootLayout({
           async
           suppressHydrationWarning
         />
+        <script
+          src="/error-cleanup.js"
+          async
+          suppressHydrationWarning
+        />
       </head>
       <body>
         <GlobalErrorHandler>
