@@ -129,6 +129,7 @@ export default function CapacityOptimizer() {
       allow_expansion: true
     };
     setFacilities([...facilities, newFacility]);
+    setTimeout(() => saveConfiguration(), 1000);
   };
 
   const updateFacility = (index: number, field: keyof Facility, value: any) => {
