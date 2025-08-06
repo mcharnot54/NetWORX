@@ -126,22 +126,31 @@ const fetchWithTimeout = async (
     externalAbortHandler = () => {
       try {
         if (!controller.signal.aborted) {
-          controller.abort();
+          controller.abort('External signal abort');
         }
       } catch (error) {
-        // Ignore errors when aborting
+        // Ignore errors when aborting - expected behavior
+        console.debug('Expected abort error:', error);
       }
     };
-    options.signal.addEventListener('abort', externalAbortHandler, { once: true });
+
+    try {
+      options.signal.addEventListener('abort', externalAbortHandler, { once: true });
+    } catch (error) {
+      // Ignore errors adding listener if signal is already aborted
+      console.debug('Signal listener error:', error);
+    }
   }
 
   // Set up timeout with proper error handling
   const timeoutId = setTimeout(() => {
     try {
-      controller.abort();
+      if (!controller.signal.aborted) {
+        controller.abort('Request timeout');
+      }
     } catch (error) {
-      // Ignore errors when aborting timeout, the controller might already be aborted
-      console.debug('Error while aborting on timeout:', error);
+      // Ignore errors when aborting timeout - this is expected behavior
+      console.debug('Expected timeout abort error:', error);
     }
   }, timeout);
 
@@ -175,29 +184,31 @@ const fetchWithTimeout = async (
       }
     }
 
-    // Handle AbortError specifically
-    if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+    // Handle AbortError specifically - check if error exists and has required properties
+    if (error && typeof error === 'object' &&
+        (('name' in error && error.name === 'AbortError') ||
+         ('message' in error && typeof error.message === 'string' && error.message.includes('aborted')))) {
+
+      const errorMessage = ('message' in error && typeof error.message === 'string') ? error.message : '';
+
       // Check if this was a timeout or external cancellation
-      const isTimeout = error.message?.includes('timeout') ||
+      const isTimeout = errorMessage.includes('timeout') ||
+                       errorMessage.includes('Request timeout') ||
                        (controller.signal.aborted && !options.signal?.aborted);
 
       if (isTimeout) {
         throw new FetchError(
-          `Request timeout after ${timeout}ms for ${url}`,
+          `Request timeout after ${timeout}ms`,
           undefined,
           undefined,
           false,
           true
         );
       } else {
-        // Handle external cancellation more gracefully
-        const reason = options.signal?.aborted
-          ? 'Request was cancelled by external signal'
-          : (error.message && error.message !== 'signal is aborted without reason')
-            ? error.message
-            : 'Request was cancelled';
+        // Handle external cancellation more gracefully - don't throw for normal cancellation
+        console.debug(`Request cancelled for ${url}:`, errorMessage);
         throw new FetchError(
-          `Request cancelled for ${url}: ${reason}`,
+          'Request was cancelled',
           undefined,
           undefined,
           false,
@@ -209,8 +220,10 @@ const fetchWithTimeout = async (
     if (error instanceof Error) {
       // Handle specific "Failed to fetch" errors in cloud environments
       if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+        // In cloud environments, this is often a temporary network issue
+        console.debug(`Network error for ${url}, will retry if possible`);
         throw new FetchError(
-          `Network connection failed for ${url}`,
+          'Network connection temporarily unavailable',
           undefined,
           undefined,
           true,
