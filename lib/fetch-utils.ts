@@ -315,7 +315,9 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
 
       // Convert AbortErrors to FetchErrors with more context
       if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
-        const reason = errorMessage || 'unknown reason';
+        const reason = (errorMessage && errorMessage !== 'signal is aborted without reason')
+          ? errorMessage
+          : 'request was cancelled';
         throw new FetchError(
           `Request aborted in ${context}: ${reason}`,
           undefined,
