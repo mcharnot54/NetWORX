@@ -1144,6 +1144,27 @@ export default function DataProcessor() {
             </div>
           )}
 
+          {/* Database Setup Warning */}
+          {databaseReady === false && (
+            <div className="card bg-yellow-50 border-yellow-200">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="text-yellow-600" size={24} />
+                <div>
+                  <h3 className="text-xl font-semibold text-yellow-800">Database Setup Required</h3>
+                  <p className="text-yellow-700">The database is not properly initialized. Please set it up before uploading files.</p>
+                </div>
+              </div>
+              <button
+                onClick={setupDatabase}
+                disabled={settingUpDatabase}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+              >
+                {settingUpDatabase ? <RefreshCw className="animate-spin" size={16} /> : <Database size={16} />}
+                {settingUpDatabase ? 'Setting up...' : 'Setup Database'}
+              </button>
+            </div>
+          )}
+
           {/* No Project or Scenario Selected */}
           {(!selectedProject || !selectedScenario) && (
             <div className="group relative text-center py-8 text-gray-500 cursor-help">
