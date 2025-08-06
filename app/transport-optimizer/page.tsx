@@ -1529,9 +1529,50 @@ export default function TransportOptimizer() {
           }
 
           .scenario-city-tag {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.6rem;
-          }
+          font-size: 0.7rem;
+          padding: 0.2rem 0.6rem;
+        }
+
+        .warning-message {
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          text-align: center;
+        }
+
+        .warning-message h3 {
+          margin: 0 0 0.5rem 0;
+          color: #92400e;
+          font-size: 1.125rem;
+        }
+
+        .warning-message p {
+          margin: 0;
+          color: #6b7280;
+          line-height: 1.5;
+        }
+
+        .selected-scenario-info {
+          background: #f0fdf4;
+          border: 1px solid #10b981;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .selected-scenario-info h3 {
+          margin: 0 0 0.5rem 0;
+          color: #065f46;
+          font-size: 1.125rem;
+        }
+
+        .selected-scenario-info p {
+          margin: 0;
+          color: #6b7280;
+          line-height: 1.5;
+        }
 
           .tab-navigation {
             flex-wrap: wrap;
