@@ -976,6 +976,43 @@ export default function CapacityOptimizer() {
           font-size: 1.125rem;
         }
 
+        .action-button.secondary {
+          background: #6b7280;
+          color: white;
+        }
+
+        .action-button.secondary:hover {
+          background: #4b5563;
+        }
+
+        .action-button.small {
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .save-status {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .loading-text, .saving-text {
+          font-size: 0.875rem;
+          color: #6b7280;
+          font-style: italic;
+        }
+
+        .saving-text {
+          color: #3b82f6;
+        }
+
         .facilities-list {
           display: flex;
           flex-direction: column;
