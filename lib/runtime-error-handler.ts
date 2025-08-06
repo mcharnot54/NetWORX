@@ -313,7 +313,7 @@ export function enableMemoryLeakDetection(): void {
   window.clearInterval = function(id?: number | undefined) {
     intervalCount = Math.max(0, intervalCount - 1);
     console.debug(`Active intervals: ${intervalCount}`);
-    return originalClearInterval.apply(this, args);
+    return originalClearInterval.call(this, id);
   };
 
   // Similar for setTimeout/clearTimeout and addEventListener/removeEventListener
