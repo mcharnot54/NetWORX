@@ -7,6 +7,7 @@ import {
   Target, Activity, Building
 } from 'lucide-react';
 import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
+import { SafeAbortController, runtimeErrorHandler, safeAsync } from '@/lib/runtime-error-handler';
 import ErrorBoundary, { FetchErrorFallback } from './ErrorBoundary';
 
 interface Project {
