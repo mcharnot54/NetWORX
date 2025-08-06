@@ -209,6 +209,17 @@ export default function CapacityOptimizer() {
     }
   };
 
+  // Debounced auto-save function
+  const debouncedSave = () => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+    const newTimeout = setTimeout(() => {
+      saveConfiguration();
+    }, 2000); // Save after 2 seconds of inactivity
+    setSaveTimeout(newTimeout);
+  };
+
   const runCapacityAnalysis = async () => {
     if (!selectedScenario) {
       setAnalysisError('Please select a scenario first');
