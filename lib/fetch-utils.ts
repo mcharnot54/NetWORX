@@ -190,8 +190,12 @@ const fetchWithTimeout = async (
           true
         );
       } else {
-        // Provide a more specific error message for cancelled requests
-        const reason = error.message || 'Request was cancelled';
+        // Handle external cancellation more gracefully
+        const reason = options.signal?.aborted
+          ? 'Request was cancelled by external signal'
+          : (error.message && error.message !== 'signal is aborted without reason')
+            ? error.message
+            : 'Request was cancelled';
         throw new FetchError(
           `Request cancelled for ${url}: ${reason}`,
           undefined,
