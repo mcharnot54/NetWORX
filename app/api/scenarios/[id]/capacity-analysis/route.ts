@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/database';
-import { optimizeCapacityPlanning, type CapacityPlanningParams } from '@/lib/optimization-algorithms';
+import { optimizeCapacityPlanning, type CapacityPlanningParams, type WarehouseConfig } from '@/lib/optimization-algorithms';
 
 // Helper function to ensure required columns exist
 async function ensureCapacityAnalysisColumns() {
@@ -66,6 +66,9 @@ interface YearlyCapacityResult {
   available_capacity: number;
   capacity_gap: number;
   utilization_rate: number;
+  required_square_footage?: number;
+  required_pallets?: number;
+  warehouse_breakdown?: Record<string, number>;
   recommended_facilities: Array<{
     name: string;
     type: 'existing' | 'expansion' | 'new';
@@ -188,7 +191,45 @@ async function performCapacityAnalysis(
     }
   }
 
-  // Prepare optimization parameters
+  // Get warehouse configuration from database or use defaults
+  let warehouseConfig: WarehouseConfig | undefined;
+  let unitsData: { units_per_carton: number; cartons_per_pallet: number } | undefined;
+
+  try {
+    // Try to fetch warehouse configuration
+    const configResponse = await sql`
+      SELECT config_data FROM warehouse_configurations
+      WHERE scenario_id = ${scenarioId}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    if (configResponse.length > 0) {
+      warehouseConfig = configResponse[0].config_data as WarehouseConfig;
+    }
+
+    // Try to fetch units data from processed files
+    const unitsResponse = await sql`
+      SELECT metadata FROM files
+      WHERE project_id = (SELECT project_id FROM scenarios WHERE id = ${scenarioId})
+      AND file_type = 'processed'
+      AND metadata->>'units_per_carton' IS NOT NULL
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    if (unitsResponse.length > 0) {
+      const metadata = unitsResponse[0].metadata;
+      unitsData = {
+        units_per_carton: parseFloat(metadata.units_per_carton) || 12,
+        cartons_per_pallet: parseFloat(metadata.cartons_per_pallet) || 40
+      };
+    }
+  } catch (error) {
+    console.warn('Could not fetch warehouse config or units data:', error);
+  }
+
+  // Prepare optimization parameters with real warehouse configuration
   const optimizationParams: CapacityPlanningParams = {
     baseCapacity: baselineCapacity,
     growthForecasts: growthForecasts.map(forecast => ({
@@ -206,7 +247,9 @@ async function performCapacityAnalysis(
       utilization_target: projectConfig.default_utilization_rate
     })),
     project_duration_years: projectConfig.project_duration_years,
-    utilization_target: projectConfig.default_utilization_rate
+    utilization_target: projectConfig.default_utilization_rate,
+    warehouseConfig,
+    unitsData
   };
 
   // Run real capacity optimization
@@ -224,13 +267,39 @@ async function performCapacityAnalysis(
       const isExpansion = action.includes('Expand');
       const isNew = action.includes('Add new');
 
+      // Extract square footage from action text if available
+      let squareFootage = 0;
+      let capacityUnits = 0;
+
+      if (action.includes('sq ft')) {
+        const sqftMatch = action.match(/([\d,]+)\s+sq\s+ft/);
+        if (sqftMatch) {
+          squareFootage = parseInt(sqftMatch[1].replace(/,/g, ''));
+        }
+      }
+
+      if (action.includes('units capacity')) {
+        const unitsMatch = action.match(/([\d,]+)\s+units\s+capacity/);
+        if (unitsMatch) {
+          capacityUnits = parseInt(unitsMatch[1].replace(/,/g, ''));
+        }
+      }
+
+      // Fallback calculations if not found in action text
+      if (squareFootage === 0) {
+        squareFootage = yearResult.required_square_footage || Math.floor(yearResult.required_capacity * 0.5); // Fallback estimate
+      }
+      if (capacityUnits === 0) {
+        capacityUnits = Math.floor(yearResult.required_capacity * 0.1); // Estimate capacity units per facility
+      }
+
       return {
         name: isNew ? `New Facility ${yearResult.year}` :
               isExpansion ? action.split(' ')[1] + ' Expansion' :
               `Optimized Facility ${index + 1}`,
         type: isNew ? 'new' as const : isExpansion ? 'expansion' as const : 'existing' as const,
-        capacity_units: Math.floor(yearResult.required_capacity * 0.1), // Estimate capacity units per facility
-        square_feet: Math.floor(yearResult.required_capacity * 0.1) * 10, // 10 sq ft per unit
+        capacity_units: capacityUnits,
+        square_feet: squareFootage,
         estimated_cost: yearResult.total_cost / yearResult.recommended_actions.length
       };
     })
