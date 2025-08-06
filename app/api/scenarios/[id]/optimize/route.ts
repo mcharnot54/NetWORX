@@ -266,7 +266,7 @@ export async function GET(
 ) {
   try {
     const scenarioId = parseInt(params.id);
-    
+
     if (isNaN(scenarioId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid scenario ID' },
@@ -275,10 +275,18 @@ export async function GET(
     }
 
     const results = await OptimizationResultService.getOptimizationResults(scenarioId);
-    
+
+    // Transform results to include the optimization data in the expected format
+    const transformedResults = results.map((result: any) => ({
+      ...result,
+      optimization_results: result.results_data || {},
+      success: result.status === 'completed'
+    }));
+
     return NextResponse.json({
       success: true,
-      data: results
+      data: transformedResults,
+      results: transformedResults // Also provide in results key for backward compatibility
     });
   } catch (error) {
     console.error('Error fetching optimization results:', error);
