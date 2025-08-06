@@ -3,6 +3,7 @@ import "./globals.css";
 import { DataProvider } from "@/context/DataContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ConnectionStatus from "@/components/ConnectionStatus";
+import GlobalErrorHandler from "@/components/GlobalErrorHandler";
 
 export const metadata: Metadata = {
   title: "NetWORX Essentials",
