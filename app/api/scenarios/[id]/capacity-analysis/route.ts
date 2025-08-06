@@ -123,9 +123,10 @@ export async function POST(
       await sql`
         UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = ${scenarioId}
       `;
+      console.log('Marked capacity analysis as completed for scenario', scenarioId);
     } catch (error) {
       // If the column doesn't exist, just log it but don't fail the request
-      console.warn('Could not update capacity_analysis_completed column (column may not exist):', error);
+      console.warn('Could not update capacity_analysis_completed column:', error);
     }
 
     return NextResponse.json(analysisResult);
