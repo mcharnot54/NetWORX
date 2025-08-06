@@ -623,6 +623,50 @@ export default function TransportOptimizer() {
                     </div>
                   </div>
 
+                  <div className="analyzed-cities">
+                    <h3 className="subsection-title">Cities Included in Analysis</h3>
+                    <div className="cities-container">
+                      <div className="cities-list">
+                        {analysisResults.analyzedCities && analysisResults.analyzedCities.length > 0 ? (
+                          analysisResults.analyzedCities.map((city, index) => (
+                            <div key={index} className="city-tag">
+                              <span className="city-name">{city}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="no-cities">No cities data available for the analyzed scenarios.</p>
+                        )}
+                      </div>
+                      <div className="cities-meta">
+                        <span className="cities-count">
+                          {analysisResults.analyzedCities?.length || 0} cities analyzed
+                        </span>
+                        <span className="scenarios-info">
+                          across {analysisResults.scenariosAnalyzed} scenario{analysisResults.scenariosAnalyzed !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="analyzed-scenarios">
+                    <h3 className="subsection-title">Scenarios Analyzed</h3>
+                    <div className="scenarios-analyzed-list">
+                      {analysisResults.selectedScenarios?.map((scenario, index) => (
+                        <div key={index} className="analyzed-scenario-card">
+                          <div className="scenario-info-header">
+                            <h4 className="analyzed-scenario-name">{scenario.scenario_name}</h4>
+                            <div className="scenario-type-badge">{scenario.scenario_type.replace(/_/g, ' ').toUpperCase()}</div>
+                          </div>
+                          <div className="scenario-metrics-row">
+                            <span className="metric-item">Cost: ${scenario.total_cost?.toLocaleString()}</span>
+                            <span className="metric-item">Miles: {scenario.total_miles?.toLocaleString()}</span>
+                            <span className="metric-item">Service: {scenario.service_score}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="best-scenarios">
                     <h3 className="subsection-title">Best Performing Scenarios</h3>
                     
