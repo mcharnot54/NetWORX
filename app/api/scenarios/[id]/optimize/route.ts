@@ -50,8 +50,8 @@ export async function POST(
           TransportConfigService.getTransportConfigs(scenarioId)
         ]);
 
-        // Simulate optimization calculations
-        const results = await simulateOptimization({
+        // Perform real optimization calculations
+        const results = await performRealOptimization({
           scenario,
           warehouseConfigs,
           transportConfigs,
