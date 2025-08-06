@@ -525,12 +525,14 @@ export default function DataProcessor() {
                 </button>
               </div>
             )}>
-              <ProjectScenarioManager
-                selectedProject={selectedProject}
-                selectedScenario={selectedScenario}
-                onSelectProject={setSelectedProject}
-                onSelectScenario={setSelectedScenario}
-              />
+              {selectedProject !== undefined && selectedScenario !== undefined && (
+                <ProjectScenarioManager
+                  selectedProject={selectedProject}
+                  selectedScenario={selectedScenario}
+                  onSelectProject={setSelectedProject}
+                  onSelectScenario={setSelectedScenario}
+                />
+              )}
             </ErrorBoundary>
           </div>
 
