@@ -7,6 +7,7 @@ import {
   Target, Activity, Building
 } from 'lucide-react';
 import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
+import { SafeAbortController, runtimeErrorHandler, safeAsync } from '@/lib/runtime-error-handler';
 import ErrorBoundary, { FetchErrorFallback } from './ErrorBoundary';
 
 interface Project {
@@ -76,33 +77,33 @@ export default function ProjectScenarioManager({
   });
 
   useEffect(() => {
-    let abortController: AbortController | null = null;
+    let isCleanedUp = false;
+    const componentId = 'project-scenario-manager';
 
     const initializeFetch = async () => {
-      if (!isMounted) return;
+      if (isCleanedUp) return;
 
-      try {
-        abortController = new AbortController();
-        await fetchProjects(abortController.signal);
-      } catch (error) {
-        if (isMounted && !abortController?.signal.aborted) {
-          console.warn('Error initializing project fetch:', error);
+      await safeAsync(async () => {
+        const controller = new SafeAbortController('project-fetch');
+        try {
+          await fetchProjects(controller.signal);
+        } finally {
+          controller.cleanup();
         }
-      }
+      }, 'initializeFetch');
     };
 
     initializeFetch();
 
+    // Register cleanup
+    runtimeErrorHandler.registerCleanup(componentId, () => {
+      isCleanedUp = true;
+    }, 5);
+
     return () => {
-      if (abortController && !abortController.signal.aborted) {
-        try {
-          abortController.abort('Component unmounting');
-        } catch (error) {
-          // Ignore errors when aborting
-          console.debug('Error aborting controller on unmount:', error);
-        }
-      }
+      isCleanedUp = true;
       setIsMounted(false);
+      runtimeErrorHandler.executeCleanup(componentId);
     };
   }, []);
 
@@ -119,7 +120,6 @@ export default function ProjectScenarioManager({
 
       // Check if request was aborted before proceeding
       if (signal?.aborted) {
-        console.debug('Request was aborted, stopping project fetch');
         return;
       }
 
@@ -193,8 +193,12 @@ export default function ProjectScenarioManager({
         setScenarios({});
 
         // Show user-friendly error message for fetch failures (but only if not cancelled)
-        if (error instanceof FetchError && !error.message.includes('cancelled')) {
-          alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+        if (error instanceof FetchError &&
+            !error.message.includes('cancelled') &&
+            !error.message.includes('aborted') &&
+            !error.message.includes('Request was cancelled')) {
+          console.error('Project fetch error:', error);
+          // Note: Removed alert to prevent user interruption - errors are logged instead
         }
       }
     } finally {

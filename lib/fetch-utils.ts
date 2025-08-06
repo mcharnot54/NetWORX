@@ -115,6 +115,7 @@ const fetchWithTimeout = async (
   const controller = new AbortController();
 
   // Handle external signal if provided
+  let externalAbortHandler: (() => void) | null = null;
   if (options.signal) {
     // Check if already aborted
     if (options.signal.aborted) {
@@ -122,8 +123,16 @@ const fetchWithTimeout = async (
     }
 
     // Listen for external abort
-    const abortHandler = () => controller.abort();
-    options.signal.addEventListener('abort', abortHandler, { once: true });
+    externalAbortHandler = () => {
+      try {
+        if (!controller.signal.aborted) {
+          controller.abort();
+        }
+      } catch (error) {
+        // Ignore errors when aborting
+      }
+    };
+    options.signal.addEventListener('abort', externalAbortHandler, { once: true });
   }
 
   // Set up timeout with proper error handling
@@ -143,9 +152,28 @@ const fetchWithTimeout = async (
     });
 
     clearTimeout(timeoutId);
+
+    // Clean up external abort handler
+    if (externalAbortHandler && options.signal) {
+      try {
+        options.signal.removeEventListener('abort', externalAbortHandler);
+      } catch (error) {
+        // Ignore cleanup errors
+      }
+    }
+
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
+
+    // Clean up external abort handler
+    if (externalAbortHandler && options.signal) {
+      try {
+        options.signal.removeEventListener('abort', externalAbortHandler);
+      } catch (error) {
+        // Ignore cleanup errors
+      }
+    }
 
     // Handle AbortError specifically
     if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
@@ -162,8 +190,12 @@ const fetchWithTimeout = async (
           true
         );
       } else {
-        // Provide a more specific error message for cancelled requests
-        const reason = error.message || 'Request was cancelled';
+        // Handle external cancellation more gracefully
+        const reason = options.signal?.aborted
+          ? 'Request was cancelled by external signal'
+          : (error.message && error.message !== 'signal is aborted without reason')
+            ? error.message
+            : 'Request was cancelled';
         throw new FetchError(
           `Request cancelled for ${url}: ${reason}`,
           undefined,
@@ -246,7 +278,9 @@ const _robustFetch = async (
 
       // Handle AbortError - never retry aborted requests
       if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
-        const reason = lastError.message || 'Request was cancelled';
+        const reason = (lastError.message && lastError.message !== 'signal is aborted without reason')
+          ? lastError.message
+          : 'Request was cancelled';
         throw new FetchError(`Request was cancelled: ${reason}`, undefined, undefined, false, false);
       }
 
@@ -281,7 +315,9 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
 
       // Convert AbortErrors to FetchErrors with more context
       if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
-        const reason = errorMessage || 'unknown reason';
+        const reason = (errorMessage && errorMessage !== 'signal is aborted without reason')
+          ? errorMessage
+          : 'request was cancelled';
         throw new FetchError(
           `Request aborted in ${context}: ${reason}`,
           undefined,

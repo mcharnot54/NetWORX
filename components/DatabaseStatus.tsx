@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Database, Check, AlertCircle, RefreshCw } from 'lucide-react';
-import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
+import { robustFetchJson, FetchError } from '@/lib/fetch-utils';
+import { SafeAbortController, runtimeErrorHandler, safeAsync } from '@/lib/runtime-error-handler';
 
 interface DatabaseInfo {
   success: boolean;
-  database_schema?: any;
   error?: string;
+  database_url?: string;
+  connection_pool?: any;
+  version?: string;
 }
 
 export default function DatabaseStatus() {
@@ -19,215 +22,234 @@ export default function DatabaseStatus() {
   const checkDatabaseStatus = async () => {
     if (!isMounted) return;
 
-    try {
-      const result = await robustFetchJson('/api/init-db', {
-        timeout: 10000,
-        retries: 2,
-      });
-
-      if (isMounted) {
-        setDbStatus(result);
-        setLastChecked(new Date());
-      }
-    } catch (error) {
-      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
-        console.error('Error checking database status:', error);
-        setDbStatus({
-          success: false,
-          error: error instanceof FetchError ? error.message : 'Failed to connect to database'
+    const result = await safeAsync(async () => {
+      const controller = new SafeAbortController('db-status-check');
+      
+      try {
+        const result = await robustFetchJson('/api/init-db', {
+          timeout: 10000,
+          retries: 2,
+          signal: controller.signal,
         });
-        setLastChecked(new Date());
+
+        if (isMounted && !controller.aborted) {
+          setDbStatus(result);
+          setLastChecked(new Date());
+        }
+        
+        return result;
+      } finally {
+        controller.cleanup();
       }
+    }, 'checkDatabaseStatus');
+
+    if (!result && isMounted) {
+      setDbStatus({
+        success: false,
+        error: 'Failed to connect to database'
+      });
+      setLastChecked(new Date());
     }
   };
 
   const initializeDatabase = async () => {
-    if (!isMounted) return;
+    if (!isMounted || isInitializing) return;
 
     setIsInitializing(true);
-    try {
-      const result = await robustPost('/api/init-db', {}, {
-        timeout: 15000,
-        retries: 2,
-      });
-
-      if (!isMounted) return;
-
-      if (result.success) {
-        console.log('✅ Database initialized successfully');
-        await checkDatabaseStatus(); // Refresh status
-      } else {
-        console.error('❌ Database initialization failed:', result.error);
-        setDbStatus(result);
-      }
-    } catch (error) {
-      if (isMounted && error instanceof Error && !error.message.includes('cancelled')) {
-        console.error('❌ Error initializing database:', error);
-        setDbStatus({
-          success: false,
-          error: error instanceof FetchError ? error.message : 'Failed to initialize database'
+    
+    const result = await safeAsync(async () => {
+      const controller = new SafeAbortController('db-init');
+      
+      try {
+        const result = await robustFetchJson('/api/setup-db', {
+          timeout: 30000,
+          retries: 1,
+          signal: controller.signal,
         });
+
+        if (isMounted && !controller.aborted) {
+          if (result.success) {
+            console.log('✅ Database initialized successfully');
+            setDbStatus(result);
+          } else {
+            console.error('❌ Database initialization failed:', result.error);
+            setDbStatus(result);
+          }
+          setLastChecked(new Date());
+        }
+        
+        return result;
+      } finally {
+        controller.cleanup();
       }
-    } finally {
-      if (isMounted) {
-        setIsInitializing(false);
-      }
+    }, 'initializeDatabase');
+
+    if (!result && isMounted) {
+      setDbStatus({
+        success: false,
+        error: 'Database initialization failed'
+      });
+      setLastChecked(new Date());
+    }
+
+    if (isMounted) {
+      setIsInitializing(false);
     }
   };
 
   useEffect(() => {
-    checkDatabaseStatus();
-    return () => setIsMounted(false);
+    let isCleanedUp = false;
+    const componentId = 'database-status-component';
+
+    const initComponent = async () => {
+      if (isCleanedUp) return;
+      await checkDatabaseStatus();
+    };
+
+    initComponent();
+
+    // Register cleanup
+    runtimeErrorHandler.registerCleanup(componentId, () => {
+      isCleanedUp = true;
+    }, 5);
+
+    return () => {
+      isCleanedUp = true;
+      setIsMounted(false);
+      runtimeErrorHandler.executeCleanup(componentId);
+    };
   }, []);
 
-  const hasProjectsTable = dbStatus?.database_schema?.projects?.length > 0;
-  const hasScenariosTable = dbStatus?.database_schema?.scenarios?.length > 0;
-  const hasProjectIdColumn = dbStatus?.database_schema?.scenarios?.some(
-    (col: any) => col.column === 'project_id'
-  );
+  const getStatusColor = () => {
+    if (!dbStatus) return '#6b7280'; // gray
+    return dbStatus.success ? '#10b981' : '#ef4444'; // green or red
+  };
 
-  const isDatabaseReady = dbStatus?.success && hasProjectsTable && hasScenariosTable && hasProjectIdColumn;
+  const getStatusIcon = () => {
+    if (!dbStatus) return <Database size={16} className="animate-pulse" />;
+    return dbStatus.success ? <Check size={16} /> : <AlertCircle size={16} />;
+  };
+
+  const getStatusText = () => {
+    if (!dbStatus) return 'Checking...';
+    return dbStatus.success ? 'Connected' : 'Error';
+  };
 
   return (
-    <div style={{
-      backgroundColor: isDatabaseReady ? '#f0f9ff' : '#fef2f2',
-      border: `2px solid ${isDatabaseReady ? '#3b82f6' : '#ef4444'}`,
-      borderRadius: '0.75rem',
-      padding: '1rem',
-      marginBottom: '1.5rem'
-    }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '0.75rem'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <Database size={20} style={{ 
-            color: isDatabaseReady ? '#3b82f6' : '#ef4444' 
-          }} />
-          <h4 style={{
-            margin: 0,
-            color: '#1f2937',
-            fontSize: '1rem',
-            fontWeight: '600'
-          }}>
-            Database Status
-          </h4>
-          {isDatabaseReady ? (
-            <Check size={16} style={{ color: '#10b981' }} />
-          ) : (
-            <AlertCircle size={16} style={{ color: '#ef4444' }} />
-          )}
+    <div className="database-status">
+      <div className="status-header">
+        <div 
+          className="status-indicator"
+          style={{ color: getStatusColor() }}
+        >
+          {getStatusIcon()}
+          <span>Database: {getStatusText()}</span>
         </div>
-
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem'
-        }}>
+        
+        {dbStatus && !dbStatus.success && (
           <button
-            onClick={checkDatabaseStatus}
+            onClick={initializeDatabase}
             disabled={isInitializing}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              padding: '0.375rem 0.75rem',
-              backgroundColor: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.375rem',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              color: '#6b7280'
-            }}
+            className="init-button"
+            title="Initialize Database"
           >
-            <RefreshCw size={12} />
-            Check
+            {isInitializing ? (
+              <RefreshCw size={14} className="animate-spin" />
+            ) : (
+              <RefreshCw size={14} />
+            )}
           </button>
-
-          {!isDatabaseReady && (
-            <button
-              onClick={initializeDatabase}
-              disabled={isInitializing}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                padding: '0.375rem 0.75rem',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.375rem',
-                fontSize: '0.75rem',
-                cursor: isInitializing ? 'not-allowed' : 'pointer',
-                opacity: isInitializing ? 0.6 : 1
-              }}
-            >
-              {isInitializing ? (
-                <>
-                  <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                  Initializing...
-                </>
-              ) : (
-                <>
-                  <Database size={12} />
-                  Initialize DB
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div style={{
-        fontSize: '0.875rem',
-        color: '#6b7280',
-        marginBottom: '0.5rem'
-      }}>
-        {isDatabaseReady ? (
-          'Database is properly configured and ready for use.'
-        ) : dbStatus?.success === false ? (
-          `Database connection failed: ${dbStatus.error}`
-        ) : (
-          'Database schema is incomplete or missing required tables.'
         )}
       </div>
 
+      {dbStatus && !dbStatus.success && dbStatus.error && (
+        <div className="error-message">
+          {dbStatus.error}
+        </div>
+      )}
+
       {lastChecked && (
-        <div style={{
-          fontSize: '0.75rem',
-          color: '#9ca3af'
-        }}>
+        <div className="last-checked">
           Last checked: {lastChecked.toLocaleTimeString()}
         </div>
       )}
 
-      {dbStatus?.success && !isDatabaseReady && (
-        <div style={{
-          marginTop: '0.75rem',
-          fontSize: '0.75rem',
-          color: '#374151'
-        }}>
-          <div>Schema status:</div>
-          <ul style={{ margin: '0.25rem 0', paddingLeft: '1rem' }}>
-            <li style={{ color: hasProjectsTable ? '#10b981' : '#ef4444' }}>
-              Projects table: {hasProjectsTable ? '✓' : '✗'}
-            </li>
-            <li style={{ color: hasScenariosTable ? '#10b981' : '#ef4444' }}>
-              Scenarios table: {hasScenariosTable ? '✓' : '✗'}
-            </li>
-            <li style={{ color: hasProjectIdColumn ? '#10b981' : '#ef4444' }}>
-              Project ID column: {hasProjectIdColumn ? '✓' : '✗'}
-            </li>
-          </ul>
-        </div>
-      )}
-
       <style jsx>{`
+        .database-status {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          padding: 0.75rem;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+        }
+
+        .status-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .status-indicator {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-weight: 500;
+          transition: color 0.3s ease;
+        }
+
+        .init-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.25rem;
+          background: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 0.25rem;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+
+        .init-button:hover:not(:disabled) {
+          background: #2563eb;
+        }
+
+        .init-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .error-message {
+          color: #dc2626;
+          font-size: 0.75rem;
+          background: #fef2f2;
+          padding: 0.5rem;
+          border-radius: 0.25rem;
+          border: 1px solid #fecaca;
+        }
+
+        .last-checked {
+          color: #6b7280;
+          font-size: 0.75rem;
+        }
+
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
