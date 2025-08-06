@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
   try {
     // Test database connection first
     try {
-      await DataFileService.getDataFiles(0); // Quick connectivity test
+      const { sql } = await import('@/lib/database');
+      await sql`SELECT 1`;
     } catch (dbError) {
       console.error('Database connection failed:', dbError);
       return NextResponse.json({
