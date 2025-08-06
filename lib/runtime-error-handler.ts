@@ -203,8 +203,8 @@ export function withErrorBoundary<T extends {}>(
   fallback?: React.ComponentType<{ error: Error; retry: () => void }>
 ): React.ComponentType<T> {
   const React = require('react');
-  
-  return class ErrorBoundaryWrapper extends React.Component<T, { hasError: boolean; error?: Error }> {
+
+  const ErrorBoundaryWrapper = class extends React.Component<T, { hasError: boolean; error?: Error }> {
     constructor(props: T) {
       super(props);
       this.state = { hasError: false };
