@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         id SERIAL PRIMARY KEY,
         scenario_id INTEGER REFERENCES scenarios(id) ON DELETE CASCADE,
         file_name VARCHAR(255) NOT NULL,
-        file_type VARCHAR(50),
+        file_type VARCHAR(100),
         file_size INTEGER,
         data_type VARCHAR(50),
         upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
