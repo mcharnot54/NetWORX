@@ -121,7 +121,6 @@ export default function ProjectScenarioManager({
 
       // Check if request was aborted before proceeding
       if (signal?.aborted) {
-        console.debug('Request was aborted, stopping project fetch');
         return;
       }
 
