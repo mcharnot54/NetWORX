@@ -109,6 +109,46 @@ export default function DataProcessor() {
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
   };
 
+  // Check database readiness on component mount
+  useEffect(() => {
+    checkDatabaseReadiness();
+  }, []);
+
+  const checkDatabaseReadiness = async () => {
+    try {
+      const response = await fetch('/api/test-db');
+      const result = await response.json();
+      setDatabaseReady(result.success);
+      if (!result.success) {
+        addToLog('⚠ Database connection issue detected');
+      }
+    } catch (error) {
+      setDatabaseReady(false);
+      addToLog('⚠ Could not check database status');
+    }
+  };
+
+  const setupDatabase = async () => {
+    setSettingUpDatabase(true);
+    addToLog('Setting up database tables...');
+
+    try {
+      const response = await fetch('/api/setup-db', { method: 'POST' });
+      const result = await response.json();
+
+      if (result.success) {
+        setDatabaseReady(true);
+        addToLog('✓ Database setup completed successfully');
+      } else {
+        addToLog(`✗ Database setup failed: ${result.error}`);
+      }
+    } catch (error) {
+      addToLog(`✗ Database setup error: ${error}`);
+    } finally {
+      setSettingUpDatabase(false);
+    }
+  };
+
   // Load saved files when scenario changes
   useEffect(() => {
     if (selectedScenario?.id) {
@@ -685,7 +725,7 @@ export default function DataProcessor() {
                     <div>• <strong>Data types:</strong> Forecast, SKU, Network, Operational, Financial, Sales</div>
                     <div>• <strong>Persistent storage:</strong> Files are automatically saved and will persist between sessions</div>
                     <div className="text-xs text-blue-600 mt-2">
-                      �� Check the "Data Templates" tab to see required column structures
+                      💡 Check the "Data Templates" tab to see required column structures
                     </div>
                   </div>
                 </div>
