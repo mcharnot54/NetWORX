@@ -74,6 +74,9 @@ export async function POST(
     const scenarioId = parseInt(params.id);
     const data: CapacityAnalysisRequest = await request.json();
 
+    // Ensure required columns exist in scenarios table
+    await ensureCapacityAnalysisColumns();
+
     // Validate scenario exists
     const scenarioResult = await sql`
       SELECT * FROM scenarios WHERE id = ${scenarioId}
