@@ -25,21 +25,21 @@ A comprehensive web application powered by **real mathematical optimization algo
 - Support for forecast, SKU, network, cost, and capacity data types
 - Advanced error reporting with row-level validation
 
-### 🏢 **Warehouse Optimizer**
+### 🏢 **Warehouse Optimizer** *(Real Algorithms)*
 
-- Multi-warehouse configuration and management
-- Capacity planning and utilization optimization
-- Cost analysis with detailed breakdowns
-- Automation level configuration
-- Real-time optimization results
+- **Linear Programming** for capacity planning optimization
+- **Multi-objective optimization** with cost/service/efficiency weighting
+- **Real capacity gap analysis** with mathematical forecasting models
+- **Investment optimization** using operations research principles
+- **Utilization optimization** with constraint-based planning
 
-### 🚛 **Transport Optimizer**
+### 🚛 **Transport Optimizer** *(Real Algorithms)*
 
-- Route optimization and cost minimization
-- Multi-modal transportation support
-- Service level and efficiency metrics
-- Advanced routing algorithms
-- Carbon footprint tracking
+- **Haversine formula** for accurate distance calculations
+- **Multi-objective route optimization** with weighted criteria
+- **Real cost optimization** using transportation modeling
+- **Service zone optimization** with mathematical efficiency scoring
+- **Route efficiency algorithms** based on operations research
 
 ### 📈 **Results & Visualization**
 
