@@ -365,7 +365,7 @@ export default function CapacityOptimizer() {
                         ...projectConfig,
                         base_year: parseInt(e.target.value) || new Date().getFullYear()
                       });
-                      setTimeout(() => saveConfiguration(), 1000);
+                      debouncedSave();
                     }}
                     min="2020"
                     max="2040"
