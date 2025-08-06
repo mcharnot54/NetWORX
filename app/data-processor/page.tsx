@@ -409,8 +409,8 @@ export default function DataProcessor() {
       }
     }
 
-    setFiles(processedFiles);
-    addToLog(`Upload complete. ${processedFiles.length} files ready for validation.`);
+    setFiles(prevFiles => [...prevFiles, ...processedFiles]);
+    addToLog(`Upload complete. ${processedFiles.length} files added, ${files.length + processedFiles.length} total files ready for validation.`);
   };
 
   const validateFileData = async (fileIndex: number) => {
