@@ -151,8 +151,15 @@ export default function CapacityOptimizer() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to run capacity analysis' }));
-        throw new Error(errorData.error || 'Failed to run capacity analysis');
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || 'Failed to run capacity analysis' };
+        }
+        console.error('API Response Error:', response.status, errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${errorText || 'Failed to run capacity analysis'}`);
       }
 
       const responseData = await response.json();
