@@ -86,6 +86,7 @@ export default function CapacityOptimizer() {
   const [activeTab, setActiveTab] = useState<'projects' | 'config' | 'growth' | 'facilities' | 'analysis'>('projects');
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Load configuration when scenario changes
   useEffect(() => {
