@@ -416,7 +416,7 @@ export class DataFileService {
       VALUES (
         ${data.scenario_id}, ${data.file_name}, ${data.file_type}, ${data.file_size || null},
         ${data.data_type}, ${data.processing_status}, ${JSON.stringify(data.validation_result)},
-        ${JSON.stringify(data.processed_data || null)}, ${data.original_columns || null},
+        ${JSON.stringify(data.processed_data || null)}, ${JSON.stringify(data.original_columns || null)},
         ${JSON.stringify(data.mapped_columns)}
       )
       RETURNING *
