@@ -203,13 +203,22 @@ export default function TransportOptimizer() {
   };
 
   const updateConfiguration = (section: keyof TransportConfiguration, updates: any) => {
-    setConfiguration(prev => ({
-      ...prev,
-      [section]: {
-        ...(prev[section] as object),
-        ...updates
+    setConfiguration(prev => {
+      if (typeof prev[section] === 'object' && prev[section] !== null) {
+        return {
+          ...prev,
+          [section]: {
+            ...(prev[section] as object),
+            ...updates
+          }
+        };
+      } else {
+        return {
+          ...prev,
+          [section]: updates
+        };
       }
-    }));
+    });
   };
 
   return (
