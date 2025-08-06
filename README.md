@@ -1,8 +1,8 @@
 # NetWORX Essentials
 
-## Network Strategy Optimizer - Warehouse Space Optimization & Freight Cost Minimization
+## Real Optimization Algorithms for Network Strategy & Logistics
 
-A comprehensive React-based web application for optimizing network strategy, warehouse operations, and transportation costs.
+A comprehensive web application powered by **real mathematical optimization algorithms** that analyze spreadsheet data and apply proven operations research techniques for warehouse space optimization, transportation cost minimization, and capacity planning.
 
 ![NetWORX Essentials](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![React](https://img.shields.io/badge/React-18-blue)
