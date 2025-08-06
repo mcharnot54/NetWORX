@@ -404,9 +404,14 @@ export default function CapacityOptimizer() {
 
           {activeTab === 'growth' && (
             <div className="tab-content">
-              <h2 className="section-title">Annual Growth Forecasts</h2>
+              <div className="section-header">
+                <h2 className="section-title">Annual Growth Forecasts</h2>
+                <div className="save-status">
+                  {isSavingConfig && <span className="saving-text">Auto-saving...</span>}
+                </div>
+              </div>
               <p className="section-description">
-                Configure expected growth rates for each year. You can mix actual data, forecasts, 
+                Configure expected growth rates for each year. You can mix actual data, forecasts,
                 and linear projections.
               </p>
 
