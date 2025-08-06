@@ -154,17 +154,19 @@ export async function POST(
   }
 }
 
+import { optimizeCapacityPlanning, type CapacityPlanningParams } from '@/lib/optimization-algorithms';
+
 async function performCapacityAnalysis(
   scenarioId: number,
   data: CapacityAnalysisRequest
 ): Promise<CapacityAnalysisResult> {
   const { projectConfig, growthForecasts, facilities } = data;
-  const yearlyResults: YearlyCapacityResult[] = [];
-  let totalInvestment = 0;
 
-  // Get baseline capacity from current year (assuming we have some initial data)
+  console.log('Starting REAL capacity optimization analysis for scenario:', scenarioId);
+
+  // Get baseline capacity from current year facilities
   let baselineCapacity = facilities.reduce((sum, facility) => sum + facility.capacity_units, 0);
-  
+
   // If no facilities provided, estimate baseline from scenario data or use default
   if (baselineCapacity === 0) {
     try {
@@ -187,7 +189,55 @@ async function performCapacityAnalysis(
     }
   }
 
-  let currentCapacity = baselineCapacity;
+  // Prepare optimization parameters
+  const optimizationParams: CapacityPlanningParams = {
+    baseCapacity: baselineCapacity,
+    growthForecasts: growthForecasts.map(forecast => ({
+      year: projectConfig.base_year + forecast.year_number,
+      growth_rate: forecast.units_growth_rate || 5,
+      absolute_demand: forecast.absolute_units
+    })),
+    facilities: facilities.map(facility => ({
+      name: facility.name,
+      city: facility.city,
+      state: facility.state,
+      capacity: facility.capacity_units,
+      cost_per_unit: (facility.lease_rate_per_sqft || 10) * 10, // Estimate cost per unit
+      fixed_cost: facility.square_feet * (facility.lease_rate_per_sqft || 10),
+      utilization_target: projectConfig.default_utilization_rate
+    })),
+    project_duration_years: projectConfig.project_duration_years,
+    utilization_target: projectConfig.default_utilization_rate
+  };
+
+  // Run real capacity optimization
+  console.log('Running real capacity optimization algorithm with params:', optimizationParams);
+  const optimizationResult = optimizeCapacityPlanning(optimizationParams);
+
+  // Convert optimization results to the expected format
+  const yearlyResults: YearlyCapacityResult[] = optimizationResult.yearly_results.map(yearResult => ({
+    year: yearResult.year,
+    required_capacity: yearResult.required_capacity,
+    available_capacity: yearResult.available_capacity,
+    capacity_gap: yearResult.capacity_gap,
+    utilization_rate: yearResult.utilization_rate,
+    recommended_facilities: yearResult.recommended_actions.map((action, index) => {
+      const isExpansion = action.includes('Expand');
+      const isNew = action.includes('Add new');
+
+      return {
+        name: isNew ? `New Facility ${yearResult.year}` :
+              isExpansion ? action.split(' ')[1] + ' Expansion' :
+              `Optimized Facility ${index + 1}`,
+        type: isNew ? 'new' as const : isExpansion ? 'expansion' as const : 'existing' as const,
+        capacity_units: Math.floor(yearResult.required_capacity * 0.1), // Estimate capacity units per facility
+        square_feet: Math.floor(yearResult.required_capacity * 0.1) * 10, // 10 sq ft per unit
+        estimated_cost: yearResult.total_cost / yearResult.recommended_actions.length
+      };
+    })
+  }));
+
+  const totalInvestment = optimizationResult.total_investment;
   
   for (let yearIndex = 0; yearIndex < projectConfig.project_duration_years; yearIndex++) {
     const year = projectConfig.base_year + yearIndex;
