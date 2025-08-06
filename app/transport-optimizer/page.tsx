@@ -1159,6 +1159,115 @@ export default function TransportOptimizer() {
           line-height: 1.6;
         }
 
+        .analyzed-cities {
+          margin-bottom: 2rem;
+        }
+
+        .cities-container {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+
+        .cities-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .city-tag {
+          background: #3b82f6;
+          color: white;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .city-name {
+          display: flex;
+          align-items: center;
+        }
+
+        .cities-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.875rem;
+          color: #6b7280;
+        }
+
+        .cities-count {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .no-cities {
+          color: #9ca3af;
+          font-style: italic;
+          margin: 0;
+        }
+
+        .analyzed-scenarios {
+          margin-bottom: 2rem;
+        }
+
+        .scenarios-analyzed-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .analyzed-scenario-card {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+
+        .scenario-info-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 1rem;
+        }
+
+        .analyzed-scenario-name {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 600;
+          color: #1f2937;
+          flex: 1;
+          margin-right: 1rem;
+        }
+
+        .scenario-type-badge {
+          background: #e0f2fe;
+          color: #0c4a6e;
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        .scenario-metrics-row {
+          display: flex;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .metric-item {
+          font-size: 0.875rem;
+          color: #6b7280;
+          font-weight: 500;
+        }
+
         @media (max-width: 768px) {
           .config-grid,
           .scenarios-grid,
