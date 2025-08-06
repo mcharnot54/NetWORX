@@ -320,16 +320,39 @@ export default function TransportOptimizer() {
     }
   };
 
-  const generateMockRouteDetails = (): RouteDetail[] => {
-    const routes = [
-      { origin: 'Chicago, IL', destination: 'New York, NY', service_zone: 'Zone 3' },
-      { origin: 'Los Angeles, CA', destination: 'Phoenix, AZ', service_zone: 'Zone 2' },
-      { origin: 'Dallas, TX', destination: 'Houston, TX', service_zone: 'Zone 1' },
-      { origin: 'Atlanta, GA', destination: 'Miami, FL', service_zone: 'Zone 2' },
-      { origin: 'Seattle, WA', destination: 'Portland, OR', service_zone: 'Zone 1' }
+  const generateMockRouteDetails = (cities?: string[]): RouteDetail[] => {
+    let routeCities = cities || [
+      'Chicago, IL', 'New York, NY', 'Los Angeles, CA', 'Phoenix, AZ', 'Dallas, TX'
     ];
 
-    return routes.map(route => ({
+    const routes = [];
+
+    // Generate routes between each pair of cities
+    for (let i = 0; i < routeCities.length; i++) {
+      for (let j = i + 1; j < routeCities.length; j++) {
+        routes.push({
+          origin: routeCities[i],
+          destination: routeCities[j],
+          service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`
+        });
+      }
+    }
+
+    // If we don't have enough routes, add some more with the available cities
+    while (routes.length < 5 && routeCities.length >= 2) {
+      const origin = routeCities[Math.floor(Math.random() * routeCities.length)];
+      const destination = routeCities[Math.floor(Math.random() * routeCities.length)];
+
+      if (origin !== destination && !routes.find(r => r.origin === origin && r.destination === destination)) {
+        routes.push({
+          origin,
+          destination,
+          service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`
+        });
+      }
+    }
+
+    return routes.slice(0, 10).map(route => ({
       ...route,
       distance_miles: Math.floor(Math.random() * 800) + 200,
       cost_per_mile: Math.random() * 2 + 1.5,
