@@ -1,6 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/database';
 
+// Helper function to ensure required columns exist
+async function ensureCapacityAnalysisColumns() {
+  try {
+    const columnCheck = await sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'scenarios'
+      AND column_name = 'capacity_analysis_completed'
+    `;
+
+    if (columnCheck.length === 0) {
+      console.log('Adding missing capacity_analysis_completed column...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN capacity_analysis_completed BOOLEAN DEFAULT false
+      `;
+      console.log('Successfully added capacity_analysis_completed column');
+    }
+  } catch (error) {
+    console.warn('Could not ensure capacity analysis columns exist:', error);
+  }
+}
+
 interface CapacityAnalysisRequest {
   projectConfig: {
     default_lease_term_years: number;
