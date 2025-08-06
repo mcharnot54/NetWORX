@@ -337,10 +337,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.base_year}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      base_year: parseInt(e.target.value) || new Date().getFullYear()
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        base_year: parseInt(e.target.value) || new Date().getFullYear()
+                      });
+                      setTimeout(() => saveConfiguration(), 1000);
+                    }}
                     min="2020"
                     max="2040"
                   />
@@ -352,10 +355,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.default_lease_term_years}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      default_lease_term_years: parseInt(e.target.value) || 7
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        default_lease_term_years: parseInt(e.target.value) || 7
+                      });
+                      setTimeout(() => saveConfiguration(), 1000);
+                    }}
                     min="1"
                     max="20"
                   />
@@ -367,10 +373,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.default_utilization_rate}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      default_utilization_rate: parseFloat(e.target.value) || 80
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        default_utilization_rate: parseFloat(e.target.value) || 80
+                      });
+                      setTimeout(() => saveConfiguration(), 1000);
+                    }}
                     min="0"
                     max="100"
                     step="0.1"
