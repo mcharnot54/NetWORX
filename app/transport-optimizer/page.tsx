@@ -652,23 +652,35 @@ export default function TransportOptimizer() {
             <div className="tab-content">
               <h2 className="section-title">Scenario Generation</h2>
               <p className="section-description">
-                Generate transport optimization scenarios based on different criteria. 
-                Each scenario will be optimized for specific objectives.
+                Generate transport optimization scenarios based on capacity analysis data.
+                Each scenario will use real cities and optimization algorithms to provide accurate results.
               </p>
 
+              {!selectedScenario ? (
+                <div className="warning-message">
+                  <h3>⚠️ No Scenario Selected</h3>
+                  <p>Please select a scenario from the "Projects & Scenarios" tab first. Transport optimization requires capacity analysis data to determine the cities and requirements.</p>
+                </div>
+              ) : (
+                <div className="selected-scenario-info">
+                  <h3>Selected Scenario: {selectedScenario.name}</h3>
+                  <p>Cities from capacity analysis will be used for transport optimization</p>
+                </div>
+              )}
+
               <div className="generation-actions">
-                <button 
+                <button
                   className="action-button primary large"
                   onClick={generateScenarios}
-                  disabled={isGenerating}
+                  disabled={isGenerating || !selectedScenario}
                 >
                   {isGenerating ? (
                     <>
                       <div className="loading-spinner"></div>
-                      Generating Scenarios...
+                      {isLoadingCapacityData ? 'Loading Capacity Data...' : 'Generating Scenarios...'}
                     </>
                   ) : (
-                    'Generate All Scenarios'
+                    `Generate All Scenarios${selectedScenario ? ` for ${selectedScenario.name}` : ''}`
                   )}
                 </button>
               </div>
