@@ -209,8 +209,8 @@ export default function ProjectScenarioManager({
         }
       }
     } finally {
-      // Only update loading state if not aborted
-      if (!signal?.aborted) {
+      // Only update loading state if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
         setLoading(false);
       }
     }
