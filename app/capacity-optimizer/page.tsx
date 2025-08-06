@@ -113,6 +113,8 @@ export default function CapacityOptimizer() {
     const updatedForecasts = [...growthForecasts];
     updatedForecasts[index] = { ...updatedForecasts[index], [field]: value };
     setGrowthForecasts(updatedForecasts);
+    // Auto-save after a short delay
+    setTimeout(() => saveConfiguration(), 1000);
   };
 
   const addFacility = () => {
