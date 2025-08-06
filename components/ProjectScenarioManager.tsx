@@ -194,7 +194,9 @@ export default function ProjectScenarioManager({
         setScenarios({});
 
         // Show user-friendly error message for fetch failures (but only if not cancelled)
-        if (error instanceof FetchError && !error.message.includes('cancelled')) {
+        if (error instanceof FetchError &&
+            !error.message.includes('cancelled') &&
+            !error.message.includes('aborted')) {
           alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
         }
       }
