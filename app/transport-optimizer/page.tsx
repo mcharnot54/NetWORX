@@ -99,6 +99,13 @@ export default function TransportOptimizer() {
   const extractCitiesFromCapacityData = (capacityData: any): string[] => {
     const cities: string[] = [];
 
+    // First priority: Use cities from the selected scenario metadata
+    if (selectedScenario?.cities && selectedScenario.cities.length > 0) {
+      console.log('Using cities from scenario metadata:', selectedScenario.cities);
+      return selectedScenario.cities.filter(city => city && city.trim() !== '');
+    }
+
+    // Second priority: Extract from capacity analysis data
     if (capacityData?.yearly_results) {
       capacityData.yearly_results.forEach((year: any) => {
         if (year.recommended_facilities) {
@@ -107,9 +114,18 @@ export default function TransportOptimizer() {
               // Extract city information from facility names
               const cityMatch = facility.name.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
               if (cityMatch) {
-                cities.push(`${cityMatch[1].trim()}, ${cityMatch[2]}`);
+                const cityName = `${cityMatch[1].trim()}, ${cityMatch[2]}`;
+                if (!cities.includes(cityName)) {
+                  cities.push(cityName);
+                }
               } else if (facility.name.includes('Littleton')) {
-                cities.push('Littleton, MA');
+                const littletonCity = 'Littleton, MA';
+                if (!cities.includes(littletonCity)) {
+                  cities.push(littletonCity);
+                }
+              } else {
+                // For generic facility names like "New Facility 2025", try to derive from scenario context
+                console.log('Found facility with generic name:', facility.name);
               }
             }
           });
@@ -117,17 +133,31 @@ export default function TransportOptimizer() {
       });
     }
 
-    // If no cities found in capacity analysis, check scenario metadata
-    if (cities.length === 0 && selectedScenario?.cities) {
-      return selectedScenario.cities;
+    // Third priority: Generate based on scenario requirements
+    if (cities.length === 0 && selectedScenario?.number_of_nodes) {
+      console.log('Generating cities based on scenario node count:', selectedScenario.number_of_nodes);
+      const defaultCities = [
+        'Littleton, MA',
+        'Chicago, IL',
+        'Dallas, TX',
+        'Los Angeles, CA',
+        'Atlanta, GA',
+        'Seattle, WA',
+        'Denver, CO',
+        'Phoenix, AZ'
+      ];
+
+      // Use the number of nodes to determine how many cities to include
+      return defaultCities.slice(0, selectedScenario.number_of_nodes);
     }
 
-    // Default cities if none found
+    // Final fallback
     if (cities.length === 0) {
+      console.log('Using fallback default cities');
       cities.push('Littleton, MA', 'Chicago, IL', 'Dallas, TX');
     }
 
-    return cities.slice(0, 5); // Limit to 5 cities max
+    return cities.slice(0, 8); // Allow up to 8 cities max
   };
 
   // Function to call real transport optimization API
