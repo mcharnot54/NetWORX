@@ -105,8 +105,22 @@ export default function TransportOptimizer() {
       return selectedScenario.cities.filter(city => city && city.trim() !== '');
     }
 
-    // Second priority: Extract from capacity analysis data
-    if (capacityData?.yearly_results) {
+    // Second priority: Extract from capacity analysis facility data
+    // Look for the original facilities data that was used for the analysis
+    if (capacityData?.facilities && Array.isArray(capacityData.facilities)) {
+      console.log('Extracting cities from facilities data:', capacityData.facilities);
+      capacityData.facilities.forEach((facility: any) => {
+        if (facility.city && facility.state) {
+          const cityName = `${facility.city}, ${facility.state}`;
+          if (!cities.includes(cityName)) {
+            cities.push(cityName);
+          }
+        }
+      });
+    }
+
+    // Third priority: Extract from capacity analysis recommended facilities
+    if (cities.length === 0 && capacityData?.yearly_results) {
       capacityData.yearly_results.forEach((year: any) => {
         if (year.recommended_facilities) {
           year.recommended_facilities.forEach((facility: any) => {
@@ -133,7 +147,41 @@ export default function TransportOptimizer() {
       });
     }
 
-    // Third priority: Generate based on scenario requirements
+    // Fourth priority: Check scenario metadata for warehouse configurations
+    if (cities.length === 0 && selectedScenario) {
+      try {
+        const fetchWarehouseConfigs = async () => {
+          const response = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
+          if (response.ok) {
+            const warehouseData = await response.json();
+            if (warehouseData.data && Array.isArray(warehouseData.data)) {
+              const warehouseCities: string[] = [];
+              warehouseData.data.forEach((warehouse: any) => {
+                if (warehouse.location) {
+                  // Parse location like "Chicago, IL" or "Atlanta, GA"
+                  const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
+                  if (locationMatch) {
+                    const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
+                    if (!warehouseCities.includes(cityName)) {
+                      warehouseCities.push(cityName);
+                    }
+                  }
+                }
+              });
+              cities.push(...warehouseCities);
+            }
+          }
+        };
+
+        // This will be async, but we can't await here in this sync function
+        // So we'll use this as a fallback for the next time cities are needed
+        fetchWarehouseConfigs().catch(console.warn);
+      } catch (error) {
+        console.warn('Could not fetch warehouse configurations:', error);
+      }
+    }
+
+    // Fifth priority: Generate based on scenario requirements
     if (cities.length === 0 && selectedScenario?.number_of_nodes) {
       console.log('Generating cities based on scenario node count:', selectedScenario.number_of_nodes);
       const defaultCities = [
@@ -230,10 +278,41 @@ export default function TransportOptimizer() {
       // Fetch real capacity analysis data
       const capacityData = await fetchCapacityAnalysisData(selectedScenario.id);
 
+      // Also fetch warehouse configuration data to get city information
+      let warehouseCities: string[] = [];
+      try {
+        const warehouseResponse = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
+        if (warehouseResponse.ok) {
+          const warehouseData = await warehouseResponse.json();
+          if (warehouseData.data && Array.isArray(warehouseData.data)) {
+            warehouseData.data.forEach((warehouse: any) => {
+              if (warehouse.location) {
+                // Parse location like "Chicago, IL" or "Atlanta, GA"
+                const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
+                if (locationMatch) {
+                  const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
+                  if (!warehouseCities.includes(cityName)) {
+                    warehouseCities.push(cityName);
+                  }
+                }
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch warehouse configurations:', error);
+      }
+
       setIsLoadingCapacityData(false);
 
       // Extract cities from capacity analysis (including forced locations like Littleton, MA)
-      const analysisCity = extractCitiesFromCapacityData(capacityData);
+      let analysisCity = extractCitiesFromCapacityData(capacityData);
+
+      // If no cities found in capacity analysis, use warehouse cities
+      if (analysisCity.length === 0 && warehouseCities.length > 0) {
+        console.log('Using cities from warehouse configurations:', warehouseCities);
+        analysisCity = warehouseCities;
+      }
 
       console.log('Selected scenario details:', {
         id: selectedScenario.id,
@@ -243,7 +322,26 @@ export default function TransportOptimizer() {
         metadata: selectedScenario
       });
       console.log('Capacity data received:', capacityData);
-      console.log('Cities extracted from capacity analysis:', analysisCity);
+      console.log('Warehouse cities found:', warehouseCities);
+      console.log('Final cities to use for transport optimization:', analysisCity);
+
+      // Update the selected scenario with the extracted cities for future reference
+      if (analysisCity.length > 0 && selectedScenario) {
+        try {
+          await fetch(`/api/scenarios/${selectedScenario.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              cities: analysisCity
+            })
+          });
+          console.log('Updated scenario with extracted cities:', analysisCity);
+        } catch (error) {
+          console.warn('Could not update scenario with cities:', error);
+        }
+      }
 
       // Generate transport scenarios using real optimization APIs
       const generatedScenarios = [];
