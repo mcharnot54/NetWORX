@@ -290,7 +290,7 @@ export default function TransportOptimizer() {
                       type="number"
                       className="field-input"
                       value={configuration.outbound_weight_percentage}
-                      onChange={(e) => updateConfiguration('outbound_weight_percentage', parseFloat(e.target.value))}
+                      onChange={(e) => setConfiguration(prev => ({ ...prev, outbound_weight_percentage: parseFloat(e.target.value) || 0 }))}
                       min="0"
                       max="100"
                       step="1"
@@ -303,7 +303,7 @@ export default function TransportOptimizer() {
                       type="number"
                       className="field-input"
                       value={configuration.inbound_weight_percentage}
-                      onChange={(e) => updateConfiguration('inbound_weight_percentage', parseFloat(e.target.value))}
+                      onChange={(e) => setConfiguration(prev => ({ ...prev, inbound_weight_percentage: parseFloat(e.target.value) || 0 }))}
                       min="0"
                       max="100"
                       step="1"
