@@ -130,6 +130,69 @@ export default function CapacityOptimizer() {
     setFacilities(facilities.filter((_, i) => i !== index));
   };
 
+  // Save configuration to database
+  const saveConfiguration = async () => {
+    if (!selectedScenario) return;
+
+    setIsSavingConfig(true);
+    try {
+      const configData = {
+        projectConfig,
+        growthForecasts,
+        facilities
+      };
+
+      const response = await fetch(`/api/scenarios/${selectedScenario.id}/capacity-config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save configuration');
+      }
+
+      console.log('Configuration saved successfully');
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  // Load configuration from database
+  const loadConfiguration = async (scenarioId: number) => {
+    setIsLoadingConfig(true);
+    try {
+      const response = await fetch(`/api/scenarios/${scenarioId}/capacity-config`);
+
+      if (response.ok) {
+        const result = await response.json();
+        const { projectConfig: savedProjectConfig, growthForecasts: savedGrowthForecasts, facilities: savedFacilities } = result.data;
+
+        if (savedProjectConfig) {
+          setProjectConfig(savedProjectConfig);
+        }
+        if (savedGrowthForecasts && savedGrowthForecasts.length > 0) {
+          setGrowthForecasts(savedGrowthForecasts);
+        }
+        if (savedFacilities) {
+          setFacilities(savedFacilities);
+        }
+
+        console.log('Configuration loaded successfully');
+      } else if (response.status !== 404) {
+        console.warn('Error loading configuration:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error loading configuration:', error);
+    } finally {
+      setIsLoadingConfig(false);
+    }
+  };
+
   const runCapacityAnalysis = async () => {
     if (!selectedScenario) {
       setAnalysisError('Please select a scenario first');
