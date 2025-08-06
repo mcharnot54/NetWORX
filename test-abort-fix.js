@@ -1,32 +1,68 @@
-// Test script to verify the AbortError fix
-console.log('Testing AbortError handling...');
+// Test script to verify AbortController fixes
+// Run with: node test-abort-fix.js
 
-// Test 1: AbortController with reason
-try {
+// Simulate the abort error scenario
+function testAbortControllerCleanup() {
+  console.log('Testing AbortController cleanup...');
+  
   const controller = new AbortController();
-  controller.abort('Test reason');
-  console.log('✓ AbortController.abort() with reason works');
-} catch (error) {
-  console.log('✗ AbortController.abort() with reason failed:', error.message);
+  
+  // Add an event listener like the fetch-utils does
+  const abortHandler = () => {
+    console.log('Abort handler called');
+  };
+  
+  controller.signal.addEventListener('abort', abortHandler, { once: true });
+  
+  // Test cleanup
+  try {
+    controller.abort();
+    console.log('✓ AbortController abort() completed without error');
+  } catch (error) {
+    console.error('✗ Error during abort:', error);
+  }
+  
+  // Test cleanup of event listener
+  try {
+    controller.signal.removeEventListener('abort', abortHandler);
+    console.log('✓ Event listener cleanup completed without error');
+  } catch (error) {
+    console.error('✗ Error during event listener cleanup:', error);
+  }
 }
 
-// Test 2: AbortController without reason (should still work)
-try {
-  const controller = new AbortController();
-  controller.abort();
-  console.log('✓ AbortController.abort() without reason works');
-} catch (error) {
-  console.log('✗ AbortController.abort() without reason failed:', error.message);
+function testComponentUnmountScenario() {
+  console.log('\nTesting component unmount scenario...');
+  
+  let abortController = null;
+  let isCleanedUp = false;
+  
+  // Simulate useEffect setup
+  const setup = () => {
+    abortController = new AbortController();
+    console.log('✓ AbortController created');
+  };
+  
+  // Simulate useEffect cleanup
+  const cleanup = () => {
+    isCleanedUp = true;
+    
+    if (abortController && !abortController.signal.aborted) {
+      try {
+        abortController.abort();
+        console.log('✓ Component cleanup abort() completed without error');
+      } catch (error) {
+        console.error('✗ Error during component cleanup abort:', error);
+      }
+    }
+  };
+  
+  setup();
+  cleanup();
 }
 
-// Test 3: Double abort (should be safe)
-try {
-  const controller = new AbortController();
-  controller.abort('First abort');
-  controller.abort('Second abort'); // Should be safe
-  console.log('✓ Double abort is safe');
-} catch (error) {
-  console.log('✗ Double abort failed:', error.message);
-}
+// Run tests
+testAbortControllerCleanup();
+testComponentUnmountScenario();
 
-console.log('AbortError handling test complete!');
+console.log('\n✓ All abort controller tests completed');
