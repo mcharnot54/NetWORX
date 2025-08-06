@@ -99,6 +99,13 @@ export default function TransportOptimizer() {
   const extractCitiesFromCapacityData = (capacityData: any): string[] => {
     const cities: string[] = [];
 
+    // First priority: Use cities from the selected scenario metadata
+    if (selectedScenario?.cities && selectedScenario.cities.length > 0) {
+      console.log('Using cities from scenario metadata:', selectedScenario.cities);
+      return selectedScenario.cities.filter(city => city && city.trim() !== '');
+    }
+
+    // Second priority: Extract from capacity analysis data
     if (capacityData?.yearly_results) {
       capacityData.yearly_results.forEach((year: any) => {
         if (year.recommended_facilities) {
@@ -107,9 +114,18 @@ export default function TransportOptimizer() {
               // Extract city information from facility names
               const cityMatch = facility.name.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
               if (cityMatch) {
-                cities.push(`${cityMatch[1].trim()}, ${cityMatch[2]}`);
+                const cityName = `${cityMatch[1].trim()}, ${cityMatch[2]}`;
+                if (!cities.includes(cityName)) {
+                  cities.push(cityName);
+                }
               } else if (facility.name.includes('Littleton')) {
-                cities.push('Littleton, MA');
+                const littletonCity = 'Littleton, MA';
+                if (!cities.includes(littletonCity)) {
+                  cities.push(littletonCity);
+                }
+              } else {
+                // For generic facility names like "New Facility 2025", try to derive from scenario context
+                console.log('Found facility with generic name:', facility.name);
               }
             }
           });
@@ -117,30 +133,52 @@ export default function TransportOptimizer() {
       });
     }
 
-    // If no cities found in capacity analysis, check scenario metadata
-    if (cities.length === 0 && selectedScenario?.cities) {
-      return selectedScenario.cities;
+    // Third priority: Generate based on scenario requirements
+    if (cities.length === 0 && selectedScenario?.number_of_nodes) {
+      console.log('Generating cities based on scenario node count:', selectedScenario.number_of_nodes);
+      const defaultCities = [
+        'Littleton, MA',
+        'Chicago, IL',
+        'Dallas, TX',
+        'Los Angeles, CA',
+        'Atlanta, GA',
+        'Seattle, WA',
+        'Denver, CO',
+        'Phoenix, AZ'
+      ];
+
+      // Use the number of nodes to determine how many cities to include
+      return defaultCities.slice(0, selectedScenario.number_of_nodes);
     }
 
-    // Default cities if none found
+    // Final fallback
     if (cities.length === 0) {
+      console.log('Using fallback default cities');
       cities.push('Littleton, MA', 'Chicago, IL', 'Dallas, TX');
     }
 
-    return cities.slice(0, 5); // Limit to 5 cities max
+    return cities.slice(0, 8); // Allow up to 8 cities max
   };
 
   // Function to call real transport optimization API
   const runRealTransportOptimization = async (scenarioId: number, cities: string[], optimizationType: string) => {
     try {
+      console.log('Calling transport optimization API with:', {
+        scenarioId,
+        cities,
+        optimizationType,
+        configuration
+      });
+
       const response = await fetch(`/api/scenarios/${scenarioId}/optimize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          optimization_type: 'transport',
+          result_type: 'transport',
           optimization_params: {
+            optimization_type: 'transport',
             scenario_type: optimizationType,
             cities: cities,
             optimization_criteria: configuration.optimization_criteria,
@@ -197,6 +235,14 @@ export default function TransportOptimizer() {
       // Extract cities from capacity analysis (including forced locations like Littleton, MA)
       const analysisCity = extractCitiesFromCapacityData(capacityData);
 
+      console.log('Selected scenario details:', {
+        id: selectedScenario.id,
+        name: selectedScenario.name,
+        number_of_nodes: selectedScenario.number_of_nodes,
+        cities: selectedScenario.cities,
+        metadata: selectedScenario
+      });
+      console.log('Capacity data received:', capacityData);
       console.log('Cities extracted from capacity analysis:', analysisCity);
 
       // Generate transport scenarios using real optimization APIs
@@ -214,10 +260,55 @@ export default function TransportOptimizer() {
           type.key
         );
 
+        // If optimization started but not completed, poll for results
+        let finalResult = optimizationResult;
+        if (optimizationResult?.data?.status === 'running') {
+          console.log(`Optimization started for ${type.name}, polling for completion...`);
+
+          // Poll for up to 30 seconds for completion
+          for (let attempt = 0; attempt < 15; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+            try {
+              const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
+              const statusData = await statusResponse.json();
+
+              if (statusData.success && statusData.data?.length > 0) {
+                const latestResult = statusData.data.find((r: any) =>
+                  r.optimization_run_id === optimizationResult.data.optimization_run_id
+                );
+
+                if (latestResult?.status === 'completed') {
+                  console.log(`Optimization completed for ${type.name}`);
+                  finalResult = latestResult;
+                  break;
+                } else if (latestResult?.status === 'failed') {
+                  console.warn(`Optimization failed for ${type.name}`);
+                  break;
+                }
+              }
+            } catch (pollError) {
+              console.warn('Error polling for optimization status:', pollError);
+            }
+          }
+        }
+
         let scenarioData;
-        if (optimizationResult?.optimization_results?.transport_optimization) {
+
+        // Check for optimization results in the response
+        const hasOptimizationResults = finalResult?.data?.optimization_run_id ||
+                                     finalResult?.results_data?.transport_optimization ||
+                                     finalResult?.optimization_results?.transport_optimization ||
+                                     finalResult?.status === 'completed';
+
+        if (hasOptimizationResults) {
           // Use real optimization results
-          const transportResults = optimizationResult.optimization_results.transport_optimization;
+          const transportResults = finalResult?.results_data?.transport_optimization ||
+                                 finalResult?.optimization_results?.transport_optimization ||
+                                 {};
+
+          console.log(`Using real optimization results for ${type.name}:`, transportResults);
+
           scenarioData = {
             id: selectedScenario.id * 1000 + index, // Unique ID based on scenario and type
             scenario_type: type.key as any,
@@ -226,14 +317,14 @@ export default function TransportOptimizer() {
             total_cost: transportResults.total_transport_cost || Math.floor(Math.random() * 100000) + 200000,
             service_score: Math.round(transportResults.route_efficiency || (75 + Math.random() * 20)),
             generated: true,
-            cities: analysisCity,
-            route_details: transportResults.optimized_routes || generateMockRouteDetails(),
+            cities: transportResults.cities_served || analysisCity,
+            route_details: transportResults.optimized_routes || generateMockRouteDetails(transportResults.cities_served || analysisCity),
             volume_allocations: generateMockVolumeAllocations(),
-            optimization_data: optimizationResult // Store full optimization results
+            optimization_data: finalResult // Store full optimization results
           };
         } else {
           // Fallback to enhanced mock data with real cities
-          console.warn(`No optimization results for ${type.name}, using fallback data`);
+          console.warn(`No optimization results for ${type.name}, using fallback data with cities:`, analysisCity);
           scenarioData = {
             id: selectedScenario.id * 1000 + index,
             scenario_type: type.key as any,
@@ -243,7 +334,7 @@ export default function TransportOptimizer() {
             service_score: Math.floor(Math.random() * 20) + 80,
             generated: true,
             cities: analysisCity, // Use real cities from capacity analysis
-            route_details: generateMockRouteDetails(),
+            route_details: generateMockRouteDetails(analysisCity),
             volume_allocations: generateMockVolumeAllocations()
           };
         }
@@ -263,16 +354,39 @@ export default function TransportOptimizer() {
     }
   };
 
-  const generateMockRouteDetails = (): RouteDetail[] => {
-    const routes = [
-      { origin: 'Chicago, IL', destination: 'New York, NY', service_zone: 'Zone 3' },
-      { origin: 'Los Angeles, CA', destination: 'Phoenix, AZ', service_zone: 'Zone 2' },
-      { origin: 'Dallas, TX', destination: 'Houston, TX', service_zone: 'Zone 1' },
-      { origin: 'Atlanta, GA', destination: 'Miami, FL', service_zone: 'Zone 2' },
-      { origin: 'Seattle, WA', destination: 'Portland, OR', service_zone: 'Zone 1' }
+  const generateMockRouteDetails = (cities?: string[]): RouteDetail[] => {
+    let routeCities = cities || [
+      'Chicago, IL', 'New York, NY', 'Los Angeles, CA', 'Phoenix, AZ', 'Dallas, TX'
     ];
 
-    return routes.map(route => ({
+    const routes = [];
+
+    // Generate routes between each pair of cities
+    for (let i = 0; i < routeCities.length; i++) {
+      for (let j = i + 1; j < routeCities.length; j++) {
+        routes.push({
+          origin: routeCities[i],
+          destination: routeCities[j],
+          service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`
+        });
+      }
+    }
+
+    // If we don't have enough routes, add some more with the available cities
+    while (routes.length < 5 && routeCities.length >= 2) {
+      const origin = routeCities[Math.floor(Math.random() * routeCities.length)];
+      const destination = routeCities[Math.floor(Math.random() * routeCities.length)];
+
+      if (origin !== destination && !routes.find(r => r.origin === origin && r.destination === destination)) {
+        routes.push({
+          origin,
+          destination,
+          service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`
+        });
+      }
+    }
+
+    return routes.slice(0, 10).map(route => ({
       ...route,
       distance_miles: Math.floor(Math.random() * 800) + 200,
       cost_per_mile: Math.random() * 2 + 1.5,

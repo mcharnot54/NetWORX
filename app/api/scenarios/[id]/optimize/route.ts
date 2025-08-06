@@ -123,6 +123,15 @@ async function simulateOptimization({ scenario, warehouseConfigs, transportConfi
   // Simulate complex optimization calculations
   await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000)); // 2-5 seconds
 
+  console.log('Optimization params received:', optimization_params);
+
+  // Extract cities and optimization type from params
+  const cities = optimization_params?.cities || ['Littleton, MA', 'Chicago, IL'];
+  const optimizationType = optimization_params?.optimization_type || 'transport';
+  const scenarioType = optimization_params?.scenario_type || 'lowest_cost_city';
+
+  console.log('Processing optimization for cities:', cities, 'type:', optimizationType, 'scenario:', scenarioType);
+
   const warehouseCosts = warehouseConfigs.reduce((total: number, config: any) => {
     return total + config.fixed_costs + (config.max_capacity * config.variable_cost_per_unit * 0.8);
   }, 0);
@@ -131,7 +140,48 @@ async function simulateOptimization({ scenario, warehouseConfigs, transportConfi
     return total + (config.base_freight_cost || 0) + ((config.distance || 0) * (config.fuel_cost_per_km || 0));
   }, 0);
 
-  const totalCost = warehouseCosts + transportCosts;
+  // Generate transport optimization data based on cities
+  const generateTransportDataForCities = (cities: string[]) => {
+    const routes = [];
+    const baseCostPerMile = scenarioType.includes('cost') ? 1.5 : 2.0;
+    const efficiencyMultiplier = scenarioType.includes('service') ? 1.2 : 1.0;
+
+    // Generate routes between cities
+    for (let i = 0; i < cities.length; i++) {
+      for (let j = i + 1; j < cities.length; j++) {
+        const origin = cities[i];
+        const destination = cities[j];
+        const distance = Math.floor(Math.random() * 800) + 200; // 200-1000 miles
+        const baseCost = distance * baseCostPerMile;
+
+        routes.push({
+          route_id: `route_${i}_${j}`,
+          origin,
+          destination,
+          distance_miles: distance,
+          original_cost: baseCost,
+          optimized_cost: baseCost * (0.8 + Math.random() * 0.15) * efficiencyMultiplier,
+          time_savings: Math.random() * 5 + 2, // 2-7 hours
+          volume_capacity: Math.floor(Math.random() * 10000) + 5000
+        });
+      }
+    }
+
+    const totalTransportCost = routes.reduce((sum, route) => sum + route.optimized_cost, 0);
+    const totalDistance = routes.reduce((sum, route) => sum + route.distance_miles, 0);
+
+    return {
+      total_transport_cost: totalTransportCost,
+      total_distance: totalDistance,
+      route_efficiency: Math.min(95, 75 + Math.random() * 20),
+      optimized_routes: routes,
+      cities_served: cities,
+      scenario_type: scenarioType
+    };
+  };
+
+  const transportData = generateTransportDataForCities(cities);
+  const totalCost = warehouseCosts + transportData.total_transport_cost;
   const originalCost = totalCost * 1.3; // Assume 30% improvement
   const costSavings = originalCost - totalCost;
   const efficiencyScore = Math.min(95, 60 + Math.random() * 35); // 60-95% efficiency
@@ -147,38 +197,32 @@ async function simulateOptimization({ scenario, warehouseConfigs, transportConfi
         utilization_improvement: Math.random() * 15 + 5 // 5-20%
       }))
     },
-    transport_optimization: {
-      total_transport_cost: transportCosts,
-      route_efficiency: 80 + Math.random() * 15, // 80-95%
-      optimized_routes: transportConfigs.map((config: any) => ({
-        route_id: config.id,
-        original_cost: (config.base_freight_cost || 0) + ((config.distance || 0) * (config.fuel_cost_per_km || 0)),
-        optimized_cost: ((config.base_freight_cost || 0) + ((config.distance || 0) * (config.fuel_cost_per_km || 0))) * (0.8 + Math.random() * 0.15),
-        time_savings: Math.random() * 5 + 2 // 2-7 hours
-      }))
-    },
+    transport_optimization: transportData,
     overall_metrics: {
       total_cost: totalCost,
       cost_per_unit: totalCost / Math.max(1, warehouseConfigs.reduce((sum: number, config: any) => sum + config.max_capacity, 0)),
       carbon_footprint_reduction: Math.random() * 25 + 10, // 10-35%
-      service_level_improvement: Math.random() * 15 + 5 // 5-20%
+      service_level_improvement: Math.random() * 15 + 5, // 5-20%
+      cities_analyzed: cities.length,
+      routes_optimized: transportData.optimized_routes.length
     }
   };
 
   const metrics = {
     processing_time_seconds: Math.floor(Math.random() * 60) + 10,
-    data_points_analyzed: warehouseConfigs.length + transportConfigs.length,
+    data_points_analyzed: warehouseConfigs.length + transportConfigs.length + cities.length,
     optimization_iterations: Math.floor(Math.random() * 50) + 25,
     convergence_rate: Math.random() * 0.1 + 0.9, // 90-100%
-    confidence_score: Math.random() * 0.2 + 0.8 // 80-100%
+    confidence_score: Math.random() * 0.2 + 0.8, // 80-100%
+    cities_processed: cities.length
   };
 
   const recommendations = {
     priority_actions: [
+      `Optimize transport routes between ${cities.length} cities: ${cities.join(', ')}`,
       'Implement recommended capacity adjustments for high-utilization warehouses',
-      'Optimize route scheduling to reduce fuel costs',
-      'Consider automation upgrades for warehouses with manual operations',
-      'Evaluate consolidation opportunities for underutilized facilities'
+      `Focus on ${scenarioType.replace(/_/g, ' ')} optimization strategy`,
+      'Consider automation upgrades for warehouses with manual operations'
     ],
     cost_reduction_opportunities: [
       {
@@ -191,7 +235,8 @@ async function simulateOptimization({ scenario, warehouseConfigs, transportConfi
         category: 'Transportation',
         potential_savings: costSavings * 0.4,
         implementation_effort: 'Low',
-        timeframe: '1-3 months'
+        timeframe: '1-3 months',
+        cities_affected: cities
       }
     ],
     performance_improvements: {
@@ -200,7 +245,8 @@ async function simulateOptimization({ scenario, warehouseConfigs, transportConfi
         investment_required: costSavings * 0.2,
         annual_savings: costSavings,
         payback_period_months: Math.floor((costSavings * 0.2) / (costSavings / 12))
-      }
+      },
+      geographic_coverage: cities
     }
   };
 
@@ -220,7 +266,7 @@ export async function GET(
 ) {
   try {
     const scenarioId = parseInt(params.id);
-    
+
     if (isNaN(scenarioId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid scenario ID' },
@@ -229,10 +275,18 @@ export async function GET(
     }
 
     const results = await OptimizationResultService.getOptimizationResults(scenarioId);
-    
+
+    // Transform results to include the optimization data in the expected format
+    const transformedResults = results.map((result: any) => ({
+      ...result,
+      optimization_results: result.results_data || {},
+      success: result.status === 'completed'
+    }));
+
     return NextResponse.json({
       success: true,
-      data: results
+      data: transformedResults,
+      results: transformedResults // Also provide in results key for backward compatibility
     });
   } catch (error) {
     console.error('Error fetching optimization results:', error);
