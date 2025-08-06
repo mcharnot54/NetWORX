@@ -311,7 +311,20 @@ export default function CapacityOptimizer() {
 
           {activeTab === 'config' && (
             <div className="tab-content">
-              <h2 className="section-title">Project Configuration</h2>
+              <div className="section-header">
+                <h2 className="section-title">Project Configuration</h2>
+                <div className="save-status">
+                  {isLoadingConfig && <span className="loading-text">Loading...</span>}
+                  {isSavingConfig && <span className="saving-text">Saving...</span>}
+                  <button
+                    className="action-button secondary small"
+                    onClick={saveConfiguration}
+                    disabled={!selectedScenario || isSavingConfig}
+                  >
+                    Save Configuration
+                  </button>
+                </div>
+              </div>
               <div className="config-grid">
                 <div className="config-field">
                   <label className="field-label">Project Duration (Years)</label>
