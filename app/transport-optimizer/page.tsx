@@ -72,7 +72,35 @@ export default function TransportOptimizer() {
     }
   });
 
-  const [scenarios, setScenarios] = useState<TransportScenario[]>([]);
+  const [scenarios, setScenarios] = useState<TransportScenario[]>([
+    {
+      id: 1,
+      scenario_type: 'lowest_cost_zip',
+      scenario_name: 'Lowest Cost (ZIP to ZIP)',
+      total_miles: 125000,
+      total_cost: 245000,
+      service_score: 85,
+      generated: true
+    },
+    {
+      id: 2,
+      scenario_type: 'lowest_miles_city',
+      scenario_name: 'Lowest Miles (City to City)',
+      total_miles: 98000,
+      total_cost: 285000,
+      service_score: 78,
+      generated: true
+    },
+    {
+      id: 3,
+      scenario_type: 'best_service_parcel',
+      scenario_name: 'Best Service (Parcel Zone)',
+      total_miles: 142000,
+      total_cost: 265000,
+      service_score: 92,
+      generated: true
+    }
+  ]);
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
   const [facilityRequirements, setFacilityRequirements] = useState(3);
   const [isGenerating, setIsGenerating] = useState(false);
