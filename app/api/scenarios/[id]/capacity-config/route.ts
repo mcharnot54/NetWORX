@@ -101,6 +101,21 @@ export async function GET(
   try {
     const scenarioId = parseInt(params.id);
 
+    // Check if table exists first
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_name = 'capacity_configurations'
+      )
+    `;
+
+    if (!tableExists[0].exists) {
+      return NextResponse.json(
+        { error: 'No configuration found for this scenario' },
+        { status: 404 }
+      );
+    }
+
     // Get configuration data
     const result = await sql`
       SELECT config_data FROM capacity_configurations WHERE scenario_id = ${scenarioId}
