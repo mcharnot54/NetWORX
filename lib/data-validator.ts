@@ -401,6 +401,169 @@ export class DataValidator {
       throw new Error(`Failed to process file: ${error}`);
     }
   }
+
+  /**
+   * Extract pallet and carton data from spreadsheet
+   * @param data Parsed JSON data from the file
+   * @returns Object containing units per carton and cartons per pallet
+   */
+  static extractCartonPalletData(data: any[]): {
+    units_per_carton?: number;
+    cartons_per_pallet?: number;
+    days_on_hand?: number;
+  } {
+    const result: { units_per_carton?: number; cartons_per_pallet?: number; days_on_hand?: number } = {};
+
+    if (!data || data.length === 0) return result;
+
+    // Look for column names that might contain carton/pallet data
+    const columnMappings = {
+      units_per_carton: ['units per carton', 'units/carton', 'unit per carton', 'upc', 'units_per_carton', 'carton_size'],
+      cartons_per_pallet: ['cartons per pallet', 'cartons/pallet', 'carton per pallet', 'cpp', 'cartons_per_pallet', 'pallet_size'],
+      days_on_hand: ['days on hand', 'doh', 'days_on_hand', 'inventory_days', 'stock_days']
+    };
+
+    // Find relevant columns
+    const firstRow = data[0];
+    const columnNames = Object.keys(firstRow).map(col => col.toLowerCase().trim());
+
+    const foundColumns: Record<string, string> = {};
+
+    Object.entries(columnMappings).forEach(([key, patterns]) => {
+      const matchingColumn = columnNames.find(col =>
+        patterns.some(pattern => col.includes(pattern.toLowerCase()))
+      );
+      if (matchingColumn) {
+        foundColumns[key] = Object.keys(firstRow)[columnNames.indexOf(matchingColumn)];
+      }
+    });
+
+    // Extract values from the data
+    if (foundColumns.units_per_carton) {
+      const values = data.map(row => row[foundColumns.units_per_carton])
+        .filter(val => val && !isNaN(parseFloat(val)))
+        .map(val => parseFloat(val));
+
+      if (values.length > 0) {
+        // Use the most common value or average
+        result.units_per_carton = Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
+      }
+    }
+
+    if (foundColumns.cartons_per_pallet) {
+      const values = data.map(row => row[foundColumns.cartons_per_pallet])
+        .filter(val => val && !isNaN(parseFloat(val)))
+        .map(val => parseFloat(val));
+
+      if (values.length > 0) {
+        result.cartons_per_pallet = Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
+      }
+    }
+
+    if (foundColumns.days_on_hand) {
+      const values = data.map(row => row[foundColumns.days_on_hand])
+        .filter(val => val && !isNaN(parseFloat(val)))
+        .map(val => parseFloat(val));
+
+      if (values.length > 0) {
+        result.days_on_hand = Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
+      }
+    }
+
+    // If no columns found, try to extract from any numeric data that makes sense
+    if (!result.units_per_carton && !result.cartons_per_pallet) {
+      // Look for reasonable default patterns in the data
+      const numericColumns = Object.keys(firstRow).filter(col => {
+        const values = data.slice(0, 10).map(row => row[col]).filter(val => !isNaN(parseFloat(val)));
+        return values.length > 5; // Column has mostly numeric data
+      });
+
+      numericColumns.forEach(col => {
+        const values = data.map(row => parseFloat(row[col])).filter(val => !isNaN(val));
+        const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
+        const colName = col.toLowerCase();
+
+        // Heuristics for common ranges
+        if (avg >= 6 && avg <= 100 && colName.includes('carton')) {
+          result.units_per_carton = Math.round(avg);
+        } else if (avg >= 20 && avg <= 200 && colName.includes('pallet')) {
+          result.cartons_per_pallet = Math.round(avg);
+        } else if (avg >= 30 && avg <= 500 && (colName.includes('day') || colName.includes('doh'))) {
+          result.days_on_hand = Math.round(avg);
+        }
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Extract metadata from parsed data
+   * @param data Parsed JSON data from the file
+   * @param fileName Original file name
+   * @returns Object containing metadata about the data
+   */
+  static extractMetadata(data: any[], fileName: string): Record<string, any> {
+    if (!data || data.length === 0) {
+      return {
+        rowCount: 0,
+        columnCount: 0,
+        fileName,
+        processingDate: new Date().toISOString()
+      };
+    }
+
+    const firstRow = data[0];
+    const columns = Object.keys(firstRow);
+    const cartonPalletData = DataValidator.extractCartonPalletData(data);
+
+    return {
+      rowCount: data.length,
+      columnCount: columns.length,
+      columns: columns,
+      fileName,
+      processingDate: new Date().toISOString(),
+      dataTypes: DataValidator.analyzeColumnTypes(data),
+      sampleData: data.slice(0, 3), // First 3 rows as sample
+      ...cartonPalletData // Include carton/pallet data in metadata
+    };
+  }
+
+  /**
+   * Analyze column types in the data
+   * @param data Parsed data array
+   * @returns Object mapping column names to detected types
+   */
+  static analyzeColumnTypes(data: any[]): Record<string, string> {
+    if (!data || data.length === 0) return {};
+
+    const firstRow = data[0];
+    const typeAnalysis: Record<string, string> = {};
+
+    Object.keys(firstRow).forEach(column => {
+      const sampleValues = data.slice(0, 10)
+        .map(row => row[column])
+        .filter(val => val !== null && val !== undefined && val !== '');
+
+      if (sampleValues.length === 0) {
+        typeAnalysis[column] = 'empty';
+        return;
+      }
+
+      const numericValues = sampleValues.filter(val => !isNaN(parseFloat(val)));
+      const dateValues = sampleValues.filter(val => !isNaN(Date.parse(val)));
+
+      if (numericValues.length === sampleValues.length) {
+        typeAnalysis[column] = 'number';
+      } else if (dateValues.length === sampleValues.length) {
+        typeAnalysis[column] = 'date';
+      } else {
+        typeAnalysis[column] = 'string';
+      }
+    });
+
+    return typeAnalysis;
+  }
 }
 
 // Utility functions for data processing
