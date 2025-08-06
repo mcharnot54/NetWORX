@@ -67,6 +67,40 @@ export async function POST(request: NextRequest) {
       console.log('Expanded file_type column to VARCHAR(100) for longer MIME types');
     }
 
+    // Check if scenarios table columns exist and add them if missing
+    const scenarioColumnsCheck = await sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'scenarios'
+      AND column_name IN ('capacity_analysis_completed', 'transport_optimization_completed', 'warehouse_optimization_completed')
+    `;
+
+    const existingColumns = scenarioColumnsCheck.map(row => row.column_name);
+
+    if (!existingColumns.includes('capacity_analysis_completed')) {
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN capacity_analysis_completed BOOLEAN DEFAULT false
+      `;
+      console.log('Added capacity_analysis_completed column to scenarios table');
+    }
+
+    if (!existingColumns.includes('transport_optimization_completed')) {
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN transport_optimization_completed BOOLEAN DEFAULT false
+      `;
+      console.log('Added transport_optimization_completed column to scenarios table');
+    }
+
+    if (!existingColumns.includes('warehouse_optimization_completed')) {
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN warehouse_optimization_completed BOOLEAN DEFAULT false
+      `;
+      console.log('Added warehouse_optimization_completed column to scenarios table');
+    }
+
     // Create additional tables for complete functionality
     await sql`
       CREATE TABLE IF NOT EXISTS data_files (
