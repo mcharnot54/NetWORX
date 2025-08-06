@@ -135,6 +135,8 @@ export default function CapacityOptimizer() {
     const updatedFacilities = [...facilities];
     updatedFacilities[index] = { ...updatedFacilities[index], [field]: value };
     setFacilities(updatedFacilities);
+    // Auto-save after a short delay
+    setTimeout(() => saveConfiguration(), 1000);
   };
 
   const removeFacility = (index: number) => {
