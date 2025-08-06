@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
     // Truncate file_name if too long (max 255 chars)
     const truncatedFileName = file_name.length > 255 ? file_name.substring(0, 255) : file_name;
 
+    // Truncate file_type if too long (max 50 chars for now, should be migrated to 100)
+    const truncatedFileType = file_type && file_type.length > 50 ? file_type.substring(0, 50) : file_type;
+
     // Validate file size
     const maxFileSize = 50 * 1024 * 1024; // 50MB
     if (file_size && file_size > maxFileSize) {
