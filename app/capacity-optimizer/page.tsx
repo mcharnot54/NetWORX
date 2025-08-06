@@ -657,7 +657,7 @@ export default function CapacityOptimizer() {
                                           {facility.type.toUpperCase()}
                                         </span>
                                         <span>{facility.name}</span>
-                                        <span>({facility.capacity_units.toLocaleString()} units)</span>
+                                        <span>({facility.capacity_units.toLocaleString()} units, {facility.square_feet.toLocaleString()} sq ft)</span>
                                         {facility.estimated_cost && (
                                           <span className="facility-cost">
                                             ${facility.estimated_cost.toLocaleString()}
