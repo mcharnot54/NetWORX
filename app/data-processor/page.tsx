@@ -263,18 +263,28 @@ export default function DataProcessor() {
         body: JSON.stringify(saveData),
       });
 
+      if (!response.ok) {
+        // Try to parse JSON response for error details
+        let errorMessage = `HTTP ${response.status} - ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorData.details || errorMessage;
+          console.error('File save error details:', errorData);
+        } catch (jsonError) {
+          // If JSON parsing fails, log the error but continue with the basic error message
+          console.error('Failed to parse error response as JSON:', jsonError);
+          console.error('Response status:', response.status, response.statusText);
+        }
+        throw new Error(`Failed to save file: ${errorMessage}`);
+      }
+
+      // Parse successful response
       let responseData;
       try {
         responseData = await response.json();
       } catch (jsonError) {
-        console.error('Failed to parse response:', jsonError);
-        throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
-      }
-
-      if (!response.ok) {
-        const errorMessage = responseData.error || responseData.message || responseData.details || 'Server error';
-        console.error('File save error details:', responseData);
-        throw new Error(`Failed to save file: ${errorMessage}`);
+        console.error('Failed to parse success response:', jsonError);
+        throw new Error(`Failed to parse server response: ${jsonError}`);
       }
 
       return responseData.file.id;
