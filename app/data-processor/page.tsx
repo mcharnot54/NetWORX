@@ -284,10 +284,10 @@ export default function DataProcessor() {
     if (name.includes("forecast") || name.includes("demand")) return "forecast";
     if (name.includes("sku") || name.includes("product")) return "sku";
     if (name.includes("network") || name.includes("location")) return "network";
-    if (name.includes("operational") || name.includes("reporting")) return "operational";
-    if (name.includes("financial") || name.includes("cost")) return "financial";
-    if (name.includes("sales") || name.includes("historical")) return "sales";
-    return "unknown";
+    if (name.includes("operational") || name.includes("reporting")) return "capacity";
+    if (name.includes("financial") || name.includes("cost")) return "cost";
+    if (name.includes("sales") || name.includes("historical")) return "forecast";
+    return "network"; // Default to network instead of unknown
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
