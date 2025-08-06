@@ -304,18 +304,18 @@ export function enableMemoryLeakDetection(): void {
 
   // Override setInterval
   const originalSetInterval = window.setInterval;
-  window.setInterval = function(handler: TimerHandler, timeout?: number | undefined, ...args: any[]): number {
+  (window as any).setInterval = function(...args: any[]) {
     intervalCount++;
     console.debug(`Active intervals: ${intervalCount}`);
-    return originalSetInterval.call(this, handler, timeout, ...args);
+    return originalSetInterval.apply(this, args as any);
   };
 
   // Override clearInterval
   const originalClearInterval = window.clearInterval;
-  window.clearInterval = function(id?: number | undefined) {
+  (window as any).clearInterval = function(...args: any[]) {
     intervalCount = Math.max(0, intervalCount - 1);
     console.debug(`Active intervals: ${intervalCount}`);
-    return originalClearInterval.call(this, id);
+    return originalClearInterval.apply(this, args as any);
   };
 
   // Similar for setTimeout/clearTimeout and addEventListener/removeEventListener
