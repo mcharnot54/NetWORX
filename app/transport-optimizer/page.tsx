@@ -260,6 +260,39 @@ export default function TransportOptimizer() {
           type.key
         );
 
+        // If optimization started but not completed, poll for results
+        let finalResult = optimizationResult;
+        if (optimizationResult?.data?.status === 'running') {
+          console.log(`Optimization started for ${type.name}, polling for completion...`);
+
+          // Poll for up to 30 seconds for completion
+          for (let attempt = 0; attempt < 15; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+            try {
+              const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
+              const statusData = await statusResponse.json();
+
+              if (statusData.success && statusData.data?.length > 0) {
+                const latestResult = statusData.data.find((r: any) =>
+                  r.optimization_run_id === optimizationResult.data.optimization_run_id
+                );
+
+                if (latestResult?.status === 'completed') {
+                  console.log(`Optimization completed for ${type.name}`);
+                  finalResult = latestResult;
+                  break;
+                } else if (latestResult?.status === 'failed') {
+                  console.warn(`Optimization failed for ${type.name}`);
+                  break;
+                }
+              }
+            } catch (pollError) {
+              console.warn('Error polling for optimization status:', pollError);
+            }
+          }
+        }
+
         let scenarioData;
 
         // Check for optimization results in the response
