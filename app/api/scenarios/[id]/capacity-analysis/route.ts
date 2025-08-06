@@ -92,10 +92,15 @@ export async function POST(
     // Store analysis results in database
     await storeAnalysisResults(scenarioId, analysisResult);
 
-    // Update scenario to mark capacity analysis as completed
-    await sql`
-      UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = ${scenarioId}
-    `;
+    // Update scenario to mark capacity analysis as completed (if column exists)
+    try {
+      await sql`
+        UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = ${scenarioId}
+      `;
+    } catch (error) {
+      // If the column doesn't exist, just log it but don't fail the request
+      console.warn('Could not update capacity_analysis_completed column (column may not exist):', error);
+    }
 
     return NextResponse.json(analysisResult);
   } catch (error) {
