@@ -101,6 +101,8 @@ export default function DataProcessor() {
   const [selectedTemplate, setSelectedTemplate] = useState<DataMappingTemplate | null>(null);
   const [validatedData, setValidatedData] = useState<ComprehensiveOperationalData | null>(null);
   const [loadingSavedFiles, setLoadingSavedFiles] = useState(false);
+  const [databaseReady, setDatabaseReady] = useState<boolean | null>(null);
+  const [settingUpDatabase, setSettingUpDatabase] = useState(false);
 
   const addToLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -683,7 +685,7 @@ export default function DataProcessor() {
                     <div>• <strong>Data types:</strong> Forecast, SKU, Network, Operational, Financial, Sales</div>
                     <div>• <strong>Persistent storage:</strong> Files are automatically saved and will persist between sessions</div>
                     <div className="text-xs text-blue-600 mt-2">
-                      💡 Check the "Data Templates" tab to see required column structures
+                      �� Check the "Data Templates" tab to see required column structures
                     </div>
                   </div>
                 </div>
@@ -715,7 +717,7 @@ export default function DataProcessor() {
                             <p className="text-sm text-gray-600">
                               {Math.round(file.size / 1024)}KB • {file.detectedType}
                               {file.detectedTemplate && ` • ${file.detectedTemplate.name}`}
-                              {file.saved && ' �� Saved'}
+                              {file.saved && ' • Saved'}
                             </p>
                           </div>
                         </div>
