@@ -77,24 +77,23 @@ export default function ProjectScenarioManager({
 
   useEffect(() => {
     let abortController: AbortController | null = null;
-    let timeoutId: NodeJS.Timeout | null = null;
 
-    // Add a small delay to ensure the app is fully loaded
-    timeoutId = setTimeout(() => {
-      if (isMounted) {
-        try {
-          abortController = new AbortController();
-          fetchProjects(abortController.signal);
-        } catch (error) {
+    const initializeFetch = async () => {
+      if (!isMounted) return;
+
+      try {
+        abortController = new AbortController();
+        await fetchProjects(abortController.signal);
+      } catch (error) {
+        if (isMounted && !abortController?.signal.aborted) {
           console.warn('Error initializing project fetch:', error);
         }
       }
-    }, 100);
+    };
+
+    initializeFetch();
 
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       if (abortController && !abortController.signal.aborted) {
         try {
           abortController.abort('Component unmounting');
@@ -105,7 +104,7 @@ export default function ProjectScenarioManager({
       }
       setIsMounted(false);
     };
-  }, [isMounted]);
+  }, []);
 
   const fetchProjects = async (signal?: AbortSignal) => {
     if (!isMounted) return;
