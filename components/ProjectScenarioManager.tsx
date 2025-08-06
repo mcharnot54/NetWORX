@@ -111,10 +111,16 @@ export default function ProjectScenarioManager({
     try {
       setLoading(true);
 
+      // Check if we're already aborted before starting
+      if (signal?.aborted) {
+        console.debug('Fetch cancelled before starting');
+        return;
+      }
+
       // Fetch projects from API with robust error handling
       const projectsResult = await robustFetchJson('/api/projects', {
-        timeout: 10000,
-        retries: 2,
+        timeout: 15000, // Increased timeout for cloud environments
+        retries: 1, // Reduced retries to prevent cascading errors
         signal, // Pass abort signal to fetch
       });
 
@@ -137,8 +143,8 @@ export default function ProjectScenarioManager({
 
         try {
           const scenariosResult = await robustFetchJson(`/api/scenarios?project_id=${project.id}`, {
-            timeout: 8000,
-            retries: 2,
+            timeout: 12000, // Increased timeout
+            retries: 1, // Reduced retries to prevent cascade failures
             signal,
           });
 
@@ -168,8 +174,8 @@ export default function ProjectScenarioManager({
         }
       }
 
-      // Only update state if not aborted
-      if (!signal?.aborted) {
+      // Only update state if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
         setProjects(projects);
         setScenarios(scenariosMap);
 
@@ -185,25 +191,26 @@ export default function ProjectScenarioManager({
         }
       }
     } catch (error) {
-      // Only handle errors if not aborted
-      if (!signal?.aborted) {
-        console.error('Error fetching projects:', error);
-        // Fallback to empty state instead of crashing
+      // Only handle errors if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
+        console.debug('Error fetching projects:', error);
+
+        // Always fallback to empty state to prevent crashes
         setProjects([]);
         setScenarios({});
 
-        // Show user-friendly error message for fetch failures (but only if not cancelled)
+        // Only log significant errors, not expected cancellations/aborts
         if (error instanceof FetchError &&
             !error.message.includes('cancelled') &&
             !error.message.includes('aborted') &&
-            !error.message.includes('Request was cancelled')) {
-          console.error('Project fetch error:', error);
-          // Note: Removed alert to prevent user interruption - errors are logged instead
+            !error.message.includes('Request was cancelled') &&
+            !error.message.includes('Network connection temporarily unavailable')) {
+          console.warn('Unexpected project fetch error:', error.message);
         }
       }
     } finally {
-      // Only update loading state if not aborted
-      if (!signal?.aborted) {
+      // Only update loading state if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
         setLoading(false);
       }
     }

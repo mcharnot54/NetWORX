@@ -127,16 +127,22 @@ export class SafeAbortController {
 
   safeAbort(reason?: string): void {
     if (this.isAborted) return;
-    
+
     try {
       this.isAborted = true;
       if (!this.controller.signal.aborted) {
-        this.controller.abort(reason);
+        this.controller.abort(reason || 'Safe abort cleanup');
       }
     } catch (error) {
-      // Silently ignore abort errors
+      // Silently ignore abort errors - this is expected behavior
+      console.debug('Expected abort error during cleanup:', error);
     } finally {
-      RuntimeErrorHandler.getInstance().unregisterCleanup(this.cleanupId);
+      // Always cleanup registration, even if abort failed
+      try {
+        RuntimeErrorHandler.getInstance().unregisterCleanup(this.cleanupId);
+      } catch (cleanupError) {
+        console.debug('Cleanup registration error:', cleanupError);
+      }
     }
   }
 
