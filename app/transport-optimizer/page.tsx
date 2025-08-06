@@ -263,7 +263,7 @@ export default function TransportOptimizer() {
     { key: 'blended_service', name: 'Blended Service Zone', description: 'Weighted combination of all service factors' }
   ];
 
-  const generateScenarios = async () => {
+  const generateScenarios = async (specificScenarioTypes?: string[]) => {
     if (!selectedScenario) {
       alert('Please select a scenario from the Projects & Scenarios tab first');
       return;
@@ -346,10 +346,15 @@ export default function TransportOptimizer() {
       // Generate transport scenarios using real optimization APIs
       const generatedScenarios = [];
 
-      for (let index = 0; index < scenarioTypes.length; index++) {
-        const type = scenarioTypes[index];
+      // Use specific scenario types if provided, otherwise use all
+      const typesToGenerate = specificScenarioTypes
+        ? scenarioTypes.filter(type => specificScenarioTypes.includes(type.key))
+        : scenarioTypes;
 
-        console.log(`Generating scenario ${index + 1}/${scenarioTypes.length}: ${type.name}`);
+      for (let index = 0; index < typesToGenerate.length; index++) {
+        const type = typesToGenerate[index];
+
+        console.log(`Generating scenario ${index + 1}/${typesToGenerate.length}: ${type.name}`);
 
         // Call real transport optimization API
         const optimizationResult = await runRealTransportOptimization(
@@ -883,7 +888,7 @@ export default function TransportOptimizer() {
               <div className="generation-actions">
                 <button
                   className="action-button primary large"
-                  onClick={generateScenarios}
+                  onClick={() => generateScenarios()}
                   disabled={isGenerating || !selectedScenario}
                 >
                   {isGenerating ? (
@@ -895,6 +900,40 @@ export default function TransportOptimizer() {
                     `Generate All Scenarios${selectedScenario ? ` for ${selectedScenario.name}` : ''}`
                   )}
                 </button>
+              </div>
+
+              <div className="individual-generation-section">
+                <h3 className="subsection-title">Generate Individual Scenarios</h3>
+                <p className="section-description">
+                  Select specific scenarios to generate individually instead of running all at once.
+                </p>
+
+                <div className="individual-scenario-checkboxes">
+                  {scenarioTypes.map(type => {
+                    const scenario = scenarios.find(s => s.scenario_type === type.key);
+                    return (
+                      <label key={type.key} className="individual-scenario-checkbox">
+                        <input
+                          type="checkbox"
+                          onChange={(e) => {
+                            const scenarioType = type.key;
+                            if (e.target.checked) {
+                              generateScenarios([scenarioType]);
+                            }
+                          }}
+                          disabled={isGenerating || !selectedScenario || !!scenario}
+                        />
+                        <div className="checkbox-content">
+                          <span className="checkbox-label">{type.name}</span>
+                          <span className="checkbox-description">{type.description}</span>
+                          {scenario && (
+                            <span className="scenario-status generated">✓ Generated</span>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="scenarios-grid">
@@ -1745,6 +1784,74 @@ export default function TransportOptimizer() {
           padding: 0.2rem 0.6rem;
         }
 
+        .individual-generation-section {
+          margin-top: 2rem;
+          padding-top: 2rem;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .individual-scenario-checkboxes {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 1rem;
+          margin-top: 1rem;
+        }
+
+        .individual-scenario-checkbox {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: white;
+        }
+
+        .individual-scenario-checkbox:hover:not(:has(input:disabled)) {
+          background: #f9fafb;
+          border-color: #3b82f6;
+        }
+
+        .individual-scenario-checkbox:has(input:disabled) {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .checkbox-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .individual-scenario-checkbox .checkbox-label {
+          font-weight: 600;
+          color: #1f2937;
+          font-size: 0.875rem;
+        }
+
+        .individual-scenario-checkbox .checkbox-description {
+          color: #6b7280;
+          font-size: 0.75rem;
+          line-height: 1.4;
+        }
+
+        .scenario-status {
+          margin-top: 0.5rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 0.25rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+          width: fit-content;
+        }
+
+        .scenario-status.generated {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
         .warning-message {
           background: #fef3c7;
           border: 1px solid #f59e0b;
@@ -1798,6 +1905,14 @@ export default function TransportOptimizer() {
 
           .checkbox-metrics {
             margin-left: 0;
+          }
+
+          .individual-scenario-checkboxes {
+            grid-template-columns: 1fr;
+          }
+
+          .individual-scenario-checkbox {
+            padding: 0.75rem;
           }
         }
       `}</style>
