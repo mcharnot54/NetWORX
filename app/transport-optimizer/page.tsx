@@ -202,8 +202,21 @@ export default function TransportOptimizer() {
         (curr.total_miles || 0) < (prev.total_miles || 0) ? curr : prev
       );
 
+      // Collect all unique cities from the analyzed scenarios
+      const allCities = new Set<string>();
+      selectedScenarioData.forEach(scenario => {
+        if (scenario.route_details) {
+          scenario.route_details.forEach((route: RouteDetail) => {
+            if (route.origin) allCities.add(route.origin);
+            if (route.destination) allCities.add(route.destination);
+          });
+        }
+      });
+
       const results = {
         scenariosAnalyzed: selectedScenarioData.length,
+        analyzedCities: Array.from(allCities),
+        selectedScenarios: selectedScenarioData,
         bestCostScenario,
         bestServiceScenario,
         bestMilesScenario,
