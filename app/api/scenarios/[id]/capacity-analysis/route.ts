@@ -239,113 +239,18 @@ async function performCapacityAnalysis(
 
   const totalInvestment = optimizationResult.total_investment;
   
-  for (let yearIndex = 0; yearIndex < projectConfig.project_duration_years; yearIndex++) {
-    const year = projectConfig.base_year + yearIndex;
-    const forecast = growthForecasts[yearIndex];
-    
-    // Calculate required capacity for this year
-    let requiredCapacity: number;
-    
-    if (forecast?.absolute_units) {
-      requiredCapacity = forecast.absolute_units;
-    } else if (forecast?.units_growth_rate !== undefined) {
-      // Apply growth rate to previous year's requirement
-      const previousRequired = yearIndex === 0 ? baselineCapacity : yearlyResults[yearIndex - 1].required_capacity;
-      requiredCapacity = previousRequired * (1 + forecast.units_growth_rate / 100);
-    } else {
-      // Default to 5% growth if no forecast provided
-      const previousRequired = yearIndex === 0 ? baselineCapacity : yearlyResults[yearIndex - 1].required_capacity;
-      requiredCapacity = previousRequired * 1.05;
-    }
-
-    // Account for utilization rate
-    const effectiveCapacity = currentCapacity * (projectConfig.default_utilization_rate / 100);
-    const capacityGap = requiredCapacity - effectiveCapacity;
-    
-    const recommendedFacilities: YearlyCapacityResult['recommended_facilities'] = [];
-    
-    // If there's a capacity gap, recommend solutions
-    if (capacityGap > 0) {
-      // First, try to expand existing facilities that allow expansion
-      let remainingGap = capacityGap;
-      
-      for (const facility of facilities.filter(f => f.allow_expansion)) {
-        if (remainingGap <= 0) break;
-        
-        const expansionCapacity = Math.min(remainingGap, facility.capacity_units * 0.5); // Max 50% expansion
-        const expansionSqFt = (expansionCapacity / facility.capacity_units) * facility.square_feet;
-        const expansionCost = expansionSqFt * (facility.lease_rate_per_sqft || 10) * projectConfig.default_lease_term_years;
-        
-        recommendedFacilities.push({
-          name: `${facility.name} - Expansion`,
-          type: 'expansion',
-          capacity_units: expansionCapacity,
-          square_feet: expansionSqFt,
-          estimated_cost: expansionCost
-        });
-        
-        currentCapacity += expansionCapacity;
-        totalInvestment += expansionCost;
-        remainingGap -= expansionCapacity;
-      }
-      
-      // If gap remains, recommend new facilities
-      if (remainingGap > 0) {
-        const newFacilityCapacity = Math.ceil(remainingGap / 1000) * 1000; // Round up to nearest 1000
-        const newFacilitySqFt = newFacilityCapacity * 10; // Assume 10 sq ft per capacity unit
-        const newFacilityCost = newFacilitySqFt * 12 * projectConfig.default_lease_term_years; // $12/sq ft
-        
-        recommendedFacilities.push({
-          name: `New Facility ${year}`,
-          type: 'new',
-          capacity_units: newFacilityCapacity,
-          square_feet: newFacilitySqFt,
-          estimated_cost: newFacilityCost
-        });
-        
-        currentCapacity += newFacilityCapacity;
-        totalInvestment += newFacilityCost;
-      }
-    }
-
-    // Check for forced facilities in this year
-    const forcedFacilities = facilities.filter(f => 
-      f.is_forced && 
-      f.force_start_year === year
-    );
-    
-    for (const forced of forcedFacilities) {
-      const forcedCost = forced.square_feet * (forced.lease_rate_per_sqft || 10) * projectConfig.default_lease_term_years;
-      
-      recommendedFacilities.push({
-        name: forced.name,
-        type: 'existing',
-        capacity_units: forced.capacity_units,
-        square_feet: forced.square_feet,
-        estimated_cost: forcedCost
-      });
-      
-      currentCapacity += forced.capacity_units;
-      totalInvestment += forcedCost;
-    }
-
-    const yearResult: YearlyCapacityResult = {
-      year,
-      required_capacity: Math.round(requiredCapacity),
-      available_capacity: Math.round(currentCapacity),
-      capacity_gap: Math.round(Math.max(0, capacityGap)),
-      utilization_rate: Math.round((requiredCapacity / currentCapacity) * 100 * 100) / 100,
-      recommended_facilities: recommendedFacilities
-    };
-    
-    yearlyResults.push(yearResult);
-  }
-
-  // Calculate summary statistics
+  // Calculate summary statistics from optimization results
   const peakCapacity = Math.max(...yearlyResults.map(r => r.required_capacity));
   const totalFacilities = yearlyResults.reduce((sum, r) => sum + r.recommended_facilities.length, 0);
   const avgUtilization = yearlyResults.reduce((sum, r) => sum + r.utilization_rate, 0) / yearlyResults.length;
-  const investmentPerUnit = totalInvestment / peakCapacity;
+  const investmentPerUnit = totalInvestment > 0 ? totalInvestment / peakCapacity : 0;
+
+  console.log('Capacity optimization completed:', {
+    peakCapacity,
+    totalInvestment,
+    avgUtilization: Math.round(avgUtilization * 10) / 10,
+    optimizationScore: optimizationResult.optimization_score
+  });
 
   return {
     scenario_id: scenarioId,
