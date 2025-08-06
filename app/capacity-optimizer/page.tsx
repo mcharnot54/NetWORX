@@ -506,7 +506,12 @@ export default function CapacityOptimizer() {
 
           {activeTab === 'facilities' && (
             <div className="tab-content">
-              <h2 className="section-title">Facility Constraints</h2>
+              <div className="section-header">
+                <h2 className="section-title">Facility Constraints</h2>
+                <div className="save-status">
+                  {isSavingConfig && <span className="saving-text">Auto-saving...</span>}
+                </div>
+              </div>
               <p className="section-description">
                 Define existing facilities, forced/fixed requirements, and expansion parameters.
               </p>
