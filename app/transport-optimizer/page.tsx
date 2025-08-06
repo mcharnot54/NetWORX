@@ -81,6 +81,89 @@ export default function TransportOptimizer() {
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isLoadingCapacityData, setIsLoadingCapacityData] = useState(false);
 
+  // Function to fetch capacity analysis data for the selected scenario
+  const fetchCapacityAnalysisData = async (scenarioId: number) => {
+    try {
+      const response = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
+      if (response.ok) {
+        const capacityData = await response.json();
+        return capacityData;
+      }
+    } catch (error) {
+      console.error('Error fetching capacity analysis:', error);
+    }
+    return null;
+  };
+
+  // Function to extract cities from capacity analysis data
+  const extractCitiesFromCapacityData = (capacityData: any): string[] => {
+    const cities: string[] = [];
+
+    if (capacityData?.yearly_results) {
+      capacityData.yearly_results.forEach((year: any) => {
+        if (year.recommended_facilities) {
+          year.recommended_facilities.forEach((facility: any) => {
+            if (facility.name && !cities.includes(facility.name)) {
+              // Extract city information from facility names
+              const cityMatch = facility.name.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
+              if (cityMatch) {
+                cities.push(`${cityMatch[1].trim()}, ${cityMatch[2]}`);
+              } else if (facility.name.includes('Littleton')) {
+                cities.push('Littleton, MA');
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // If no cities found in capacity analysis, check scenario metadata
+    if (cities.length === 0 && selectedScenario?.cities) {
+      return selectedScenario.cities;
+    }
+
+    // Default cities if none found
+    if (cities.length === 0) {
+      cities.push('Littleton, MA', 'Chicago, IL', 'Dallas, TX');
+    }
+
+    return cities.slice(0, 5); // Limit to 5 cities max
+  };
+
+  // Function to call real transport optimization API
+  const runRealTransportOptimization = async (scenarioId: number, cities: string[], optimizationType: string) => {
+    try {
+      const response = await fetch(`/api/scenarios/${scenarioId}/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          optimization_type: 'transport',
+          optimization_params: {
+            scenario_type: optimizationType,
+            cities: cities,
+            optimization_criteria: configuration.optimization_criteria,
+            service_zone_weighting: configuration.service_zone_weighting,
+            outbound_weight_percentage: configuration.outbound_weight_percentage,
+            inbound_weight_percentage: configuration.inbound_weight_percentage
+          }
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result;
+      } else {
+        console.error('Transport optimization API error:', response.status);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error calling transport optimization API:', error);
+      return null;
+    }
+  };
+
   const scenarioTypes = [
     { key: 'lowest_miles_zip', name: 'Lowest Miles (ZIP to ZIP)', description: 'Minimize total miles for ZIP code to ZIP code routes' },
     { key: 'lowest_miles_city', name: 'Lowest Miles (City to City)', description: 'Minimize total miles for city-to-city routes' },
