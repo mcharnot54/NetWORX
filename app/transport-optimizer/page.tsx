@@ -1298,6 +1298,36 @@ export default function TransportOptimizer() {
           font-weight: 500;
         }
 
+        .scenario-cities {
+          margin-bottom: 1rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .cities-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 0.5rem;
+          display: block;
+        }
+
+        .scenario-cities-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .scenario-city-tag {
+          background: #dbeafe;
+          color: #1e40af;
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+          border: 1px solid #bfdbfe;
+        }
+
         @media (max-width: 768px) {
           .config-grid,
           .scenarios-grid,
