@@ -289,6 +289,7 @@ async function performCapacityAnalysis(
     base_year: projectConfig.base_year,
     total_investment_required: Math.round(totalInvestment),
     yearly_results: yearlyResults,
+    facilities: facilities, // Include original facilities data for city extraction
     summary: {
       peak_capacity_required: peakCapacity,
       total_facilities_recommended: totalFacilities,
