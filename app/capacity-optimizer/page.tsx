@@ -582,9 +582,9 @@ export default function CapacityOptimizer() {
                         <input
                           type="text"
                           className="field-input"
-                          value={facility.zip_code}
+                          value={facility.zip_code || ''}
                           onChange={(e) => updateFacility(index, 'zip_code', e.target.value)}
-                          placeholder="Enter ZIP code"
+                          placeholder="Enter ZIP code (e.g., 01460)"
                         />
                       </div>
 
