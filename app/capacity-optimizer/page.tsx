@@ -319,10 +319,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.project_duration_years}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      project_duration_years: parseInt(e.target.value) || 5
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        project_duration_years: parseInt(e.target.value) || 5
+                      });
+                      setTimeout(() => saveConfiguration(), 1000);
+                    }}
                     min="1"
                     max="20"
                   />
