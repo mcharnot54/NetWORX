@@ -347,7 +347,7 @@ export default function CapacityOptimizer() {
                         ...projectConfig,
                         project_duration_years: parseInt(e.target.value) || 5
                       });
-                      setTimeout(() => saveConfiguration(), 1000);
+                      debouncedSave();
                     }}
                     min="1"
                     max="20"
