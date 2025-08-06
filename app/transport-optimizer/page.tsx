@@ -6,7 +6,7 @@ import ProjectScenarioManager from '@/components/ProjectScenarioManager';
 
 interface TransportScenario {
   id?: number;
-  scenario_type: 'lowest_miles_zip' | 'lowest_miles_city' | 'lowest_miles_state' | 
+  scenario_type: 'lowest_miles_zip' | 'lowest_miles_city' | 'lowest_miles_state' |
                  'lowest_cost_zip' | 'lowest_cost_city' | 'lowest_cost_state' |
                  'best_service_parcel' | 'best_service_ltl' | 'best_service_tl' | 'blended_service';
   scenario_name: string;
@@ -16,6 +16,7 @@ interface TransportScenario {
   route_details?: any;
   volume_allocations?: any;
   generated: boolean;
+  cities?: string[];
 }
 
 interface TransportConfiguration {
