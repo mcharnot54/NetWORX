@@ -296,14 +296,15 @@ export default function TransportOptimizer() {
         let scenarioData;
 
         // Check for optimization results in the response
-        const hasOptimizationResults = optimizationResult?.data?.optimization_run_id ||
-                                     optimizationResult?.results_data?.transport_optimization ||
-                                     optimizationResult?.optimization_results?.transport_optimization;
+        const hasOptimizationResults = finalResult?.data?.optimization_run_id ||
+                                     finalResult?.results_data?.transport_optimization ||
+                                     finalResult?.optimization_results?.transport_optimization ||
+                                     finalResult?.status === 'completed';
 
         if (hasOptimizationResults) {
           // Use real optimization results
-          const transportResults = optimizationResult?.results_data?.transport_optimization ||
-                                 optimizationResult?.optimization_results?.transport_optimization ||
+          const transportResults = finalResult?.results_data?.transport_optimization ||
+                                 finalResult?.optimization_results?.transport_optimization ||
                                  {};
 
           console.log(`Using real optimization results for ${type.name}:`, transportResults);
@@ -319,7 +320,7 @@ export default function TransportOptimizer() {
             cities: transportResults.cities_served || analysisCity,
             route_details: transportResults.optimized_routes || generateMockRouteDetails(transportResults.cities_served || analysisCity),
             volume_allocations: generateMockVolumeAllocations(),
-            optimization_data: optimizationResult // Store full optimization results
+            optimization_data: finalResult // Store full optimization results
           };
         } else {
           // Fallback to enhanced mock data with real cities
