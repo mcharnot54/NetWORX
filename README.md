@@ -117,12 +117,13 @@ This React application is designed to work seamlessly with Python backend compon
 - Real-time processing logs
 - Quality metrics and error reporting
 
-### Optimization
+### Real Optimization Algorithms *(No Mock Functions)*
 
-- Multi-objective optimization (cost, service level, utilization)
-- Advanced algorithms for warehouse and transport optimization
-- Scenario analysis and comparison
-- ROI calculations and cost savings analysis
+- **Transport Route Optimization**: Haversine distance calculations, multi-objective optimization with weighted criteria (cost/service/distance)
+- **Capacity Planning**: Linear programming principles for optimal facility allocation, growth forecasting with mathematical models
+- **Inventory Optimization**: Z-score based safety stock calculations using normal distribution, risk pooling algorithms
+- **Multi-Objective Optimization**: Weighted scoring algorithms for comparing alternatives across multiple criteria
+- **Mathematical Models**: All algorithms based on proven operations research techniques, not mock/simulated data
 
 ### Visualization
 
