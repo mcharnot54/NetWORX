@@ -191,20 +191,21 @@ export default function ProjectScenarioManager({
         }
       }
     } catch (error) {
-      // Only handle errors if not aborted
-      if (!signal?.aborted) {
-        console.error('Error fetching projects:', error);
-        // Fallback to empty state instead of crashing
+      // Only handle errors if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
+        console.debug('Error fetching projects:', error);
+
+        // Always fallback to empty state to prevent crashes
         setProjects([]);
         setScenarios({});
 
-        // Show user-friendly error message for fetch failures (but only if not cancelled)
+        // Only log significant errors, not expected cancellations/aborts
         if (error instanceof FetchError &&
             !error.message.includes('cancelled') &&
             !error.message.includes('aborted') &&
-            !error.message.includes('Request was cancelled')) {
-          console.error('Project fetch error:', error);
-          // Note: Removed alert to prevent user interruption - errors are logged instead
+            !error.message.includes('Request was cancelled') &&
+            !error.message.includes('Network connection temporarily unavailable')) {
+          console.warn('Unexpected project fetch error:', error.message);
         }
       }
     } finally {
@@ -396,7 +397,7 @@ export default function ProjectScenarioManager({
     switch (status) {
       case 'completed': return '✓';
       case 'in_progress': return '⟳';
-      case 'failed': return '��';
+      case 'failed': return '✗';
       case 'active': return '●';
       case 'archived': return '◐';
       default: return '○';
