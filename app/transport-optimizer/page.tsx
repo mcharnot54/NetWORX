@@ -298,30 +298,73 @@ export default function TransportOptimizer() {
       return;
     }
 
+    if (!selectedScenario) {
+      alert('Please select a scenario from the Projects & Scenarios tab first');
+      return;
+    }
+
     setIsAnalyzing(true);
     try {
-      // Simulate analysis
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const selectedScenarioData = scenarios.filter(s => 
+      console.log('Running real transport analysis for scenarios:', selectedScenarios);
+
+      const selectedScenarioData = scenarios.filter(s =>
         selectedScenarios.includes(s.scenario_type)
       );
 
-      const bestCostScenario = selectedScenarioData.reduce((prev, curr) => 
+      // Run real analysis using the transport optimization API for each selected scenario
+      const enhancedScenarios = [];
+
+      for (const scenario of selectedScenarioData) {
+        console.log(`Analyzing scenario: ${scenario.scenario_name}`);
+
+        // If we have stored optimization data, use it; otherwise call the API
+        let optimizationData = scenario.optimization_data;
+
+        if (!optimizationData) {
+          console.log('Calling transport optimization API for real analysis...');
+          optimizationData = await runRealTransportOptimization(
+            selectedScenario.id,
+            scenario.cities || [],
+            scenario.scenario_type
+          );
+        }
+
+        // Enhance scenario data with real optimization results
+        const enhancedScenario = {
+          ...scenario,
+          optimization_data: optimizationData
+        };
+
+        // Update metrics with real data if available
+        if (optimizationData?.optimization_results?.transport_optimization) {
+          const transportResults = optimizationData.optimization_results.transport_optimization;
+          enhancedScenario.total_cost = transportResults.total_transport_cost || scenario.total_cost;
+          enhancedScenario.total_miles = transportResults.total_distance || scenario.total_miles;
+          enhancedScenario.service_score = Math.round(transportResults.route_efficiency || scenario.service_score);
+        }
+
+        enhancedScenarios.push(enhancedScenario);
+      }
+
+      // Find best performing scenarios using real data
+      const bestCostScenario = enhancedScenarios.reduce((prev, curr) =>
         (curr.total_cost || 0) < (prev.total_cost || 0) ? curr : prev
       );
 
-      const bestServiceScenario = selectedScenarioData.reduce((prev, curr) => 
+      const bestServiceScenario = enhancedScenarios.reduce((prev, curr) =>
         (curr.service_score || 0) > (prev.service_score || 0) ? curr : prev
       );
 
-      const bestMilesScenario = selectedScenarioData.reduce((prev, curr) => 
+      const bestMilesScenario = enhancedScenarios.reduce((prev, curr) =>
         (curr.total_miles || 0) < (prev.total_miles || 0) ? curr : prev
       );
 
-      // Collect all unique cities from the analyzed scenarios
+      // Collect all unique cities from the analyzed scenarios (including Littleton, MA)
       const allCities = new Set<string>();
-      selectedScenarioData.forEach(scenario => {
+      enhancedScenarios.forEach(scenario => {
+        if (scenario.cities) {
+          scenario.cities.forEach(city => allCities.add(city));
+        }
         if (scenario.route_details) {
           scenario.route_details.forEach((route: RouteDetail) => {
             if (route.origin) allCities.add(route.origin);
@@ -330,26 +373,35 @@ export default function TransportOptimizer() {
         }
       });
 
+      // Calculate averages and metrics
+      const totalCost = enhancedScenarios.reduce((sum, s) => sum + (s.total_cost || 0), 0);
+      const totalMiles = enhancedScenarios.reduce((sum, s) => sum + (s.total_miles || 0), 0);
+      const totalService = enhancedScenarios.reduce((sum, s) => sum + (s.service_score || 0), 0);
+
       const results = {
-        scenariosAnalyzed: selectedScenarioData.length,
+        scenariosAnalyzed: enhancedScenarios.length,
         analyzedCities: Array.from(allCities),
-        selectedScenarios: selectedScenarioData,
+        selectedScenarios: enhancedScenarios,
         bestCostScenario,
         bestServiceScenario,
         bestMilesScenario,
-        averageCost: selectedScenarioData.reduce((sum, s) => sum + (s.total_cost || 0), 0) / selectedScenarioData.length,
-        averageMiles: selectedScenarioData.reduce((sum, s) => sum + (s.total_miles || 0), 0) / selectedScenarioData.length,
-        averageService: selectedScenarioData.reduce((sum, s) => sum + (s.service_score || 0), 0) / selectedScenarioData.length,
-        costSavingsPotential: Math.max(...selectedScenarioData.map(s => s.total_cost || 0)) - Math.min(...selectedScenarioData.map(s => s.total_cost || 0)),
-        recommendedScenario: bestCostScenario // Can be customized based on weighted criteria
+        averageCost: totalCost / enhancedScenarios.length,
+        averageMiles: totalMiles / enhancedScenarios.length,
+        averageService: totalService / enhancedScenarios.length,
+        costSavingsPotential: Math.max(...enhancedScenarios.map(s => s.total_cost || 0)) - Math.min(...enhancedScenarios.map(s => s.total_cost || 0)),
+        recommendedScenario: bestCostScenario, // Based on cost optimization as default
+        realDataUsed: true,
+        analysisTimestamp: new Date().toISOString()
       };
 
+      console.log('Transport analysis completed with real data:', results);
       setAnalysisResults(results);
 
       // Automatically switch to Results tab to show the analysis
       setActiveTab('results');
     } catch (error) {
       console.error('Analysis failed:', error);
+      alert('Transport analysis failed. Please ensure the transport optimization service is available.');
     } finally {
       setIsAnalyzing(false);
     }
