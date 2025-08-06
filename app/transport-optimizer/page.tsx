@@ -1064,8 +1064,30 @@ export default function TransportOptimizer() {
 
           {activeTab === 'results' && (
             <div className="tab-content">
-              <h2 className="section-title">Analysis Results</h2>
-              
+              <div className="section-header">
+                <h2 className="section-title">Analysis Results</h2>
+                {analysisResults && (
+                  <div className="results-actions">
+                    <button
+                      className={`action-button primary ${saveSuccess ? 'success' : ''}`}
+                      onClick={saveAnalysisResults}
+                      disabled={isSavingResults}
+                    >
+                      {isSavingResults ? (
+                        <>
+                          <div className="loading-spinner"></div>
+                          Saving...
+                        </>
+                      ) : saveSuccess ? (
+                        '✓ Saved'
+                      ) : (
+                        'Save Results'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {analysisResults ? (
                 <div className="results-container">
                   <div className="results-summary">
