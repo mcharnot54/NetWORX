@@ -80,6 +80,8 @@ export default function TransportOptimizer() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isLoadingCapacityData, setIsLoadingCapacityData] = useState(false);
+  const [isSavingResults, setIsSavingResults] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Function to fetch capacity analysis data for the selected scenario
   const fetchCapacityAnalysisData = async (scenarioId: number) => {
@@ -625,11 +627,46 @@ export default function TransportOptimizer() {
   };
 
   const toggleScenarioSelection = (scenarioType: string) => {
-    setSelectedScenarios(prev => 
-      prev.includes(scenarioType) 
+    setSelectedScenarios(prev =>
+      prev.includes(scenarioType)
         ? prev.filter(s => s !== scenarioType)
         : [...prev, scenarioType]
     );
+  };
+
+  const saveAnalysisResults = async () => {
+    if (!selectedScenario || !analysisResults) {
+      alert('No analysis results to save');
+      return;
+    }
+
+    setIsSavingResults(true);
+    try {
+      const response = await fetch(`/api/scenarios/${selectedScenario.id}/transport-results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysisResults,
+          selectedScenarios,
+          analysisTimestamp: new Date().toISOString()
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save analysis results');
+      }
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+      console.log('Transport analysis results saved successfully');
+    } catch (error) {
+      console.error('Error saving analysis results:', error);
+      alert('Failed to save analysis results. Please try again.');
+    } finally {
+      setIsSavingResults(false);
+    }
   };
 
   const updateConfiguration = (section: keyof TransportConfiguration, updates: any) => {
