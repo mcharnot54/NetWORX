@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/database';
+import { optimizeCapacityPlanning, type CapacityPlanningParams } from '@/lib/optimization-algorithms';
 
 // Helper function to ensure required columns exist
 async function ensureCapacityAnalysisColumns() {
