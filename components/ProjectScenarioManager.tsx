@@ -77,24 +77,23 @@ export default function ProjectScenarioManager({
 
   useEffect(() => {
     let abortController: AbortController | null = null;
-    let timeoutId: NodeJS.Timeout | null = null;
 
-    // Add a small delay to ensure the app is fully loaded
-    timeoutId = setTimeout(() => {
-      if (isMounted) {
-        try {
-          abortController = new AbortController();
-          fetchProjects(abortController.signal);
-        } catch (error) {
+    const initializeFetch = async () => {
+      if (!isMounted) return;
+
+      try {
+        abortController = new AbortController();
+        await fetchProjects(abortController.signal);
+      } catch (error) {
+        if (isMounted && !abortController?.signal.aborted) {
           console.warn('Error initializing project fetch:', error);
         }
       }
-    }, 100);
+    };
+
+    initializeFetch();
 
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       if (abortController && !abortController.signal.aborted) {
         try {
           abortController.abort('Component unmounting');
@@ -105,11 +104,9 @@ export default function ProjectScenarioManager({
       }
       setIsMounted(false);
     };
-  }, [isMounted]);
+  }, []);
 
   const fetchProjects = async (signal?: AbortSignal) => {
-    if (!isMounted) return;
-
     try {
       setLoading(true);
 
@@ -120,8 +117,7 @@ export default function ProjectScenarioManager({
         signal, // Pass abort signal to fetch
       });
 
-      // Check if component is still mounted and request wasn't aborted
-      if (!isMounted) return;
+      // Check if request was aborted before proceeding
       if (signal?.aborted) {
         console.debug('Request was aborted, stopping project fetch');
         return;
@@ -137,10 +133,13 @@ export default function ProjectScenarioManager({
       const scenariosMap: { [key: number]: Scenario[] } = {};
 
       for (const project of projects) {
+        if (signal?.aborted) return; // Check for abort during loop
+
         try {
           const scenariosResult = await robustFetchJson(`/api/scenarios?project_id=${project.id}`, {
             timeout: 8000,
             retries: 2,
+            signal,
           });
 
           if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
@@ -169,7 +168,8 @@ export default function ProjectScenarioManager({
         }
       }
 
-      if (isMounted) {
+      // Only update state if not aborted
+      if (!signal?.aborted) {
         setProjects(projects);
         setScenarios(scenariosMap);
 
@@ -185,7 +185,8 @@ export default function ProjectScenarioManager({
         }
       }
     } catch (error) {
-      if (isMounted) {
+      // Only handle errors if not aborted
+      if (!signal?.aborted) {
         console.error('Error fetching projects:', error);
         // Fallback to empty state instead of crashing
         setProjects([]);
@@ -197,7 +198,8 @@ export default function ProjectScenarioManager({
         }
       }
     } finally {
-      if (isMounted) {
+      // Only update loading state if not aborted
+      if (!signal?.aborted) {
         setLoading(false);
       }
     }
