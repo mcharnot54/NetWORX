@@ -51,6 +51,22 @@ export async function POST(request: NextRequest) {
       console.log('Added missing project_id column to scenarios table');
     }
 
+    // Check if file_type column needs to be expanded for longer MIME types
+    const fileTypeCheck = await sql`
+      SELECT character_maximum_length
+      FROM information_schema.columns
+      WHERE table_name = 'data_files' AND column_name = 'file_type'
+    `;
+
+    if (fileTypeCheck.length > 0 && fileTypeCheck[0].character_maximum_length < 100) {
+      // Expand file_type column to accommodate longer MIME types
+      await sql`
+        ALTER TABLE data_files
+        ALTER COLUMN file_type TYPE VARCHAR(100)
+      `;
+      console.log('Expanded file_type column to VARCHAR(100) for longer MIME types');
+    }
+
     // Create additional tables for complete functionality
     await sql`
       CREATE TABLE IF NOT EXISTS data_files (
