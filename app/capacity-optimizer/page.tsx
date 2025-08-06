@@ -87,17 +87,26 @@ export default function CapacityOptimizer() {
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
-  // Initialize default growth forecasts
+  // Load configuration when scenario changes
   useEffect(() => {
-    const defaultForecasts = Array.from({ length: projectConfig.project_duration_years }, (_, i) => ({
-      year_number: i + 1,
-      forecast_type: 'forecast' as const,
-      units_growth_rate: 0,
-      dollar_growth_rate: 0,
-      is_actual_data: false,
-      confidence_level: 50
-    }));
-    setGrowthForecasts(defaultForecasts);
+    if (selectedScenario?.id) {
+      loadConfiguration(selectedScenario.id);
+    }
+  }, [selectedScenario]);
+
+  // Initialize default growth forecasts when project duration changes (only if no existing forecasts)
+  useEffect(() => {
+    if (growthForecasts.length === 0 || growthForecasts.length !== projectConfig.project_duration_years) {
+      const defaultForecasts = Array.from({ length: projectConfig.project_duration_years }, (_, i) => ({
+        year_number: i + 1,
+        forecast_type: 'forecast' as const,
+        units_growth_rate: 0,
+        dollar_growth_rate: 0,
+        is_actual_data: false,
+        confidence_level: 50
+      }));
+      setGrowthForecasts(defaultForecasts);
+    }
   }, [projectConfig.project_duration_years]);
 
   const updateGrowthForecast = (index: number, field: keyof GrowthForecast, value: any) => {
