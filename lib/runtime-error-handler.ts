@@ -204,7 +204,7 @@ export function withErrorBoundary<T extends {}>(
 ): React.ComponentType<T> {
   const React = require('react');
   
-  return class extends React.Component<T, { hasError: boolean; error?: Error }> {
+  return class ErrorBoundaryWrapper extends React.Component<T, { hasError: boolean; error?: Error }> {
     constructor(props: T) {
       super(props);
       this.state = { hasError: false };
@@ -302,15 +302,15 @@ export function enableMemoryLeakDetection(): void {
 
   // Override setInterval
   const originalSetInterval = window.setInterval;
-  window.setInterval = function(...args) {
+  window.setInterval = function(handler: TimerHandler, timeout?: number | undefined, ...args: any[]): number {
     intervalCount++;
     console.debug(`Active intervals: ${intervalCount}`);
-    return originalSetInterval.apply(this, args);
+    return originalSetInterval.call(this, handler, timeout, ...args);
   };
 
   // Override clearInterval
   const originalClearInterval = window.clearInterval;
-  window.clearInterval = function(...args) {
+  window.clearInterval = function(id?: number | undefined) {
     intervalCount = Math.max(0, intervalCount - 1);
     console.debug(`Active intervals: ${intervalCount}`);
     return originalClearInterval.apply(this, args);
