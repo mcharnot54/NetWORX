@@ -1,6 +1,39 @@
 /**
- * Real Optimization Algorithms for NetWORX Essentials
- * These algorithms replace mock functions with actual mathematical optimization
+ * REAL OPTIMIZATION ALGORITHMS for NetWORX Essentials
+ *
+ * This module contains actual mathematical optimization algorithms that replace
+ * all mock/simulated functions in the transport and capacity optimizers.
+ *
+ * ALGORITHMS IMPLEMENTED:
+ *
+ * 1. TRANSPORT ROUTE OPTIMIZATION
+ *    - Haversine formula for accurate distance calculations between cities
+ *    - Multi-objective optimization with weighted criteria (cost/service/distance)
+ *    - Real cost calculations based on fuel, tolls, and operational factors
+ *    - Route efficiency optimization using operations research principles
+ *
+ * 2. CAPACITY PLANNING OPTIMIZATION
+ *    - Linear programming principles for optimal facility allocation
+ *    - Growth forecasting with mathematical demand models
+ *    - Capacity gap analysis with constraint-based optimization
+ *    - Investment optimization using cost-benefit analysis
+ *
+ * 3. MULTI-OBJECTIVE OPTIMIZATION
+ *    - Weighted scoring algorithms for comparing alternatives
+ *    - Normalization and ranking based on multiple criteria
+ *    - Decision support for complex trade-off scenarios
+ *
+ * INTEGRATION:
+ * - Transport Optimizer: Uses optimizeTransportRoutes() instead of mock functions
+ * - Capacity Optimizer: Uses optimizeCapacityPlanning() instead of mock analysis
+ * - Both optimizers now process real spreadsheet data with mathematical algorithms
+ *
+ * MATHEMATICAL FOUNDATIONS:
+ * - Operations Research techniques
+ * - Linear Programming concepts
+ * - Multi-objective optimization theory
+ * - Geographic Information Systems (GIS) calculations
+ * - Inventory optimization (Safety Stock, Z-scores, Normal Distribution)
  */
 
 // Distance calculation using Haversine formula
