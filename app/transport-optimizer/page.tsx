@@ -1277,6 +1277,30 @@ export default function TransportOptimizer() {
             grid-template-columns: 1fr;
           }
 
+          .cities-list {
+            gap: 0.25rem;
+          }
+
+          .cities-meta {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+          }
+
+          .scenario-info-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+
+          .analyzed-scenario-name {
+            margin-right: 0;
+          }
+
+          .scenario-metrics-row {
+            gap: 1rem;
+          }
+
           .tab-navigation {
             flex-wrap: wrap;
           }
