@@ -263,21 +263,21 @@ export default function DataProcessor() {
         body: JSON.stringify(saveData),
       });
 
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (jsonError) {
+        console.error('Failed to parse response:', jsonError);
+        throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
+      }
+
       if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (jsonError) {
-          console.error('Failed to parse error response:', jsonError);
-          throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
-        }
-        const errorMessage = errorData.error || errorData.message || errorData.details || 'Server error';
-        console.error('File save error details:', errorData);
+        const errorMessage = responseData.error || responseData.message || responseData.details || 'Server error';
+        console.error('File save error details:', responseData);
         throw new Error(`Failed to save file: ${errorMessage}`);
       }
 
-      const { file: savedFile } = await response.json();
-      return savedFile.id;
+      return responseData.file.id;
     } catch (error) {
       console.error('Error saving file to database:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
