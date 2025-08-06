@@ -277,7 +277,7 @@ export function withErrorBoundary<T extends {}>(
     }
   };
 
-  return ErrorBoundaryWrapper as React.ComponentType<T>;
+  return ErrorBoundaryWrapper as unknown as React.ComponentType<T>;
 }
 
 // Safe async operation wrapper
