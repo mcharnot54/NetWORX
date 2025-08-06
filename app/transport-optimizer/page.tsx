@@ -235,6 +235,14 @@ export default function TransportOptimizer() {
       // Extract cities from capacity analysis (including forced locations like Littleton, MA)
       const analysisCity = extractCitiesFromCapacityData(capacityData);
 
+      console.log('Selected scenario details:', {
+        id: selectedScenario.id,
+        name: selectedScenario.name,
+        number_of_nodes: selectedScenario.number_of_nodes,
+        cities: selectedScenario.cities,
+        metadata: selectedScenario
+      });
+      console.log('Capacity data received:', capacityData);
       console.log('Cities extracted from capacity analysis:', analysisCity);
 
       // Generate transport scenarios using real optimization APIs
