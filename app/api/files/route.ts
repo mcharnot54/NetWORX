@@ -85,6 +85,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Extract metadata if processed_data is available
+    let metadata = {};
+    if (processed_data && Array.isArray(processed_data.data)) {
+      try {
+        const { DataValidator } = await import('@/lib/data-validator');
+        metadata = DataValidator.extractMetadata(processed_data.data, truncatedFileName);
+      } catch (error) {
+        console.warn('Could not extract metadata:', error);
+      }
+    }
+
     const fileData = {
       scenario_id,
       file_name: truncatedFileName,
@@ -97,6 +108,7 @@ export async function POST(request: NextRequest) {
         ...processed_data,
         file_content // Store the actual file content
       },
+      metadata, // Include extracted metadata
       original_columns,
       mapped_columns: mapped_columns || {}
     };

@@ -218,8 +218,41 @@ export function optimizeTransportRoutes(params: RouteOptimizationParams): Transp
 }
 
 /**
+ * Warehouse Configuration for capacity calculations
+ */
+export interface WarehouseConfig {
+  DOH: number; // Days of holding inventory
+  operating_days: number;
+  pallet_length_inches: number;
+  pallet_width_inches: number;
+  rack_height_inches: number;
+  ceiling_height_inches: number;
+  max_utilization: number;
+  aisle_factor: number;
+  min_office: number;
+  min_battery: number;
+  min_packing: number;
+  min_conveyor: number;
+  outbound_area_per_door: number;
+  outbound_pallets_per_door_per_day: number;
+  max_outbound_doors: number;
+  inbound_area_per_door: number;
+  inbound_pallets_per_door_per_day: number;
+  max_inbound_doors: number;
+  each_pick_area_fixed: number;
+  case_pick_area_fixed: number;
+  facility_lease_years: number;
+  num_facilities: number;
+  initial_facility_area: number;
+  facility_design_area: number; // Maximum size per new facility
+  cost_per_sqft_annual: number;
+  labor_cost_per_hour: number;
+  equipment_cost_per_sqft: number;
+}
+
+/**
  * Capacity Planning Optimization Algorithm
- * Uses linear programming principles for capacity allocation
+ * Uses linear programming principles for capacity allocation with real warehouse math
  */
 export interface CapacityPlanningParams {
   baseCapacity: number;
@@ -239,6 +272,12 @@ export interface CapacityPlanningParams {
   }>;
   project_duration_years: number;
   utilization_target: number;
+  warehouseConfig?: WarehouseConfig;
+  unitsData?: {
+    units_per_carton: number;
+    cartons_per_pallet: number;
+    volume_per_unit: number; // in cubic inches
+  };
 }
 
 export interface CapacityOptimizationResult {
@@ -257,9 +296,123 @@ export interface CapacityOptimizationResult {
   recommendations: string[];
 }
 
+/**
+ * Calculate square footage requirements based on warehouse configuration
+ */
+export function calculateWarehouseSquareFootage(
+  requiredPallets: number,
+  config: WarehouseConfig
+): { total_sqft: number; breakdown: Record<string, number> } {
+
+  // Calculate pallet storage area
+  const palletFootprint = (config.pallet_length_inches * config.pallet_width_inches) / 144; // Convert to sq ft
+
+  // Calculate rack levels based on ceiling height
+  const rackLevels = Math.floor(config.ceiling_height_inches / config.rack_height_inches);
+
+  // Calculate storage positions per pallet footprint
+  const palletsPerPosition = rackLevels;
+
+  // Calculate required storage positions
+  const requiredPositions = Math.ceil(requiredPallets / palletsPerPosition);
+
+  // Storage area with aisle factor
+  const rawStorageArea = requiredPositions * palletFootprint;
+  const storageAreaWithAisles = rawStorageArea / (1 - config.aisle_factor);
+
+  // Fixed areas
+  const officeArea = config.min_office;
+  const batteryArea = config.min_battery;
+  const packingArea = config.min_packing;
+  const conveyorArea = config.min_conveyor;
+  const eachPickArea = config.each_pick_area_fixed;
+  const casePickArea = config.case_pick_area_fixed;
+
+  // Calculate dock door requirements
+  const dailyPalletThroughput = requiredPallets / config.DOH;
+  const requiredOutboundDoors = Math.min(
+    Math.ceil(dailyPalletThroughput / config.outbound_pallets_per_door_per_day),
+    config.max_outbound_doors
+  );
+  const requiredInboundDoors = Math.min(
+    Math.ceil(dailyPalletThroughput / config.inbound_pallets_per_door_per_day),
+    config.max_inbound_doors
+  );
+
+  const outboundArea = requiredOutboundDoors * config.outbound_area_per_door;
+  const inboundArea = requiredInboundDoors * config.inbound_area_per_door;
+
+  // Total area calculation
+  const totalArea = storageAreaWithAisles + officeArea + batteryArea + packingArea +
+                   conveyorArea + eachPickArea + casePickArea + outboundArea + inboundArea;
+
+  return {
+    total_sqft: Math.round(totalArea),
+    breakdown: {
+      storage: Math.round(storageAreaWithAisles),
+      office: officeArea,
+      battery: batteryArea,
+      packing: packingArea,
+      conveyor: conveyorArea,
+      each_pick: eachPickArea,
+      case_pick: casePickArea,
+      outbound_dock: Math.round(outboundArea),
+      inbound_dock: Math.round(inboundArea),
+      pallet_positions: requiredPositions,
+      rack_levels: rackLevels
+    }
+  };
+}
+
+/**
+ * Convert units to pallets using carton and pallet data
+ */
+export function convertUnitsToPallets(units: number, unitsData: { units_per_carton: number; cartons_per_pallet: number }): number {
+  const cartons = units / unitsData.units_per_carton;
+  const pallets = cartons / unitsData.cartons_per_pallet;
+  return Math.ceil(pallets); // Round up to ensure sufficient capacity
+}
+
 export function optimizeCapacityPlanning(params: CapacityPlanningParams): CapacityOptimizationResult {
-  const { baseCapacity, growthForecasts, facilities, project_duration_years, utilization_target } = params;
-  
+  const { baseCapacity, growthForecasts, facilities, project_duration_years, utilization_target, warehouseConfig, unitsData } = params;
+
+  // Use default warehouse config if not provided
+  const config: WarehouseConfig = warehouseConfig || {
+    DOH: 250,
+    operating_days: 240,
+    pallet_length_inches: 48,
+    pallet_width_inches: 40,
+    rack_height_inches: 79.2,
+    ceiling_height_inches: 288,
+    max_utilization: 0.8,
+    aisle_factor: 0.5,
+    min_office: 1000,
+    min_battery: 500,
+    min_packing: 2000,
+    min_conveyor: 6000,
+    outbound_area_per_door: 4000,
+    outbound_pallets_per_door_per_day: 40,
+    max_outbound_doors: 10,
+    inbound_area_per_door: 4000,
+    inbound_pallets_per_door_per_day: 40,
+    max_inbound_doors: 10,
+    each_pick_area_fixed: 24000,
+    case_pick_area_fixed: 44000,
+    facility_lease_years: 7,
+    num_facilities: 3,
+    initial_facility_area: 140000,
+    facility_design_area: 350000, // Max 350k sq ft per new facility
+    cost_per_sqft_annual: 8.5,
+    labor_cost_per_hour: 18.0,
+    equipment_cost_per_sqft: 15.0
+  };
+
+  // Use default units data if not provided
+  const units: { units_per_carton: number; cartons_per_pallet: number } = unitsData || {
+    units_per_carton: 12,
+    cartons_per_pallet: 40
+  };
+
   let currentCapacity = baseCapacity;
   let totalInvestment = 0;
   const yearlyResults = [];
@@ -277,6 +430,11 @@ export function optimizeCapacityPlanning(params: CapacityPlanningParams): Capaci
       requiredCapacity = previousCapacity * (1 + growthRate / 100);
     }
 
+    // Convert required capacity (units) to pallets and then to square footage
+    const requiredPallets = convertUnitsToPallets(requiredCapacity, units);
+    const warehouseCalculation = calculateWarehouseSquareFootage(requiredPallets, config);
+    const requiredSquareFootage = warehouseCalculation.total_sqft;
+
     // Account for utilization target
     const targetUtilization = utilization_target / 100;
     const effectiveCapacity = currentCapacity * targetUtilization;
@@ -285,45 +443,65 @@ export function optimizeCapacityPlanning(params: CapacityPlanningParams): Capaci
     let yearCost = 0;
     const actions: string[] = [];
 
-    // Capacity optimization logic
+    // Capacity optimization logic with proper facility sizing
     if (capacityGap > 0) {
       // Need additional capacity
       let remainingGap = capacityGap;
-      
+
       // First, try to optimize existing facilities
       for (const facility of facilities) {
         if (remainingGap <= 0) break;
-        
+
         const currentUtilization = (facility.capacity * targetUtilization) / requiredCapacity;
         if (currentUtilization < 0.9) { // If facility is under 90% optimized utilization
           const additionalCapacity = Math.min(remainingGap, facility.capacity * 0.2); // Max 20% expansion
           const expansionCost = additionalCapacity * facility.cost_per_unit * 1.5; // 50% premium for expansion
-          
+
           currentCapacity += additionalCapacity;
           remainingGap -= additionalCapacity;
           yearCost += expansionCost;
           totalInvestment += expansionCost;
-          
+
           actions.push(`Expand ${facility.name} by ${Math.round(additionalCapacity)} units`);
         }
       }
-      
-      // If gap remains, add new capacity
+
+      // If gap remains, add new capacity with proper facility sizing constraints
       if (remainingGap > 0) {
-        const newCapacityUnits = Math.ceil(remainingGap / 1000) * 1000; // Round up to nearest 1000
-        const avgCostPerUnit = facilities.reduce((sum, f) => sum + f.cost_per_unit, 0) / facilities.length;
-        const newFacilityCost = newCapacityUnits * avgCostPerUnit + 500000; // $500k setup cost
-        
+        // Calculate how many units can fit in the maximum facility size
+        const maxPalletsPerFacility = Math.floor(config.facility_design_area / (warehouseCalculation.total_sqft / requiredPallets));
+        const maxUnitsPerFacility = maxPalletsPerFacility * units.cartons_per_pallet * units.units_per_carton;
+
+        // Limit new facility capacity to maximum design area
+        const newCapacityUnits = Math.min(remainingGap, maxUnitsPerFacility);
+        const newFacilityPallets = convertUnitsToPallets(newCapacityUnits, units);
+        const newFacilityCalculation = calculateWarehouseSquareFootage(newFacilityPallets, config);
+        const newFacilitySquareFootage = Math.min(newFacilityCalculation.total_sqft, config.facility_design_area);
+
+        // Calculate costs based on actual square footage
+        const facilityCost = newFacilitySquareFootage * config.cost_per_sqft_annual * config.facility_lease_years;
+        const equipmentCost = newFacilitySquareFootage * config.equipment_cost_per_sqft;
+        const newFacilityCost = facilityCost + equipmentCost;
+
         currentCapacity += newCapacityUnits;
         yearCost += newFacilityCost;
         totalInvestment += newFacilityCost;
-        
-        actions.push(`Add new facility with ${newCapacityUnits} units capacity`);
+
+        actions.push(`Add new facility: ${newFacilitySquareFootage.toLocaleString()} sq ft, ${newCapacityUnits.toLocaleString()} units capacity`);
+
+        // If there's still remaining gap, note it for additional facilities
+        if (remainingGap > newCapacityUnits) {
+          const stillNeeded = remainingGap - newCapacityUnits;
+          actions.push(`Additional ${Math.ceil(stillNeeded / maxUnitsPerFacility)} facilities needed in future years`);
+        }
       }
     }
 
-    // Calculate operating costs
-    const operatingCost = currentCapacity * 15; // $15 per unit operating cost
+    // Calculate operating costs based on actual capacity and warehouse operations
+    const totalPallets = convertUnitsToPallets(currentCapacity, units);
+    const operatingCostPerSqft = config.cost_per_sqft_annual;
+    const currentWarehouseCalc = calculateWarehouseSquareFootage(totalPallets, config);
+    const operatingCost = currentWarehouseCalc.total_sqft * operatingCostPerSqft;
     yearCost += operatingCost;
 
     const finalUtilization = (requiredCapacity / currentCapacity) * 100;
@@ -337,7 +515,10 @@ export function optimizeCapacityPlanning(params: CapacityPlanningParams): Capaci
       utilization_rate: Math.round(finalUtilization * 10) / 10,
       recommended_actions: actions,
       total_cost: Math.round(yearCost),
-      cost_per_unit: Math.round(costPerUnit * 100) / 100
+      cost_per_unit: Math.round(costPerUnit * 100) / 100,
+      required_square_footage: requiredSquareFootage,
+      required_pallets: requiredPallets,
+      warehouse_breakdown: warehouseCalculation.breakdown
     });
   }
 
