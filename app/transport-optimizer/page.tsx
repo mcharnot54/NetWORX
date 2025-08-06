@@ -80,7 +80,8 @@ export default function TransportOptimizer() {
       total_miles: 125000,
       total_cost: 245000,
       service_score: 85,
-      generated: true
+      generated: true,
+      cities: ['Chicago, IL', 'Dallas, TX', 'Atlanta, GA']
     },
     {
       id: 2,
@@ -89,7 +90,8 @@ export default function TransportOptimizer() {
       total_miles: 98000,
       total_cost: 285000,
       service_score: 78,
-      generated: true
+      generated: true,
+      cities: ['Los Angeles, CA', 'Phoenix, AZ', 'Denver, CO']
     },
     {
       id: 3,
@@ -98,7 +100,8 @@ export default function TransportOptimizer() {
       total_miles: 142000,
       total_cost: 265000,
       service_score: 92,
-      generated: true
+      generated: true,
+      cities: ['New York, NY', 'Boston, MA', 'Philadelphia, PA']
     }
   ]);
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>([]);
