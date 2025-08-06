@@ -163,14 +163,22 @@ export default function TransportOptimizer() {
   // Function to call real transport optimization API
   const runRealTransportOptimization = async (scenarioId: number, cities: string[], optimizationType: string) => {
     try {
+      console.log('Calling transport optimization API with:', {
+        scenarioId,
+        cities,
+        optimizationType,
+        configuration
+      });
+
       const response = await fetch(`/api/scenarios/${scenarioId}/optimize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          optimization_type: 'transport',
+          result_type: 'transport',
           optimization_params: {
+            optimization_type: 'transport',
             scenario_type: optimizationType,
             cities: cities,
             optimization_criteria: configuration.optimization_criteria,
