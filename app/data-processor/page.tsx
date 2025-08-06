@@ -513,27 +513,31 @@ export default function DataProcessor() {
           </div>
           
           <div style={{ marginBottom: "2rem" }}>
-            <ErrorBoundary fallback={({ error, retry }) => (
-              <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-                <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Project Manager</h3>
-                <p className="text-red-600 mb-4">{error.message}</p>
-                <button
-                  onClick={retry}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                >
-                  Retry
-                </button>
+            <Suspense fallback={
+              <div className="animate-pulse bg-gray-200 h-32 rounded-lg flex items-center justify-center">
+                <span className="text-gray-600">Loading project manager...</span>
               </div>
-            )}>
-              {selectedProject !== undefined && selectedScenario !== undefined && (
+            }>
+              <ErrorBoundary fallback={({ error, retry }) => (
+                <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+                  <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Project Manager</h3>
+                  <p className="text-red-600 mb-4">{error.message}</p>
+                  <button
+                    onClick={retry}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}>
                 <ProjectScenarioManager
                   selectedProject={selectedProject}
                   selectedScenario={selectedScenario}
                   onSelectProject={setSelectedProject}
                   onSelectScenario={setSelectedScenario}
                 />
-              )}
-            </ErrorBoundary>
+              </ErrorBoundary>
+            </Suspense>
           </div>
 
           {/* Navigation Cards */}
