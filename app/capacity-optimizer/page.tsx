@@ -84,6 +84,8 @@ export default function CapacityOptimizer() {
   const [growthForecasts, setGrowthForecasts] = useState<GrowthForecast[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [activeTab, setActiveTab] = useState<'projects' | 'config' | 'growth' | 'facilities' | 'analysis'>('projects');
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   // Initialize default growth forecasts
   useEffect(() => {
