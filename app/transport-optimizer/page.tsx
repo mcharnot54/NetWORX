@@ -79,6 +79,7 @@ export default function TransportOptimizer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
+  const [isLoadingCapacityData, setIsLoadingCapacityData] = useState(false);
 
   const scenarioTypes = [
     { key: 'lowest_miles_zip', name: 'Lowest Miles (ZIP to ZIP)', description: 'Minimize total miles for ZIP code to ZIP code routes' },
