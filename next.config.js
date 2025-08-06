@@ -67,7 +67,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [],
     // Improve Fast Refresh reliability
-    optimisticClientCache: false,
+    optimisticClientCache: true,
   },
 
   // Disable source maps in development to reduce memory usage
