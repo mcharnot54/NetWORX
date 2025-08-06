@@ -263,31 +263,19 @@ export default function DataProcessor() {
         body: JSON.stringify(saveData),
       });
 
-      // Parse response body once, regardless of status
-      let responseData;
-      let responseText = '';
-
-      try {
-        // First try to get the response text
-        responseText = await response.text();
-        // Then try to parse it as JSON
-        responseData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
-        console.error('Response status:', response.status, response.statusText);
-        console.error('Response text:', responseText);
-
-        if (!response.ok) {
-          throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
-        } else {
-          throw new Error(`Failed to parse server response: ${parseError}`);
-        }
+      // Handle response without consuming body stream multiple times
+      if (!response.ok) {
+        console.error('File save request failed:', response.status, response.statusText);
+        throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
       }
 
-      if (!response.ok) {
-        const errorMessage = responseData.error || responseData.message || responseData.details || `HTTP ${response.status} - ${response.statusText}`;
-        console.error('File save error details:', responseData);
-        throw new Error(`Failed to save file: ${errorMessage}`);
+      // Only try to parse response if request was successful
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse success response:', parseError);
+        throw new Error(`Server returned invalid response format`);
       }
 
       return responseData.file.id;
