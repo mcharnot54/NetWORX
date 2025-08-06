@@ -77,15 +77,16 @@ export default function ProjectScenarioManager({
 
   useEffect(() => {
     let abortController: AbortController | null = null;
+    let isCleanedUp = false;
 
     const initializeFetch = async () => {
-      if (!isMounted) return;
+      if (isCleanedUp) return;
 
       try {
         abortController = new AbortController();
         await fetchProjects(abortController.signal);
       } catch (error) {
-        if (isMounted && !abortController?.signal.aborted) {
+        if (!isCleanedUp && !abortController?.signal.aborted) {
           console.warn('Error initializing project fetch:', error);
         }
       }
@@ -94,15 +95,16 @@ export default function ProjectScenarioManager({
     initializeFetch();
 
     return () => {
+      isCleanedUp = true;
+      setIsMounted(false);
+
       if (abortController && !abortController.signal.aborted) {
         try {
-          abortController.abort('Component unmounting');
+          abortController.abort();
         } catch (error) {
-          // Ignore errors when aborting
-          console.debug('Error aborting controller on unmount:', error);
+          // Silently ignore abort errors during cleanup
         }
       }
-      setIsMounted(false);
     };
   }, []);
 
