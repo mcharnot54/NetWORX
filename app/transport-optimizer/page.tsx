@@ -325,6 +325,24 @@ export default function TransportOptimizer() {
       console.log('Warehouse cities found:', warehouseCities);
       console.log('Final cities to use for transport optimization:', analysisCity);
 
+      // Update the selected scenario with the extracted cities for future reference
+      if (analysisCity.length > 0 && selectedScenario) {
+        try {
+          await fetch(`/api/scenarios/${selectedScenario.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              cities: analysisCity
+            })
+          });
+          console.log('Updated scenario with extracted cities:', analysisCity);
+        } catch (error) {
+          console.warn('Could not update scenario with cities:', error);
+        }
+      }
+
       // Generate transport scenarios using real optimization APIs
       const generatedScenarios = [];
 
