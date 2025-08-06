@@ -284,7 +284,7 @@ export default function TransportOptimizer() {
             service_score: Math.round(transportResults.route_efficiency || (75 + Math.random() * 20)),
             generated: true,
             cities: transportResults.cities_served || analysisCity,
-            route_details: transportResults.optimized_routes || generateMockRouteDetails(),
+            route_details: transportResults.optimized_routes || generateMockRouteDetails(transportResults.cities_served || analysisCity),
             volume_allocations: generateMockVolumeAllocations(),
             optimization_data: optimizationResult // Store full optimization results
           };
