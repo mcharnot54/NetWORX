@@ -348,6 +348,11 @@ export default function DataProcessor() {
       return;
     }
 
+    if (databaseReady === false) {
+      alert('Please setup the database first using the "Setup Database" button above');
+      return;
+    }
+
     const uploadedFiles = Array.from(event.target.files || []);
     if (uploadedFiles.length === 0) {
       addToLog("No files selected for upload");
@@ -688,7 +693,7 @@ export default function DataProcessor() {
                     </p>
                     <div className="text-xs text-green-600 space-y-1">
                       <div>• Files are stored securely in the database</div>
-                      <div>• No need to re-upload files when switching between scenarios</div>
+                      <div>�� No need to re-upload files when switching between scenarios</div>
                       <div>• Validation results and processing status are preserved</div>
                       <div>• Green dot indicates files are saved 🟢</div>
                     </div>
@@ -869,7 +874,7 @@ export default function DataProcessor() {
                     <ul className="text-blue-600 mt-1 space-y-1">
                       <li>• Network Footprint & Capacity</li>
                       <li>• Order & Payment Data</li>
-                      <li>• Order Shipment Data</li>
+                      <li>��� Order Shipment Data</li>
                       <li>• Performance Metrics</li>
                     </ul>
                   </div>
