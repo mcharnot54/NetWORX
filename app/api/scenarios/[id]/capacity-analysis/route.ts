@@ -155,8 +155,6 @@ export async function POST(
   }
 }
 
-import { optimizeCapacityPlanning, type CapacityPlanningParams } from '@/lib/optimization-algorithms';
-
 async function performCapacityAnalysis(
   scenarioId: number,
   data: CapacityAnalysisRequest
