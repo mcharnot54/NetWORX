@@ -142,6 +142,7 @@ export default function CapacityOptimizer() {
 
   const removeFacility = (index: number) => {
     setFacilities(facilities.filter((_, i) => i !== index));
+    setTimeout(() => saveConfiguration(), 1000);
   };
 
   // Save configuration to database
