@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import ProjectScenarioManager from "@/components/ProjectScenarioManager";
+import dynamic from 'next/dynamic';
+
+const ProjectScenarioManager = dynamic(() => import("@/components/ProjectScenarioManager"), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg">Loading project manager...</div>,
+  ssr: false
+});
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useData } from "@/context/DataContext";
 import { DataValidator } from "@/lib/data-validator";
