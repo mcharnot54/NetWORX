@@ -174,8 +174,8 @@ export default function ProjectScenarioManager({
         }
       }
 
-      // Only update state if not aborted
-      if (!signal?.aborted) {
+      // Only update state if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
         setProjects(projects);
         setScenarios(scenariosMap);
 
