@@ -101,10 +101,52 @@ export default function DataProcessor() {
   const [selectedTemplate, setSelectedTemplate] = useState<DataMappingTemplate | null>(null);
   const [validatedData, setValidatedData] = useState<ComprehensiveOperationalData | null>(null);
   const [loadingSavedFiles, setLoadingSavedFiles] = useState(false);
+  const [databaseReady, setDatabaseReady] = useState<boolean | null>(null);
+  const [settingUpDatabase, setSettingUpDatabase] = useState(false);
 
   const addToLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setProcessingLog((prev) => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  // Check database readiness on component mount
+  useEffect(() => {
+    checkDatabaseReadiness();
+  }, []);
+
+  const checkDatabaseReadiness = async () => {
+    try {
+      const response = await fetch('/api/test-db');
+      const result = await response.json();
+      setDatabaseReady(result.success);
+      if (!result.success) {
+        addToLog('⚠ Database connection issue detected');
+      }
+    } catch (error) {
+      setDatabaseReady(false);
+      addToLog('⚠ Could not check database status');
+    }
+  };
+
+  const setupDatabase = async () => {
+    setSettingUpDatabase(true);
+    addToLog('Setting up database tables...');
+
+    try {
+      const response = await fetch('/api/setup-db', { method: 'POST' });
+      const result = await response.json();
+
+      if (result.success) {
+        setDatabaseReady(true);
+        addToLog('✓ Database setup completed successfully');
+      } else {
+        addToLog(`✗ Database setup failed: ${result.error}`);
+      }
+    } catch (error) {
+      addToLog(`✗ Database setup error: ${error}`);
+    } finally {
+      setSettingUpDatabase(false);
+    }
   };
 
   // Load saved files when scenario changes
@@ -222,15 +264,24 @@ export default function DataProcessor() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(`Failed to save file: ${errorData.error || response.statusText}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          console.error('Failed to parse error response:', jsonError);
+          throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
+        }
+        const errorMessage = errorData.error || errorData.message || errorData.details || 'Server error';
+        console.error('File save error details:', errorData);
+        throw new Error(`Failed to save file: ${errorMessage}`);
       }
 
       const { file: savedFile } = await response.json();
       return savedFile.id;
     } catch (error) {
       console.error('Error saving file to database:', error);
-      addToLog(`⚠ Could not save ${fileData.name} to database`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      addToLog(`⚠ Could not save ${fileData.name} to database: ${errorMessage}`);
       return null;
     }
   };
@@ -294,6 +345,11 @@ export default function DataProcessor() {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedProject || !selectedScenario) {
       alert('Please select a project and scenario first');
+      return;
+    }
+
+    if (databaseReady === false) {
+      alert('Please setup the database first using the "Setup Database" button above');
       return;
     }
 
@@ -637,7 +693,7 @@ export default function DataProcessor() {
                     </p>
                     <div className="text-xs text-green-600 space-y-1">
                       <div>• Files are stored securely in the database</div>
-                      <div>• No need to re-upload files when switching between scenarios</div>
+                      <div>�� No need to re-upload files when switching between scenarios</div>
                       <div>• Validation results and processing status are preserved</div>
                       <div>• Green dot indicates files are saved 🟢</div>
                     </div>
@@ -818,7 +874,7 @@ export default function DataProcessor() {
                     <ul className="text-blue-600 mt-1 space-y-1">
                       <li>• Network Footprint & Capacity</li>
                       <li>• Order & Payment Data</li>
-                      <li>• Order Shipment Data</li>
+                      <li>��� Order Shipment Data</li>
                       <li>• Performance Metrics</li>
                     </ul>
                   </div>
@@ -1090,6 +1146,27 @@ export default function DataProcessor() {
                   <p>No processed data yet. Upload and process files first.</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Database Setup Warning */}
+          {databaseReady === false && (
+            <div className="card bg-yellow-50 border-yellow-200">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="text-yellow-600" size={24} />
+                <div>
+                  <h3 className="text-xl font-semibold text-yellow-800">Database Setup Required</h3>
+                  <p className="text-yellow-700">The database is not properly initialized. Please set it up before uploading files.</p>
+                </div>
+              </div>
+              <button
+                onClick={setupDatabase}
+                disabled={settingUpDatabase}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+              >
+                {settingUpDatabase ? <RefreshCw className="animate-spin" size={16} /> : <Database size={16} />}
+                {settingUpDatabase ? 'Setting up...' : 'Setup Database'}
+              </button>
             </div>
           )}
 

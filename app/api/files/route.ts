@@ -22,6 +22,17 @@ export async function GET(request: NextRequest) {
 // Save a new file
 export async function POST(request: NextRequest) {
   try {
+    // Test database connection first
+    try {
+      const { sql } = await import('@/lib/database');
+      await sql`SELECT 1`;
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return NextResponse.json({
+        error: 'Database connection failed',
+        details: dbError instanceof Error ? dbError.message : String(dbError)
+      }, { status: 503 });
+    }
     const body = await request.json();
     const {
       scenario_id,
@@ -50,6 +61,27 @@ export async function POST(request: NextRequest) {
     // Truncate file_name if too long (max 255 chars)
     const truncatedFileName = file_name.length > 255 ? file_name.substring(0, 255) : file_name;
 
+    // Validate file size
+    const maxFileSize = 50 * 1024 * 1024; // 50MB
+    if (file_size && file_size > maxFileSize) {
+      return NextResponse.json({
+        error: 'File too large',
+        details: `File size ${file_size} exceeds maximum of ${maxFileSize} bytes`
+      }, { status: 413 });
+    }
+
+    // Validate processed_data structure
+    if (processed_data && typeof processed_data === 'object') {
+      try {
+        JSON.stringify(processed_data);
+      } catch (jsonError) {
+        return NextResponse.json({
+          error: 'Invalid processed_data format',
+          details: 'Cannot serialize processed_data to JSON'
+        }, { status: 400 });
+      }
+    }
+
     const fileData = {
       scenario_id,
       file_name: truncatedFileName,
@@ -66,11 +98,33 @@ export async function POST(request: NextRequest) {
       mapped_columns: mapped_columns || {}
     };
 
+    console.log('Attempting to save file with data:', {
+      scenario_id,
+      file_name: truncatedFileName,
+      file_type,
+      data_type: validDataType,
+      file_size,
+      processed_data_size: processed_data ? JSON.stringify(processed_data).length : 0
+    });
+
     const savedFile = await DataFileService.createDataFile(fileData);
     return NextResponse.json({ file: savedFile });
   } catch (error) {
     console.error('Error saving file:', error);
-    return NextResponse.json({ error: 'Failed to save file' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    console.error('Full error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      error: error
+    });
+
+    return NextResponse.json({
+      error: 'Failed to save file',
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
 
