@@ -77,35 +77,33 @@ export default function ProjectScenarioManager({
   });
 
   useEffect(() => {
-    let abortController: AbortController | null = null;
     let isCleanedUp = false;
+    const componentId = 'project-scenario-manager';
 
     const initializeFetch = async () => {
       if (isCleanedUp) return;
 
-      try {
-        abortController = new AbortController();
-        await fetchProjects(abortController.signal);
-      } catch (error) {
-        if (!isCleanedUp && !abortController?.signal.aborted) {
-          console.warn('Error initializing project fetch:', error);
+      await safeAsync(async () => {
+        const controller = new SafeAbortController('project-fetch');
+        try {
+          await fetchProjects(controller.signal);
+        } finally {
+          controller.cleanup();
         }
-      }
+      }, 'initializeFetch');
     };
 
     initializeFetch();
 
+    // Register cleanup
+    runtimeErrorHandler.registerCleanup(componentId, () => {
+      isCleanedUp = true;
+    }, 5);
+
     return () => {
       isCleanedUp = true;
       setIsMounted(false);
-
-      if (abortController && !abortController.signal.aborted) {
-        try {
-          abortController.abort();
-        } catch (error) {
-          // Silently ignore abort errors during cleanup
-        }
-      }
+      runtimeErrorHandler.executeCleanup(componentId);
     };
   }, []);
 
