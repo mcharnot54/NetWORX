@@ -43,12 +43,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validate data_type against allowed values
+    const allowedDataTypes = ['forecast', 'sku', 'network', 'cost', 'capacity'];
+    const validDataType = allowedDataTypes.includes(data_type) ? data_type : 'network';
+
+    // Truncate file_name if too long (max 255 chars)
+    const truncatedFileName = file_name.length > 255 ? file_name.substring(0, 255) : file_name;
+
     const fileData = {
       scenario_id,
-      file_name,
+      file_name: truncatedFileName,
       file_type,
       file_size,
-      data_type: data_type || 'unknown',
+      data_type: validDataType,
       processing_status: processing_status || 'pending',
       validation_result: validation_result || {},
       processed_data: {
