@@ -38,16 +38,50 @@ export async function POST(request: NextRequest) {
 
     // Check if project_id column exists in scenarios table
     const columnCheck = await sql`
-      SELECT column_name 
-      FROM information_schema.columns 
+      SELECT column_name
+      FROM information_schema.columns
       WHERE table_name = 'scenarios' AND column_name = 'project_id'
     `;
 
     if (columnCheck.length === 0) {
       console.log('Adding project_id column to scenarios table...');
       await sql`
-        ALTER TABLE scenarios 
+        ALTER TABLE scenarios
         ADD COLUMN project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE
+      `;
+    }
+
+    // Check and add missing columns for optimization tracking
+    const optimizationColumnCheck = await sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'scenarios'
+      AND column_name IN ('capacity_analysis_completed', 'transport_optimization_completed', 'warehouse_optimization_completed')
+    `;
+
+    const existingColumns = optimizationColumnCheck.map((row: any) => row.column_name);
+
+    if (!existingColumns.includes('capacity_analysis_completed')) {
+      console.log('Adding capacity_analysis_completed column to scenarios table...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN capacity_analysis_completed BOOLEAN DEFAULT false
+      `;
+    }
+
+    if (!existingColumns.includes('transport_optimization_completed')) {
+      console.log('Adding transport_optimization_completed column to scenarios table...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN transport_optimization_completed BOOLEAN DEFAULT false
+      `;
+    }
+
+    if (!existingColumns.includes('warehouse_optimization_completed')) {
+      console.log('Adding warehouse_optimization_completed column to scenarios table...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN warehouse_optimization_completed BOOLEAN DEFAULT false
       `;
     }
 

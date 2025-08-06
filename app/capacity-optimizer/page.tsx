@@ -84,24 +84,37 @@ export default function CapacityOptimizer() {
   const [growthForecasts, setGrowthForecasts] = useState<GrowthForecast[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [activeTab, setActiveTab] = useState<'projects' | 'config' | 'growth' | 'facilities' | 'analysis'>('projects');
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Initialize default growth forecasts
+  // Load configuration when scenario changes
   useEffect(() => {
-    const defaultForecasts = Array.from({ length: projectConfig.project_duration_years }, (_, i) => ({
-      year_number: i + 1,
-      forecast_type: 'forecast' as const,
-      units_growth_rate: 0,
-      dollar_growth_rate: 0,
-      is_actual_data: false,
-      confidence_level: 50
-    }));
-    setGrowthForecasts(defaultForecasts);
+    if (selectedScenario?.id) {
+      loadConfiguration(selectedScenario.id);
+    }
+  }, [selectedScenario]);
+
+  // Initialize default growth forecasts when project duration changes (only if no existing forecasts)
+  useEffect(() => {
+    if (growthForecasts.length === 0 || growthForecasts.length !== projectConfig.project_duration_years) {
+      const defaultForecasts = Array.from({ length: projectConfig.project_duration_years }, (_, i) => ({
+        year_number: i + 1,
+        forecast_type: 'forecast' as const,
+        units_growth_rate: 0,
+        dollar_growth_rate: 0,
+        is_actual_data: false,
+        confidence_level: 50
+      }));
+      setGrowthForecasts(defaultForecasts);
+    }
   }, [projectConfig.project_duration_years]);
 
   const updateGrowthForecast = (index: number, field: keyof GrowthForecast, value: any) => {
     const updatedForecasts = [...growthForecasts];
     updatedForecasts[index] = { ...updatedForecasts[index], [field]: value };
     setGrowthForecasts(updatedForecasts);
+    debouncedSave();
   };
 
   const addFacility = () => {
@@ -116,16 +129,93 @@ export default function CapacityOptimizer() {
       allow_expansion: true
     };
     setFacilities([...facilities, newFacility]);
+    debouncedSave();
   };
 
   const updateFacility = (index: number, field: keyof Facility, value: any) => {
     const updatedFacilities = [...facilities];
     updatedFacilities[index] = { ...updatedFacilities[index], [field]: value };
     setFacilities(updatedFacilities);
+    debouncedSave();
   };
 
   const removeFacility = (index: number) => {
     setFacilities(facilities.filter((_, i) => i !== index));
+    debouncedSave();
+  };
+
+  // Save configuration to database
+  const saveConfiguration = async () => {
+    if (!selectedScenario) return;
+
+    setIsSavingConfig(true);
+    try {
+      const configData = {
+        projectConfig,
+        growthForecasts,
+        facilities
+      };
+
+      const response = await fetch(`/api/scenarios/${selectedScenario.id}/capacity-config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save configuration');
+      }
+
+      console.log('Configuration saved successfully');
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  // Load configuration from database
+  const loadConfiguration = async (scenarioId: number) => {
+    setIsLoadingConfig(true);
+    try {
+      const response = await fetch(`/api/scenarios/${scenarioId}/capacity-config`);
+
+      if (response.ok) {
+        const result = await response.json();
+        const { projectConfig: savedProjectConfig, growthForecasts: savedGrowthForecasts, facilities: savedFacilities } = result.data;
+
+        if (savedProjectConfig) {
+          setProjectConfig(savedProjectConfig);
+        }
+        if (savedGrowthForecasts && savedGrowthForecasts.length > 0) {
+          setGrowthForecasts(savedGrowthForecasts);
+        }
+        if (savedFacilities) {
+          setFacilities(savedFacilities);
+        }
+
+        console.log('Configuration loaded successfully');
+      } else if (response.status !== 404) {
+        console.warn('Error loading configuration:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error loading configuration:', error);
+    } finally {
+      setIsLoadingConfig(false);
+    }
+  };
+
+  // Debounced auto-save function
+  const debouncedSave = () => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+    const newTimeout = setTimeout(() => {
+      saveConfiguration();
+    }, 2000); // Save after 2 seconds of inactivity
+    setSaveTimeout(newTimeout);
   };
 
   const runCapacityAnalysis = async () => {
@@ -151,8 +241,15 @@ export default function CapacityOptimizer() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to run capacity analysis' }));
-        throw new Error(errorData.error || 'Failed to run capacity analysis');
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || 'Failed to run capacity analysis' };
+        }
+        console.error('API Response Error:', response.status, errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${errorText || 'Failed to run capacity analysis'}`);
       }
 
       const responseData = await response.json();
@@ -224,7 +321,20 @@ export default function CapacityOptimizer() {
 
           {activeTab === 'config' && (
             <div className="tab-content">
-              <h2 className="section-title">Project Configuration</h2>
+              <div className="section-header">
+                <h2 className="section-title">Project Configuration</h2>
+                <div className="save-status">
+                  {isLoadingConfig && <span className="loading-text">Loading...</span>}
+                  {isSavingConfig && <span className="saving-text">Saving...</span>}
+                  <button
+                    className="action-button secondary small"
+                    onClick={saveConfiguration}
+                    disabled={!selectedScenario || isSavingConfig}
+                  >
+                    Save Configuration
+                  </button>
+                </div>
+              </div>
               <div className="config-grid">
                 <div className="config-field">
                   <label className="field-label">Project Duration (Years)</label>
@@ -232,10 +342,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.project_duration_years}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      project_duration_years: parseInt(e.target.value) || 5
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        project_duration_years: parseInt(e.target.value) || 5
+                      });
+                      debouncedSave();
+                    }}
                     min="1"
                     max="20"
                   />
@@ -247,10 +360,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.base_year}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      base_year: parseInt(e.target.value) || new Date().getFullYear()
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        base_year: parseInt(e.target.value) || new Date().getFullYear()
+                      });
+                      debouncedSave();
+                    }}
                     min="2020"
                     max="2040"
                   />
@@ -262,10 +378,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.default_lease_term_years}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      default_lease_term_years: parseInt(e.target.value) || 7
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        default_lease_term_years: parseInt(e.target.value) || 7
+                      });
+                      debouncedSave();
+                    }}
                     min="1"
                     max="20"
                   />
@@ -277,10 +396,13 @@ export default function CapacityOptimizer() {
                     type="number"
                     className="field-input"
                     value={projectConfig.default_utilization_rate}
-                    onChange={(e) => setProjectConfig({
-                      ...projectConfig,
-                      default_utilization_rate: parseFloat(e.target.value) || 80
-                    })}
+                    onChange={(e) => {
+                      setProjectConfig({
+                        ...projectConfig,
+                        default_utilization_rate: parseFloat(e.target.value) || 80
+                      });
+                      debouncedSave();
+                    }}
                     min="0"
                     max="100"
                     step="0.1"
@@ -292,9 +414,14 @@ export default function CapacityOptimizer() {
 
           {activeTab === 'growth' && (
             <div className="tab-content">
-              <h2 className="section-title">Annual Growth Forecasts</h2>
+              <div className="section-header">
+                <h2 className="section-title">Annual Growth Forecasts</h2>
+                <div className="save-status">
+                  {isSavingConfig && <span className="saving-text">Auto-saving...</span>}
+                </div>
+              </div>
               <p className="section-description">
-                Configure expected growth rates for each year. You can mix actual data, forecasts, 
+                Configure expected growth rates for each year. You can mix actual data, forecasts,
                 and linear projections.
               </p>
 
@@ -389,7 +516,12 @@ export default function CapacityOptimizer() {
 
           {activeTab === 'facilities' && (
             <div className="tab-content">
-              <h2 className="section-title">Facility Constraints</h2>
+              <div className="section-header">
+                <h2 className="section-title">Facility Constraints</h2>
+                <div className="save-status">
+                  {isSavingConfig && <span className="saving-text">Auto-saving...</span>}
+                </div>
+              </div>
               <p className="section-description">
                 Define existing facilities, forced/fixed requirements, and expansion parameters.
               </p>
@@ -650,7 +782,7 @@ export default function CapacityOptimizer() {
                                           {facility.type.toUpperCase()}
                                         </span>
                                         <span>{facility.name}</span>
-                                        <span>({facility.capacity_units.toLocaleString()} units)</span>
+                                        <span>({facility.capacity_units.toLocaleString()} units, {facility.square_feet.toLocaleString()} sq ft)</span>
                                         {facility.estimated_cost && (
                                           <span className="facility-cost">
                                             ${facility.estimated_cost.toLocaleString()}
@@ -862,6 +994,43 @@ export default function CapacityOptimizer() {
         .action-button.large {
           padding: 1rem 2rem;
           font-size: 1.125rem;
+        }
+
+        .action-button.secondary {
+          background: #6b7280;
+          color: white;
+        }
+
+        .action-button.secondary:hover {
+          background: #4b5563;
+        }
+
+        .action-button.small {
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .save-status {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .loading-text, .saving-text {
+          font-size: 0.875rem;
+          color: #6b7280;
+          font-style: italic;
+        }
+
+        .saving-text {
+          color: #3b82f6;
         }
 
         .facilities-list {

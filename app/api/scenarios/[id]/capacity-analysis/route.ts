@@ -1,6 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/database';
 
+// Helper function to ensure required columns exist
+async function ensureCapacityAnalysisColumns() {
+  try {
+    const columnCheck = await sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'scenarios'
+      AND column_name = 'capacity_analysis_completed'
+    `;
+
+    if (columnCheck.length === 0) {
+      console.log('Adding missing capacity_analysis_completed column...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN capacity_analysis_completed BOOLEAN DEFAULT false
+      `;
+      console.log('Successfully added capacity_analysis_completed column');
+    }
+  } catch (error) {
+    console.warn('Could not ensure capacity analysis columns exist:', error);
+  }
+}
+
 interface CapacityAnalysisRequest {
   projectConfig: {
     default_lease_term_years: number;
@@ -74,6 +97,9 @@ export async function POST(
     const scenarioId = parseInt(params.id);
     const data: CapacityAnalysisRequest = await request.json();
 
+    // Ensure required columns exist in scenarios table
+    await ensureCapacityAnalysisColumns();
+
     // Validate scenario exists
     const scenarioResult = await sql`
       SELECT * FROM scenarios WHERE id = ${scenarioId}
@@ -92,10 +118,16 @@ export async function POST(
     // Store analysis results in database
     await storeAnalysisResults(scenarioId, analysisResult);
 
-    // Update scenario to mark capacity analysis as completed
-    await sql`
-      UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = ${scenarioId}
-    `;
+    // Update scenario to mark capacity analysis as completed (if column exists)
+    try {
+      await sql`
+        UPDATE scenarios SET capacity_analysis_completed = true, updated_at = NOW() WHERE id = ${scenarioId}
+      `;
+      console.log('Marked capacity analysis as completed for scenario', scenarioId);
+    } catch (error) {
+      // If the column doesn't exist, just log it but don't fail the request
+      console.warn('Could not update capacity_analysis_completed column:', error);
+    }
 
     return NextResponse.json(analysisResult);
   } catch (error) {
