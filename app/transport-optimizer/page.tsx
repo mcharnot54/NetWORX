@@ -278,10 +278,41 @@ export default function TransportOptimizer() {
       // Fetch real capacity analysis data
       const capacityData = await fetchCapacityAnalysisData(selectedScenario.id);
 
+      // Also fetch warehouse configuration data to get city information
+      let warehouseCities: string[] = [];
+      try {
+        const warehouseResponse = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
+        if (warehouseResponse.ok) {
+          const warehouseData = await warehouseResponse.json();
+          if (warehouseData.data && Array.isArray(warehouseData.data)) {
+            warehouseData.data.forEach((warehouse: any) => {
+              if (warehouse.location) {
+                // Parse location like "Chicago, IL" or "Atlanta, GA"
+                const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
+                if (locationMatch) {
+                  const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
+                  if (!warehouseCities.includes(cityName)) {
+                    warehouseCities.push(cityName);
+                  }
+                }
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch warehouse configurations:', error);
+      }
+
       setIsLoadingCapacityData(false);
 
       // Extract cities from capacity analysis (including forced locations like Littleton, MA)
-      const analysisCity = extractCitiesFromCapacityData(capacityData);
+      let analysisCity = extractCitiesFromCapacityData(capacityData);
+
+      // If no cities found in capacity analysis, use warehouse cities
+      if (analysisCity.length === 0 && warehouseCities.length > 0) {
+        console.log('Using cities from warehouse configurations:', warehouseCities);
+        analysisCity = warehouseCities;
+      }
 
       console.log('Selected scenario details:', {
         id: selectedScenario.id,
@@ -291,7 +322,8 @@ export default function TransportOptimizer() {
         metadata: selectedScenario
       });
       console.log('Capacity data received:', capacityData);
-      console.log('Cities extracted from capacity analysis:', analysisCity);
+      console.log('Warehouse cities found:', warehouseCities);
+      console.log('Final cities to use for transport optimization:', analysisCity);
 
       // Generate transport scenarios using real optimization APIs
       const generatedScenarios = [];
