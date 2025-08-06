@@ -300,7 +300,7 @@ export default function TransportOptimizer() {
             service_score: Math.floor(Math.random() * 20) + 80,
             generated: true,
             cities: analysisCity, // Use real cities from capacity analysis
-            route_details: generateMockRouteDetails(),
+            route_details: generateMockRouteDetails(analysisCity),
             volume_allocations: generateMockVolumeAllocations()
           };
         }
