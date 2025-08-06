@@ -276,6 +276,8 @@ export function withErrorBoundary<T extends {}>(
       return React.createElement(Component, this.props);
     }
   };
+
+  return ErrorBoundaryWrapper as React.ComponentType<T>;
 }
 
 // Safe async operation wrapper
