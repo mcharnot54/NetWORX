@@ -81,6 +81,21 @@ interface CapacityAnalysisResult {
   base_year: number;
   total_investment_required: number;
   yearly_results: YearlyCapacityResult[];
+  facilities: Array<{
+    id?: number;
+    name: string;
+    city: string;
+    state: string;
+    zip_code: string;
+    square_feet: number;
+    capacity_units: number;
+    is_forced: boolean;
+    force_start_year?: number;
+    force_end_year?: number;
+    allow_expansion: boolean;
+    lease_rate_per_sqft?: number;
+    operating_cost_per_sqft?: number;
+  }>;
   summary: {
     peak_capacity_required: number;
     total_facilities_recommended: number;
