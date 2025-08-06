@@ -401,7 +401,7 @@ export default function CapacityOptimizer() {
                         ...projectConfig,
                         default_utilization_rate: parseFloat(e.target.value) || 80
                       });
-                      setTimeout(() => saveConfiguration(), 1000);
+                      debouncedSave();
                     }}
                     min="0"
                     max="100"
