@@ -130,6 +130,19 @@ export default function TransportOptimizer() {
       // Simulate scenario generation
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      const cityOptions = [
+        ['Seattle, WA', 'Portland, OR', 'San Francisco, CA'],
+        ['Houston, TX', 'San Antonio, TX', 'Austin, TX'],
+        ['Miami, FL', 'Tampa, FL', 'Jacksonville, FL'],
+        ['Detroit, MI', 'Cleveland, OH', 'Pittsburgh, PA'],
+        ['Las Vegas, NV', 'Salt Lake City, UT', 'Albuquerque, NM'],
+        ['Nashville, TN', 'Memphis, TN', 'Louisville, KY'],
+        ['Kansas City, MO', 'Oklahoma City, OK', 'Tulsa, OK'],
+        ['Minneapolis, MN', 'Milwaukee, WI', 'Madison, WI'],
+        ['Charlotte, NC', 'Raleigh, NC', 'Charleston, SC'],
+        ['Phoenix, AZ', 'Tucson, AZ', 'El Paso, TX']
+      ];
+
       const generatedScenarios = scenarioTypes.map((type, index) => ({
         id: Date.now() + index,
         scenario_type: type.key as any,
@@ -138,6 +151,7 @@ export default function TransportOptimizer() {
         total_cost: Math.floor(Math.random() * 100000) + 200000,
         service_score: Math.floor(Math.random() * 20) + 80,
         generated: true,
+        cities: cityOptions[index % cityOptions.length],
         route_details: generateMockRouteDetails(),
         volume_allocations: generateMockVolumeAllocations()
       }));
