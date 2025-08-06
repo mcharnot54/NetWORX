@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const fileData = {
       scenario_id,
       file_name: truncatedFileName,
-      file_type,
+      file_type: truncatedFileType,
       file_size,
       data_type: validDataType,
       processing_status: processing_status || 'pending',
