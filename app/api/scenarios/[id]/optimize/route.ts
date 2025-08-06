@@ -163,11 +163,10 @@ async function performRealOptimization({ scenario, warehouseConfigs, transportCo
 
   const transportData = optimizeTransportRoutes(routeOptimizationParams);
 
-  const transportData = generateTransportDataForCities(cities);
   const totalCost = warehouseCosts + transportData.total_transport_cost;
-  const originalCost = totalCost * 1.3; // Assume 30% improvement
-  const costSavings = originalCost - totalCost;
-  const efficiencyScore = Math.min(95, 60 + Math.random() * 35); // 60-95% efficiency
+  const originalCost = totalCost + transportData.cost_savings; // Original cost before optimization
+  const costSavings = transportData.cost_savings;
+  const efficiencyScore = transportData.route_efficiency;
 
   const detailedResults = {
     warehouse_optimization: {
