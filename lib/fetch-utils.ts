@@ -115,6 +115,7 @@ const fetchWithTimeout = async (
   const controller = new AbortController();
 
   // Handle external signal if provided
+  let externalAbortHandler: (() => void) | null = null;
   if (options.signal) {
     // Check if already aborted
     if (options.signal.aborted) {
@@ -122,8 +123,16 @@ const fetchWithTimeout = async (
     }
 
     // Listen for external abort
-    const abortHandler = () => controller.abort();
-    options.signal.addEventListener('abort', abortHandler, { once: true });
+    externalAbortHandler = () => {
+      try {
+        if (!controller.signal.aborted) {
+          controller.abort();
+        }
+      } catch (error) {
+        // Ignore errors when aborting
+      }
+    };
+    options.signal.addEventListener('abort', externalAbortHandler, { once: true });
   }
 
   // Set up timeout with proper error handling
@@ -143,9 +152,28 @@ const fetchWithTimeout = async (
     });
 
     clearTimeout(timeoutId);
+
+    // Clean up external abort handler
+    if (externalAbortHandler && options.signal) {
+      try {
+        options.signal.removeEventListener('abort', externalAbortHandler);
+      } catch (error) {
+        // Ignore cleanup errors
+      }
+    }
+
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
+
+    // Clean up external abort handler
+    if (externalAbortHandler && options.signal) {
+      try {
+        options.signal.removeEventListener('abort', externalAbortHandler);
+      } catch (error) {
+        // Ignore cleanup errors
+      }
+    }
 
     // Handle AbortError specifically
     if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
