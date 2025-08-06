@@ -111,10 +111,16 @@ export default function ProjectScenarioManager({
     try {
       setLoading(true);
 
+      // Check if we're already aborted before starting
+      if (signal?.aborted) {
+        console.debug('Fetch cancelled before starting');
+        return;
+      }
+
       // Fetch projects from API with robust error handling
       const projectsResult = await robustFetchJson('/api/projects', {
-        timeout: 10000,
-        retries: 2,
+        timeout: 15000, // Increased timeout for cloud environments
+        retries: 1, // Reduced retries to prevent cascading errors
         signal, // Pass abort signal to fetch
       });
 
