@@ -675,6 +675,18 @@ export default function TransportOptimizer() {
                             <h4 className="analyzed-scenario-name">{scenario.scenario_name}</h4>
                             <div className="scenario-type-badge">{scenario.scenario_type.replace(/_/g, ' ').toUpperCase()}</div>
                           </div>
+
+                          {scenario.cities && scenario.cities.length > 0 && (
+                            <div className="scenario-cities">
+                              <span className="cities-label">Cities:</span>
+                              <div className="scenario-cities-list">
+                                {scenario.cities.map((city, cityIndex) => (
+                                  <span key={cityIndex} className="scenario-city-tag">{city}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="scenario-metrics-row">
                             <span className="metric-item">Cost: ${scenario.total_cost?.toLocaleString()}</span>
                             <span className="metric-item">Miles: {scenario.total_miles?.toLocaleString()}</span>
