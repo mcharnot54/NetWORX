@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
     // Truncate file_name if too long (max 255 chars)
     const truncatedFileName = file_name.length > 255 ? file_name.substring(0, 255) : file_name;
 
+    // Truncate file_type if too long (max 50 chars for now, should be migrated to 100)
+    const truncatedFileType = file_type && file_type.length > 50 ? file_type.substring(0, 50) : file_type;
+
     // Validate file size
     const maxFileSize = 50 * 1024 * 1024; // 50MB
     if (file_size && file_size > maxFileSize) {
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
     const fileData = {
       scenario_id,
       file_name: truncatedFileName,
-      file_type,
+      file_type: truncatedFileType,
       file_size,
       data_type: validDataType,
       processing_status: processing_status || 'pending',
@@ -104,10 +107,18 @@ export async function POST(request: NextRequest) {
       file_type,
       data_type: validDataType,
       file_size,
-      processed_data_size: processed_data ? JSON.stringify(processed_data).length : 0
+      processed_data_size: processed_data ? JSON.stringify(processed_data).length : 0,
+      original_columns_count: original_columns ? original_columns.length : 0
     });
 
-    const savedFile = await DataFileService.createDataFile(fileData);
+    let savedFile;
+    try {
+      savedFile = await DataFileService.createDataFile(fileData);
+      console.log('File saved successfully:', savedFile.id);
+    } catch (dbError) {
+      console.error('Database error while saving file:', dbError);
+      throw new Error(`Database operation failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+    }
     return NextResponse.json({ file: savedFile });
   } catch (error) {
     console.error('Error saving file:', error);

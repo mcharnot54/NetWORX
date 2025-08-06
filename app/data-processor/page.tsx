@@ -263,18 +263,19 @@ export default function DataProcessor() {
         body: JSON.stringify(saveData),
       });
 
-      let responseData;
-      try {
-        responseData = await response.json();
-      } catch (jsonError) {
-        console.error('Failed to parse response:', jsonError);
+      // Handle response without consuming body stream multiple times
+      if (!response.ok) {
+        console.error('File save request failed:', response.status, response.statusText);
         throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
       }
 
-      if (!response.ok) {
-        const errorMessage = responseData.error || responseData.message || responseData.details || 'Server error';
-        console.error('File save error details:', responseData);
-        throw new Error(`Failed to save file: ${errorMessage}`);
+      // Only try to parse response if request was successful
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse success response:', parseError);
+        throw new Error(`Server returned invalid response format`);
       }
 
       return responseData.file.id;
@@ -408,8 +409,8 @@ export default function DataProcessor() {
       }
     }
 
-    setFiles(processedFiles);
-    addToLog(`Upload complete. ${processedFiles.length} files ready for validation.`);
+    setFiles(prevFiles => [...prevFiles, ...processedFiles]);
+    addToLog(`Upload complete. ${processedFiles.length} files added, ${files.length + processedFiles.length} total files ready for validation.`);
   };
 
   const validateFileData = async (fileIndex: number) => {
