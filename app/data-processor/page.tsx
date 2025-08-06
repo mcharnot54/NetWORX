@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Navigation from "@/components/Navigation";
 import dynamic from 'next/dynamic';
 
