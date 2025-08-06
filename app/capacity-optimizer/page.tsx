@@ -129,20 +129,19 @@ export default function CapacityOptimizer() {
       allow_expansion: true
     };
     setFacilities([...facilities, newFacility]);
-    setTimeout(() => saveConfiguration(), 1000);
+    debouncedSave();
   };
 
   const updateFacility = (index: number, field: keyof Facility, value: any) => {
     const updatedFacilities = [...facilities];
     updatedFacilities[index] = { ...updatedFacilities[index], [field]: value };
     setFacilities(updatedFacilities);
-    // Auto-save after a short delay
-    setTimeout(() => saveConfiguration(), 1000);
+    debouncedSave();
   };
 
   const removeFacility = (index: number) => {
     setFacilities(facilities.filter((_, i) => i !== index));
-    setTimeout(() => saveConfiguration(), 1000);
+    debouncedSave();
   };
 
   // Save configuration to database
