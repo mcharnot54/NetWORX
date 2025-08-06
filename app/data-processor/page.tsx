@@ -222,7 +222,8 @@ export default function DataProcessor() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save file');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`Failed to save file: ${errorData.error || response.statusText}`);
       }
 
       const { file: savedFile } = await response.json();
