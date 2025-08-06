@@ -261,9 +261,20 @@ export default function TransportOptimizer() {
         );
 
         let scenarioData;
-        if (optimizationResult?.optimization_results?.transport_optimization) {
+
+        // Check for optimization results in the response
+        const hasOptimizationResults = optimizationResult?.data?.optimization_run_id ||
+                                     optimizationResult?.results_data?.transport_optimization ||
+                                     optimizationResult?.optimization_results?.transport_optimization;
+
+        if (hasOptimizationResults) {
           // Use real optimization results
-          const transportResults = optimizationResult.optimization_results.transport_optimization;
+          const transportResults = optimizationResult?.results_data?.transport_optimization ||
+                                 optimizationResult?.optimization_results?.transport_optimization ||
+                                 {};
+
+          console.log(`Using real optimization results for ${type.name}:`, transportResults);
+
           scenarioData = {
             id: selectedScenario.id * 1000 + index, // Unique ID based on scenario and type
             scenario_type: type.key as any,
@@ -272,14 +283,14 @@ export default function TransportOptimizer() {
             total_cost: transportResults.total_transport_cost || Math.floor(Math.random() * 100000) + 200000,
             service_score: Math.round(transportResults.route_efficiency || (75 + Math.random() * 20)),
             generated: true,
-            cities: analysisCity,
+            cities: transportResults.cities_served || analysisCity,
             route_details: transportResults.optimized_routes || generateMockRouteDetails(),
             volume_allocations: generateMockVolumeAllocations(),
             optimization_data: optimizationResult // Store full optimization results
           };
         } else {
           // Fallback to enhanced mock data with real cities
-          console.warn(`No optimization results for ${type.name}, using fallback data`);
+          console.warn(`No optimization results for ${type.name}, using fallback data with cities:`, analysisCity);
           scenarioData = {
             id: selectedScenario.id * 1000 + index,
             scenario_type: type.key as any,
