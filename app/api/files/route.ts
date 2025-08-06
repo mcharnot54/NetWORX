@@ -104,10 +104,18 @@ export async function POST(request: NextRequest) {
       file_type,
       data_type: validDataType,
       file_size,
-      processed_data_size: processed_data ? JSON.stringify(processed_data).length : 0
+      processed_data_size: processed_data ? JSON.stringify(processed_data).length : 0,
+      original_columns_count: original_columns ? original_columns.length : 0
     });
 
-    const savedFile = await DataFileService.createDataFile(fileData);
+    let savedFile;
+    try {
+      savedFile = await DataFileService.createDataFile(fileData);
+      console.log('File saved successfully:', savedFile.id);
+    } catch (dbError) {
+      console.error('Database error while saving file:', dbError);
+      throw new Error(`Database operation failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+    }
     return NextResponse.json({ file: savedFile });
   } catch (error) {
     console.error('Error saving file:', error);
