@@ -1361,6 +1361,15 @@ export default function TransportOptimizer() {
             gap: 1rem;
           }
 
+          .scenario-cities-list {
+            gap: 0.25rem;
+          }
+
+          .scenario-city-tag {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+          }
+
           .tab-navigation {
             flex-wrap: wrap;
           }
