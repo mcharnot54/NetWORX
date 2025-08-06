@@ -215,6 +215,9 @@ export default function TransportOptimizer() {
       };
 
       setAnalysisResults(results);
+
+      // Automatically switch to Results tab to show the analysis
+      setActiveTab('results');
     } catch (error) {
       console.error('Analysis failed:', error);
     } finally {
