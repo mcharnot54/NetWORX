@@ -143,8 +143,8 @@ export default function ProjectScenarioManager({
 
         try {
           const scenariosResult = await robustFetchJson(`/api/scenarios?project_id=${project.id}`, {
-            timeout: 8000,
-            retries: 2,
+            timeout: 12000, // Increased timeout
+            retries: 1, // Reduced retries to prevent cascade failures
             signal,
           });
 
@@ -396,7 +396,7 @@ export default function ProjectScenarioManager({
     switch (status) {
       case 'completed': return '✓';
       case 'in_progress': return '⟳';
-      case 'failed': return '✗';
+      case 'failed': return '��';
       case 'active': return '●';
       case 'archived': return '◐';
       default: return '○';
