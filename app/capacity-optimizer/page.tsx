@@ -383,7 +383,7 @@ export default function CapacityOptimizer() {
                         ...projectConfig,
                         default_lease_term_years: parseInt(e.target.value) || 7
                       });
-                      setTimeout(() => saveConfiguration(), 1000);
+                      debouncedSave();
                     }}
                     min="1"
                     max="20"
