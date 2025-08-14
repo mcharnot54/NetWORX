@@ -256,7 +256,7 @@ export class AdvancedDataImputation {
         const neighborValues = neighbors.map((n: any) => n.row[targetColumn]);
         let imputedValue: any;
 
-        if (neighborValues.every(val => !isNaN(parseFloat(val)))) {
+        if (neighborValues.every((val: any) => !isNaN(parseFloat(val)))) {
           // Numeric - weighted average
           const weights = neighbors.map(n => 1 / (n.distance + 1e-6)); // Add small epsilon to avoid division by zero
           const weightedSum = neighbors.reduce((sum, n, i) => sum + parseFloat(n.row[targetColumn]) * weights[i], 0);
