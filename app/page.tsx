@@ -19,6 +19,7 @@ import {
   DollarSign,
   Gauge,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ReadinessTracker } from "@/lib/readiness-tracker";
