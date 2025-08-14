@@ -193,7 +193,7 @@ async function performCapacityAnalysis(
 
   // Get warehouse configuration from database or use defaults
   let warehouseConfig: WarehouseConfig | undefined;
-  let unitsData: { units_per_carton: number; cartons_per_pallet: number } | undefined;
+  let unitsData: { units_per_carton: number; cartons_per_pallet: number; volume_per_unit: number } | undefined;
 
   try {
     // Try to fetch warehouse configuration
@@ -222,7 +222,8 @@ async function performCapacityAnalysis(
       const metadata = unitsResponse[0].metadata;
       unitsData = {
         units_per_carton: parseFloat(metadata.units_per_carton) || 12,
-        cartons_per_pallet: parseFloat(metadata.cartons_per_pallet) || 40
+        cartons_per_pallet: parseFloat(metadata.cartons_per_pallet) || 40,
+        volume_per_unit: parseFloat(metadata.volume_per_unit) || 1.0 // Default to 1 cubic inch if not available
       };
     }
   } catch (error) {
