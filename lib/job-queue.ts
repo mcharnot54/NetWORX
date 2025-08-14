@@ -373,20 +373,38 @@ class JobQueue {
   /**
    * Perform the actual optimization with progress tracking
    */
-  private async performOptimization({ 
-    scenario, 
-    warehouseConfigs, 
-    transportConfigs, 
+  private async performOptimization({
+    scenario,
+    warehouseConfigs,
+    transportConfigs,
     optimization_params,
-    job 
+    job
   }: any): Promise<any> {
-    
+
     // Extract parameters
     const cities = optimization_params?.cities || ['Littleton, MA', 'Chicago, IL'];
     const optimizationType = optimization_params?.optimization_type || 'transport';
     const scenarioType = optimization_params?.scenario_type || 'lowest_cost_city';
 
     console.log('Processing optimization for cities:', cities, 'type:', optimizationType, 'scenario:', scenarioType);
+
+    // Validate input parameters
+    if (!cities || cities.length < 2) {
+      throw new OptimizationError(
+        'At least 2 cities are required for transport optimization',
+        'VALIDATION_ERROR',
+        'low',
+        false,
+        {
+          operation: 'transport_optimization',
+          scenarioId: job.scenario_id,
+          jobId: job.id,
+          optimizationRunId: job.optimization_run_id,
+          timestamp: new Date(),
+          additionalData: { cities, scenarioType }
+        }
+      );
+    }
 
     // Update progress
     job.current_step = 'Calculating baseline costs';
