@@ -233,7 +233,7 @@ class JobQueue {
           scenario_id: job.scenario_id,
           action: 'complete_optimization',
           entity_type: 'optimization_result',
-          entity_id: job.id,
+          entity_id: job.scenario_id,
           details: { 
             total_cost: results.totalCost, 
             cost_savings: results.costSavings,
