@@ -454,9 +454,9 @@ export class AdvancedDataImputation {
     for (let colIdx = 0; colIdx < columns.length; colIdx++) {
       const targetColumn = columns[colIdx];
       const missingRows = matrix
-        .map((row, idx) => ({ row, idx }))
-        .filter(({ row }) => isNaN(row[colIdx]))
-        .map(({ idx }) => idx);
+        .map((row: any, idx: number) => ({ row, idx }))
+        .filter(({ row }: { row: any }) => isNaN(row[colIdx]))
+        .map(({ idx }: { idx: number }) => idx);
 
       if (missingRows.length === 0) continue;
 
