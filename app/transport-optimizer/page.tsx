@@ -1654,6 +1654,131 @@ export default function TransportOptimizer() {
           font-weight: 600;
         }
 
+        .job-progress-container {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          margin: 2rem 0;
+        }
+
+        .job-progress-item {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.375rem;
+          padding: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .job-progress-item:last-child {
+          margin-bottom: 0;
+        }
+
+        .job-progress-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+
+        .job-progress-title {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .job-progress-status {
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .job-progress-status.queued {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .job-progress-status.running {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        .job-progress-status.completed {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .job-progress-status.failed {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .job-progress-bar {
+          position: relative;
+          width: 100%;
+          height: 1.5rem;
+          background: #f3f4f6;
+          border-radius: 0.75rem;
+          overflow: hidden;
+          margin-bottom: 0.5rem;
+        }
+
+        .job-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+          border-radius: 0.75rem;
+          transition: width 0.3s ease;
+        }
+
+        .job-progress-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .job-progress-details {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1rem;
+          font-size: 0.875rem;
+          color: #6b7280;
+        }
+
+        .job-current-step {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .job-time-remaining {
+          color: #059669;
+        }
+
+        .job-elapsed-time {
+          color: #6b7280;
+        }
+
+        .job-error-message {
+          background: #fef2f2;
+          color: #dc2626;
+          padding: 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          margin-top: 0.5rem;
+        }
+
+        .job-completion-message {
+          background: #f0fdf4;
+          color: #166534;
+          padding: 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          margin-top: 0.5rem;
+        }
+
         .scenario-selection {
           margin-bottom: 2rem;
         }
