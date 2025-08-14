@@ -1299,7 +1299,7 @@ export default function TransportOptimizer() {
                   <div className="analyzed-scenarios">
                     <h3 className="subsection-title">Scenarios Analyzed</h3>
                     <div className="scenarios-analyzed-list">
-                      {analysisResults.selectedScenarios?.map((scenario, index) => (
+                      {analysisResults.selectedScenarios?.map((scenario: TransportScenario, index: number) => (
                         <div key={index} className="analyzed-scenario-card">
                           <div className="scenario-info-header">
                             <h4 className="analyzed-scenario-name">{scenario.scenario_name}</h4>
