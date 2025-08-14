@@ -422,53 +422,5 @@ export class ReadinessTracker {
   }
 }
 
-/**
- * Hook for automatic readiness tracking in React components
- */
-export function useAutomaticReadiness(checklistItems: ChecklistItem[], intervalMs: number = 10000) {
-  const [updatedItems, setUpdatedItems] = React.useState<ChecklistItem[]>(checklistItems);
-  const [isUpdating, setIsUpdating] = React.useState(false);
-
-  React.useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    const performUpdate = async () => {
-      if (isUpdating) return; // Prevent concurrent updates
-      
-      setIsUpdating(true);
-      try {
-        const updated = await ReadinessTracker.performAutomaticUpdate(updatedItems);
-        setUpdatedItems(updated);
-      } catch (error) {
-        console.error('Error in automatic readiness update:', error);
-      } finally {
-        setIsUpdating(false);
-      }
-    };
-
-    // Initial update
-    performUpdate();
-
-    // Set up periodic updates
-    interval = setInterval(performUpdate, intervalMs);
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [updatedItems, intervalMs, isUpdating]);
-
-  return { updatedItems, isUpdating };
-}
-
-// For environments where React is not available
-declare global {
-  var React: any;
-}
-
-if (typeof React === 'undefined') {
-  // Provide a fallback for non-React environments
-  global.React = {
-    useState: (initial: any) => [initial, () => {}],
-    useEffect: () => {}
-  };
-}
+// Note: React hooks removed to avoid import issues
+// Use the ReadinessTracker.performAutomaticUpdate() method directly in components
