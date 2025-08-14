@@ -15,6 +15,7 @@ interface TransportScenario {
   service_score?: number;
   route_details?: any;
   volume_allocations?: any;
+  optimization_data?: any;
   generated: boolean;
   cities?: string[];
 }
