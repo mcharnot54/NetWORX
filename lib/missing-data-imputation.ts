@@ -232,7 +232,7 @@ export class AdvancedDataImputation {
 
       if (missingIndices.length === 0) continue;
 
-      const validData = imputedData.filter(row => 
+      const validData = imputedData.filter((row: any) =>
         row[targetColumn] !== null && row[targetColumn] !== undefined && row[targetColumn] !== ''
       );
 
