@@ -1310,7 +1310,7 @@ export default function TransportOptimizer() {
                             <div className="scenario-cities">
                               <span className="cities-label">Cities:</span>
                               <div className="scenario-cities-list">
-                                {scenario.cities.map((city, cityIndex) => (
+                                {scenario.cities.map((city: string, cityIndex: number) => (
                                   <span key={cityIndex} className="scenario-city-tag">{city}</span>
                                 ))}
                               </div>
