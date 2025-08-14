@@ -281,19 +281,60 @@ export default function Dashboard() {
     },
   };
 
-  // Simulate loading completion status (in real app, this would come from localStorage or API)
+  // Automatic readiness tracking based on actual system status
   useEffect(() => {
-    // This would typically load saved progress from localStorage or API
-    const savedProgress = localStorage.getItem("optimization-checklist");
-    if (savedProgress) {
+    let interval: NodeJS.Timeout;
+
+    const performAutomaticUpdate = async () => {
+      if (isAutoUpdating) return; // Prevent concurrent updates
+
+      setIsAutoUpdating(true);
       try {
-        const parsed = JSON.parse(savedProgress);
-        setChecklistItems(parsed);
-      } catch (e) {
-        console.error("Error loading checklist progress:", e);
+        console.log('Checking system status for automatic readiness update...');
+
+        // Load any previously saved manual completions
+        const savedProgress = ReadinessTracker.loadChecklistFromStorage();
+        const baseItems = savedProgress || checklistItems;
+
+        // Perform automatic update based on system status
+        const updatedItems = await ReadinessTracker.performAutomaticUpdate(baseItems);
+        setChecklistItems(updatedItems);
+        setLastUpdateTime(new Date());
+
+        console.log('Readiness checklist updated automatically');
+      } catch (error) {
+        console.error('Error in automatic readiness update:', error);
+      } finally {
+        setIsAutoUpdating(false);
       }
+    };
+
+    // Initial update
+    performAutomaticUpdate();
+
+    // Set up periodic updates every 15 seconds
+    interval = setInterval(performAutomaticUpdate, 15000);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []); // Only run once on mount
+
+  // Manual refresh function
+  const refreshReadinessStatus = async () => {
+    if (isAutoUpdating) return;
+
+    setIsAutoUpdating(true);
+    try {
+      const updatedItems = await ReadinessTracker.performAutomaticUpdate(checklistItems);
+      setChecklistItems(updatedItems);
+      setLastUpdateTime(new Date());
+    } catch (error) {
+      console.error('Error refreshing readiness status:', error);
+    } finally {
+      setIsAutoUpdating(false);
     }
-  }, []);
+  };
 
   const toggleItem = (itemId: string) => {
     setChecklistItems((prev) => {
