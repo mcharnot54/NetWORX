@@ -456,40 +456,46 @@ export default function TransportOptimizer() {
 
         console.log(`Generating scenario ${index + 1}/${typesToGenerate.length}: ${type.name}`);
 
-        // Call real transport optimization API
+        // Call real transport optimization API (now returns job info)
         const optimizationResult = await runRealTransportOptimization(
           selectedScenario.id,
           analysisCity,
           type.key
         );
 
-        // If optimization started but not completed, poll for results
+        // Check if optimization was successfully queued
         let finalResult = optimizationResult;
-        if (optimizationResult?.data?.status === 'running') {
-          console.log(`Optimization started for ${type.name}, polling for completion...`);
+        if (optimizationResult?.success && optimizationResult?.data?.status === 'queued') {
+          console.log(`Optimization queued for ${type.name}, job ID: ${optimizationResult.data.job_id}`);
 
-          // Poll for up to 30 seconds for completion
-          for (let attempt = 0; attempt < 15; attempt++) {
+          // Poll for completion with improved timeout handling
+          const optimizationRunId = optimizationResult.data.optimization_run_id;
+          const jobId = optimizationResult.data.job_id;
+
+          // Poll for up to 5 minutes for completion
+          for (let attempt = 0; attempt < 150; attempt++) { // 150 attempts * 2 seconds = 5 minutes
             await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
 
             try {
-              const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
-              const statusData = await statusResponse.json();
+              const jobResult = await pollJobStatus(optimizationRunId, jobId);
 
-              if (statusData.success && statusData.data?.length > 0) {
-                const latestResult = statusData.data.find((r: any) =>
-                  r.optimization_run_id === optimizationResult.data.optimization_run_id
-                );
-
-                if (latestResult?.status === 'completed') {
-                  console.log(`Optimization completed for ${type.name}`);
-                  finalResult = latestResult;
-                  break;
-                } else if (latestResult?.status === 'failed') {
-                  console.warn(`Optimization failed for ${type.name}`);
-                  break;
+              if (jobResult?.status === 'completed') {
+                console.log(`Optimization completed for ${type.name}`);
+                // Fetch the final results
+                const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
+                const statusData = await statusResponse.json();
+                if (statusData.success && statusData.data?.length > 0) {
+                  finalResult = statusData.data.find((r: any) =>
+                    r.optimization_run_id === optimizationRunId
+                  );
                 }
+                break;
+              } else if (jobResult?.status === 'failed') {
+                console.warn(`Optimization failed for ${type.name}:`, jobResult.error_message);
+                finalResult = null;
+                break;
               }
+              // Continue polling if status is 'running' or 'queued'
             } catch (pollError) {
               console.warn('Error polling for optimization status:', pollError);
             }
