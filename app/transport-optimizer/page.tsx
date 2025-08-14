@@ -189,7 +189,7 @@ export default function TransportOptimizer() {
     // First priority: Use cities from the selected scenario metadata
     if (selectedScenario?.cities && selectedScenario.cities.length > 0) {
       console.log('Using cities from scenario metadata:', selectedScenario.cities);
-      return selectedScenario.cities.filter(city => city && city.trim() !== '');
+      return selectedScenario.cities.filter((city: string) => city && city.trim() !== '');
     }
 
     // Second priority: Extract from capacity analysis facility data
