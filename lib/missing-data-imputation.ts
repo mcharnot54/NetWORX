@@ -226,9 +226,9 @@ export class AdvancedDataImputation {
 
     for (const targetColumn of columns) {
       const missingIndices = imputedData
-        .map((row, idx) => ({ row, idx }))
-        .filter(({ row }) => row[targetColumn] === null || row[targetColumn] === undefined || row[targetColumn] === '')
-        .map(({ idx }) => idx);
+        .map((row: any, idx: number) => ({ row, idx }))
+        .filter(({ row }: { row: any }) => row[targetColumn] === null || row[targetColumn] === undefined || row[targetColumn] === '')
+        .map(({ idx }: { idx: number }) => idx);
 
       if (missingIndices.length === 0) continue;
 
