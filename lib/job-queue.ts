@@ -255,24 +255,7 @@ class JobQueue {
       }
 
     } catch (error) {
-      console.error(`Job ${job.id} failed:`, error);
-      
-      // Mark job as failed
-      job.status = 'failed';
-      job.completed_at = new Date();
-      job.error_message = error instanceof Error ? error.message : 'Unknown error occurred';
-      job.current_step = 'Failed';
-
-      // Update optimization result status
-      await OptimizationResultService.updateOptimizationResult(job.optimization_run_id, {
-        status: 'failed',
-        completed_at: new Date()
-      }).catch(console.error);
-
-      // Update scenario status
-      await ScenarioService.updateScenario(job.scenario_id, {
-        status: 'failed'
-      }).catch(console.error);
+      await this.handleJobError(job, error);
     }
   }
 
