@@ -94,7 +94,7 @@ export interface OptimizationResult {
   scenario_id: number;
   result_type: 'warehouse' | 'transport' | 'combined';
   optimization_run_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'queued' | 'running' | 'completed' | 'failed';
   started_at: Date;
   completed_at?: Date;
   execution_time_seconds?: number;
