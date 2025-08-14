@@ -294,10 +294,10 @@ export default function TransportOptimizer() {
     return cities.slice(0, 8); // Allow up to 8 cities max
   };
 
-  // Function to call real transport optimization API
+  // Function to call real transport optimization API (now uses background jobs)
   const runRealTransportOptimization = async (scenarioId: number, cities: string[], optimizationType: string) => {
     try {
-      console.log('Calling transport optimization API with:', {
+      console.log('Starting background transport optimization with:', {
         scenarioId,
         cities,
         optimizationType,
@@ -325,6 +325,20 @@ export default function TransportOptimizer() {
 
       if (response.ok) {
         const result = await response.json();
+        if (result.success && result.data) {
+          // Start polling for this job
+          console.log(`Optimization job queued: ${result.data.job_id}`);
+          startJobPolling(result.data.optimization_run_id, result.data.job_id);
+
+          return {
+            success: true,
+            data: {
+              optimization_run_id: result.data.optimization_run_id,
+              job_id: result.data.job_id,
+              status: 'queued'
+            }
+          };
+        }
         return result;
       } else {
         console.error('Transport optimization API error:', response.status);
