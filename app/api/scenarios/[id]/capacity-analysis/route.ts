@@ -222,7 +222,8 @@ async function performCapacityAnalysis(
       const metadata = unitsResponse[0].metadata;
       unitsData = {
         units_per_carton: parseFloat(metadata.units_per_carton) || 12,
-        cartons_per_pallet: parseFloat(metadata.cartons_per_pallet) || 40
+        cartons_per_pallet: parseFloat(metadata.cartons_per_pallet) || 40,
+        volume_per_unit: parseFloat(metadata.volume_per_unit) || 1.0 // Default to 1 cubic inch if not available
       };
     }
   } catch (error) {
