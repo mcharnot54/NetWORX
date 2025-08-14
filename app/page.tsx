@@ -233,6 +233,8 @@ export default function Dashboard() {
   ]);
 
   const [showDetails, setShowDetails] = useState(false);
+  const [isAutoUpdating, setIsAutoUpdating] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
   // Calculate completion statistics
   const totalItems = checklistItems.length;
