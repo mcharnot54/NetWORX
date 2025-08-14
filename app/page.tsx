@@ -293,6 +293,10 @@ export default function Dashboard() {
       try {
         console.log('Checking system status for automatic readiness update...');
 
+        // Debug: Show current scenario selection
+        const scenarioId = ReadinessTracker.getSelectedScenarioId();
+        console.log('Selected scenario ID:', scenarioId);
+
         // Load any previously saved manual completions
         const savedProgress = ReadinessTracker.loadChecklistFromStorage();
         const baseItems = savedProgress || checklistItems;
