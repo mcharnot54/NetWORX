@@ -249,7 +249,7 @@ export class AdvancedDataImputation {
 
         // Get k nearest neighbors
         const neighbors = distances
-          .sort((a, b) => a.distance - b.distance)
+          .sort((a: any, b: any) => a.distance - b.distance)
           .slice(0, k);
 
         // Compute imputed value
