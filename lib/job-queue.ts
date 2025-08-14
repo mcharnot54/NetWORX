@@ -423,7 +423,7 @@ class JobQueue {
     job.current_step = 'Running transport route optimization';
     job.progress_percentage = 50;
 
-    // Use real transport optimization algorithm
+    // Use real transport optimization algorithm with error handling
     const routeOptimizationParams: RouteOptimizationParams = {
       cities: cities,
       scenario_type: scenarioType,
@@ -441,7 +441,14 @@ class JobQueue {
       inbound_weight_percentage: optimization_params?.inbound_weight_percentage || 50
     };
 
-    const transportData = optimizeTransportRoutes(routeOptimizationParams);
+    // Wrap optimization in circuit breaker and retry logic
+    const transportData = await this.circuitBreaker.execute(async () => {
+      return await retryWithBackoff(
+        () => Promise.resolve(optimizeTransportRoutes(routeOptimizationParams)),
+        3, // max retries
+        2000 // base delay
+      );
+    });
 
     // Update progress
     job.current_step = 'Analyzing results and generating recommendations';
