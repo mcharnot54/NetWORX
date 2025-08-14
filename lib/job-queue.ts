@@ -7,6 +7,7 @@
 
 import { OptimizationResultService, ScenarioService, WarehouseConfigService, TransportConfigService, AuditLogService } from './database';
 import { optimizeTransportRoutes, type RouteOptimizationParams } from './optimization-algorithms';
+import { ErrorHandler, OptimizationError, retryWithBackoff, CircuitBreaker, type ErrorContext } from './error-handler';
 
 export interface OptimizationJob {
   id: string;
