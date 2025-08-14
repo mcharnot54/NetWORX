@@ -1276,7 +1276,7 @@ export default function TransportOptimizer() {
                     <div className="cities-container">
                       <div className="cities-list">
                         {analysisResults.analyzedCities && analysisResults.analyzedCities.length > 0 ? (
-                          analysisResults.analyzedCities.map((city, index) => (
+                          analysisResults.analyzedCities.map((city: string, index: number) => (
                             <div key={index} className="city-tag">
                               <span className="city-name">{city}</span>
                             </div>
