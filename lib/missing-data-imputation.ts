@@ -253,7 +253,7 @@ export class AdvancedDataImputation {
           .slice(0, k);
 
         // Compute imputed value
-        const neighborValues = neighbors.map(n => n.row[targetColumn]);
+        const neighborValues = neighbors.map((n: any) => n.row[targetColumn]);
         let imputedValue: any;
 
         if (neighborValues.every(val => !isNaN(parseFloat(val)))) {
