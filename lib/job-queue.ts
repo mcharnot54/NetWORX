@@ -570,19 +570,23 @@ class JobQueue {
     total: number;
     queued: number;
     running: number;
+    retrying: number;
     completed: number;
     failed: number;
     cancelled: number;
+    circuitBreakerState: string;
   } {
     const jobs = Array.from(this.jobs.values());
-    
+
     return {
       total: jobs.length,
       queued: jobs.filter(j => j.status === 'queued').length,
       running: jobs.filter(j => j.status === 'running').length,
+      retrying: jobs.filter(j => j.status === 'retrying').length,
       completed: jobs.filter(j => j.status === 'completed').length,
       failed: jobs.filter(j => j.status === 'failed').length,
-      cancelled: jobs.filter(j => j.status === 'cancelled').length
+      cancelled: jobs.filter(j => j.status === 'cancelled').length,
+      circuitBreakerState: this.circuitBreaker.getState()
     };
   }
 }
