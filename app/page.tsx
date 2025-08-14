@@ -812,6 +812,21 @@ export default function Dashboard() {
                               >
                                 {item.title}
                               </span>
+                              {item.completed && (
+                                <span
+                                  style={{
+                                    fontSize: "0.625rem",
+                                    backgroundColor: "#dcfce7",
+                                    color: "#166534",
+                                    padding: "0.125rem 0.375rem",
+                                    borderRadius: "0.25rem",
+                                    fontWeight: "500",
+                                    marginLeft: "0.5rem"
+                                  }}
+                                >
+                                  AUTO-DETECTED
+                                </span>
+                              )}
                               {item.required && (
                                 <span
                                   style={{
