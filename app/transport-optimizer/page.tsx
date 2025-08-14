@@ -82,6 +82,90 @@ export default function TransportOptimizer() {
   const [isLoadingCapacityData, setIsLoadingCapacityData] = useState(false);
   const [isSavingResults, setIsSavingResults] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [jobProgress, setJobProgress] = useState<{[key: string]: any}>({});
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
+  // Function to poll job status with progress updates
+  const pollJobStatus = async (optimizationRunId: string, jobId?: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId || optimizationRunId}`);
+      if (response.ok) {
+        const jobData = await response.json();
+        if (jobData.success && jobData.data) {
+          const job = jobData.data;
+
+          // Update job progress state
+          setJobProgress(prev => ({
+            ...prev,
+            [optimizationRunId]: {
+              status: job.status,
+              progress: job.progress_percentage || 0,
+              currentStep: job.current_step || 'Processing...',
+              estimatedTimeRemaining: job.estimated_time_remaining_minutes,
+              elapsedTime: job.elapsed_time_seconds,
+              errorMessage: job.error_message
+            }
+          }));
+
+          // If job is completed or failed, stop polling and check for results
+          if (job.status === 'completed' || job.status === 'failed') {
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+              setPollingInterval(null);
+            }
+
+            // Fetch the actual optimization results
+            if (job.status === 'completed') {
+              const resultsResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
+              if (resultsResponse.ok) {
+                const resultsData = await resultsResponse.json();
+                if (resultsData.success && resultsData.data?.length > 0) {
+                  const latestResult = resultsData.data.find((r: any) =>
+                    r.optimization_run_id === optimizationRunId
+                  );
+                  if (latestResult?.status === 'completed') {
+                    return latestResult;
+                  }
+                }
+              }
+            }
+          }
+
+          return job;
+        }
+      }
+    } catch (error) {
+      console.warn('Error polling job status:', error);
+    }
+    return null;
+  };
+
+  // Function to start polling for a job
+  const startJobPolling = (optimizationRunId: string, jobId?: string) => {
+    // Clear existing polling
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
+    // Poll every 2 seconds
+    const interval = setInterval(async () => {
+      await pollJobStatus(optimizationRunId, jobId);
+    }, 2000);
+
+    setPollingInterval(interval);
+
+    // Also poll immediately
+    pollJobStatus(optimizationRunId, jobId);
+  };
+
+  // Cleanup polling on component unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   // Function to fetch capacity analysis data for the selected scenario
   const fetchCapacityAnalysisData = async (scenarioId: number) => {
@@ -210,10 +294,10 @@ export default function TransportOptimizer() {
     return cities.slice(0, 8); // Allow up to 8 cities max
   };
 
-  // Function to call real transport optimization API
+  // Function to call real transport optimization API (now uses background jobs)
   const runRealTransportOptimization = async (scenarioId: number, cities: string[], optimizationType: string) => {
     try {
-      console.log('Calling transport optimization API with:', {
+      console.log('Starting background transport optimization with:', {
         scenarioId,
         cities,
         optimizationType,
@@ -241,6 +325,20 @@ export default function TransportOptimizer() {
 
       if (response.ok) {
         const result = await response.json();
+        if (result.success && result.data) {
+          // Start polling for this job
+          console.log(`Optimization job queued: ${result.data.job_id}`);
+          startJobPolling(result.data.optimization_run_id, result.data.job_id);
+
+          return {
+            success: true,
+            data: {
+              optimization_run_id: result.data.optimization_run_id,
+              job_id: result.data.job_id,
+              status: 'queued'
+            }
+          };
+        }
         return result;
       } else {
         console.error('Transport optimization API error:', response.status);
@@ -358,40 +456,46 @@ export default function TransportOptimizer() {
 
         console.log(`Generating scenario ${index + 1}/${typesToGenerate.length}: ${type.name}`);
 
-        // Call real transport optimization API
+        // Call real transport optimization API (now returns job info)
         const optimizationResult = await runRealTransportOptimization(
           selectedScenario.id,
           analysisCity,
           type.key
         );
 
-        // If optimization started but not completed, poll for results
+        // Check if optimization was successfully queued
         let finalResult = optimizationResult;
-        if (optimizationResult?.data?.status === 'running') {
-          console.log(`Optimization started for ${type.name}, polling for completion...`);
+        if (optimizationResult?.success && optimizationResult?.data?.status === 'queued') {
+          console.log(`Optimization queued for ${type.name}, job ID: ${optimizationResult.data.job_id}`);
 
-          // Poll for up to 30 seconds for completion
-          for (let attempt = 0; attempt < 15; attempt++) {
+          // Poll for completion with improved timeout handling
+          const optimizationRunId = optimizationResult.data.optimization_run_id;
+          const jobId = optimizationResult.data.job_id;
+
+          // Poll for up to 5 minutes for completion
+          for (let attempt = 0; attempt < 150; attempt++) { // 150 attempts * 2 seconds = 5 minutes
             await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
 
             try {
-              const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
-              const statusData = await statusResponse.json();
+              const jobResult = await pollJobStatus(optimizationRunId, jobId);
 
-              if (statusData.success && statusData.data?.length > 0) {
-                const latestResult = statusData.data.find((r: any) =>
-                  r.optimization_run_id === optimizationResult.data.optimization_run_id
-                );
-
-                if (latestResult?.status === 'completed') {
-                  console.log(`Optimization completed for ${type.name}`);
-                  finalResult = latestResult;
-                  break;
-                } else if (latestResult?.status === 'failed') {
-                  console.warn(`Optimization failed for ${type.name}`);
-                  break;
+              if (jobResult?.status === 'completed') {
+                console.log(`Optimization completed for ${type.name}`);
+                // Fetch the final results
+                const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
+                const statusData = await statusResponse.json();
+                if (statusData.success && statusData.data?.length > 0) {
+                  finalResult = statusData.data.find((r: any) =>
+                    r.optimization_run_id === optimizationRunId
+                  );
                 }
+                break;
+              } else if (jobResult?.status === 'failed') {
+                console.warn(`Optimization failed for ${type.name}:`, jobResult.error_message);
+                finalResult = null;
+                break;
               }
+              // Continue polling if status is 'running' or 'queued'
             } catch (pollError) {
               console.warn('Error polling for optimization status:', pollError);
             }
@@ -938,6 +1042,58 @@ export default function TransportOptimizer() {
                   )}
                 </button>
               </div>
+
+              {/* Job Progress Display */}
+              {Object.keys(jobProgress).length > 0 && (
+                <div className="job-progress-container">
+                  <h3 className="subsection-title">Background Optimization Progress</h3>
+                  {Object.entries(jobProgress).map(([runId, progress]: [string, any]) => (
+                    <div key={runId} className="job-progress-item">
+                      <div className="job-progress-header">
+                        <span className="job-progress-title">Optimization Job {runId.slice(-8)}</span>
+                        <span className={`job-progress-status ${progress.status}`}>{progress.status.toUpperCase()}</span>
+                      </div>
+
+                      {progress.status === 'running' && (
+                        <>
+                          <div className="job-progress-bar">
+                            <div
+                              className="job-progress-fill"
+                              style={{ width: `${progress.progress || 0}%` }}
+                            ></div>
+                            <span className="job-progress-text">{progress.progress || 0}%</span>
+                          </div>
+                          <div className="job-progress-details">
+                            <span className="job-current-step">{progress.currentStep}</span>
+                            {progress.estimatedTimeRemaining && (
+                              <span className="job-time-remaining">
+                                ~{Math.ceil(progress.estimatedTimeRemaining)}min remaining
+                              </span>
+                            )}
+                            {progress.elapsedTime && (
+                              <span className="job-elapsed-time">
+                                {Math.floor(progress.elapsedTime / 60)}:{(progress.elapsedTime % 60).toString().padStart(2, '0')} elapsed
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {progress.status === 'failed' && progress.errorMessage && (
+                        <div className="job-error-message">
+                          Error: {progress.errorMessage}
+                        </div>
+                      )}
+
+                      {progress.status === 'completed' && (
+                        <div className="job-completion-message">
+                          ✅ Optimization completed successfully
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="individual-generation-section">
                 <h3 className="subsection-title">Generate Individual Scenarios</h3>
@@ -1496,6 +1652,131 @@ export default function TransportOptimizer() {
         .metric-value {
           color: #1f2937;
           font-weight: 600;
+        }
+
+        .job-progress-container {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+          margin: 2rem 0;
+        }
+
+        .job-progress-item {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.375rem;
+          padding: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .job-progress-item:last-child {
+          margin-bottom: 0;
+        }
+
+        .job-progress-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+
+        .job-progress-title {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .job-progress-status {
+          padding: 0.25rem 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .job-progress-status.queued {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .job-progress-status.running {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        .job-progress-status.completed {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .job-progress-status.failed {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .job-progress-bar {
+          position: relative;
+          width: 100%;
+          height: 1.5rem;
+          background: #f3f4f6;
+          border-radius: 0.75rem;
+          overflow: hidden;
+          margin-bottom: 0.5rem;
+        }
+
+        .job-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+          border-radius: 0.75rem;
+          transition: width 0.3s ease;
+        }
+
+        .job-progress-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .job-progress-details {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1rem;
+          font-size: 0.875rem;
+          color: #6b7280;
+        }
+
+        .job-current-step {
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .job-time-remaining {
+          color: #059669;
+        }
+
+        .job-elapsed-time {
+          color: #6b7280;
+        }
+
+        .job-error-message {
+          background: #fef2f2;
+          color: #dc2626;
+          padding: 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          margin-top: 0.5rem;
+        }
+
+        .job-completion-message {
+          background: #f0fdf4;
+          color: #166534;
+          padding: 0.75rem;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          margin-top: 0.5rem;
         }
 
         .scenario-selection {

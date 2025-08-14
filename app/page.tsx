@@ -19,8 +19,10 @@ import {
   DollarSign,
   Gauge,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { ReadinessTracker } from "@/lib/readiness-tracker";
 
 interface ChecklistItem {
   id: string;
@@ -232,6 +234,8 @@ export default function Dashboard() {
   ]);
 
   const [showDetails, setShowDetails] = useState(false);
+  const [isAutoUpdating, setIsAutoUpdating] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
   // Calculate completion statistics
   const totalItems = checklistItems.length;
@@ -278,27 +282,72 @@ export default function Dashboard() {
     },
   };
 
-  // Simulate loading completion status (in real app, this would come from localStorage or API)
+  // Automatic readiness tracking based on actual system status
   useEffect(() => {
-    // This would typically load saved progress from localStorage or API
-    const savedProgress = localStorage.getItem("optimization-checklist");
-    if (savedProgress) {
+    let interval: NodeJS.Timeout;
+
+    const performAutomaticUpdate = async () => {
+      if (isAutoUpdating) return; // Prevent concurrent updates
+
+      setIsAutoUpdating(true);
       try {
-        const parsed = JSON.parse(savedProgress);
-        setChecklistItems(parsed);
-      } catch (e) {
-        console.error("Error loading checklist progress:", e);
+        console.log('Checking system status for automatic readiness update...');
+
+        // Debug: Show current scenario selection
+        const scenarioId = ReadinessTracker.getSelectedScenarioId();
+        console.log('Selected scenario ID:', scenarioId);
+
+        // Load any previously saved manual completions
+        const savedProgress = ReadinessTracker.loadChecklistFromStorage();
+        const baseItems = savedProgress || checklistItems;
+
+        // Perform automatic update based on system status
+        const updatedItems = await ReadinessTracker.performAutomaticUpdate(baseItems);
+        setChecklistItems(updatedItems);
+        setLastUpdateTime(new Date());
+
+        console.log('Readiness checklist updated automatically');
+      } catch (error) {
+        console.error('Error in automatic readiness update:', error);
+      } finally {
+        setIsAutoUpdating(false);
       }
+    };
+
+    // Initial update
+    performAutomaticUpdate();
+
+    // Set up periodic updates every 15 seconds
+    interval = setInterval(performAutomaticUpdate, 15000);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []); // Only run once on mount
+
+  // Manual refresh function
+  const refreshReadinessStatus = async () => {
+    if (isAutoUpdating) return;
+
+    setIsAutoUpdating(true);
+    try {
+      const updatedItems = await ReadinessTracker.performAutomaticUpdate(checklistItems);
+      setChecklistItems(updatedItems);
+      setLastUpdateTime(new Date());
+    } catch (error) {
+      console.error('Error refreshing readiness status:', error);
+    } finally {
+      setIsAutoUpdating(false);
     }
-  }, []);
+  };
 
   const toggleItem = (itemId: string) => {
     setChecklistItems((prev) => {
       const updated = prev.map((item) =>
         item.id === itemId ? { ...item, completed: !item.completed } : item,
       );
-      // Save to localStorage
-      localStorage.setItem("optimization-checklist", JSON.stringify(updated));
+      // Save to localStorage using ReadinessTracker
+      ReadinessTracker.saveChecklistToStorage(updated);
       return updated;
     });
   };
@@ -366,13 +415,51 @@ export default function Dashboard() {
                   }}
                 >
                   Network Optimization Readiness
+                  {isAutoUpdating && (
+                    <RefreshCw
+                      size={16}
+                      style={{
+                        marginLeft: "0.5rem",
+                        color: "#3b82f6",
+                        animation: "spin 1s linear infinite"
+                      }}
+                    />
+                  )}
                 </h3>
-                <p
-                  style={{ margin: 0, color: "#6b7280", fontSize: "0.875rem" }}
-                >
-                  Complete all required configurations to run comprehensive
-                  network optimization
-                </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p
+                    style={{ margin: 0, color: "#6b7280", fontSize: "0.875rem" }}
+                  >
+                    Automatically tracks file uploads and system configuration
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "#6b7280" }}>
+                    {lastUpdateTime && (
+                      <span>
+                        Last updated: {lastUpdateTime.toLocaleTimeString()}
+                      </span>
+                    )}
+                    <button
+                      onClick={refreshReadinessStatus}
+                      disabled={isAutoUpdating}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        padding: "0.25rem 0.5rem",
+                        backgroundColor: "transparent",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "0.25rem",
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        cursor: isAutoUpdating ? "not-allowed" : "pointer",
+                        opacity: isAutoUpdating ? 0.6 : 1
+                      }}
+                    >
+                      <RefreshCw size={12} />
+                      Refresh
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <button
@@ -730,6 +817,21 @@ export default function Dashboard() {
                               >
                                 {item.title}
                               </span>
+                              {item.completed && (
+                                <span
+                                  style={{
+                                    fontSize: "0.625rem",
+                                    backgroundColor: "#dcfce7",
+                                    color: "#166534",
+                                    padding: "0.125rem 0.375rem",
+                                    borderRadius: "0.25rem",
+                                    fontWeight: "500",
+                                    marginLeft: "0.5rem"
+                                  }}
+                                >
+                                  AUTO-DETECTED
+                                </span>
+                              )}
                               {item.required && (
                                 <span
                                   style={{
