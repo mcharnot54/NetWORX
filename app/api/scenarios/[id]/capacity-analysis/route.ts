@@ -193,7 +193,7 @@ async function performCapacityAnalysis(
 
   // Get warehouse configuration from database or use defaults
   let warehouseConfig: WarehouseConfig | undefined;
-  let unitsData: { units_per_carton: number; cartons_per_pallet: number } | undefined;
+  let unitsData: { units_per_carton: number; cartons_per_pallet: number; volume_per_unit: number } | undefined;
 
   try {
     // Try to fetch warehouse configuration
