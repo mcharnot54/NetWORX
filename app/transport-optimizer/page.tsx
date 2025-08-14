@@ -1043,6 +1043,58 @@ export default function TransportOptimizer() {
                 </button>
               </div>
 
+              {/* Job Progress Display */}
+              {Object.keys(jobProgress).length > 0 && (
+                <div className="job-progress-container">
+                  <h3 className="subsection-title">Background Optimization Progress</h3>
+                  {Object.entries(jobProgress).map(([runId, progress]: [string, any]) => (
+                    <div key={runId} className="job-progress-item">
+                      <div className="job-progress-header">
+                        <span className="job-progress-title">Optimization Job {runId.slice(-8)}</span>
+                        <span className={`job-progress-status ${progress.status}`}>{progress.status.toUpperCase()}</span>
+                      </div>
+
+                      {progress.status === 'running' && (
+                        <>
+                          <div className="job-progress-bar">
+                            <div
+                              className="job-progress-fill"
+                              style={{ width: `${progress.progress || 0}%` }}
+                            ></div>
+                            <span className="job-progress-text">{progress.progress || 0}%</span>
+                          </div>
+                          <div className="job-progress-details">
+                            <span className="job-current-step">{progress.currentStep}</span>
+                            {progress.estimatedTimeRemaining && (
+                              <span className="job-time-remaining">
+                                ~{Math.ceil(progress.estimatedTimeRemaining)}min remaining
+                              </span>
+                            )}
+                            {progress.elapsedTime && (
+                              <span className="job-elapsed-time">
+                                {Math.floor(progress.elapsedTime / 60)}:{(progress.elapsedTime % 60).toString().padStart(2, '0')} elapsed
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {progress.status === 'failed' && progress.errorMessage && (
+                        <div className="job-error-message">
+                          Error: {progress.errorMessage}
+                        </div>
+                      )}
+
+                      {progress.status === 'completed' && (
+                        <div className="job-completion-message">
+                          ✅ Optimization completed successfully
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="individual-generation-section">
                 <h3 className="subsection-title">Generate Individual Scenarios</h3>
                 <p className="section-description">
