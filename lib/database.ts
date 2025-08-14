@@ -106,6 +106,20 @@ export interface OptimizationResult {
   recommendations: any;
 }
 
+// Extended interface for API responses that includes computed properties
+export interface OptimizationResultResponse extends OptimizationResult {
+  optimization_results: any; // Alias for results_data
+  success: boolean; // Computed from status
+  job_status?: {
+    id: string;
+    status: string;
+    progress_percentage: number;
+    current_step: string;
+    estimated_completion_minutes: number;
+    error_message?: string;
+  } | null;
+}
+
 export interface ScenarioIteration {
   id: number;
   parent_scenario_id: number;
