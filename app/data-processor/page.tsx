@@ -12,6 +12,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { useData } from "@/context/DataContext";
 import { DataValidator } from "@/lib/data-validator";
 import { DataProcessingUtils, EnhancedDataProcessingUtils } from "@/lib/data-processing-utils";
+import { MissingDataAnalyzer } from "@/components/MissingDataAnalyzer";
+import { ProductionDataProcessorComponent } from "@/components/ProductionDataProcessor";
+import { EnhancedDataProcessor, type SmartProcessingResult } from "@/lib/enhanced-data-processor";
 import {
   ComprehensiveOperationalData,
   DataMappingTemplate,
@@ -100,6 +103,8 @@ export default function DataProcessor() {
   const [processingLog, setProcessingLog] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<DataMappingTemplate | null>(null);
   const [validatedData, setValidatedData] = useState<ComprehensiveOperationalData | null>(null);
+  const [smartProcessingResult, setSmartProcessingResult] = useState<SmartProcessingResult | null>(null);
+  const [showMissingDataAnalyzer, setShowMissingDataAnalyzer] = useState(false);
   const [loadingSavedFiles, setLoadingSavedFiles] = useState(false);
   const [databaseReady, setDatabaseReady] = useState<boolean | null>(null);
   const [settingUpDatabase, setSettingUpDatabase] = useState(false);
@@ -602,6 +607,20 @@ export default function DataProcessor() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[
               {
+                id: 'production',
+                label: 'Production Processing',
+                description: 'Process database data',
+                icon: Database,
+                color: 'indigo'
+              },
+              {
+                id: 'missing-data',
+                label: 'Missing Data AI',
+                description: 'Advanced ML/DL imputation',
+                icon: Target,
+                color: 'red'
+              },
+              {
                 id: 'upload',
                 label: 'File Upload',
                 description: 'Upload and analyze data files',
@@ -643,7 +662,13 @@ export default function DataProcessor() {
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600',
                 orange: isActive
                   ? 'bg-orange-50 border-orange-200 text-orange-700 shadow-lg shadow-orange-100'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600',
+                red: isActive
+                  ? 'bg-red-50 border-red-200 text-red-700 shadow-lg shadow-red-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600',
+                indigo: isActive
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-lg shadow-indigo-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600'
               };
 
               return (
@@ -669,6 +694,159 @@ export default function DataProcessor() {
               );
             })}
           </div>
+
+          {/* Production Processing Tab */}
+          {activeTab === 'production' && selectedProject && selectedScenario && (
+            <div className="space-y-6">
+              <div className="card">
+                <div className="flex items-center gap-3 mb-4">
+                  <Database className="text-indigo-600" size={24} />
+                  <div>
+                    <h3 className="text-xl font-semibold">Production Data Processing</h3>
+                    <p className="text-gray-600 text-sm">
+                      Process data directly from database with advanced imputation and automatic calculations
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+                  <h4 className="font-semibold text-indigo-800 mb-2">🚀 Production-Ready Processing</h4>
+                  <div className="text-indigo-700 text-sm space-y-2">
+                    <p><strong>Database Integration:</strong> Processes data directly from your scenario database</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li><strong>Automatic Calculations:</strong> Derives values like units_per_pallet = units_per_carton × cartons_per_pallet</li>
+                      <li><strong>Advanced Imputation:</strong> Fills missing data using ML/DL algorithms</li>
+                      <li><strong>Quality Assessment:</strong> Real-time color-coded data quality monitoring</li>
+                      <li><strong>Production Logging:</strong> Tracks all processing steps and results</li>
+                    </ul>
+                    <p className="mt-2"><strong>Ready for Production:</strong> Processes real business data with enterprise-grade reliability and transparency.</p>
+                  </div>
+                </div>
+
+                <ProductionDataProcessorComponent
+                  projectId={selectedProject.id}
+                  scenarioId={selectedScenario.id}
+                  onProcessingComplete={(result) => {
+                    if (result.success && result.processedData.length > 0) {
+                      setValidatedData({
+                        operationalReporting: {},
+                        businessFinancials: {},
+                        salesGrowthTrajectory: {},
+                        metadata: {
+                          lastProcessed: new Date().toISOString(),
+                          dataQuality: {
+                            completeness: result.qualityAssessment.originalDataPercentage,
+                            accuracy: result.qualityAssessment.originalDataPercentage,
+                            consistency: 95,
+                            timeliness: 100,
+                            validRecords: result.processedData.length,
+                            totalRecords: result.originalData.length,
+                            missingFields: [],
+                            invalidValues: []
+                          },
+                          validationResults: [],
+                          productionProcessing: {
+                            calculationResults: result.calculationResults,
+                            qualityAssessment: result.qualityAssessment,
+                            processingTime: result.processingTime
+                          }
+                        }
+                      });
+                      setProcessedData(result.processedData as any);
+                      addToLog('✓ Production processing completed successfully');
+                      addToLog(`Processed ${result.processedData.length} records with ${result.calculationResults.calculationsPerformed} calculations`);
+                      if (result.imputationResult) {
+                        addToLog(`Imputation: ${result.imputationResult.statistics.totalImputed} values using ${result.imputationResult.statistics.methodsUsed.join(', ')}`);
+                      }
+                      setActiveTab('results');
+                    }
+                  }}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Missing Data Analyzer Tab */}
+          {activeTab === 'missing-data' && (
+            <div className="space-y-6">
+              <div className="card">
+                <div className="flex items-center gap-3 mb-4">
+                  <Target className="text-red-600" size={24} />
+                  <div>
+                    <h3 className="text-xl font-semibold">AI-Powered Missing Data Analysis</h3>
+                    <p className="text-gray-600 text-sm">
+                      Advanced ML/DL imputation using Random Forests, XGBoost, Neural Networks, and MICE
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <h4 className="font-semibold text-red-800 mb-2">🧠 Advanced Methodology Implemented</h4>
+                  <div className="text-red-700 text-sm space-y-2">
+                    <p><strong>Machine Learning Approaches:</strong></p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li><strong>Random Forests & XGBoost:</strong> Tree-based models for complex pattern recognition</li>
+                      <li><strong>Neural Networks:</strong> MissForest and GAIN architectures for high-dimensional data</li>
+                      <li><strong>MICE:</strong> Multiple Imputation by Chained Equations for iterative modeling</li>
+                      <li><strong>KNN & Regression:</strong> Traditional methods for baseline comparisons</li>
+                    </ul>
+                    <p className="mt-2"><strong>Smart Implementation:</strong> Automatically diagnoses missing data patterns and selects optimal imputation strategy based on data characteristics.</p>
+                  </div>
+                </div>
+
+                <MissingDataAnalyzer
+                  onDataProcessed={(result) => {
+                    setSmartProcessingResult(result);
+                    if (result.success && result.data) {
+                      setValidatedData(result.data);
+                      setProcessedData(result.data as any);
+                      addToLog('✓ Smart processing with imputation completed successfully');
+                      if (result.imputationSummary) {
+                        addToLog(`Imputation: ${result.imputationSummary.totalValuesImputed} values using ${result.imputationSummary.methodUsed}`);
+                      }
+                    }
+                  }}
+                  className="w-full"
+                />
+
+                {smartProcessingResult && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                      <CheckCircle className="text-green-600" size={20} />
+                      Advanced Processing Complete
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-green-700">Data Quality Improvement:</span>
+                        <span className="ml-2 text-green-600">
+                          {smartProcessingResult.processingMetrics.originalDataQuality.toFixed(1)}% → {smartProcessingResult.processingMetrics.finalDataQuality.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-green-700">Processing Time:</span>
+                        <span className="ml-2 text-green-600">{smartProcessingResult.processingMetrics.processingTime}ms</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-green-700">Status:</span>
+                        <span className="ml-2 text-green-600">{smartProcessingResult.success ? 'Success' : 'Failed'}</span>
+                      </div>
+                    </div>
+                    {smartProcessingResult.recommendations.length > 0 && (
+                      <div className="mt-3">
+                        <span className="font-medium text-green-700">Recommendations:</span>
+                        <ul className="list-disc list-inside text-green-600 text-sm mt-1">
+                          {smartProcessingResult.recommendations.slice(0, 3).map((rec, index) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Upload Tab */}
           {activeTab === 'upload' && selectedProject && selectedScenario && (
