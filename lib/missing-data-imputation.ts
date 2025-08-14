@@ -258,13 +258,13 @@ export class AdvancedDataImputation {
 
         if (neighborValues.every((val: any) => !isNaN(parseFloat(val)))) {
           // Numeric - weighted average
-          const weights = neighbors.map(n => 1 / (n.distance + 1e-6)); // Add small epsilon to avoid division by zero
-          const weightedSum = neighbors.reduce((sum, n, i) => sum + parseFloat(n.row[targetColumn]) * weights[i], 0);
-          const weightSum = weights.reduce((sum, w) => sum + w, 0);
+          const weights = neighbors.map((n: any) => 1 / (n.distance + 1e-6)); // Add small epsilon to avoid division by zero
+          const weightedSum = neighbors.reduce((sum: any, n: any, i: any) => sum + parseFloat(n.row[targetColumn]) * weights[i], 0);
+          const weightSum = weights.reduce((sum: any, w: any) => sum + w, 0);
           imputedValue = weightedSum / weightSum;
         } else {
           // Categorical - mode of neighbors
-          const counts = neighborValues.reduce((acc, val) => {
+          const counts = neighborValues.reduce((acc: any, val: any) => {
             acc[val] = (acc[val] || 0) + 1;
             return acc;
           }, {});
