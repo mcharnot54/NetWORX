@@ -9,8 +9,98 @@ import type {
 } from '@/types/data-schema';
 import { DATA_MAPPING_TEMPLATES } from '@/types/data-schema';
 import { AdaptiveDataValidator, type AdaptiveTemplate } from './adaptive-data-validator';
+import { AdvancedDataImputation, type ImputationConfig, type ImputationResult } from './missing-data-imputation';
 
 export class DataValidator {
+
+  /**
+   * Enhanced processing with automatic missing data imputation
+   */
+  static async processDataWithImputationAndTemplate(
+    rawData: any[],
+    template: DataMappingTemplate | AdaptiveTemplate,
+    imputationConfig: Partial<ImputationConfig> = {}
+  ): Promise<{
+    processingResult: ProcessingResult;
+    imputationResult?: ImputationResult;
+  }> {
+    if (!rawData || rawData.length === 0) {
+      throw new Error('No data provided for processing');
+    }
+
+    // Step 1: Diagnose missing data patterns
+    const diagnosis = AdvancedDataImputation.diagnoseMissingData(rawData);
+
+    let imputationResult: ImputationResult | undefined;
+    let dataToProcess = rawData;
+
+    // Step 2: Apply imputation if missing data is detected
+    if (diagnosis.patterns.length > 0) {
+      console.log('Missing data detected, applying advanced imputation...');
+      console.log('Recommended method:', diagnosis.suggestedMethod);
+      console.log('Missing data patterns:', diagnosis.patterns.map(p =>
+        `${p.field}: ${p.missingPercentage.toFixed(1)}% missing (${p.pattern})`
+      ));
+
+      try {
+        imputationResult = await AdvancedDataImputation.imputeMissingData(
+          rawData,
+          { ...imputationConfig, method: imputationConfig.method || diagnosis.suggestedMethod as any }
+        );
+
+        dataToProcess = imputationResult.data;
+
+        console.log(`Imputation completed: ${imputationResult.statistics.totalImputed} values imputed with ${imputationResult.statistics.averageConfidence.toFixed(2)} average confidence`);
+      } catch (error) {
+        console.warn('Imputation failed, proceeding with original data:', error);
+      }
+    }
+
+    // Step 3: Process the data (imputed or original) with the template
+    const processingResult = this.processDataWithTemplate(dataToProcess, template);
+
+    // Step 4: Enhance metadata with imputation information
+    if (processingResult.data?.metadata && imputationResult) {
+      processingResult.data.metadata.imputationInfo = {
+        methodUsed: imputationResult.statistics.methodsUsed,
+        totalImputed: imputationResult.statistics.totalImputed,
+        averageConfidence: imputationResult.statistics.averageConfidence,
+        qualityMetrics: imputationResult.qualityMetrics,
+        imputedFields: imputationResult.imputedFields.map(field => ({
+          field: field.field,
+          rowIndex: field.rowIndex,
+          confidence: field.confidence,
+          method: field.method
+        }))
+      };
+    }
+
+    return {
+      processingResult,
+      imputationResult
+    };
+  }
+
+  /**
+   * Diagnose missing data patterns in a dataset
+   */
+  static diagnoseMissingDataPatterns(data: any[]): {
+    patterns: any[];
+    recommendations: string[];
+    suggestedMethod: string;
+  } {
+    return AdvancedDataImputation.diagnoseMissingData(data);
+  }
+
+  /**
+   * Apply standalone imputation to data
+   */
+  static async imputeMissingData(
+    data: any[],
+    config: Partial<ImputationConfig> = {}
+  ): Promise<ImputationResult> {
+    return AdvancedDataImputation.imputeMissingData(data, config);
+  }
   
   // Validate individual field values
   static validateFieldValue(
