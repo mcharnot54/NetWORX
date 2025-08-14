@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { MissingDataAnalyzer } from '@/components/MissingDataAnalyzer';
+import { DataCompletenessIndicator } from '@/components/DataCompletenessIndicator';
 import { EnhancedDataProcessor, DataProcessingUtilities, type SmartProcessingResult } from '@/lib/enhanced-data-processor';
 import { 
   Brain, 
