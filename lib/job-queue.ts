@@ -260,6 +260,117 @@ class JobQueue {
   }
 
   /**
+   * Handle job errors with recovery attempts
+   */
+  private async handleJobError(job: OptimizationJob, error: any): Promise<void> {
+    const errorContext: ErrorContext = {
+      operation: 'transport_optimization',
+      scenarioId: job.scenario_id,
+      jobId: job.id,
+      optimizationRunId: job.optimization_run_id,
+      timestamp: new Date(),
+      additionalData: {
+        resultType: job.result_type,
+        retryCount: job.retry_count || 0
+      }
+    };
+
+    const errorDetails = ErrorHandler.handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      errorContext
+    );
+
+    // Log the error
+    ErrorHandler.logError(errorDetails);
+
+    // Update job with error details
+    job.error_message = errorDetails.userMessage;
+    job.error_code = errorDetails.code;
+    job.error_severity = errorDetails.severity;
+    job.retry_count = (job.retry_count || 0) + 1;
+    job.max_retries = job.max_retries || 3;
+
+    // Attempt recovery if error is recoverable and we haven't exceeded retry limit
+    if (errorDetails.recoverable && job.retry_count <= job.max_retries) {
+      console.log(`Attempting recovery for job ${job.id}, attempt ${job.retry_count}/${job.max_retries}`);
+
+      job.status = 'retrying';
+      job.current_step = 'Attempting recovery...';
+      job.recovery_attempted = true;
+
+      // Wait before retry (based on error type and attempt number)
+      const baseDelay = this.getRetryDelay(errorDetails.code);
+      const retryDelay = baseDelay * Math.pow(2, job.retry_count - 1); // Exponential backoff
+
+      setTimeout(async () => {
+        try {
+          // Reset job status and try again
+          job.status = 'running';
+          job.current_step = 'Retrying optimization';
+          job.progress_percentage = 5;
+
+          // Re-run the job processing
+          await this.processJob(job);
+        } catch (retryError) {
+          // If retry also fails, handle it (but don't retry again immediately)
+          await this.finalizeJobFailure(job, retryError);
+        }
+      }, retryDelay);
+    } else {
+      // No more retries or not recoverable
+      await this.finalizeJobFailure(job, error);
+    }
+  }
+
+  /**
+   * Finalize job failure when no more recovery attempts are possible
+   */
+  private async finalizeJobFailure(job: OptimizationJob, error: any): Promise<void> {
+    console.error(`Job ${job.id} failed permanently:`, error);
+
+    job.status = 'failed';
+    job.completed_at = new Date();
+    job.current_step = 'Failed';
+
+    // Update optimization result status
+    try {
+      await OptimizationResultService.updateOptimizationResult(job.optimization_run_id, {
+        status: 'failed',
+        completed_at: new Date()
+      });
+    } catch (updateError) {
+      console.error('Failed to update optimization result status:', updateError);
+    }
+
+    // Update scenario status
+    try {
+      await ScenarioService.updateScenario(job.scenario_id, {
+        status: 'failed'
+      });
+    } catch (updateError) {
+      console.error('Failed to update scenario status:', updateError);
+    }
+  }
+
+  /**
+   * Get retry delay based on error type
+   */
+  private getRetryDelay(errorCode: string): number {
+    switch (errorCode) {
+      case 'DATABASE_ERROR':
+        return 5000; // 5 seconds
+      case 'NETWORK_ERROR':
+        return 3000; // 3 seconds
+      case 'RESOURCE_ERROR':
+        return 30000; // 30 seconds
+      case 'OPTIMIZATION_ERROR':
+        return 10000; // 10 seconds
+      default:
+        return 5000; // 5 seconds default
+    }
+  }
+
+  /**
    * Perform the actual optimization with progress tracking
    */
   private async performOptimization({ 
