@@ -341,8 +341,8 @@ export default function Dashboard() {
       const updated = prev.map((item) =>
         item.id === itemId ? { ...item, completed: !item.completed } : item,
       );
-      // Save to localStorage
-      localStorage.setItem("optimization-checklist", JSON.stringify(updated));
+      // Save to localStorage using ReadinessTracker
+      ReadinessTracker.saveChecklistToStorage(updated);
       return updated;
     });
   };
