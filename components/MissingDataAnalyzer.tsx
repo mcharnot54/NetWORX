@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { EnhancedDataProcessor, type SmartProcessingConfig, type SmartProcessingResult } from '@/lib/enhanced-data-processor';
 import { DataProcessingUtilities } from '@/lib/enhanced-data-processor';
+import { DataCompletenessIndicator, DataCompletenessComparison } from '@/components/DataCompletenessIndicator';
+import { DataCompletenessAnalyzer } from '@/lib/data-completeness-analyzer';
 
 interface MissingDataAnalyzerProps {
   onDataProcessed?: (result: SmartProcessingResult) => void;
@@ -34,6 +36,9 @@ export function MissingDataAnalyzer({ onDataProcessed, className = '' }: Missing
   });
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [recommendations, setRecommendations] = useState<any>(null);
+  const [parsedData, setParsedData] = useState<any[]>([]);
+  const [originalData, setOriginalData] = useState<any[]>([]);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = event.target.files?.[0];
@@ -49,8 +54,11 @@ export function MissingDataAnalyzer({ onDataProcessed, className = '' }: Missing
 
     setIsProcessing(true);
     try {
-      // First, get recommendations without full processing
+      // Parse file and analyze missing data
       const { data } = await import('@/lib/data-validator').then(module => module.DataValidator.parseFile(file));
+      setParsedData(data);
+      setOriginalData([...data]); // Keep original for comparison
+
       const recs = EnhancedDataProcessor.getImputationRecommendations(data);
       setRecommendations(recs);
     } catch (error) {
@@ -166,12 +174,28 @@ export function MissingDataAnalyzer({ onDataProcessed, className = '' }: Missing
           )}
         </div>
 
+        {/* Data Completeness Analysis */}
+        {parsedData.length > 0 && (
+          <div className="space-y-4">
+            <h4 className="font-medium text-gray-900 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Data Completeness Analysis
+            </h4>
+
+            <DataCompletenessIndicator
+              data={parsedData}
+              showDetailedBreakdown={showDetailedAnalysis}
+              onViewDetails={() => setShowDetailedAnalysis(!showDetailedAnalysis)}
+            />
+          </div>
+        )}
+
         {/* Recommendations Display */}
         {recommendations && (
           <div className="space-y-4">
             <h4 className="font-medium text-gray-900 flex items-center gap-2">
               <Info className="w-4 h-4" />
-              Missing Data Analysis
+              Imputation Method Analysis
             </h4>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -393,6 +417,24 @@ export function MissingDataAnalyzer({ onDataProcessed, className = '' }: Missing
                 </div>
               </div>
             </div>
+
+            {/* Before/After Comparison */}
+            {result.imputationSummary && originalData.length > 0 && (
+              <DataCompletenessComparison
+                beforeData={originalData}
+                afterData={parsedData}
+                imputationFields={result.imputationSummary ? [
+                  // Simulate imputation fields from summary
+                  ...Array(result.imputationSummary.totalValuesImputed).fill(null).map((_, i) => ({
+                    field: `field_${i}`,
+                    rowIndex: i,
+                    confidence: result.imputationSummary!.averageConfidence,
+                    method: result.imputationSummary!.methodUsed
+                  }))
+                ] : []}
+                className="mb-4"
+              />
+            )}
 
             {/* Imputation Summary */}
             {result.imputationSummary && (
