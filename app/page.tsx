@@ -410,13 +410,51 @@ export default function Dashboard() {
                   }}
                 >
                   Network Optimization Readiness
+                  {isAutoUpdating && (
+                    <RefreshCw
+                      size={16}
+                      style={{
+                        marginLeft: "0.5rem",
+                        color: "#3b82f6",
+                        animation: "spin 1s linear infinite"
+                      }}
+                    />
+                  )}
                 </h3>
-                <p
-                  style={{ margin: 0, color: "#6b7280", fontSize: "0.875rem" }}
-                >
-                  Complete all required configurations to run comprehensive
-                  network optimization
-                </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p
+                    style={{ margin: 0, color: "#6b7280", fontSize: "0.875rem" }}
+                  >
+                    Automatically tracks file uploads and system configuration
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "#6b7280" }}>
+                    {lastUpdateTime && (
+                      <span>
+                        Last updated: {lastUpdateTime.toLocaleTimeString()}
+                      </span>
+                    )}
+                    <button
+                      onClick={refreshReadinessStatus}
+                      disabled={isAutoUpdating}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        padding: "0.25rem 0.5rem",
+                        backgroundColor: "transparent",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "0.25rem",
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        cursor: isAutoUpdating ? "not-allowed" : "pointer",
+                        opacity: isAutoUpdating ? 0.6 : 1
+                      }}
+                    >
+                      <RefreshCw size={12} />
+                      Refresh
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <button
