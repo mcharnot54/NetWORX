@@ -94,7 +94,7 @@ export interface OptimizationResult {
   scenario_id: number;
   result_type: 'warehouse' | 'transport' | 'combined';
   optimization_run_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'queued' | 'running' | 'completed' | 'failed';
   started_at: Date;
   completed_at?: Date;
   execution_time_seconds?: number;
@@ -104,6 +104,20 @@ export interface OptimizationResult {
   results_data: any;
   performance_metrics: any;
   recommendations: any;
+}
+
+// Extended interface for API responses that includes computed properties
+export interface OptimizationResultResponse extends OptimizationResult {
+  optimization_results: any; // Alias for results_data
+  success: boolean; // Computed from status
+  job_status?: {
+    id: string;
+    status: string;
+    progress_percentage: number;
+    current_step: string;
+    estimated_completion_minutes: number;
+    error_message?: string;
+  } | null;
 }
 
 export interface ScenarioIteration {
@@ -388,7 +402,7 @@ export class OptimizationResultService {
 
   static async updateOptimizationResult(id: number, data: Partial<OptimizationResult>): Promise<OptimizationResult> {
     const [result] = await sql`
-      UPDATE optimization_results 
+      UPDATE optimization_results
       SET status = COALESCE(${data.status}, status),
           completed_at = COALESCE(${data.completed_at}, completed_at),
           execution_time_seconds = COALESCE(${data.execution_time_seconds}, execution_time_seconds),
@@ -399,6 +413,24 @@ export class OptimizationResultService {
           performance_metrics = COALESCE(${JSON.stringify(data.performance_metrics)}, performance_metrics),
           recommendations = COALESCE(${JSON.stringify(data.recommendations)}, recommendations)
       WHERE id = ${id}
+      RETURNING *
+    `;
+    return result as OptimizationResult;
+  }
+
+  static async updateOptimizationResultByRunId(optimizationRunId: string, data: Partial<OptimizationResult>): Promise<OptimizationResult> {
+    const [result] = await sql`
+      UPDATE optimization_results
+      SET status = COALESCE(${data.status}, status),
+          completed_at = COALESCE(${data.completed_at}, completed_at),
+          execution_time_seconds = COALESCE(${data.execution_time_seconds}, execution_time_seconds),
+          total_cost = COALESCE(${data.total_cost}, total_cost),
+          cost_savings = COALESCE(${data.cost_savings}, cost_savings),
+          efficiency_score = COALESCE(${data.efficiency_score}, efficiency_score),
+          results_data = COALESCE(${JSON.stringify(data.results_data)}, results_data),
+          performance_metrics = COALESCE(${JSON.stringify(data.performance_metrics)}, performance_metrics),
+          recommendations = COALESCE(${JSON.stringify(data.recommendations)}, recommendations)
+      WHERE optimization_run_id = ${optimizationRunId}
       RETURNING *
     `;
     return result as OptimizationResult;

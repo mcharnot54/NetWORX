@@ -295,6 +295,29 @@ export async function safeAsync<T>(
   try {
     return await operation();
   } catch (error) {
+    // Handle abort signals gracefully - these are expected during cleanup
+    if (error && typeof error === 'object') {
+      const errorObj = error as any;
+
+      // Check for abort-related errors
+      if (errorObj.name === 'AbortError' ||
+          (errorObj.message && typeof errorObj.message === 'string' &&
+           (errorObj.message.includes('aborted') ||
+            errorObj.message.includes('cancelled') ||
+            errorObj.message.includes('External signal abort')))) {
+
+        console.debug(`Request cancelled in ${context}:`, errorObj.message || 'Unknown abort');
+        return fallback;
+      }
+
+      // Check for FetchError cancellation
+      if (errorObj.message === 'Request was cancelled') {
+        console.debug(`Request cancelled in ${context}`);
+        return fallback;
+      }
+    }
+
+    // Log other errors normally
     console.error(`Safe async error in ${context}:`, error);
     return fallback;
   }

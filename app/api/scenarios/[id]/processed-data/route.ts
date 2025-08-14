@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
+
+const sql = neon(process.env.DATABASE_URL);
 
 export async function POST(
   request: NextRequest,
@@ -59,7 +65,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      id: result.rows[0].id,
+      id: result[0].id,
       recordsProcessed: data.length,
       message: 'Processed data saved successfully'
     });
@@ -101,14 +107,14 @@ export async function GET(
       LIMIT 1
     `;
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'No processed data found for this scenario' },
         { status: 404 }
       );
     }
 
-    const processedData = result.rows[0];
+    const processedData = result[0];
 
     return NextResponse.json({
       success: true,

@@ -18,13 +18,16 @@ export default function DatabaseStatus() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [isMounted, setIsMounted] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
 
   const checkDatabaseStatus = async () => {
-    if (!isMounted) return;
+    if (!isMounted || isChecking) return;
+
+    setIsChecking(true);
 
     const result = await safeAsync(async () => {
       const controller = new SafeAbortController('db-status-check');
-      
+
       try {
         const result = await robustFetchJson('/api/init-db', {
           timeout: 10000,
@@ -36,7 +39,7 @@ export default function DatabaseStatus() {
           setDbStatus(result);
           setLastChecked(new Date());
         }
-        
+
         return result;
       } finally {
         controller.cleanup();
@@ -49,6 +52,10 @@ export default function DatabaseStatus() {
         error: 'Failed to connect to database'
       });
       setLastChecked(new Date());
+    }
+
+    if (isMounted) {
+      setIsChecking(false);
     }
   };
 
@@ -99,11 +106,22 @@ export default function DatabaseStatus() {
 
   useEffect(() => {
     let isCleanedUp = false;
+    let debounceTimer: NodeJS.Timeout | null = null;
     const componentId = 'database-status-component';
 
     const initComponent = async () => {
       if (isCleanedUp) return;
-      await checkDatabaseStatus();
+
+      // Debounce the initial check to prevent rapid calls
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(async () => {
+        if (!isCleanedUp) {
+          await checkDatabaseStatus();
+        }
+      }, 500);
     };
 
     initComponent();
@@ -111,11 +129,17 @@ export default function DatabaseStatus() {
     // Register cleanup
     runtimeErrorHandler.registerCleanup(componentId, () => {
       isCleanedUp = true;
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
     }, 5);
 
     return () => {
       isCleanedUp = true;
       setIsMounted(false);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
       runtimeErrorHandler.executeCleanup(componentId);
     };
   }, []);

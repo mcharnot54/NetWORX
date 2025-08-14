@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
+
+const sql = neon(process.env.DATABASE_URL);
 
 export async function GET(
   request: NextRequest,
@@ -35,13 +41,13 @@ export async function GET(
     // Combine all data from different files
     const combinedData: any[] = [];
     const metadata = {
-      totalFiles: filesResult.rows.length,
+      totalFiles: filesResult.length,
       dataTypes: [] as string[],
       lastUpdated: null as string | null,
       totalRecords: 0
     };
 
-    for (const file of filesResult.rows) {
+    for (const file of filesResult) {
       if (file.processed_data?.parsedData) {
         const fileData = file.processed_data.parsedData;
         

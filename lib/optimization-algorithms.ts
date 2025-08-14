@@ -290,6 +290,9 @@ export interface CapacityOptimizationResult {
     recommended_actions: string[];
     total_cost: number;
     cost_per_unit: number;
+    required_square_footage: number;
+    required_pallets: number;
+    warehouse_breakdown: Record<string, number>;
   }>;
   total_investment: number;
   optimization_score: number;
