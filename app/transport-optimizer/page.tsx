@@ -85,6 +85,88 @@ export default function TransportOptimizer() {
   const [jobProgress, setJobProgress] = useState<{[key: string]: any}>({});
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // Function to poll job status with progress updates
+  const pollJobStatus = async (optimizationRunId: string, jobId?: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId || optimizationRunId}`);
+      if (response.ok) {
+        const jobData = await response.json();
+        if (jobData.success && jobData.data) {
+          const job = jobData.data;
+
+          // Update job progress state
+          setJobProgress(prev => ({
+            ...prev,
+            [optimizationRunId]: {
+              status: job.status,
+              progress: job.progress_percentage || 0,
+              currentStep: job.current_step || 'Processing...',
+              estimatedTimeRemaining: job.estimated_time_remaining_minutes,
+              elapsedTime: job.elapsed_time_seconds,
+              errorMessage: job.error_message
+            }
+          }));
+
+          // If job is completed or failed, stop polling and check for results
+          if (job.status === 'completed' || job.status === 'failed') {
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+              setPollingInterval(null);
+            }
+
+            // Fetch the actual optimization results
+            if (job.status === 'completed') {
+              const resultsResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
+              if (resultsResponse.ok) {
+                const resultsData = await resultsResponse.json();
+                if (resultsData.success && resultsData.data?.length > 0) {
+                  const latestResult = resultsData.data.find((r: any) =>
+                    r.optimization_run_id === optimizationRunId
+                  );
+                  if (latestResult?.status === 'completed') {
+                    return latestResult;
+                  }
+                }
+              }
+            }
+          }
+
+          return job;
+        }
+      }
+    } catch (error) {
+      console.warn('Error polling job status:', error);
+    }
+    return null;
+  };
+
+  // Function to start polling for a job
+  const startJobPolling = (optimizationRunId: string, jobId?: string) => {
+    // Clear existing polling
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
+    // Poll every 2 seconds
+    const interval = setInterval(async () => {
+      await pollJobStatus(optimizationRunId, jobId);
+    }, 2000);
+
+    setPollingInterval(interval);
+
+    // Also poll immediately
+    pollJobStatus(optimizationRunId, jobId);
+  };
+
+  // Cleanup polling on component unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
   // Function to fetch capacity analysis data for the selected scenario
   const fetchCapacityAnalysisData = async (scenarioId: number) => {
     try {
