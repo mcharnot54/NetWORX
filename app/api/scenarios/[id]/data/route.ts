@@ -41,13 +41,13 @@ export async function GET(
     // Combine all data from different files
     const combinedData: any[] = [];
     const metadata = {
-      totalFiles: filesResult.rows.length,
+      totalFiles: filesResult.length,
       dataTypes: [] as string[],
       lastUpdated: null as string | null,
       totalRecords: 0
     };
 
-    for (const file of filesResult.rows) {
+    for (const file of filesResult) {
       if (file.processed_data?.parsedData) {
         const fileData = file.processed_data.parsedData;
         
