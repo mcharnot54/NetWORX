@@ -21,6 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { ReadinessTracker } from "@/lib/readiness-tracker";
 
 interface ChecklistItem {
   id: string;
