@@ -341,9 +341,9 @@ export class AdvancedDataImputation {
         }
 
         // Calculate predicted value
-        let prediction = coefficients.intercept;
+        let prediction = coefficients?.intercept || 0;
         for (let i = 0; i < predictorColumns.length; i++) {
-          prediction += coefficients.slopes[i] * parseFloat(missingRow[predictorColumns[i]]);
+          prediction += (coefficients?.slopes[i] || 0) * parseFloat(missingRow[predictorColumns[i]]);
         }
 
         const confidence = Math.max(0.4, rSquared);
