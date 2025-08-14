@@ -18,13 +18,16 @@ export default function DatabaseStatus() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [isMounted, setIsMounted] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
 
   const checkDatabaseStatus = async () => {
-    if (!isMounted) return;
+    if (!isMounted || isChecking) return;
+
+    setIsChecking(true);
 
     const result = await safeAsync(async () => {
       const controller = new SafeAbortController('db-status-check');
-      
+
       try {
         const result = await robustFetchJson('/api/init-db', {
           timeout: 10000,
@@ -36,7 +39,7 @@ export default function DatabaseStatus() {
           setDbStatus(result);
           setLastChecked(new Date());
         }
-        
+
         return result;
       } finally {
         controller.cleanup();
@@ -49,6 +52,10 @@ export default function DatabaseStatus() {
         error: 'Failed to connect to database'
       });
       setLastChecked(new Date());
+    }
+
+    if (isMounted) {
+      setIsChecking(false);
     }
   };
 
