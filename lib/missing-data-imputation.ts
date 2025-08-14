@@ -312,16 +312,16 @@ export class AdvancedDataImputation {
       // Get predictor columns (exclude target and non-numeric)
       const predictorColumns = columns.filter(col => {
         if (col === targetColumn) return false;
-        const values = data.map(row => row[col]).filter(val => val !== null && val !== undefined && val !== '');
-        return values.length > 0 && values.every(val => !isNaN(parseFloat(val)));
+        const values = data.map((row: any) => row[col]).filter((val: any) => val !== null && val !== undefined && val !== '');
+        return values.length > 0 && values.every((val: any) => !isNaN(parseFloat(val)));
       });
 
       if (predictorColumns.length === 0) continue;
 
       // Prepare training data
-      const trainingData = imputedData.filter(row => 
+      const trainingData = imputedData.filter((row: any) =>
         row[targetColumn] !== null && row[targetColumn] !== undefined && row[targetColumn] !== '' &&
-        predictorColumns.every(col => row[col] !== null && row[col] !== undefined && row[col] !== '')
+        predictorColumns.every((col: any) => row[col] !== null && row[col] !== undefined && row[col] !== '')
       );
 
       if (trainingData.length < 3) continue; // Need minimum data for regression
@@ -461,7 +461,7 @@ export class AdvancedDataImputation {
       if (missingRows.length === 0) continue;
 
       // Use other columns to predict missing values
-      const completeRows = matrix.filter(row => !isNaN(row[colIdx]));
+      const completeRows = matrix.filter((row: any) => !isNaN(row[colIdx]));
       if (completeRows.length < 3) continue;
 
       // Simplified neural network prediction (would be replaced with actual NN in production)
@@ -552,8 +552,8 @@ export class AdvancedDataImputation {
         const { coefficients } = this.simpleLinearRegression(
           imputedData.filter((_, idx) => !missingIndices.includes(idx)),
           otherColumns.filter(col => {
-            const values = imputedData.map(row => row[col]).filter(val => val !== null && val !== undefined && val !== '');
-            return values.length > 0 && values.every(val => !isNaN(parseFloat(val)));
+            const values = imputedData.map((row: any) => row[col]).filter((val: any) => val !== null && val !== undefined && val !== '');
+            return values.length > 0 && values.every((val: any) => !isNaN(parseFloat(val)));
           }),
           targetColumn
         );
@@ -748,10 +748,10 @@ export class AdvancedDataImputation {
     let bestScore = -Infinity;
 
     for (const col of predictorColumns) {
-      const values = validData.map(row => row[col]).filter(val => val !== null && val !== undefined && val !== '');
+      const values = validData.map((row: any) => row[col]).filter((val: any) => val !== null && val !== undefined && val !== '');
       if (values.length === 0) continue;
 
-      if (values.every(val => !isNaN(parseFloat(val)))) {
+      if (values.every((val: any) => !isNaN(parseFloat(val)))) {
         // Numeric split
         const numValues = values.map(val => parseFloat(val)).sort((a, b) => a - b);
         const splitPoint = numValues[Math.floor(numValues.length / 2)];
@@ -848,7 +848,7 @@ export class AdvancedDataImputation {
     columnInfo: any[];
   } {
     const columnInfo = columns.map(col => {
-      const values = data.map(row => row[col]).filter(val => val !== null && val !== undefined && val !== '');
+      const values = data.map((row: any) => row[col]).filter((val: any) => val !== null && val !== undefined && val !== '');
       const numericValues = values.filter(val => !isNaN(parseFloat(val))).map(val => parseFloat(val));
       
       if (numericValues.length === values.length && numericValues.length > 0) {
@@ -902,7 +902,7 @@ export class AdvancedDataImputation {
 
   private static initializeMissingValues(data: any[], columns: string[]): void {
     for (const col of columns) {
-      const values = data.map(row => row[col]).filter(val => val !== null && val !== undefined && val !== '');
+      const values = data.map((row: any) => row[col]).filter((val: any) => val !== null && val !== undefined && val !== '');
       if (values.length === 0) continue;
 
       let defaultValue: any;
