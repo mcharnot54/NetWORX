@@ -550,7 +550,7 @@ export class AdvancedDataImputation {
         
         // Use regression to predict missing values
         const { coefficients } = this.simpleLinearRegression(
-          imputedData.filter((_, idx) => !missingIndices.includes(idx)),
+          imputedData.filter((_: any, idx: number) => !missingIndices.includes(idx)),
           otherColumns.filter(col => {
             const values = imputedData.map((row: any) => row[col]).filter((val: any) => val !== null && val !== undefined && val !== '');
             return values.length > 0 && values.every((val: any) => !isNaN(parseFloat(val)));
