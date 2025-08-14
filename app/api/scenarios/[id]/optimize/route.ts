@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OptimizationResultService, ScenarioService, WarehouseConfigService, TransportConfigService, AuditLogService } from '@/lib/database';
+import { OptimizationResultService, AuditLogService } from '@/lib/database';
+import { jobQueue } from '@/lib/job-queue';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(
@@ -9,7 +10,7 @@ export async function POST(
   try {
     const scenarioId = parseInt(params.id);
     const body = await request.json();
-    
+
     if (isNaN(scenarioId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid scenario ID' },
@@ -19,13 +20,13 @@ export async function POST(
 
     const { result_type, optimization_params } = body;
 
-    // Create optimization result record
+    // Create optimization result record with 'queued' status
     const optimizationRunId = uuidv4();
     const optimizationResult = await OptimizationResultService.createOptimizationResult({
       scenario_id: scenarioId,
       result_type: result_type || 'combined',
       optimization_run_id: optimizationRunId,
-      status: 'running',
+      status: 'queued', // Changed from 'running' to 'queued'
       results_data: {},
       performance_metrics: {},
       recommendations: {}
@@ -34,80 +35,30 @@ export async function POST(
     // Log the action
     await AuditLogService.logAction({
       scenario_id: scenarioId,
-      action: 'start_optimization',
+      action: 'queue_optimization',
       entity_type: 'optimization_result',
       entity_id: optimizationResult.id,
       details: { result_type, optimization_run_id: optimizationRunId }
     });
 
-    // Start optimization process (simulate async processing)
-    setTimeout(async () => {
-      try {
-        // Get scenario configuration
-        const [scenario, warehouseConfigs, transportConfigs] = await Promise.all([
-          ScenarioService.getScenario(scenarioId),
-          WarehouseConfigService.getWarehouseConfigs(scenarioId),
-          TransportConfigService.getTransportConfigs(scenarioId)
-        ]);
+    // Add job to background processing queue
+    const jobId = await jobQueue.addJob(
+      scenarioId,
+      optimizationRunId,
+      result_type || 'combined',
+      optimization_params
+    );
 
-        // Perform real optimization calculations
-        const results = await performRealOptimization({
-          scenario,
-          warehouseConfigs,
-          transportConfigs,
-          optimization_params
-        });
-
-        // Update the optimization result
-        await OptimizationResultService.updateOptimizationResult(optimizationResult.id, {
-          status: 'completed',
-          completed_at: new Date(),
-          execution_time_seconds: Math.floor(Math.random() * 60) + 10, // 10-70 seconds
-          total_cost: results.totalCost,
-          cost_savings: results.costSavings,
-          efficiency_score: results.efficiencyScore,
-          results_data: results.detailedResults,
-          performance_metrics: results.metrics,
-          recommendations: results.recommendations
-        });
-
-        // Update scenario status
-        await ScenarioService.updateScenario(scenarioId, {
-          status: 'completed'
-        });
-
-        // Log completion
-        await AuditLogService.logAction({
-          scenario_id: scenarioId,
-          action: 'complete_optimization',
-          entity_type: 'optimization_result',
-          entity_id: optimizationResult.id,
-          details: { total_cost: results.totalCost, cost_savings: results.costSavings }
-        });
-
-      } catch (error) {
-        console.error('Optimization failed:', error);
-        
-        // Update result status to failed
-        await OptimizationResultService.updateOptimizationResult(optimizationResult.id, {
-          status: 'failed',
-          completed_at: new Date()
-        });
-
-        // Update scenario status
-        await ScenarioService.updateScenario(scenarioId, {
-          status: 'failed'
-        });
-      }
-    }, 1000); // Start processing after 1 second
+    console.log(`Optimization job ${jobId} queued for scenario ${scenarioId}`);
 
     return NextResponse.json({
       success: true,
       data: {
         optimization_run_id: optimizationRunId,
         result_id: optimizationResult.id,
-        status: 'running',
-        message: 'Optimization started successfully'
+        job_id: jobId,
+        status: 'queued',
+        message: 'Optimization queued successfully - processing will begin shortly'
       }
     });
   } catch (error) {
