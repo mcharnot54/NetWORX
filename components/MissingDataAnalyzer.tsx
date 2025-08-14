@@ -458,6 +458,33 @@ export function MissingDataAnalyzer({ onDataProcessed, className = '' }: Missing
                     <span className="ml-2 text-blue-600">{(result.imputationSummary.averageConfidence * 100).toFixed(1)}%</span>
                   </div>
                 </div>
+
+                {/* Quality Assessment */}
+                <div className="mt-4 pt-3 border-t border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-blue-700 font-medium">Data Quality Assessment:</span>
+                    {result.processingMetrics.originalDataQuality >= 90 && (
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                        ✅ Excellent - Ready to proceed
+                      </span>
+                    )}
+                    {result.processingMetrics.originalDataQuality >= 75 && result.processingMetrics.originalDataQuality < 90 && (
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
+                        ⚠️ Good - Review imputed fields
+                      </span>
+                    )}
+                    {result.processingMetrics.originalDataQuality < 75 && (
+                      <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                        ❌ Critical - Consider collecting more data
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    Original data quality: {result.processingMetrics.originalDataQuality.toFixed(1)}% |
+                    Final quality: {result.processingMetrics.finalDataQuality.toFixed(1)}% |
+                    Improvement: {result.processingMetrics.improvementPercentage >= 0 ? '+' : ''}{result.processingMetrics.improvementPercentage.toFixed(1)}%
+                  </div>
+                </div>
               </div>
             )}
 
