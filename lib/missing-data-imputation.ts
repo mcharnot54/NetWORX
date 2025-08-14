@@ -242,7 +242,7 @@ export class AdvancedDataImputation {
         const missingRow = imputedData[missingIdx];
         
         // Calculate distances to all valid rows
-        const distances = validData.map(validRow => ({
+        const distances = validData.map((validRow: any) => ({
           row: validRow,
           distance: this.calculateDistance(missingRow, validRow, columns.filter(col => col !== targetColumn))
         }));
