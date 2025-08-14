@@ -15,14 +15,19 @@ export interface OptimizationJob {
   optimization_run_id: string;
   result_type: string;
   optimization_params: any;
-  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'retrying';
   created_at: Date;
   started_at?: Date;
   completed_at?: Date;
   error_message?: string;
+  error_code?: string;
+  error_severity?: 'low' | 'medium' | 'high' | 'critical';
+  retry_count?: number;
+  max_retries?: number;
   progress_percentage: number;
   current_step?: string;
   estimated_completion_minutes?: number;
+  recovery_attempted?: boolean;
 }
 
 class JobQueue {
