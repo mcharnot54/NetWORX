@@ -82,6 +82,8 @@ export default function TransportOptimizer() {
   const [isLoadingCapacityData, setIsLoadingCapacityData] = useState(false);
   const [isSavingResults, setIsSavingResults] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [jobProgress, setJobProgress] = useState<{[key: string]: any}>({});
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Function to fetch capacity analysis data for the selected scenario
   const fetchCapacityAnalysisData = async (scenarioId: number) => {
