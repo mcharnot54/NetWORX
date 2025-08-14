@@ -211,7 +211,7 @@ class JobQueue {
         job.progress_percentage = 90;
 
         // Update the optimization result in database
-        await OptimizationResultService.updateOptimizationResult(job.optimization_run_id, {
+        await OptimizationResultService.updateOptimizationResultByRunId(job.optimization_run_id, {
           status: 'completed',
           completed_at: new Date(),
           execution_time_seconds: Math.floor((Date.now() - job.started_at!.getTime()) / 1000),
@@ -334,7 +334,7 @@ class JobQueue {
 
     // Update optimization result status
     try {
-      await OptimizationResultService.updateOptimizationResult(job.optimization_run_id, {
+      await OptimizationResultService.updateOptimizationResultByRunId(job.optimization_run_id, {
         status: 'failed',
         completed_at: new Date()
       });
