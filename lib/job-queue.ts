@@ -130,9 +130,14 @@ class JobQueue {
    */
   private async startProcessing(): Promise<void> {
     if (this.isProcessing) return;
-    
+
+    // Don't start processing during build time
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return;
+    }
+
     this.isProcessing = true;
-    
+
     while (true) {
       const queuedJobs = Array.from(this.jobs.values())
         .filter(job => job.status === 'queued')
@@ -591,10 +596,24 @@ class JobQueue {
   }
 }
 
-// Global job queue instance
-export const jobQueue = new JobQueue();
+// Global job queue instance - only create during runtime, not build time
+let jobQueue: JobQueue;
 
-// Cleanup old jobs every hour
-setInterval(() => {
-  jobQueue.cleanup();
-}, 60 * 60 * 1000);
+// Lazy initialization to avoid build-time issues
+export function getJobQueue(): JobQueue {
+  if (!jobQueue) {
+    jobQueue = new JobQueue();
+
+    // Only start automatic processes in runtime environment, not during build
+    if (typeof window !== 'undefined' || (typeof process !== 'undefined' && !process.env.NEXT_PHASE)) {
+      // Cleanup old jobs every hour
+      setInterval(() => {
+        jobQueue.cleanup();
+      }, 60 * 60 * 1000);
+    }
+  }
+  return jobQueue;
+}
+
+// Export for backward compatibility
+export { getJobQueue as jobQueue };

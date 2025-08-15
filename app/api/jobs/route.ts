@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jobQueue } from '@/lib/job-queue';
+import { getJobQueue } from '@/lib/job-queue';
+
+export const dynamic = 'force-dynamic'; // This route needs to be dynamic for query parameters
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const scenarioId = searchParams.get('scenario_id');
 
     let jobs;
@@ -15,10 +17,10 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         );
       }
-      jobs = jobQueue.getJobsForScenario(scenarioIdInt);
+      jobs = getJobQueue().getJobsForScenario(scenarioIdInt);
     } else {
       // Return queue statistics for monitoring
-      const stats = jobQueue.getStats();
+      const stats = getJobQueue().getStats();
       return NextResponse.json({
         success: true,
         data: {
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const enrichedJobs = jobs.map(job => {
       let estimatedTimeRemaining: number | undefined;
-      
+
       if (job.status === 'running' && job.started_at && job.estimated_completion_minutes) {
         const elapsedMinutes = (now.getTime() - job.started_at.getTime()) / (1000 * 60);
         estimatedTimeRemaining = Math.max(0, job.estimated_completion_minutes - elapsedMinutes);
@@ -41,7 +43,7 @@ export async function GET(request: NextRequest) {
       return {
         ...job,
         estimated_time_remaining_minutes: estimatedTimeRemaining,
-        elapsed_time_seconds: job.started_at 
+        elapsed_time_seconds: job.started_at
           ? Math.floor((now.getTime() - job.started_at.getTime()) / 1000)
           : 0
       };

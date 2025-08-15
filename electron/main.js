@@ -96,24 +96,39 @@ function startNextServer() {
   }
 
   // In production, start the Next.js server
-  const serverPath = path.join(process.resourcesPath, 'app');
-  const nodeModulesPath = path.join(serverPath, 'node_modules');
-  
-  // Use the bundled Next.js server
-  const serverScript = path.join(serverPath, 'server.js');
-  
+  const appPath = isPackaged ? path.join(process.resourcesPath, 'app') : process.cwd();
+  const serverScript = path.join(appPath, 'server.js');
+
+  console.log('Starting Next.js server from:', appPath);
+  console.log('Server script path:', serverScript);
+
+  // Check if server.js exists
+  const fs = require('fs');
+  if (!fs.existsSync(serverScript)) {
+    console.error('Server script not found at:', serverScript);
+    console.log('Available files in app directory:');
+    try {
+      const files = fs.readdirSync(appPath);
+      console.log(files);
+    } catch (err) {
+      console.error('Could not read app directory:', err);
+    }
+    return;
+  }
+
   // Set environment variables
   process.env.NODE_ENV = 'production';
   process.env.PORT = '3000';
-  
+  process.env.HOSTNAME = 'localhost';
+
   // Start the server process
   serverProcess = spawn('node', [serverScript], {
-    cwd: serverPath,
+    cwd: appPath,
     env: {
       ...process.env,
       NODE_ENV: 'production',
       PORT: '3000',
-      PATH: process.env.PATH + `:${path.join(nodeModulesPath, '.bin')}`
+      HOSTNAME: 'localhost'
     },
     stdio: 'inherit'
   });

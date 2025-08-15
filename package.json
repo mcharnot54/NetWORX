@@ -14,7 +14,8 @@
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-test": "node scripts/test-electron.js",
     "build-electron": "cross-env ELECTRON=true npm run build && electron-builder",
-    "dist": "cross-env ELECTRON=true npm run build && electron-builder --publish=never"
+    "dist": "electron-builder --publish=never",
+    "dist-full": "cross-env ELECTRON=true npm run build && electron-builder --publish=never"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
@@ -48,43 +49,38 @@
       "output": "dist"
     },
     "files": [
-      "electron/**/*",
-      ".next/**/*",
-      "public/**/*",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/assets/**/*",
       "server.js",
       "package.json",
-      "next.config.js"
+      "next.config.js",
+      "app/**/*",
+      "components/**/*",
+      "lib/**/*",
+      "types/**/*",
+      "context/**/*",
+      "public/**/*",
+      "!node_modules",
+      "!.next",
+      "!dist"
     ],
-    "extraResources": [
-      {
-        "from": ".next",
-        "to": "app/.next"
-      },
-      {
-        "from": "public",
-        "to": "app/public"
-      },
-      {
-        "from": "server.js",
-        "to": "app/server.js"
-      },
-      {
-        "from": "package.json",
-        "to": "app/package.json"
-      },
-      {
-        "from": "next.config.js",
-        "to": "app/next.config.js"
-      },
+    "extraFiles": [
       {
         "from": "node_modules",
-        "to": "app/node_modules",
+        "to": "node_modules",
         "filter": [
+          "**/*",
           "!**/electron{,/**}",
-          "!**/electron-builder{,/**}"
+          "!**/electron-builder{,/**}",
+          "!**/.cache{,/**}",
+          "!**/test{,/**}",
+          "!**/tests{,/**}"
         ]
       }
     ],
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": false,
     "win": {
       "target": "nsis",
       "icon": "electron/assets/icon.png"
@@ -94,7 +90,7 @@
       "icon": "electron/assets/icon.png"
     },
     "linux": {
-      "target": "AppImage",
+      "target": "dir",
       "icon": "electron/assets/icon.png"
     }
   }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OptimizationResultService, AuditLogService } from '@/lib/database';
-import { jobQueue } from '@/lib/job-queue';
+import { getJobQueue } from '@/lib/job-queue';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(
@@ -42,7 +42,7 @@ export async function POST(
     });
 
     // Add job to background processing queue
-    const jobId = await jobQueue.addJob(
+    const jobId = await getJobQueue().addJob(
       scenarioId,
       optimizationRunId,
       result_type || 'combined',
@@ -89,7 +89,7 @@ export async function GET(
     const results = await OptimizationResultService.getOptimizationResults(scenarioId);
 
     // Get current job status from job queue
-    const jobs = jobQueue.getJobsForScenario(scenarioId);
+    const jobs = getJobQueue().getJobsForScenario(scenarioId);
 
     // Transform results to include job information and the optimization data in the expected format
     const transformedResults = results.map((result: any) => {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jobQueue } from '@/lib/job-queue';
+import { getJobQueue } from '@/lib/job-queue';
 
 export async function GET(
   request: NextRequest,
@@ -16,11 +16,11 @@ export async function GET(
     }
 
     // Check if it's a job ID or optimization run ID
-    let job = jobQueue.getJob(jobId);
+    let job = getJobQueue().getJob(jobId);
     
     if (!job) {
       // Try to find by optimization run ID
-      job = jobQueue.getJobByOptimizationId(jobId);
+      job = getJobQueue().getJobByOptimizationId(jobId);
     }
 
     if (!job) {
@@ -74,7 +74,7 @@ export async function DELETE(
       );
     }
 
-    const cancelled = jobQueue.cancelJob(jobId);
+    const cancelled = getJobQueue().cancelJob(jobId);
     
     if (!cancelled) {
       return NextResponse.json(
