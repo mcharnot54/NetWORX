@@ -90,7 +90,7 @@
       "icon": "electron/assets/icon.png"
     },
     "linux": {
-      "target": "AppImage",
+      "target": "dir",
       "icon": "electron/assets/icon.png"
     }
   }
