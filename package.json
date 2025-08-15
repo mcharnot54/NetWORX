@@ -50,13 +50,16 @@
     },
     "files": [
       "electron/**/*",
-      ".next/**/*",
       "public/**/*",
       "server.js",
       "package.json",
-      "next.config.js",
-      "node_modules/**/*"
+      "next.config.js"
     ],
+    "directories": {
+      "output": "dist"
+    },
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": false,
     "win": {
       "target": "nsis",
       "icon": "electron/assets/icon.png"
