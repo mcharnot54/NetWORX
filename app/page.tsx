@@ -760,6 +760,92 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {baselineCosts && !costsLoading && baselineCosts.total_baseline.raw === 0 && (
+              <div
+                style={{
+                  backgroundColor: "white",
+                  border: "2px dashed #cbd5e1",
+                  borderRadius: "0.5rem",
+                  padding: "2rem",
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "3rem",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  📊
+                </div>
+                <h4
+                  style={{
+                    margin: "0 0 0.5rem 0",
+                    color: "#475569",
+                    fontSize: "1.25rem",
+                    fontWeight: "600",
+                  }}
+                >
+                  No Baseline Costs Found
+                </h4>
+                <p
+                  style={{
+                    margin: "0 0 1rem 0",
+                    color: "#64748b",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  Upload data files containing cost information to see your baseline costs here.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: "1rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <a
+                    href="/data-processor"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#0ea5e9",
+                      color: "white",
+                      textDecoration: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "500",
+                    }}
+                  >
+                    <FileText size={16} />
+                    Upload Cost Data
+                  </a>
+                  <a
+                    href="/tl-data-check"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "white",
+                      color: "#0ea5e9",
+                      textDecoration: "none",
+                      border: "1px solid #0ea5e9",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "500",
+                    }}
+                  >
+                    <Truck size={16} />
+                    Extract TL Baseline
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Network Optimization Readiness Checklist */}
