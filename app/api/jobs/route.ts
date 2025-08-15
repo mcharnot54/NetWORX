@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         );
       }
-      jobs = jobQueue.getJobsForScenario(scenarioIdInt);
+      jobs = getJobQueue().getJobsForScenario(scenarioIdInt);
     } else {
       // Return queue statistics for monitoring
       const stats = jobQueue.getStats();
