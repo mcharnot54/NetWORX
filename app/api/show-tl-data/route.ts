@@ -6,19 +6,18 @@ export async function GET(request: NextRequest) {
     
     // Get all data files to see what we have
     const allFiles = await sql`
-      SELECT 
-        id, 
-        file_name, 
-        processing_status, 
+      SELECT
+        id,
+        file_name,
+        processing_status,
         data_type,
         scenario_id,
-        CASE 
+        CASE
           WHEN processed_data IS NOT NULL THEN 'Has processed data'
           ELSE 'No processed data'
-        END as data_status,
-        created_at
+        END as data_status
       FROM data_files
-      ORDER BY created_at DESC
+      ORDER BY id DESC
     `;
 
     // Look specifically for TL file
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
       SELECT id, file_name, processed_data, processing_status
       FROM data_files
       WHERE file_name ILIKE '%TL%' OR file_name ILIKE '%TOTALS%'
-      ORDER BY created_at DESC
+      ORDER BY id DESC
       LIMIT 1
     `;
 
