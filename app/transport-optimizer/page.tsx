@@ -2171,7 +2171,7 @@ export default function TransportOptimizer() {
 
         .table-header {
           display: grid;
-          grid-template-columns: 1fr 1fr 1.5fr 1.5fr 1fr;
+          grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1.5fr 1fr;
           gap: 1rem;
           font-weight: 600;
           padding: 0.5rem;
@@ -2183,11 +2183,20 @@ export default function TransportOptimizer() {
 
         .table-row {
           display: grid;
-          grid-template-columns: 1fr 1fr 1.5fr 1.5fr 1fr;
+          grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1.5fr 1fr;
           gap: 1rem;
           padding: 0.5rem;
           border-bottom: 1px solid #e5e7eb;
           font-size: 0.875rem;
+        }
+
+        .table-row.baseline-row {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+        }
+
+        .table-row.optimized-row {
+          background: #f0fdf4;
         }
 
         .table-row:hover {
