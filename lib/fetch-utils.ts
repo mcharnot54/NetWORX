@@ -185,34 +185,40 @@ const fetchWithTimeout = async (
     }
 
     // Handle AbortError specifically - check if error exists and has required properties
-    if (error && typeof error === 'object' &&
-        (('name' in error && error.name === 'AbortError') ||
-         ('message' in error && typeof error.message === 'string' &&
-          (error.message.includes('aborted') || error.message.includes('signal is aborted'))))) {
+    if (error && typeof error === 'object') {
+      const errorName = 'name' in error ? String(error.name || '') : '';
+      const errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
 
-      const errorMessage = ('message' in error && typeof error.message === 'string') ? error.message : '';
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted')) {
 
-      // Check if this was a timeout or external cancellation
-      const isTimeout = controller.signal.aborted && !options.signal?.aborted;
+        // Check if this was a timeout or external cancellation
+        const isTimeout = controller.signal.aborted && !options.signal?.aborted;
 
-      if (isTimeout) {
-        throw new FetchError(
-          `Request timeout after ${timeout}ms`,
-          undefined,
-          undefined,
-          false,
-          true
-        );
-      } else {
-        // Handle external cancellation more gracefully - don't throw for normal cancellation
-        console.debug(`Request cancelled for ${url}:`, errorMessage);
-        throw new FetchError(
-          'Request was cancelled',
-          undefined,
-          undefined,
-          false,
-          false
-        );
+        if (isTimeout) {
+          throw new FetchError(
+            `Request timeout after ${timeout}ms`,
+            undefined,
+            undefined,
+            false,
+            true
+          );
+        } else {
+          // Handle external cancellation more gracefully
+          const reason = errorMessage && errorMessage !== 'signal is aborted without reason'
+            ? errorMessage
+            : 'Request was cancelled by user or system';
+
+          console.debug(`Request cancelled for ${url}:`, reason);
+          throw new FetchError(
+            reason,
+            undefined,
+            undefined,
+            false,
+            false
+          );
+        }
       }
     }
 
