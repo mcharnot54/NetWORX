@@ -378,223 +378,45 @@ export default function TransportOptimizer() {
     }
 
     setIsGenerating(true);
-    setIsLoadingCapacityData(true);
+    setIsLoadingCapacityData(false); // Skip capacity data loading
 
     try {
-      console.log('Fetching capacity analysis data for scenario:', selectedScenario.id);
+      console.log('Generating scenarios for:', selectedScenario.name);
 
-      // Fetch real capacity analysis data
-      const capacityData = await fetchCapacityAnalysisData(selectedScenario.id);
-
-      // Also fetch warehouse configuration data to get city information
-      let warehouseCities: string[] = [];
-      try {
-        const warehouseResponse = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
-        if (warehouseResponse.ok) {
-          const warehouseData = await warehouseResponse.json();
-          if (warehouseData.data && Array.isArray(warehouseData.data)) {
-            warehouseData.data.forEach((warehouse: any) => {
-              if (warehouse.location) {
-                // Parse location like "Chicago, IL" or "Atlanta, GA"
-                const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
-                if (locationMatch) {
-                  const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
-                  if (!warehouseCities.includes(cityName)) {
-                    warehouseCities.push(cityName);
-                  }
-                }
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.warn('Could not fetch warehouse configurations:', error);
-      }
-
-      setIsLoadingCapacityData(false);
-
-      // Extract cities from capacity analysis (including forced locations like Littleton, MA)
-      let analysisCity = extractCitiesFromCapacityData(capacityData);
-
-      // If no cities found in capacity analysis, use warehouse cities
-      if (analysisCity.length === 0 && warehouseCities.length > 0) {
-        console.log('Using cities from warehouse configurations:', warehouseCities);
-        analysisCity = warehouseCities;
-      }
-
-      console.log('Selected scenario details:', {
-        id: selectedScenario.id,
-        name: selectedScenario.name,
-        number_of_nodes: selectedScenario.number_of_nodes,
-        cities: selectedScenario.cities,
-        metadata: selectedScenario
+      // Use simple generation API instead of complex job queue
+      const response = await fetch('/api/simple-transport-generation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scenarioId: selectedScenario.id,
+          scenarioTypes: specificScenarioTypes
+        })
       });
-      console.log('Capacity data received:', capacityData);
-      console.log('Warehouse cities found:', warehouseCities);
-      console.log('Final cities to use for transport optimization:', analysisCity);
 
-      // Update the selected scenario with the extracted cities for future reference
-      if (analysisCity.length > 0 && selectedScenario) {
-        try {
-          await fetch(`/api/scenarios/${selectedScenario.id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              cities: analysisCity
-            })
-          });
-          console.log('Updated scenario with extracted cities:', analysisCity);
-        } catch (error) {
-          console.warn('Could not update scenario with cities:', error);
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Generation failed: ${response.status} ${errorText}`);
       }
 
-      // Generate transport scenarios using real optimization APIs
-      const generatedScenarios = [];
+      const result = await response.json();
 
-      // Use specific scenario types if provided, otherwise use all
-      const typesToGenerate = specificScenarioTypes
-        ? scenarioTypes.filter(type => specificScenarioTypes.includes(type.key))
-        : scenarioTypes;
+      if (result.success && result.data.generated_scenarios) {
+        setScenarios(result.data.generated_scenarios);
+        console.log('✅ Generated scenarios successfully:', result.data.generated_scenarios);
 
-      for (let index = 0; index < typesToGenerate.length; index++) {
-        const type = typesToGenerate[index];
-
-        console.log(`Generating scenario ${index + 1}/${typesToGenerate.length}: ${type.name}`);
-
-        // Call real transport optimization API (now returns job info)
-        let optimizationResult;
-        try {
-          optimizationResult = await runRealTransportOptimization(
-            selectedScenario.id,
-            analysisCity,
-            type.key
-          );
-        } catch (optimizationError) {
-          console.error(`Failed to start optimization for ${type.name}:`, optimizationError);
-          optimizationResult = { success: false, error: optimizationError.message };
-        }
-
-        // Check if optimization was successfully queued
-        let finalResult = optimizationResult;
-        if (optimizationResult?.success && optimizationResult?.data?.status === 'queued') {
-          console.log(`Optimization queued for ${type.name}, job ID: ${optimizationResult.data.job_id}`);
-
-          // Poll for completion with improved timeout handling
-          const optimizationRunId = optimizationResult.data.optimization_run_id;
-          const jobId = optimizationResult.data.job_id;
-
-          // Poll for up to 30 seconds for completion (reduced from 5 minutes)
-          let pollAttempts = 0;
-          const maxPollAttempts = 15; // 15 attempts * 2 seconds = 30 seconds
-          let pollCompleted = false;
-
-          while (pollAttempts < maxPollAttempts && !pollCompleted) {
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-            pollAttempts++;
-
-            try {
-              const jobResult = await pollJobStatus(optimizationRunId, jobId);
-
-              if (jobResult?.status === 'completed') {
-                console.log(`Optimization completed for ${type.name}`);
-                // Fetch the final results
-                const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
-                const statusData = await statusResponse.json();
-                if (statusData.success && statusData.data?.length > 0) {
-                  finalResult = statusData.data.find((r: any) =>
-                    r.optimization_run_id === optimizationRunId
-                  );
-                }
-                pollCompleted = true;
-                break;
-              } else if (jobResult?.status === 'failed') {
-                console.warn(`Optimization failed for ${type.name}:`, jobResult.error_message);
-                finalResult = { success: false, error: jobResult.error_message };
-                pollCompleted = true;
-                break;
-              }
-              // Continue polling if status is 'running' or 'queued'
-              console.log(`Polling attempt ${pollAttempts}/${maxPollAttempts} for ${type.name}: ${jobResult?.status}`);
-            } catch (pollError) {
-              console.warn('Error polling for optimization status:', pollError);
-              // Don't break on poll errors, just log and continue
-              if (pollAttempts >= 3) {
-                // If we've had 3 poll errors, assume job failed
-                finalResult = { success: false, error: 'Polling failed after multiple attempts' };
-                pollCompleted = true;
-                break;
-              }
-            }
-          }
-
-          // If polling timed out
-          if (!pollCompleted) {
-            console.warn(`Optimization polling timed out for ${type.name} after ${maxPollAttempts} attempts`);
-            finalResult = { success: false, error: 'Optimization timed out' };
-          }
-        }
-
-        let scenarioData;
-
-        // Check for optimization results in the response
-        const hasOptimizationResults = finalResult?.data?.optimization_run_id ||
-                                     finalResult?.results_data?.transport_optimization ||
-                                     finalResult?.optimization_results?.transport_optimization ||
-                                     finalResult?.status === 'completed';
-
-        if (hasOptimizationResults) {
-          // Use real optimization results
-          const transportResults = finalResult?.results_data?.transport_optimization ||
-                                 finalResult?.optimization_results?.transport_optimization ||
-                                 {};
-
-          console.log(`Using real optimization results for ${type.name}:`, transportResults);
-
-          scenarioData = {
-            id: selectedScenario.id * 1000 + index, // Unique ID based on scenario and type
-            scenario_type: type.key as any,
-            scenario_name: type.name,
-            total_miles: transportResults.total_distance || Math.floor(Math.random() * 50000) + 100000,
-            total_cost: transportResults.total_transport_cost || Math.floor(Math.random() * 100000) + 200000,
-            service_score: Math.round(transportResults.route_efficiency || (75 + Math.random() * 20)),
-            generated: true,
-            cities: transportResults.cities_served || analysisCity,
-            route_details: transportResults.optimized_routes || generateMockRouteDetails(transportResults.cities_served || analysisCity),
-            volume_allocations: generateMockVolumeAllocations(),
-            optimization_data: finalResult // Store full optimization results
-          };
-        } else {
-          // Fallback to enhanced mock data with real cities
-          console.warn(`No optimization results for ${type.name}, using fallback data with cities:`, analysisCity);
-          scenarioData = {
-            id: selectedScenario.id * 1000 + index,
-            scenario_type: type.key as any,
-            scenario_name: type.name,
-            total_miles: Math.floor(Math.random() * 50000) + 100000,
-            total_cost: Math.floor(Math.random() * 100000) + 200000,
-            service_score: Math.floor(Math.random() * 20) + 80,
-            generated: true,
-            cities: analysisCity, // Use real cities from capacity analysis
-            route_details: generateMockRouteDetails(analysisCity),
-            volume_allocations: generateMockVolumeAllocations()
-          };
-        }
-
-        generatedScenarios.push(scenarioData);
+        // Show success message
+        alert(`Successfully generated ${result.data.generated_scenarios.length} transport scenarios!`);
+      } else {
+        throw new Error(result.error || 'Unknown generation error');
       }
-
-      setScenarios(generatedScenarios);
-      console.log('Generated scenarios with real data:', generatedScenarios);
 
     } catch (error) {
       console.error('Scenario generation failed:', error);
-      alert('Failed to generate scenarios. Please ensure capacity analysis has been completed for the selected scenario.');
+      alert(`Failed to generate scenarios: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
-      setIsLoadingCapacityData(false);
     }
   };
 
