@@ -30,8 +30,8 @@ export default function DatabaseStatus() {
 
       try {
         const result = await robustFetchJson('/api/init-db', {
-          timeout: 10000,
-          retries: 2,
+          timeout: 30000,
+          retries: 3,
           signal: controller.signal,
         });
 
@@ -69,8 +69,8 @@ export default function DatabaseStatus() {
       
       try {
         const result = await robustFetchJson('/api/setup-db', {
-          timeout: 30000,
-          retries: 1,
+          timeout: 45000,
+          retries: 2,
           signal: controller.signal,
         });
 

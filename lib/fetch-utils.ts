@@ -16,8 +16,8 @@ interface RetryConfig {
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
-  baseDelay: 1000,
-  maxDelay: 10000,
+  baseDelay: 2000,
+  maxDelay: 15000,
   exponentialBackoff: true,
 };
 
@@ -126,7 +126,7 @@ const fetchWithTimeout = async (
     externalAbortHandler = () => {
       try {
         if (!controller.signal.aborted) {
-          controller.abort('External signal abort');
+          controller.abort();
         }
       } catch (error) {
         // Ignore errors when aborting - expected behavior
@@ -146,7 +146,7 @@ const fetchWithTimeout = async (
   const timeoutId = setTimeout(() => {
     try {
       if (!controller.signal.aborted) {
-        controller.abort('Request timeout');
+        controller.abort();
       }
     } catch (error) {
       // Ignore errors when aborting timeout - this is expected behavior
@@ -187,14 +187,13 @@ const fetchWithTimeout = async (
     // Handle AbortError specifically - check if error exists and has required properties
     if (error && typeof error === 'object' &&
         (('name' in error && error.name === 'AbortError') ||
-         ('message' in error && typeof error.message === 'string' && error.message.includes('aborted')))) {
+         ('message' in error && typeof error.message === 'string' &&
+          (error.message.includes('aborted') || error.message.includes('signal is aborted'))))) {
 
       const errorMessage = ('message' in error && typeof error.message === 'string') ? error.message : '';
 
       // Check if this was a timeout or external cancellation
-      const isTimeout = errorMessage.includes('timeout') ||
-                       errorMessage.includes('Request timeout') ||
-                       (controller.signal.aborted && !options.signal?.aborted);
+      const isTimeout = controller.signal.aborted && !options.signal?.aborted;
 
       if (isTimeout) {
         throw new FetchError(

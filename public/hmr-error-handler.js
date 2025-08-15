@@ -158,8 +158,16 @@
           errorMessage.includes('aborted') ||
           errorMessage.includes('signal is aborted') ||
           errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('External signal abort') ||
           errorMessage.includes('The operation was aborted')) {
         console.debug('Suppressed AbortError:', errorMessage || 'signal aborted');
+        event.preventDefault();
+        return false;
+      }
+
+      // Suppress 'Failed to fetch' errors in cloud environments
+      if (errorName === 'TypeError' && errorMessage === 'Failed to fetch') {
+        console.debug('Suppressed cloud fetch error:', errorMessage);
         event.preventDefault();
         return false;
       }
@@ -178,8 +186,16 @@
           errorMessage.includes('aborted') ||
           errorMessage.includes('signal is aborted') ||
           errorMessage.includes('aborted without reason') ||
+          errorMessage.includes('External signal abort') ||
           errorMessage.includes('The operation was aborted')) {
         console.debug('Suppressed unhandled AbortError rejection:', errorMessage || 'signal aborted');
+        event.preventDefault();
+        return false;
+      }
+
+      // Suppress 'Failed to fetch' errors in cloud environments
+      if (errorName === 'TypeError' && errorMessage === 'Failed to fetch') {
+        console.debug('Suppressed unhandled cloud fetch error:', errorMessage);
         event.preventDefault();
         return false;
       }

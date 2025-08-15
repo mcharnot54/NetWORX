@@ -85,11 +85,11 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "electron/assets/icon.ico"
+      "icon": "electron/assets/icon.png"
     },
     "mac": {
       "target": "dmg",
-      "icon": "electron/assets/icon.icns"
+      "icon": "electron/assets/icon.png"
     },
     "linux": {
       "target": "AppImage",

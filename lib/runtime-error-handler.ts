@@ -304,7 +304,7 @@ export async function safeAsync<T>(
           (errorObj.message && typeof errorObj.message === 'string' &&
            (errorObj.message.includes('aborted') ||
             errorObj.message.includes('cancelled') ||
-            errorObj.message.includes('External signal abort')))) {
+            errorObj.message.includes('signal is aborted')))) {
 
         console.debug(`Request cancelled in ${context}:`, errorObj.message || 'Unknown abort');
         return fallback;
