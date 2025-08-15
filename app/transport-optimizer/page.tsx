@@ -342,12 +342,19 @@ export default function TransportOptimizer() {
         }
         return result;
       } else {
-        console.error('Transport optimization API error:', response.status);
-        return null;
+        const errorText = await response.text();
+        console.error('Transport optimization API error:', response.status, errorText);
+        return {
+          success: false,
+          error: `API error ${response.status}: ${errorText}`
+        };
       }
     } catch (error) {
       console.error('Error calling transport optimization API:', error);
-      return null;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   };
 
