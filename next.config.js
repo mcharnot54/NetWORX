@@ -3,6 +3,9 @@ const nextConfig = {
   // Disable standalone for now to simplify build
   // ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
 
+  // Disable static generation to avoid Html import errors during build
+  trailingSlash: true,
+
   // Asset optimization
   images: {
     unoptimized: process.env.ELECTRON === 'true'
