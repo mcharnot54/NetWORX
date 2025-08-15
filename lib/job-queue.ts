@@ -177,13 +177,22 @@ class JobQueue {
    */
   private async processJob(job: OptimizationJob): Promise<void> {
     try {
+      // Check if job is already completed or failed
+      if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+        console.log(`Job ${job.id} already in final state: ${job.status}`);
+        return;
+      }
+
       // Mark job as running
       job.status = 'running';
       job.started_at = new Date();
       job.current_step = 'Initializing optimization';
       job.progress_percentage = 5;
 
-      console.log(`Starting job ${job.id} for scenario ${job.scenario_id}`);
+      console.log(`Starting job ${job.id} for scenario ${job.scenario_id}`, {
+        resultType: job.result_type,
+        optimizationParams: job.optimization_params
+      });
 
       // Set timeout for the job
       const timeoutHandle = setTimeout(() => {
