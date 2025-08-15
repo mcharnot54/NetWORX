@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Only enable standalone output when building for Electron
-  ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
+  // Disable standalone for now to simplify build
+  // ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
 
   // Asset optimization
   images: {
