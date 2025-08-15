@@ -8,10 +8,10 @@ export async function GET(request: NextRequest) {
     
     // Find TL files
     const files = await sql`
-      SELECT id, file_name, processing_status, processed_data, scenario_id, created_at
+      SELECT id, file_name, processing_status, processed_data, scenario_id
       FROM data_files
       WHERE file_name ILIKE '%TL%' OR file_name ILIKE '%freight%' OR file_name ILIKE '%transport%'
-      ORDER BY created_at DESC
+      ORDER BY id DESC
     `;
 
     let results = {
