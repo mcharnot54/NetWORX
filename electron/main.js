@@ -4,6 +4,17 @@ const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
 const { autoUpdater } = require('electron-updater');
 
+// Handle running in container environments
+const isContainerEnv = process.env.DOCKER || process.env.CONTAINER || process.env.CODESPACE_NAME;
+
+// Disable hardware acceleration in container environments
+if (isContainerEnv) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('--no-sandbox');
+  app.commandLine.appendSwitch('--disable-dev-shm-usage');
+  app.commandLine.appendSwitch('--disable-web-security');
+}
+
 let mainWindow;
 let serverProcess;
 
