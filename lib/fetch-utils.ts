@@ -112,7 +112,7 @@ const fetchWithTimeout = async (
   options: FetchOptions
 ): Promise<Response> => {
   const timeout = options.timeout || DEFAULT_TIMEOUT;
-  const controller = new SafeAbortController();
+  const controller = new AbortController();
 
   // Handle external signal if provided
   let externalAbortHandler: (() => void) | null = null;
