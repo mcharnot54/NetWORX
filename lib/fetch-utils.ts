@@ -295,11 +295,18 @@ const _robustFetch = async (
       lastError = error as Error;
 
       // Handle AbortError - never retry aborted requests
-      if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
-        const reason = (lastError.message && lastError.message !== 'signal is aborted without reason')
-          ? lastError.message
-          : 'Request was cancelled';
-        throw new FetchError(`Request was cancelled: ${reason}`, undefined, undefined, false, false);
+      if (lastError) {
+        const errorName = 'name' in lastError ? String(lastError.name || '') : '';
+        const errorMessage = 'message' in lastError && typeof lastError.message === 'string' ? lastError.message : '';
+
+        if (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted')) {
+          const reason = (errorMessage && errorMessage !== 'signal is aborted without reason')
+            ? errorMessage
+            : 'Request was cancelled by user or system';
+          throw new FetchError(`Request was cancelled: ${reason}`, undefined, undefined, false, false);
+        }
       }
 
       // If this is the last attempt, throw the error
