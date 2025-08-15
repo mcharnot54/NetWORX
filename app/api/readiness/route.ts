@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ReadinessTracker } from '@/lib/readiness-tracker';
 
+export const dynamic = 'force-dynamic'; // This route needs to be dynamic for database operations
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
