@@ -130,9 +130,14 @@ class JobQueue {
    */
   private async startProcessing(): Promise<void> {
     if (this.isProcessing) return;
-    
+
+    // Don't start processing during build time
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return;
+    }
+
     this.isProcessing = true;
-    
+
     while (true) {
       const queuedJobs = Array.from(this.jobs.values())
         .filter(job => job.status === 'queued')
