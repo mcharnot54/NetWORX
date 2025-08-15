@@ -215,9 +215,6 @@ export class ReadinessTracker {
     }
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
       // Check if warehouse configurations exist
       const hasWarehouseConfig = await safeAsync(async () => {
         const warehouseData = await safeFetchJson(`/api/scenarios/${scenarioId}/warehouses`, {
