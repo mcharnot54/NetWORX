@@ -16,8 +16,8 @@ interface RetryConfig {
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
-  baseDelay: 1000,
-  maxDelay: 10000,
+  baseDelay: 2000,
+  maxDelay: 15000,
   exponentialBackoff: true,
 };
 
