@@ -66,17 +66,30 @@ export async function POST(request: NextRequest) {
 
     const generatedScenarios = [];
 
-    // Generate each scenario type immediately (no job queue)
+    // Get warehouse and transport configurations for data analysis
+    const warehouseConfigs = await sql`
+      SELECT * FROM warehouse_configurations
+      WHERE scenario_id = ${scenarioId}
+    `;
+
+    const transportConfigs = await sql`
+      SELECT * FROM transport_configurations
+      WHERE scenario_id = ${scenarioId}
+    `;
+
+    console.log(`Found ${warehouseConfigs.length} warehouses and ${transportConfigs.length} transport configs`);
+
+    // Generate each detailed scenario
     for (let index = 0; index < typesToGenerate.length; index++) {
-      const type = typesToGenerate[index];
-      
-      console.log(`Generating ${type.name}...`);
+      const scenario = typesToGenerate[index];
+
+      console.log(`Generating detailed scenario: ${scenario.name} (${scenario.cities.join(' ↔ ')})`);
 
       try {
-        // Call optimization algorithm directly
+        // Call optimization algorithm for specific city pair
         const optimizationParams = {
-          cities: cities,
-          scenario_type: type.key,
+          cities: scenario.cities,
+          scenario_type: scenario.optimizationType,
           optimization_criteria: {
             cost_weight: 40,
             service_weight: 35,
@@ -92,23 +105,35 @@ export async function POST(request: NextRequest) {
         };
 
         const transportResults = optimizeTransportRoutes(optimizationParams);
-        
-        console.log(`✅ Generated ${type.name}:`, {
+
+        // Generate year-by-year analysis with growth projections
+        const yearlyAnalysis = generateYearlyAnalysis(
+          transportResults,
+          scenario.cities,
+          warehouseConfigs,
+          transportConfigs
+        );
+
+        console.log(`✅ Generated ${scenario.name}:`, {
           totalCost: transportResults.total_transport_cost,
           totalDistance: transportResults.total_distance,
-          efficiency: transportResults.route_efficiency
+          yearlyProjections: yearlyAnalysis.length,
+          cities: scenario.cities
         });
 
-        // Create scenario data
+        // Create detailed scenario data
         const scenarioData = {
           id: scenarioId * 1000 + index,
-          scenario_type: type.key,
-          scenario_name: type.name,
+          scenario_type: scenario.key,
+          scenario_name: scenario.name,
+          scenario_description: scenario.description,
           total_miles: transportResults.total_distance,
           total_cost: transportResults.total_transport_cost,
           service_score: Math.round(transportResults.route_efficiency),
           generated: true,
-          cities: transportResults.cities_served,
+          cities: scenario.cities,
+          primary_route: `${scenario.cities[0]} ↔ ${scenario.cities[1]}`,
+          yearly_analysis: yearlyAnalysis,
           route_details: transportResults.optimized_routes.map(route => ({
             origin: route.origin,
             destination: route.destination,
@@ -116,35 +141,47 @@ export async function POST(request: NextRequest) {
             cost_per_mile: route.cost_per_mile,
             service_zone: `Zone ${route.service_zone}`,
             volume_units: route.volume_capacity,
-            transit_time_hours: route.transit_time_hours
+            transit_time_hours: route.transit_time_hours,
+            annual_cost: route.distance_miles * route.cost_per_mile * 365 // Annual cost estimate
           })),
-          volume_allocations: generateMockVolumeAllocations(),
+          volume_allocations: generateDetailedVolumeAllocations(scenario.cities),
           optimization_data: {
-            transport_optimization: transportResults
+            transport_optimization: transportResults,
+            algorithm_details: {
+              optimization_type: scenario.optimizationType,
+              city_pair: scenario.cities,
+              total_routes_analyzed: transportResults.optimized_routes.length,
+              cost_factors: optimizationParams.optimization_criteria
+            }
           }
         };
 
         generatedScenarios.push(scenarioData);
 
       } catch (optimizationError) {
-        console.error(`Failed to generate ${type.name}:`, optimizationError);
-        
-        // Create fallback scenario data
+        console.error(`Failed to generate ${scenario.name}:`, optimizationError);
+
+        // Create detailed fallback scenario data
+        const fallbackYearlyAnalysis = generateFallbackYearlyAnalysis(scenario.cities);
+
         const fallbackData = {
           id: scenarioId * 1000 + index,
-          scenario_type: type.key,
-          scenario_name: type.name,
-          total_miles: Math.floor(Math.random() * 50000) + 100000,
-          total_cost: Math.floor(Math.random() * 100000) + 200000,
+          scenario_type: scenario.key,
+          scenario_name: scenario.name,
+          scenario_description: scenario.description,
+          total_miles: Math.floor(Math.random() * 2000) + 1000,
+          total_cost: Math.floor(Math.random() * 100000) + 150000,
           service_score: Math.floor(Math.random() * 20) + 80,
           generated: true,
-          cities: cities,
-          route_details: generateMockRouteDetails(cities),
-          volume_allocations: generateMockVolumeAllocations(),
+          cities: scenario.cities,
+          primary_route: `${scenario.cities[0]} ↔ ${scenario.cities[1]}`,
+          yearly_analysis: fallbackYearlyAnalysis,
+          route_details: generateMockRouteDetails(scenario.cities),
+          volume_allocations: generateDetailedVolumeAllocations(scenario.cities),
           optimization_data: null,
           error: optimizationError.message
         };
-        
+
         generatedScenarios.push(fallbackData);
       }
     }
