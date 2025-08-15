@@ -1147,18 +1147,23 @@ export default function TransportOptimizer() {
                   </div>
 
                   <div className="analyzed-scenarios">
-                    <h3 className="subsection-title">Scenarios Analyzed</h3>
+                    <h3 className="subsection-title">Detailed Scenario Analysis</h3>
                     <div className="scenarios-analyzed-list">
-                      {analysisResults.selectedScenarios?.map((scenario: TransportScenario, index: number) => (
-                        <div key={index} className="analyzed-scenario-card">
+                      {analysisResults.selectedScenarios?.map((scenario: any, index: number) => (
+                        <div key={index} className="analyzed-scenario-card detailed">
                           <div className="scenario-info-header">
                             <h4 className="analyzed-scenario-name">{scenario.scenario_name}</h4>
                             <div className="scenario-type-badge">{scenario.scenario_type.replace(/_/g, ' ').toUpperCase()}</div>
                           </div>
 
+                          <div className="scenario-route-info">
+                            <span className="route-label">Primary Route:</span>
+                            <span className="route-value">{scenario.primary_route || `${scenario.cities?.[0]} ↔ ${scenario.cities?.[1]}`}</span>
+                          </div>
+
                           {scenario.cities && scenario.cities.length > 0 && (
                             <div className="scenario-cities">
-                              <span className="cities-label">Cities:</span>
+                              <span className="cities-label">Network Cities:</span>
                               <div className="scenario-cities-list">
                                 {scenario.cities.map((city: string, cityIndex: number) => (
                                   <span key={cityIndex} className="scenario-city-tag">{city}</span>
@@ -1167,11 +1172,40 @@ export default function TransportOptimizer() {
                             </div>
                           )}
 
-                          <div className="scenario-metrics-row">
-                            <span className="metric-item">Cost: ${scenario.total_cost?.toLocaleString()}</span>
-                            <span className="metric-item">Miles: {scenario.total_miles?.toLocaleString()}</span>
-                            <span className="metric-item">Service: {scenario.service_score}%</span>
+                          <div className="scenario-year-one-metrics">
+                            <h5>Year 1 (2024) Baseline:</h5>
+                            <div className="metric-grid">
+                              <span className="metric-item">Transport Cost: ${scenario.total_cost?.toLocaleString()}</span>
+                              <span className="metric-item">Distance: {scenario.total_miles?.toLocaleString()} mi</span>
+                              <span className="metric-item">Service Level: {scenario.service_score}%</span>
+                            </div>
                           </div>
+
+                          {scenario.yearly_analysis && scenario.yearly_analysis.length > 0 && (
+                            <div className="scenario-projections">
+                              <h5>5-Year Financial Projection:</h5>
+                              <div className="projections-summary">
+                                <div className="projection-metric">
+                                  <span className="proj-label">Year 5 Total Cost:</span>
+                                  <span className="proj-value">${scenario.yearly_analysis[4]?.total_cost?.toLocaleString()}</span>
+                                </div>
+                                <div className="projection-metric">
+                                  <span className="proj-label">Average Growth Rate:</span>
+                                  <span className="proj-value">{scenario.yearly_analysis[0]?.growth_rate}% annually</span>
+                                </div>
+                                <div className="projection-metric">
+                                  <span className="proj-label">Total 5-Year Investment:</span>
+                                  <span className="proj-value">${scenario.yearly_analysis?.reduce((sum: number, year: any) => sum + (year.total_cost || 0), 0).toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {scenario.scenario_description && (
+                            <div className="scenario-analysis-summary">
+                              <strong>Algorithm Analysis:</strong> {scenario.scenario_description}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
