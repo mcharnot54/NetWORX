@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { perplexityAPI, MarketDataResponse } from '@/lib/perplexity-api';
 
+export const dynamic = 'force-dynamic'; // This route needs to be dynamic for API calls
+
 interface MarketDataRequest {
   locations: { city: string; state: string }[];
   force_refresh?: boolean;
