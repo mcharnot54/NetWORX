@@ -3,7 +3,7 @@ import { jobQueue } from '@/lib/job-queue';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.nextUrl);
+    const { searchParams } = request.nextUrl;
     const scenarioId = searchParams.get('scenario_id');
 
     let jobs;
