@@ -431,6 +431,337 @@ export default function Dashboard() {
           {/* Database Status Component */}
           <DatabaseStatus />
 
+          {/* Current Year Baseline Costs Section */}
+          <div
+            style={{
+              backgroundColor: "#f0f9ff",
+              border: "2px solid #0ea5e9",
+              borderRadius: "0.75rem",
+              padding: "1.5rem",
+              marginBottom: "2rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: "0 0 0.5rem 0",
+                    color: "#0c4a6e",
+                    fontSize: "1.25rem",
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <DollarSign size={20} />
+                  Current Year Baseline Costs (2025)
+                </h3>
+                <p
+                  style={{ margin: 0, color: "#0369a1", fontSize: "0.875rem" }}
+                >
+                  Actual costs extracted from your uploaded data files
+                </p>
+              </div>
+              <button
+                onClick={loadBaselineCosts}
+                disabled={costsLoading}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  padding: "0.5rem 1rem",
+                  backgroundColor: "#0ea5e9",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "0.375rem",
+                  fontSize: "0.875rem",
+                  fontWeight: "500",
+                  cursor: costsLoading ? "not-allowed" : "pointer",
+                  opacity: costsLoading ? 0.6 : 1,
+                }}
+              >
+                <RefreshCw size={14} className={costsLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
+
+            {costsLoading && (
+              <div style={{ textAlign: "center", padding: "2rem", color: "#0369a1" }}>
+                <RefreshCw size={24} className="animate-spin mx-auto mb-2" />
+                <p>Loading baseline costs from data files...</p>
+              </div>
+            )}
+
+            {costsError && (
+              <div
+                style={{
+                  backgroundColor: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: "0.5rem",
+                  padding: "1rem",
+                  color: "#dc2626",
+                  textAlign: "center",
+                }}
+              >
+                <AlertCircle size={20} className="mx-auto mb-2" />
+                <p>{costsError}</p>
+              </div>
+            )}
+
+            {baselineCosts && !costsLoading && (
+              <div>
+                {/* Total Baseline Display */}
+                <div
+                  style={{
+                    backgroundColor: "white",
+                    border: "2px solid #0ea5e9",
+                    borderRadius: "0.5rem",
+                    padding: "1.5rem",
+                    textAlign: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "2.5rem",
+                      fontWeight: "bold",
+                      color: "#0c4a6e",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    {baselineCosts.total_baseline.formatted}
+                  </div>
+                  <div style={{ color: "#0369a1", fontSize: "1rem", fontWeight: "500" }}>
+                    Total Annual Baseline Costs
+                  </div>
+                </div>
+
+                {/* Cost Breakdown Grid */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                    gap: "1rem",
+                  }}
+                >
+                  {/* Warehouse Costs */}
+                  <div
+                    style={{
+                      backgroundColor: "white",
+                      border: "1px solid #e0f2fe",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <Target size={18} style={{ color: "#0ea5e9" }} />
+                      <h4
+                        style={{
+                          margin: 0,
+                          color: "#0c4a6e",
+                          fontSize: "1rem",
+                          fontWeight: "600",
+                        }}
+                      >
+                        Warehouse Costs
+                      </h4>
+                    </div>
+                    <div style={{ space: "0.75rem" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <span style={{ color: "#475569" }}>Operating Costs Other:</span>
+                        <span style={{ fontWeight: "500", color: "#0c4a6e" }}>
+                          {baselineCosts.warehouse_costs.operating_costs_other.formatted}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <span style={{ color: "#475569" }}>Total Labor Costs:</span>
+                        <span style={{ fontWeight: "500", color: "#0c4a6e" }}>
+                          {baselineCosts.warehouse_costs.total_labor_costs.formatted}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.75rem",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <span style={{ color: "#475569" }}>Rent and Overhead:</span>
+                        <span style={{ fontWeight: "500", color: "#0c4a6e" }}>
+                          {baselineCosts.warehouse_costs.rent_and_overhead.formatted}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          borderTop: "1px solid #e0f2fe",
+                          paddingTop: "0.5rem",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontWeight: "600",
+                          color: "#0c4a6e",
+                        }}
+                      >
+                        <span>Subtotal:</span>
+                        <span>{baselineCosts.warehouse_costs.subtotal.formatted}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transport Costs */}
+                  <div
+                    style={{
+                      backgroundColor: "white",
+                      border: "1px solid #e0f2fe",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <Truck size={18} style={{ color: "#0ea5e9" }} />
+                      <h4
+                        style={{
+                          margin: 0,
+                          color: "#0c4a6e",
+                          fontSize: "1rem",
+                          fontWeight: "600",
+                        }}
+                      >
+                        Transport Costs
+                      </h4>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontWeight: "600",
+                        color: "#0c4a6e",
+                        fontSize: "1.125rem",
+                      }}
+                    >
+                      <span>Freight Costs:</span>
+                      <span>{baselineCosts.transport_costs.freight_costs.formatted}</span>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "0.5rem",
+                        fontSize: "0.75rem",
+                        color: "#64748b",
+                        textAlign: "center",
+                      }}
+                    >
+                      {baselineCosts.transport_costs.freight_costs.percentage}% of total baseline
+                    </div>
+                  </div>
+
+                  {/* Inventory Costs */}
+                  <div
+                    style={{
+                      backgroundColor: "white",
+                      border: "1px solid #e0f2fe",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <Package size={18} style={{ color: "#0ea5e9" }} />
+                      <h4
+                        style={{
+                          margin: 0,
+                          color: "#0c4a6e",
+                          fontSize: "1rem",
+                          fontWeight: "600",
+                        }}
+                      >
+                        Inventory Costs
+                      </h4>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontWeight: "600",
+                        color: "#0c4a6e",
+                        fontSize: "1.125rem",
+                      }}
+                    >
+                      <span>Total Inventory Costs:</span>
+                      <span>{baselineCosts.inventory_costs.total_inventory_costs.formatted}</span>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "0.5rem",
+                        fontSize: "0.75rem",
+                        color: "#64748b",
+                        textAlign: "center",
+                      }}
+                    >
+                      {baselineCosts.inventory_costs.total_inventory_costs.percentage}% of total baseline
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Source Info */}
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    padding: "0.75rem",
+                    backgroundColor: "#e0f2fe",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.75rem",
+                    color: "#0369a1",
+                    textAlign: "center",
+                  }}
+                >
+                  💡 Baseline costs extracted from uploaded data files and scenario results
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Network Optimization Readiness Checklist */}
           <div
             style={{
