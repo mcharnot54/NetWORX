@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { handleAbortError } from "@/lib/abort-error-handler";
 
 // Data structure for processed data from Data Processor
 interface ProcessedData {
