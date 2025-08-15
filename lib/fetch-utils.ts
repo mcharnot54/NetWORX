@@ -69,11 +69,14 @@ const isRetryableError = (error: Error): boolean => {
       return false;
     }
 
-    const errorName = String(error.name || '');
-    const errorMessage = String(error.message || '');
+    // Safe property access with fallbacks
+    const errorName = error && 'name' in error ? String(error.name || '') : '';
+    const errorMessage = error && 'message' in error ? String(error.message || '') : '';
 
     // Never retry AbortErrors - they indicate cancellation
-    if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+    if (errorName === 'AbortError' ||
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('signal is aborted')) {
       return false;
     }
 
@@ -83,16 +86,11 @@ const isRetryableError = (error: Error): boolean => {
     }
 
     // Retry network and timeout errors, but check safely
-    try {
-      if (errorMessage.includes('fetch') ||
-          errorMessage.includes('network') ||
-          errorMessage.includes('timeout') ||
-          errorMessage.includes('Failed to fetch')) {
-        return true;
-      }
-    } catch (e) {
-      // If we can't safely check the message, don't retry
-      return false;
+    if (errorMessage.includes('fetch') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('Failed to fetch')) {
+      return true;
     }
 
     // If it's a FetchError, check properties safely
@@ -101,7 +99,9 @@ const isRetryableError = (error: Error): boolean => {
     }
 
     return false;
-  } catch {
+  } catch (e) {
+    // If any error occurs during error checking, don't retry
+    console.debug('Error while checking if error is retryable:', e);
     return false;
   }
 };
@@ -185,34 +185,40 @@ const fetchWithTimeout = async (
     }
 
     // Handle AbortError specifically - check if error exists and has required properties
-    if (error && typeof error === 'object' &&
-        (('name' in error && error.name === 'AbortError') ||
-         ('message' in error && typeof error.message === 'string' &&
-          (error.message.includes('aborted') || error.message.includes('signal is aborted'))))) {
+    if (error && typeof error === 'object') {
+      const errorName = 'name' in error ? String(error.name || '') : '';
+      const errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
 
-      const errorMessage = ('message' in error && typeof error.message === 'string') ? error.message : '';
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted')) {
 
-      // Check if this was a timeout or external cancellation
-      const isTimeout = controller.signal.aborted && !options.signal?.aborted;
+        // Check if this was a timeout or external cancellation
+        const isTimeout = controller.signal.aborted && !options.signal?.aborted;
 
-      if (isTimeout) {
-        throw new FetchError(
-          `Request timeout after ${timeout}ms`,
-          undefined,
-          undefined,
-          false,
-          true
-        );
-      } else {
-        // Handle external cancellation more gracefully - don't throw for normal cancellation
-        console.debug(`Request cancelled for ${url}:`, errorMessage);
-        throw new FetchError(
-          'Request was cancelled',
-          undefined,
-          undefined,
-          false,
-          false
-        );
+        if (isTimeout) {
+          throw new FetchError(
+            `Request timeout after ${timeout}ms`,
+            undefined,
+            undefined,
+            false,
+            true
+          );
+        } else {
+          // Handle external cancellation more gracefully
+          const reason = errorMessage && errorMessage !== 'signal is aborted without reason'
+            ? errorMessage
+            : 'Request was cancelled by user or system';
+
+          console.debug(`Request cancelled for ${url}:`, reason);
+          throw new FetchError(
+            reason,
+            undefined,
+            undefined,
+            false,
+            false
+          );
+        }
       }
     }
 
@@ -289,11 +295,18 @@ const _robustFetch = async (
       lastError = error as Error;
 
       // Handle AbortError - never retry aborted requests
-      if (lastError && (lastError.name === 'AbortError' || lastError.message?.includes('aborted'))) {
-        const reason = (lastError.message && lastError.message !== 'signal is aborted without reason')
-          ? lastError.message
-          : 'Request was cancelled';
-        throw new FetchError(`Request was cancelled: ${reason}`, undefined, undefined, false, false);
+      if (lastError) {
+        const errorName = 'name' in lastError ? String(lastError.name || '') : '';
+        const errorMessage = 'message' in lastError && typeof lastError.message === 'string' ? lastError.message : '';
+
+        if (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted')) {
+          const reason = (errorMessage && errorMessage !== 'signal is aborted without reason')
+            ? errorMessage
+            : 'Request was cancelled by user or system';
+          throw new FetchError(`Request was cancelled: ${reason}`, undefined, undefined, false, false);
+        }
       }
 
       // If this is the last attempt, throw the error
