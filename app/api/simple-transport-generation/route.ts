@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
           transportResults,
           scenario.cities,
           warehouseConfigs,
-          transportConfigs
+          transportConfigs,
+          capacityGrowthData
         );
 
         console.log(`✅ Generated ${scenario.name}:`, {
