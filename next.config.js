@@ -39,8 +39,9 @@ const nextConfig = {
       };
 
       // Define global for browser environment
+      const webpack = require('webpack');
       config.plugins.push(
-        new config.constructor.DefinePlugin({
+        new webpack.DefinePlugin({
           global: 'globalThis',
         })
       );
