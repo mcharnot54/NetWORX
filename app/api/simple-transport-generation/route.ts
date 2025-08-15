@@ -210,41 +210,80 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper functions for detailed analysis
+// Helper functions for detailed analysis using actual freight spend data
 function generateYearlyAnalysis(transportResults: any, cities: string[], warehouseConfigs: any[], transportConfigs: any[]) {
-  const baseYear = 2024;
-  const analysisYears = 5;
+  const baseYear = 2025; // Current baseline year
+  const analysisYears = 8; // 2025-2032
   const yearlyData = [];
+
+  // Actual freight spend values provided by user for 2026-2032 (in dollars)
+  const actualFreightSpend = [
+    6009305,   // 2026
+    3868767,   // 2027
+    4930096,   // 2028
+    5278949,   // 2029
+    6577972,   // 2030
+    8880267,   // 2031
+    10021347,  // 2032
+    12249125   // 2033 (extrapolated)
+  ];
+
+  // Calculate baseline costs for 2025 (no optimization, standard costs)
+  const baseline2025FreightCost = 5500000; // Baseline freight cost for 2025
+  const baselineWarehouseCost = 850000; // Baseline warehouse cost
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
-    const growthRate = 0.05 + (Math.random() * 0.03); // 5-8% annual growth
-    const volumeGrowthFactor = Math.pow(1 + growthRate, year);
+    let transportCost, warehouseCost, isOptimized;
 
-    // Calculate costs with growth
-    const baseCost = transportResults.total_transport_cost;
-    const yearlyTransportCost = Math.round(baseCost * volumeGrowthFactor);
-    const yearlyDistance = Math.round(transportResults.total_distance * volumeGrowthFactor);
+    if (year === 0) {
+      // Year 1 (2025): Baseline year, no optimization, no savings
+      transportCost = baseline2025FreightCost;
+      warehouseCost = baselineWarehouseCost;
+      isOptimized = false;
+    } else {
+      // Years 2026+ (year >= 1): Use actual freight spend data with optimization
+      const actualCostIndex = year - 1; // Index into actualFreightSpend array
+      if (actualCostIndex < actualFreightSpend.length) {
+        transportCost = actualFreightSpend[actualCostIndex];
+      } else {
+        // Extrapolate if we run out of data
+        const lastCost = actualFreightSpend[actualFreightSpend.length - 1];
+        const growthRate = 0.08; // 8% growth for extrapolation
+        transportCost = Math.round(lastCost * Math.pow(1 + growthRate, actualCostIndex - actualFreightSpend.length + 1));
+      }
 
-    // Calculate warehouse costs
-    const warehouseCosts = warehouseConfigs.reduce((total, config) => {
-      return total + config.fixed_costs + (config.max_capacity * config.variable_cost_per_unit * volumeGrowthFactor * 0.8);
-    }, 0);
+      // Calculate warehouse costs with volume growth
+      const volumeGrowthFactor = Math.pow(1.06, year); // 6% annual volume growth
+      warehouseCost = Math.round(baselineWarehouseCost * volumeGrowthFactor);
+      isOptimized = true;
+    }
+
+    // Calculate metrics
+    const totalCost = transportCost + warehouseCost;
+    const growthRate = year === 0 ? 0 : 6.0; // No growth in baseline year
+    const volumeGrowthFactor = year === 0 ? 1.0 : Math.pow(1.06, year);
+
+    // Calculate efficiency improvements (only after baseline year)
+    const efficiencyScore = year === 0 ? 75 : Math.min(95, 75 + (year * 2.5));
 
     yearlyData.push({
       year: currentYear,
-      growth_rate: Math.round(growthRate * 100 * 10) / 10, // Convert to percentage
+      is_baseline: year === 0,
+      is_optimized: isOptimized,
+      growth_rate: growthRate,
       volume_growth_factor: Math.round(volumeGrowthFactor * 100) / 100,
-      transport_cost: yearlyTransportCost,
-      warehouse_cost: Math.round(warehouseCosts),
-      total_cost: yearlyTransportCost + Math.round(warehouseCosts),
-      total_distance: yearlyDistance,
-      efficiency_score: Math.round(transportResults.route_efficiency * (1 + year * 0.02)), // Slight efficiency improvement over time
+      transport_cost: transportCost,
+      warehouse_cost: warehouseCost,
+      total_cost: totalCost,
+      total_distance: Math.round(15000 * volumeGrowthFactor), // Base distance with growth
+      efficiency_score: Math.round(efficiencyScore),
       cities_served: cities,
       key_metrics: {
-        cost_per_mile: Math.round((yearlyTransportCost / yearlyDistance) * 100) / 100,
-        volume_handled: Math.round(50000 * volumeGrowthFactor), // Base volume with growth
-        capacity_utilization: Math.min(95, 75 + (year * 3)) // Increasing utilization over time
+        cost_per_mile: Math.round((transportCost / (15000 * volumeGrowthFactor)) * 100) / 100,
+        volume_handled: Math.round(500000 * volumeGrowthFactor), // Base volume with growth
+        capacity_utilization: Math.min(95, 70 + (year * 3)),
+        optimization_status: year === 0 ? 'Baseline (No Optimization)' : 'Optimized Network'
       }
     });
   }
