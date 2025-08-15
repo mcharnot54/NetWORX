@@ -169,9 +169,9 @@ export async function POST(request: NextRequest) {
           scenario_type: scenario.key,
           scenario_name: scenario.name,
           scenario_description: scenario.description,
-          total_miles: Math.floor(Math.random() * 2000) + 1000,
-          total_cost: Math.floor(Math.random() * 100000) + 150000,
-          service_score: Math.floor(Math.random() * 20) + 80,
+          total_miles: 15000, // Baseline distance
+          total_cost: 5500000, // 2025 baseline cost ($5.5M)
+          service_score: 75, // Baseline service score
           generated: true,
           cities: scenario.cities,
           primary_route: `${scenario.cities[0]} ↔ ${scenario.cities[1]}`,
