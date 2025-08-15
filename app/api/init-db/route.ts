@@ -119,7 +119,10 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { sql } = await import('@/lib/database');
-    
+
+    // Set a shorter statement timeout for quicker feedback
+    await sql`SET statement_timeout = '30s'`;
+
     // Check current database schema
     const tables = await sql`
       SELECT table_name, column_name, data_type 
