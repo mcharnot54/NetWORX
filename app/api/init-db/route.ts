@@ -3,8 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const { sql } = await import('@/lib/database');
-    
+
     console.log('Initializing database schema...');
+
+    // Set a shorter statement timeout for quicker feedback
+    await sql`SET statement_timeout = '30s'`;
 
     // Create projects table if it doesn't exist
     await sql`
