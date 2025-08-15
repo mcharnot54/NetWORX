@@ -2319,6 +2319,41 @@ export default function TransportOptimizer() {
           font-weight: 500;
         }
 
+        .baseline-notice {
+          margin: 1rem 0;
+          padding: 0.75rem;
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          border-radius: 6px;
+          color: #92400e;
+          font-size: 0.875rem;
+        }
+
+        .status-cell.baseline {
+          color: #92400e;
+          font-weight: 600;
+        }
+
+        .status-cell.optimized {
+          color: #166534;
+          font-weight: 600;
+        }
+
+        .table-legend {
+          margin-top: 0.75rem;
+          display: flex;
+          gap: 2rem;
+          font-size: 0.875rem;
+        }
+
+        .legend-item.baseline {
+          color: #92400e;
+        }
+
+        .legend-item.optimized {
+          color: #166534;
+        }
+
         .selected-scenario-info {
           background: #f0fdf4;
           border: 1px solid #10b981;
