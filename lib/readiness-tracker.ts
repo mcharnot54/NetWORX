@@ -53,9 +53,18 @@ export class ReadinessTracker {
     }
 
     try {
-      const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const response = await fetch(`/api/files?scenarioId=${scenarioId}`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        console.warn('Failed to fetch file status');
+        console.debug('Failed to fetch file status - response not ok');
         return {
           forecast: false,
           sku: false,
@@ -89,7 +98,15 @@ export class ReadinessTracker {
 
       return uploadStatus;
     } catch (error) {
-      console.error('Error checking file upload status:', error);
+      // Handle different types of errors quietly
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.debug('File status check timed out');
+      } else if (error instanceof Error && error.message.includes('fetch')) {
+        console.debug('Network error checking file status');
+      } else {
+        console.debug('Error checking file upload status:', error);
+      }
       return {
         forecast: false,
         sku: false,
@@ -114,7 +131,16 @@ export class ReadinessTracker {
     }
 
     try {
-      const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(`/api/files?scenarioId=${scenarioId}`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
         return {
           forecast: false,
@@ -154,7 +180,12 @@ export class ReadinessTracker {
 
       return validationStatus;
     } catch (error) {
-      console.error('Error checking validation status:', error);
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.debug('Validation status check timed out');
+      } else {
+        console.debug('Error checking validation status');
+      }
       return {
         forecast: false,
         sku: false,
@@ -195,20 +226,52 @@ export class ReadinessTracker {
     }
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       // Check if warehouse configurations exist
-      const warehouseResponse = await fetch(`/api/scenarios/${scenarioId}/warehouses`);
-      const warehouseData = warehouseResponse.ok ? await warehouseResponse.json() : { data: [] };
-      const hasWarehouseConfig = warehouseData.data && warehouseData.data.length > 0;
+      let hasWarehouseConfig = false;
+      try {
+        const warehouseResponse = await fetch(`/api/scenarios/${scenarioId}/warehouses`, {
+          signal: controller.signal,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const warehouseData = warehouseResponse.ok ? await warehouseResponse.json() : { data: [] };
+        hasWarehouseConfig = warehouseData.data && warehouseData.data.length > 0;
+      } catch (e) {
+        console.debug('Could not check warehouse config');
+      }
 
       // Check if transport configurations exist
-      const transportResponse = await fetch(`/api/scenarios/${scenarioId}/transport`);
-      const transportData = transportResponse.ok ? await transportResponse.json() : { data: [] };
-      const hasTransportConfig = transportData.data && transportData.data.length > 0;
+      let hasTransportConfig = false;
+      try {
+        const transportResponse = await fetch(`/api/scenarios/${scenarioId}/transport`, {
+          signal: controller.signal,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const transportData = transportResponse.ok ? await transportResponse.json() : { data: [] };
+        hasTransportConfig = transportData.data && transportData.data.length > 0;
+      } catch (e) {
+        console.debug('Could not check transport config');
+      }
 
       // Check capacity analysis completion
-      const capacityResponse = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
-      const capacityData = capacityResponse.ok ? await capacityResponse.json() : null;
-      const hasCapacityAnalysis = capacityData && capacityData.success;
+      let hasCapacityAnalysis = false;
+      try {
+        const capacityResponse = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`, {
+          signal: controller.signal,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const capacityData = capacityResponse.ok ? await capacityResponse.json() : null;
+        hasCapacityAnalysis = capacityData && capacityData.success;
+      } catch (e) {
+        console.debug('Could not check capacity analysis');
+      }
+
+      clearTimeout(timeoutId);
 
       return {
         warehouseConfig: hasWarehouseConfig,
@@ -223,7 +286,12 @@ export class ReadinessTracker {
         inventoryLeadTimes: hasCapacityAnalysis
       };
     } catch (error) {
-      console.error('Error checking configuration status:', error);
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.debug('Configuration status check timed out');
+      } else {
+        console.debug('Error checking configuration status');
+      }
       return {
         warehouseConfig: false,
         warehouseCosts: false,
@@ -244,18 +312,26 @@ export class ReadinessTracker {
    */
   static async checkSystemStatus(): Promise<SystemStatus> {
     try {
-      // Check database connection with timeout and abort handling
+      // Check database connection with shorter timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
-      const dbResponse = await fetch('/api/health', {
-        signal: controller.signal,
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      clearTimeout(timeoutId);
-
-      const dbData = dbResponse.ok ? await dbResponse.json() : { connected: false };
+      let dbData = { connected: false, status: 'unknown' };
+      try {
+        const dbResponse = await fetch('/api/health', {
+          signal: controller.signal,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (dbResponse.ok) {
+          dbData = await dbResponse.json();
+        }
+      } catch (fetchError) {
+        // Silently handle fetch errors - just use default values
+        console.debug('Health check failed, assuming offline');
+      } finally {
+        clearTimeout(timeoutId);
+      }
       
       // Check if project/scenario are selected (from localStorage)
       const selectedProject = localStorage.getItem('selectedProject');
@@ -267,12 +343,12 @@ export class ReadinessTracker {
         scenarioSelected: !!selectedScenario
       };
     } catch (error) {
-      // Handle abort errors gracefully
+      // Handle abort errors and other errors gracefully
       if (error instanceof Error &&
           (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        console.debug('System status check aborted:', error.message);
+        console.debug('System status check timed out');
       } else {
-        console.error('Error checking system status:', error);
+        console.debug('Error in system status check');
       }
       return {
         databaseConnected: false,
