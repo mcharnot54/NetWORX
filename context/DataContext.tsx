@@ -152,37 +152,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       Focus on 2024 current market rates for distribution and fulfillment operations. Provide numerical values in USD.`;
 
-      const response = await fetch(
-        "https://api.perplexity.ai/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
+      const response = await handleAbortError(async () => {
+        return await fetch(
+          "https://api.perplexity.ai/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "llama-3.1-sonar-small-128k-online",
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a warehouse cost analytics expert. Provide current, accurate cost data for warehouse operations. Return specific numerical values for labor rates, lease costs, and 3PL pricing.",
+                },
+                {
+                  role: "user",
+                  content: query,
+                },
+              ],
+              max_tokens: 1000,
+              temperature: 0.1,
+              top_p: 0.9,
+              search_domain_filter: ["perplexity.ai"],
+              return_images: false,
+              return_related_questions: false,
+              search_recency_filter: "month",
+            }),
           },
-          body: JSON.stringify({
-            model: "llama-3.1-sonar-small-128k-online",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a warehouse cost analytics expert. Provide current, accurate cost data for warehouse operations. Return specific numerical values for labor rates, lease costs, and 3PL pricing.",
-              },
-              {
-                role: "user",
-                content: query,
-              },
-            ],
-            max_tokens: 1000,
-            temperature: 0.1,
-            top_p: 0.9,
-            search_domain_filter: ["perplexity.ai"],
-            return_images: false,
-            return_related_questions: false,
-            search_recency_filter: "month",
-          }),
-        },
-      );
+        );
+      });
 
       if (!response.ok) {
         throw new Error(`Perplexity API error: ${response.status}`);
