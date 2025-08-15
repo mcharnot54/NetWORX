@@ -265,7 +265,22 @@ export default function Dashboard() {
     try {
       setCostsLoading(true);
       setCostsError(null);
-      const response = await fetch('/api/current-baseline-costs');
+
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch('/api/current-baseline-costs', {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const result = await response.json();
 
       if (result.success) {
@@ -274,8 +289,13 @@ export default function Dashboard() {
         setCostsError(result.error || 'Failed to load baseline costs');
       }
     } catch (error) {
-      setCostsError('Error loading baseline costs');
-      console.error('Error loading baseline costs:', error);
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        setCostsError('Request timed out - please try again');
+      } else {
+        setCostsError('Error loading baseline costs');
+      }
+      console.debug('Error loading baseline costs:', error);
     } finally {
       setCostsLoading(false);
     }
