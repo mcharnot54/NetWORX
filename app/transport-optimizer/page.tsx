@@ -985,24 +985,32 @@ export default function TransportOptimizer() {
 
                           {scenario.yearly_analysis && scenario.yearly_analysis.length > 0 && (
                             <div className="yearly-analysis">
-                              <h4 className="analysis-title">5-Year Growth Projection</h4>
+                              <h4 className="analysis-title">8-Year Financial Projection (2025-2032)</h4>
                               <div className="yearly-table">
                                 <div className="table-header">
                                   <span>Year</span>
+                                  <span>Status</span>
                                   <span>Growth Rate</span>
                                   <span>Transport Cost</span>
                                   <span>Total Cost</span>
                                   <span>Efficiency</span>
                                 </div>
-                                {scenario.yearly_analysis.slice(0, 5).map((yearData: any) => (
-                                  <div key={yearData.year} className="table-row">
+                                {scenario.yearly_analysis.slice(0, 8).map((yearData: any) => (
+                                  <div key={yearData.year} className={`table-row ${yearData.is_baseline ? 'baseline-row' : 'optimized-row'}`}>
                                     <span>{yearData.year}</span>
+                                    <span className={`status-cell ${yearData.is_baseline ? 'baseline' : 'optimized'}`}>
+                                      {yearData.is_baseline ? 'Baseline' : 'Optimized'}
+                                    </span>
                                     <span>{yearData.growth_rate}%</span>
                                     <span>${yearData.transport_cost?.toLocaleString()}</span>
                                     <span>${yearData.total_cost?.toLocaleString()}</span>
                                     <span>{yearData.efficiency_score}%</span>
                                   </div>
                                 ))}
+                              </div>
+                              <div className="table-legend">
+                                <span className="legend-item baseline">■ 2025: Baseline year (no optimization)</span>
+                                <span className="legend-item optimized">■ 2026+: Optimized network with savings</span>
                               </div>
                             </div>
                           )}
