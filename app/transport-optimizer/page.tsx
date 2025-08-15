@@ -892,10 +892,10 @@ export default function TransportOptimizer() {
                   {isGenerating ? (
                     <>
                       <div className="loading-spinner"></div>
-                      {isLoadingCapacityData ? 'Loading Capacity Data...' : 'Generating Scenarios...'}
+                      Generating Scenarios...
                     </>
                   ) : (
-                    `Generate All Scenarios${selectedScenario ? ` for ${selectedScenario.name}` : ''}`
+                    `Generate Transport Scenarios${selectedScenario ? ` (${selectedScenario.name})` : ''}`
                   )}
                 </button>
               </div>
