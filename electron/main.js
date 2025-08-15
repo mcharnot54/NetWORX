@@ -96,8 +96,25 @@ function startNextServer() {
   }
 
   // In production, start the Next.js server
-  const appPath = isPackaged ? path.dirname(process.execPath) : process.cwd();
+  const appPath = isPackaged ? path.join(process.resourcesPath, 'app') : process.cwd();
   const serverScript = path.join(appPath, 'server.js');
+
+  console.log('Starting Next.js server from:', appPath);
+  console.log('Server script path:', serverScript);
+
+  // Check if server.js exists
+  const fs = require('fs');
+  if (!fs.existsSync(serverScript)) {
+    console.error('Server script not found at:', serverScript);
+    console.log('Available files in app directory:');
+    try {
+      const files = fs.readdirSync(appPath);
+      console.log(files);
+    } catch (err) {
+      console.error('Could not read app directory:', err);
+    }
+    return;
+  }
 
   // Set environment variables
   process.env.NODE_ENV = 'production';
