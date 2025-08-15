@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ScenarioService } from '@/lib/database';
 
+export const dynamic = 'force-dynamic'; // This route needs to be dynamic for database operations
+
 export async function GET(request: NextRequest) {
   try {
     // Check if DATABASE_URL is configured
