@@ -1,9 +1,11 @@
 /**
  * Automatic Readiness Tracking Service
- * 
+ *
  * Monitors file uploads, data validation, and system configuration
  * to automatically update the Network Optimization Readiness checklist
  */
+
+import { safeFetchJson, safeAsync } from './error-utils';
 
 interface ChecklistItem {
   id: string;
@@ -53,18 +55,13 @@ export class ReadinessTracker {
     }
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-      const response = await fetch(`/api/files?scenarioId=${scenarioId}`, {
-        signal: controller.signal,
+      const data = await safeFetchJson(`/api/files?scenarioId=${scenarioId}`, {
+        timeout: 5000,
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        console.debug('Failed to fetch file status - response not ok');
+      if (!data) {
         return {
           forecast: false,
           sku: false,
@@ -73,8 +70,6 @@ export class ReadinessTracker {
           capacity: false
         };
       }
-
-      const data = await response.json();
       const files = data.data || [];
 
       // Check which data types have been uploaded and completed processing
@@ -131,17 +126,13 @@ export class ReadinessTracker {
     }
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(`/api/files?scenarioId=${scenarioId}`, {
-        signal: controller.signal,
+      const data = await safeFetchJson(`/api/files?scenarioId=${scenarioId}`, {
+        timeout: 5000,
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      clearTimeout(timeoutId);
 
-      if (!response.ok) {
+      if (!data) {
         return {
           forecast: false,
           sku: false,
@@ -149,8 +140,6 @@ export class ReadinessTracker {
           allValidated: false
         };
       }
-
-      const data = await response.json();
       const files = data.data || [];
 
       // Check validation results for each required data type
@@ -230,48 +219,34 @@ export class ReadinessTracker {
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       // Check if warehouse configurations exist
-      let hasWarehouseConfig = false;
-      try {
-        const warehouseResponse = await fetch(`/api/scenarios/${scenarioId}/warehouses`, {
-          signal: controller.signal,
+      const hasWarehouseConfig = await safeAsync(async () => {
+        const warehouseData = await safeFetchJson(`/api/scenarios/${scenarioId}/warehouses`, {
+          timeout: 3000,
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-        const warehouseData = warehouseResponse.ok ? await warehouseResponse.json() : { data: [] };
-        hasWarehouseConfig = warehouseData.data && warehouseData.data.length > 0;
-      } catch (e) {
-        console.debug('Could not check warehouse config');
-      }
+        return warehouseData?.data && warehouseData.data.length > 0;
+      }, false);
 
       // Check if transport configurations exist
-      let hasTransportConfig = false;
-      try {
-        const transportResponse = await fetch(`/api/scenarios/${scenarioId}/transport`, {
-          signal: controller.signal,
+      const hasTransportConfig = await safeAsync(async () => {
+        const transportData = await safeFetchJson(`/api/scenarios/${scenarioId}/transport`, {
+          timeout: 3000,
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-        const transportData = transportResponse.ok ? await transportResponse.json() : { data: [] };
-        hasTransportConfig = transportData.data && transportData.data.length > 0;
-      } catch (e) {
-        console.debug('Could not check transport config');
-      }
+        return transportData?.data && transportData.data.length > 0;
+      }, false);
 
       // Check capacity analysis completion
-      let hasCapacityAnalysis = false;
-      try {
-        const capacityResponse = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`, {
-          signal: controller.signal,
+      const hasCapacityAnalysis = await safeAsync(async () => {
+        const capacityData = await safeFetchJson(`/api/scenarios/${scenarioId}/capacity-analysis`, {
+          timeout: 3000,
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-        const capacityData = capacityResponse.ok ? await capacityResponse.json() : null;
-        hasCapacityAnalysis = capacityData && capacityData.success;
-      } catch (e) {
-        console.debug('Could not check capacity analysis');
-      }
-
-      clearTimeout(timeoutId);
+        return capacityData && capacityData.success;
+      }, false);
 
       return {
         warehouseConfig: hasWarehouseConfig,
@@ -316,22 +291,14 @@ export class ReadinessTracker {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
-      let dbData = { connected: false, status: 'unknown' };
-      try {
-        const dbResponse = await fetch('/api/health', {
-          signal: controller.signal,
+      const dbData = await safeAsync(async () => {
+        const data = await safeFetchJson('/api/health', {
+          timeout: 3000,
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-        if (dbResponse.ok) {
-          dbData = await dbResponse.json();
-        }
-      } catch (fetchError) {
-        // Silently handle fetch errors - just use default values
-        console.debug('Health check failed, assuming offline');
-      } finally {
-        clearTimeout(timeoutId);
-      }
+        return data || { connected: false, status: 'unknown' };
+      }, { connected: false, status: 'unknown' });
       
       // Check if project/scenario are selected (from localStorage)
       const selectedProject = localStorage.getItem('selectedProject');
