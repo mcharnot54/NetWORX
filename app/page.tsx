@@ -516,7 +516,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {baselineCosts && !costsLoading && (
+            {baselineCosts && !costsLoading && baselineCosts.total_baseline.raw > 0 && (
               <div>
                 {/* Total Baseline Display */}
                 <div
