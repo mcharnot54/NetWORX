@@ -458,11 +458,17 @@ export default function TransportOptimizer() {
         console.log(`Generating scenario ${index + 1}/${typesToGenerate.length}: ${type.name}`);
 
         // Call real transport optimization API (now returns job info)
-        const optimizationResult = await runRealTransportOptimization(
-          selectedScenario.id,
-          analysisCity,
-          type.key
-        );
+        let optimizationResult;
+        try {
+          optimizationResult = await runRealTransportOptimization(
+            selectedScenario.id,
+            analysisCity,
+            type.key
+          );
+        } catch (optimizationError) {
+          console.error(`Failed to start optimization for ${type.name}:`, optimizationError);
+          optimizationResult = { success: false, error: optimizationError.message };
+        }
 
         // Check if optimization was successfully queued
         let finalResult = optimizationResult;
@@ -473,9 +479,14 @@ export default function TransportOptimizer() {
           const optimizationRunId = optimizationResult.data.optimization_run_id;
           const jobId = optimizationResult.data.job_id;
 
-          // Poll for up to 5 minutes for completion
-          for (let attempt = 0; attempt < 150; attempt++) { // 150 attempts * 2 seconds = 5 minutes
+          // Poll for up to 30 seconds for completion (reduced from 5 minutes)
+          let pollAttempts = 0;
+          const maxPollAttempts = 15; // 15 attempts * 2 seconds = 30 seconds
+          let pollCompleted = false;
+
+          while (pollAttempts < maxPollAttempts && !pollCompleted) {
             await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+            pollAttempts++;
 
             try {
               const jobResult = await pollJobStatus(optimizationRunId, jobId);
@@ -490,16 +501,32 @@ export default function TransportOptimizer() {
                     r.optimization_run_id === optimizationRunId
                   );
                 }
+                pollCompleted = true;
                 break;
               } else if (jobResult?.status === 'failed') {
                 console.warn(`Optimization failed for ${type.name}:`, jobResult.error_message);
-                finalResult = null;
+                finalResult = { success: false, error: jobResult.error_message };
+                pollCompleted = true;
                 break;
               }
               // Continue polling if status is 'running' or 'queued'
+              console.log(`Polling attempt ${pollAttempts}/${maxPollAttempts} for ${type.name}: ${jobResult?.status}`);
             } catch (pollError) {
               console.warn('Error polling for optimization status:', pollError);
+              // Don't break on poll errors, just log and continue
+              if (pollAttempts >= 3) {
+                // If we've had 3 poll errors, assume job failed
+                finalResult = { success: false, error: 'Polling failed after multiple attempts' };
+                pollCompleted = true;
+                break;
+              }
             }
+          }
+
+          // If polling timed out
+          if (!pollCompleted) {
+            console.warn(`Optimization polling timed out for ${type.name} after ${maxPollAttempts} attempts`);
+            finalResult = { success: false, error: 'Optimization timed out' };
           }
         }
 
