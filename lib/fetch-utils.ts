@@ -146,7 +146,7 @@ const fetchWithTimeout = async (
   const timeoutId = setTimeout(() => {
     try {
       if (!controller.signal.aborted) {
-        controller.abort('Request timeout');
+        controller.abort();
       }
     } catch (error) {
       // Ignore errors when aborting timeout - this is expected behavior
