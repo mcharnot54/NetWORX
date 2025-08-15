@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DataFileService } from '@/lib/database';
 
+export const dynamic = 'force-dynamic'; // This route needs to be dynamic for database operations
+
 // Get files for a scenario
 export async function GET(request: NextRequest) {
   try {
