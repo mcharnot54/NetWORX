@@ -362,7 +362,9 @@ export const robustFetch = async (
   url: string,
   options: FetchOptions = {}
 ): Promise<Response> => {
-  return safeWrapper(() => _robustFetch(url, options), 'robustFetch');
+  return handleAbortError(() =>
+    safeWrapper(() => _robustFetch(url, options), 'robustFetch')
+  );
 };
 
 // Convenience function for JSON requests
