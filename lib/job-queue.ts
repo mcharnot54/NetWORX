@@ -594,7 +594,10 @@ class JobQueue {
 // Global job queue instance
 export const jobQueue = new JobQueue();
 
-// Cleanup old jobs every hour
-setInterval(() => {
-  jobQueue.cleanup();
-}, 60 * 60 * 1000);
+// Only start automatic processes in browser/server environment, not during build
+if (typeof window !== 'undefined' || (typeof process !== 'undefined' && process.env.NODE_ENV !== undefined && process.env.NODE_ENV !== 'production' && !process.env.NEXT_PHASE)) {
+  // Cleanup old jobs every hour
+  setInterval(() => {
+    jobQueue.cleanup();
+  }, 60 * 60 * 1000);
+}
