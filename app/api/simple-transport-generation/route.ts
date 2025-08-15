@@ -77,6 +77,21 @@ export async function POST(request: NextRequest) {
       WHERE scenario_id = ${scenarioId}
     `;
 
+    // Try to get capacity analysis data for volume growth projections
+    let capacityGrowthData = null;
+    try {
+      const capacityResponse = await fetch(`http://localhost:3000/api/scenarios/${scenarioId}/capacity-analysis`);
+      if (capacityResponse.ok) {
+        const capacityData = await capacityResponse.json();
+        if (capacityData.success && capacityData.data) {
+          capacityGrowthData = capacityData.data;
+          console.log('Found capacity analysis data for volume projections');
+        }
+      }
+    } catch (capacityError) {
+      console.warn('Could not fetch capacity analysis data:', capacityError);
+    }
+
     console.log(`Found ${warehouseConfigs.length} warehouses and ${transportConfigs.length} transport configs`);
 
     // Generate each detailed scenario
