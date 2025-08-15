@@ -218,12 +218,25 @@ class JobQueue {
         job.progress_percentage = 25;
 
         // Perform the optimization
+        console.log(`Calling performOptimization for job ${job.id} with params:`, {
+          scenarioId: job.scenario_id,
+          warehouseConfigsCount: warehouseConfigs.length,
+          transportConfigsCount: transportConfigs.length,
+          optimizationParams: job.optimization_params
+        });
+
         const results = await this.performOptimization({
           scenario,
           warehouseConfigs,
           transportConfigs,
           optimization_params: job.optimization_params,
           job // Pass job for progress updates
+        });
+
+        console.log(`Optimization completed for job ${job.id}`, {
+          totalCost: results.totalCost,
+          costSavings: results.costSavings,
+          efficiencyScore: results.efficiencyScore
         });
 
         job.current_step = 'Saving results';
