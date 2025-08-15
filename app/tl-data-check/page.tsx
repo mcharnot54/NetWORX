@@ -15,15 +15,18 @@ export default function TLDataCheck() {
   const checkTLData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch('/api/show-tl-data');
-      const result = await response.json();
-      
-      if (response.ok) {
-        setData(result);
-      } else {
-        setError(result.error || 'Failed to check TL data');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
+
+      const result = await response.json();
+      setData(result);
     } catch (err) {
+      console.error('TL Data Check Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -36,14 +39,21 @@ export default function TLDataCheck() {
     try {
       setUpdating(true);
       const response = await fetch('/api/direct-tl-check');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
       const result = await response.json();
-      
-      if (response.ok && result.baseline_extracted) {
+
+      if (result.baseline_extracted) {
         alert(`✅ Transport Optimizer updated!\nOld: $5.5M\nNew: ${result.baseline_extracted.formatted}\nDifference: ${result.baseline_extracted.vs_estimated.difference_formatted}`);
       } else {
         alert('❌ Failed to update Transport Optimizer');
       }
     } catch (err) {
+      console.error('Update Transport Optimizer Error:', err);
       alert(`❌ Update failed: ${err.message}`);
     } finally {
       setUpdating(false);
