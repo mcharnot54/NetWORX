@@ -49,15 +49,36 @@
       "output": "dist"
     },
     "files": [
-      "electron/**/*",
-      "public/**/*",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/assets/**/*",
       "server.js",
       "package.json",
-      "next.config.js"
+      "next.config.js",
+      "app/**/*",
+      "components/**/*",
+      "lib/**/*",
+      "types/**/*",
+      "context/**/*",
+      "public/**/*",
+      "!node_modules",
+      "!.next",
+      "!dist"
     ],
-    "directories": {
-      "output": "dist"
-    },
+    "extraFiles": [
+      {
+        "from": "node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*",
+          "!**/electron{,/**}",
+          "!**/electron-builder{,/**}",
+          "!**/.cache{,/**}",
+          "!**/test{,/**}",
+          "!**/tests{,/**}"
+        ]
+      }
+    ],
     "nodeGypRebuild": false,
     "buildDependenciesFromSource": false,
     "win": {
