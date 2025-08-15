@@ -95,11 +95,9 @@ function startNextServer() {
     return;
   }
 
-  // In production, start the Next.js server using standalone build
-  const serverPath = path.join(process.resourcesPath, 'app');
-
-  // Use the standalone Next.js server
-  const serverScript = path.join(serverPath, 'server.js');
+  // In production, start the Next.js server
+  const appPath = isPackaged ? path.dirname(process.execPath) : process.cwd();
+  const serverScript = path.join(appPath, 'server.js');
 
   // Set environment variables
   process.env.NODE_ENV = 'production';
@@ -108,7 +106,7 @@ function startNextServer() {
 
   // Start the server process
   serverProcess = spawn('node', [serverScript], {
-    cwd: serverPath,
+    cwd: appPath,
     env: {
       ...process.env,
       NODE_ENV: 'production',
