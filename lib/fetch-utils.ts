@@ -1,5 +1,4 @@
 // Robust fetch utility with retry logic and error handling
-import { SafeAbortController, handleAbortError } from './abort-error-handler';
 
 interface FetchOptions extends RequestInit {
   timeout?: number;
