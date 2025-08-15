@@ -42,7 +42,7 @@ export async function POST(
     });
 
     // Add job to background processing queue
-    const jobId = await jobQueue.addJob(
+    const jobId = await getJobQueue().addJob(
       scenarioId,
       optimizationRunId,
       result_type || 'combined',
