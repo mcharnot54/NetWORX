@@ -399,40 +399,50 @@ export const robustPost = async <T = any>(
 
 // Check if the current environment has connectivity issues
 export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> => {
-  return safeWrapper(async () => {
-    try {
-      // Early abort check
-      if (signal?.aborted) {
-        return false;
-      }
-
-      // Try to fetch a simple endpoint with minimal retries for connectivity check
-      await robustFetch('/api/health', {
-        timeout: 5000, // Shorter timeout for connectivity check
-        retries: 0, // No retries for connectivity check to avoid cascading failures
-        signal
-      });
-      return true;
-    } catch (error) {
-      // In cloud environments, always assume connectivity is available
-      // and let individual requests handle their own failures
-      if (signal?.aborted) {
-        return false;
-      }
-
-      // Don't log expected failures in cloud environments
-      const errorMessage = (error as Error)?.message || '';
-      if (!errorMessage.includes('cancelled') &&
-          !errorMessage.includes('aborted') &&
-          !errorMessage.includes('Failed to fetch') &&
-          !errorMessage.includes('Network connection')) {
-        console.debug('Connectivity check failed (non-critical):', errorMessage);
-      }
-
-      // Return true to avoid blocking the application
-      return true;
+  try {
+    // Early abort check
+    if (signal?.aborted) {
+      return false;
     }
-  }, 'checkConnectivity');
+
+    // Try to fetch a simple endpoint with minimal retries for connectivity check
+    await robustFetch('/api/health', {
+      timeout: 5000, // Shorter timeout for connectivity check
+      retries: 0, // No retries for connectivity check to avoid cascading failures
+      signal
+    });
+    return true;
+  } catch (error) {
+    // Handle cancellation signals gracefully
+    if (signal?.aborted) {
+      return false;
+    }
+
+    // Handle AbortError specifically to prevent propagation
+    if (error && typeof error === 'object') {
+      const errorObj = error as any;
+      if (errorObj.name === 'AbortError' ||
+          (errorObj.message && typeof errorObj.message === 'string' &&
+           (errorObj.message.includes('aborted') ||
+            errorObj.message.includes('cancelled') ||
+            errorObj.message.includes('signal is aborted')))) {
+        // This is a normal cancellation, not a real error
+        return false;
+      }
+    }
+
+    // Don't log expected failures in cloud environments
+    const errorMessage = (error as Error)?.message || '';
+    if (!errorMessage.includes('cancelled') &&
+        !errorMessage.includes('aborted') &&
+        !errorMessage.includes('Failed to fetch') &&
+        !errorMessage.includes('Network connection')) {
+      console.debug('Connectivity check failed (non-critical):', errorMessage);
+    }
+
+    // Return true to avoid blocking the application
+    return true;
+  }
 };
 
 // Create a simple health check endpoint
