@@ -285,9 +285,6 @@ export class ReadinessTracker {
   static async checkSystemStatus(): Promise<SystemStatus> {
     try {
       // Check database connection with shorter timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
       const dbData = await safeAsync(async () => {
         const data = await safeFetchJson('/api/health', {
           timeout: 3000,
