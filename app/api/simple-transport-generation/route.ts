@@ -39,17 +39,28 @@ export async function POST(request: NextRequest) {
     const cities = scenario.cities || ['Littleton, MA', 'Chicago, IL', 'Dallas, TX'];
     console.log('Using cities:', cities);
 
-    // Define scenario types to generate
-    const allScenarioTypes = [
-      { key: 'lowest_miles_city', name: 'Lowest Miles (City to City)' },
-      { key: 'lowest_cost_city', name: 'Lowest Cost (City to City)' },
-      { key: 'best_service_parcel', name: 'Best Service (Parcel Zone)' },
-      { key: 'blended_service', name: 'Blended Service Zone' }
-    ];
+    // Create specific city-to-city scenarios starting with Littleton, MA
+    const baseCity = 'Littleton, MA';
+    const otherCities = cities.filter(city => city !== baseCity);
 
-    const typesToGenerate = scenarioTypes 
-      ? allScenarioTypes.filter(type => scenarioTypes.includes(type.key))
-      : allScenarioTypes.slice(0, 2); // Generate just 2 by default
+    // Define detailed scenario types based on specific city combinations
+    const cityScenarios = [];
+
+    // Create scenarios for each city combination with Littleton, MA
+    for (let i = 0; i < Math.min(otherCities.length, 2); i++) {
+      const targetCity = otherCities[i];
+      cityScenarios.push({
+        key: `littleton_to_${targetCity.toLowerCase().replace(/[^a-z]/g, '_')}`,
+        name: `${baseCity} + ${targetCity} Network`,
+        description: `Distribution network connecting ${baseCity} with ${targetCity}`,
+        cities: [baseCity, targetCity],
+        optimizationType: i === 0 ? 'lowest_cost_city' : 'lowest_miles_city'
+      });
+    }
+
+    const typesToGenerate = scenarioTypes && scenarioTypes.length > 0
+      ? cityScenarios.filter(scenario => scenarioTypes.includes(scenario.key))
+      : cityScenarios; // Use all city scenarios by default
 
     console.log('Generating types:', typesToGenerate.map(t => t.name));
 
