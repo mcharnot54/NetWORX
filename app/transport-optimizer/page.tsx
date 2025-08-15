@@ -1186,7 +1186,7 @@ export default function TransportOptimizer() {
                           )}
 
                           <div className="scenario-year-one-metrics">
-                            <h5>Year 1 (2024) Baseline:</h5>
+                            <h5>2025 Baseline (Current Year - No Optimization):</h5>
                             <div className="metric-grid">
                               <span className="metric-item">Transport Cost: ${scenario.total_cost?.toLocaleString()}</span>
                               <span className="metric-item">Distance: {scenario.total_miles?.toLocaleString()} mi</span>
@@ -1196,19 +1196,23 @@ export default function TransportOptimizer() {
 
                           {scenario.yearly_analysis && scenario.yearly_analysis.length > 0 && (
                             <div className="scenario-projections">
-                              <h5>5-Year Financial Projection:</h5>
+                              <h5>8-Year Financial Projection (2025-2032):</h5>
                               <div className="projections-summary">
                                 <div className="projection-metric">
-                                  <span className="proj-label">Year 5 Total Cost:</span>
-                                  <span className="proj-value">${scenario.yearly_analysis[4]?.total_cost?.toLocaleString()}</span>
+                                  <span className="proj-label">2032 Total Cost:</span>
+                                  <span className="proj-value">${scenario.yearly_analysis[7]?.total_cost?.toLocaleString()}</span>
                                 </div>
                                 <div className="projection-metric">
                                   <span className="proj-label">Average Growth Rate:</span>
-                                  <span className="proj-value">{scenario.yearly_analysis[0]?.growth_rate}% annually</span>
+                                  <span className="proj-value">6.0% annually</span>
                                 </div>
                                 <div className="projection-metric">
-                                  <span className="proj-label">Total 5-Year Investment:</span>
+                                  <span className="proj-label">Total 8-Year Investment:</span>
                                   <span className="proj-value">${scenario.yearly_analysis?.reduce((sum: number, year: any) => sum + (year.total_cost || 0), 0).toLocaleString()}</span>
+                                </div>
+                                <div className="projection-metric">
+                                  <span className="proj-label">Optimization Start:</span>
+                                  <span className="proj-value">2026 (Year 2)</span>
                                 </div>
                               </div>
                             </div>
