@@ -131,7 +131,7 @@ export class SafeAbortController {
     try {
       this.isAborted = true;
       if (!this.controller.signal.aborted) {
-        this.controller.abort(reason || 'Safe abort cleanup');
+        this.controller.abort(reason || 'Controller cleanup - safe operation');
       }
     } catch (error) {
       // Silently ignore abort errors - this is expected behavior

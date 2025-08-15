@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "electron": "electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-test": "node scripts/test-electron.js",
     "build-electron": "cross-env ELECTRON=true npm run build && electron-builder",
     "dist": "cross-env ELECTRON=true npm run build && electron-builder --publish=never"
   },

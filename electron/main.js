@@ -4,6 +4,17 @@ const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
 const { autoUpdater } = require('electron-updater');
 
+// Handle running in container environments
+const isContainerEnv = process.env.DOCKER || process.env.CONTAINER || process.env.CODESPACE_NAME;
+
+// Disable hardware acceleration in container environments
+if (isContainerEnv) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('--no-sandbox');
+  app.commandLine.appendSwitch('--disable-dev-shm-usage');
+  app.commandLine.appendSwitch('--disable-web-security');
+}
+
 let mainWindow;
 let serverProcess;
 
@@ -11,22 +22,40 @@ let serverProcess;
 const isPackaged = app.isPackaged;
 
 function createWindow() {
-  // Create the browser window
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1200,
-    minHeight: 800,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      enableRemoteModule: false,
-      webSecurity: true
-    },
-    icon: path.join(__dirname, 'assets/icon.png'), // Add your app icon
-    show: false, // Don't show until ready
-    titleBarStyle: 'default'
-  });
+  try {
+    // Create the browser window
+    const windowOptions = {
+      width: 1400,
+      height: 900,
+      minWidth: 1200,
+      minHeight: 800,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        enableRemoteModule: false,
+        webSecurity: !isContainerEnv, // Disable web security in container environments
+        preload: path.join(__dirname, 'preload.js')
+      },
+      icon: path.join(__dirname, 'assets/icon.png'),
+      show: false, // Don't show until ready
+      titleBarStyle: 'default'
+    };
+
+    // Add container-specific options
+    if (isContainerEnv) {
+      windowOptions.webPreferences.sandbox = false;
+    }
+
+    mainWindow = new BrowserWindow(windowOptions);
+  } catch (error) {
+    console.error('Failed to create Electron window:', error);
+    // In container environments, this might fail, but we can still serve the web app
+    if (isContainerEnv) {
+      console.log('Running in container environment - Electron GUI may not be available');
+      return;
+    }
+    throw error;
+  }
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
@@ -101,17 +130,34 @@ function startNextServer() {
 // App event handlers
 app.whenReady().then(() => {
   startNextServer();
-  createWindow();
+
+  try {
+    createWindow();
+  } catch (error) {
+    console.error('Failed to create window:', error);
+    if (isContainerEnv) {
+      console.log('Container environment detected - GUI not available. Web app available at http://localhost:3000');
+    }
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      try {
+        createWindow();
+      } catch (error) {
+        console.error('Failed to recreate window:', error);
+      }
     }
   });
 
   // Auto updater (optional)
-  if (!isDev) {
+  if (!isDev && !isContainerEnv) {
     autoUpdater.checkForUpdatesAndNotify();
+  }
+}).catch((error) => {
+  console.error('Failed to initialize Electron app:', error);
+  if (isContainerEnv) {
+    console.log('Running in container - starting headless mode');
   }
 });
 
