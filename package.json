@@ -48,41 +48,24 @@
       "output": "dist"
     },
     "files": [
-      "electron/**/*",
-      ".next/**/*",
-      "public/**/*",
-      "server.js",
-      "package.json",
-      "next.config.js"
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/assets/**/*",
+      "package.json"
     ],
     "extraResources": [
       {
-        "from": ".next",
-        "to": "app/.next"
+        "from": ".next/standalone",
+        "to": "app",
+        "filter": ["**/*"]
+      },
+      {
+        "from": ".next/static",
+        "to": "app/.next/static"
       },
       {
         "from": "public",
         "to": "app/public"
-      },
-      {
-        "from": "server.js",
-        "to": "app/server.js"
-      },
-      {
-        "from": "package.json",
-        "to": "app/package.json"
-      },
-      {
-        "from": "next.config.js",
-        "to": "app/next.config.js"
-      },
-      {
-        "from": "node_modules",
-        "to": "app/node_modules",
-        "filter": [
-          "!**/electron{,/**}",
-          "!**/electron-builder{,/**}"
-        ]
       }
     ],
     "win": {
