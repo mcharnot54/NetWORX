@@ -429,7 +429,7 @@ export function optimizeCapacityPlanning(params: CapacityPlanningParams): Capaci
       requiredCapacity = forecast.absolute_demand;
     } else {
       const growthRate = forecast?.growth_rate || 5; // Default 5% growth
-      const previousCapacity = year === 0 ? baseCapacity : yearlyResults[year - 1].required_capacity;
+      const previousCapacity: number = year === 0 ? baseCapacity : yearlyResults[year - 1].required_capacity;
       requiredCapacity = previousCapacity * (1 + growthRate / 100);
     }
 

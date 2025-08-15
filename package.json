@@ -2,12 +2,18 @@
   "name": "networx-essentials",
   "version": "1.0.0",
   "description": "NetWORX Essentials - Network Strategy Optimizer",
+  "main": "electron/main.js",
+  "homepage": "./",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "build-electron": "cross-env ELECTRON=true npm run build && electron-builder",
+    "dist": "cross-env ELECTRON=true npm run build && electron-builder --publish=never"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
@@ -24,8 +30,70 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@types/uuid": "^10.0.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.networx.essentials",
+    "productName": "NetWORX Essentials",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "server.js",
+      "package.json",
+      "next.config.js"
+    ],
+    "extraResources": [
+      {
+        "from": ".next",
+        "to": "app/.next"
+      },
+      {
+        "from": "public",
+        "to": "app/public"
+      },
+      {
+        "from": "server.js",
+        "to": "app/server.js"
+      },
+      {
+        "from": "package.json",
+        "to": "app/package.json"
+      },
+      {
+        "from": "next.config.js",
+        "to": "app/next.config.js"
+      },
+      {
+        "from": "node_modules",
+        "to": "app/node_modules",
+        "filter": [
+          "!**/electron{,/**}",
+          "!**/electron-builder{,/**}"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "electron/assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "electron/assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "electron/assets/icon.png"
+    }
   }
 }

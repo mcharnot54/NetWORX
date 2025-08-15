@@ -1,15 +1,63 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
-  
-  experimental: {
-    serverComponentsExternalPackages: [],
-    optimisticClientCache: true,
+  // Only enable standalone output when building for Electron
+  ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
+
+  // Asset optimization
+  images: {
+    unoptimized: process.env.ELECTRON === 'true'
   },
 
-  // Disable source maps in development to reduce memory usage
-  productionBrowserSourceMaps: false,
+  // Environment configuration
+  env: {
+    ELECTRON: process.env.ELECTRON || 'false'
+  },
+
+  // Webpack configuration
+  webpack: (config, { isServer }) => {
+    // Only apply Electron-specific config when building for Electron
+    if (process.env.ELECTRON === 'true' && !isServer) {
+      config.target = 'electron-renderer';
+    }
+
+    // Provide polyfills for Node.js globals in browser environment
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+      };
+
+      // Define global for browser environment
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          global: 'globalThis',
+        })
+      );
+    }
+
+    // Handle Electron-specific modules only when needed
+    if (process.env.ELECTRON === 'true') {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'utf-8-validate': 'commonjs utf-8-validate',
+        'bufferutil': 'commonjs bufferutil',
+      });
+    }
+
+    return config;
+  }
 };
 
 module.exports = nextConfig;

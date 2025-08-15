@@ -292,9 +292,9 @@ export class ReadinessTracker {
     
     // Get current status from various sources
     const [fileStatus, validationStatus, configStatus, systemStatus] = await Promise.all([
-      this.checkFileUploadStatus(scenarioId),
-      this.checkValidationStatus(scenarioId),
-      this.checkConfigurationStatus(scenarioId),
+      this.checkFileUploadStatus(scenarioId || undefined),
+      this.checkValidationStatus(scenarioId || undefined),
+      this.checkConfigurationStatus(scenarioId || undefined),
       this.checkSystemStatus()
     ]);
 

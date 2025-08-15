@@ -1276,7 +1276,7 @@ export default function TransportOptimizer() {
                     <div className="cities-container">
                       <div className="cities-list">
                         {analysisResults.analyzedCities && analysisResults.analyzedCities.length > 0 ? (
-                          analysisResults.analyzedCities.map((city, index) => (
+                          analysisResults.analyzedCities.map((city: string, index: number) => (
                             <div key={index} className="city-tag">
                               <span className="city-name">{city}</span>
                             </div>
@@ -1299,7 +1299,7 @@ export default function TransportOptimizer() {
                   <div className="analyzed-scenarios">
                     <h3 className="subsection-title">Scenarios Analyzed</h3>
                     <div className="scenarios-analyzed-list">
-                      {analysisResults.selectedScenarios?.map((scenario, index) => (
+                      {analysisResults.selectedScenarios?.map((scenario: TransportScenario, index: number) => (
                         <div key={index} className="analyzed-scenario-card">
                           <div className="scenario-info-header">
                             <h4 className="analyzed-scenario-name">{scenario.scenario_name}</h4>
@@ -1310,7 +1310,7 @@ export default function TransportOptimizer() {
                             <div className="scenario-cities">
                               <span className="cities-label">Cities:</span>
                               <div className="scenario-cities-list">
-                                {scenario.cities.map((city, cityIndex) => (
+                                {scenario.cities.map((city: string, cityIndex: number) => (
                                   <span key={cityIndex} className="scenario-city-tag">{city}</span>
                                 ))}
                               </div>
