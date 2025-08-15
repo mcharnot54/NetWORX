@@ -89,7 +89,7 @@ export async function GET(
     const results = await OptimizationResultService.getOptimizationResults(scenarioId);
 
     // Get current job status from job queue
-    const jobs = jobQueue.getJobsForScenario(scenarioId);
+    const jobs = getJobQueue().getJobsForScenario(scenarioId);
 
     // Transform results to include job information and the optimization data in the expected format
     const transformedResults = results.map((result: any) => {
