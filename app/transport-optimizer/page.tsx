@@ -2119,6 +2119,180 @@ export default function TransportOptimizer() {
           line-height: 1.5;
         }
 
+        .scenario-details {
+          margin-top: 1rem;
+        }
+
+        .scenario-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1rem;
+          padding: 1rem;
+          background: #f8fafc;
+          border-radius: 6px;
+        }
+
+        .yearly-analysis {
+          margin-top: 1rem;
+          padding: 1rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+        }
+
+        .analysis-title {
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 0.75rem;
+          color: #1f2937;
+        }
+
+        .yearly-table {
+          display: grid;
+          gap: 0.5rem;
+        }
+
+        .table-header {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1.5fr 1.5fr 1fr;
+          gap: 1rem;
+          font-weight: 600;
+          padding: 0.5rem;
+          background: #374151;
+          color: white;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .table-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1.5fr 1.5fr 1fr;
+          gap: 1rem;
+          padding: 0.5rem;
+          border-bottom: 1px solid #e5e7eb;
+          font-size: 0.875rem;
+        }
+
+        .table-row:hover {
+          background: #f9fafb;
+        }
+
+        .scenario-description {
+          margin-top: 1rem;
+          padding: 0.75rem;
+          background: #eff6ff;
+          border-left: 4px solid #3b82f6;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .analyzed-scenario-card.detailed {
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .scenario-route-info {
+          margin: 0.75rem 0;
+          padding: 0.5rem;
+          background: #fef3c7;
+          border-radius: 4px;
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .route-label {
+          font-weight: 600;
+          color: #92400e;
+        }
+
+        .route-value {
+          color: #92400e;
+          font-weight: 500;
+        }
+
+        .scenario-year-one-metrics {
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #f0fdf4;
+          border-radius: 6px;
+        }
+
+        .scenario-year-one-metrics h5 {
+          margin: 0 0 0.75rem 0;
+          color: #166534;
+          font-weight: 600;
+        }
+
+        .metric-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 0.75rem;
+        }
+
+        .scenario-projections {
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #fefce8;
+          border-radius: 6px;
+        }
+
+        .scenario-projections h5 {
+          margin: 0 0 0.75rem 0;
+          color: #a16207;
+          font-weight: 600;
+        }
+
+        .projections-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+
+        .projection-metric {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .proj-label {
+          font-size: 0.875rem;
+          color: #92400e;
+          font-weight: 500;
+        }
+
+        .proj-value {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #a16207;
+        }
+
+        .scenario-analysis-summary {
+          margin-top: 1rem;
+          padding: 0.75rem;
+          background: #f0f9ff;
+          border-left: 4px solid #0ea5e9;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .generation-status {
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #f0f9ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 6px;
+        }
+
+        .status-message {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          color: #1e40af;
+          font-weight: 500;
+        }
+
         .selected-scenario-info {
           background: #f0fdf4;
           border: 1px solid #10b981;
