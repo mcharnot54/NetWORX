@@ -244,8 +244,17 @@ export class ReadinessTracker {
    */
   static async checkSystemStatus(): Promise<SystemStatus> {
     try {
-      // Check database connection
-      const dbResponse = await fetch('/api/health');
+      // Check database connection with timeout and abort handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const dbResponse = await fetch('/api/health', {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+
       const dbData = dbResponse.ok ? await dbResponse.json() : { connected: false };
       
       // Check if project/scenario are selected (from localStorage)
