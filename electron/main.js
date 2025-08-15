@@ -130,17 +130,34 @@ function startNextServer() {
 // App event handlers
 app.whenReady().then(() => {
   startNextServer();
-  createWindow();
+
+  try {
+    createWindow();
+  } catch (error) {
+    console.error('Failed to create window:', error);
+    if (isContainerEnv) {
+      console.log('Container environment detected - GUI not available. Web app available at http://localhost:3000');
+    }
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      try {
+        createWindow();
+      } catch (error) {
+        console.error('Failed to recreate window:', error);
+      }
     }
   });
 
   // Auto updater (optional)
-  if (!isDev) {
+  if (!isDev && !isContainerEnv) {
     autoUpdater.checkForUpdatesAndNotify();
+  }
+}).catch((error) => {
+  console.error('Failed to initialize Electron app:', error);
+  if (isContainerEnv) {
+    console.log('Running in container - starting headless mode');
   }
 });
 
