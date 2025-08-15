@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       jobs = getJobQueue().getJobsForScenario(scenarioIdInt);
     } else {
       // Return queue statistics for monitoring
-      const stats = jobQueue.getStats();
+      const stats = getJobQueue().getStats();
       return NextResponse.json({
         success: true,
         data: {
