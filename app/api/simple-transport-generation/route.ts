@@ -252,6 +252,17 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
     const currentYear = baseYear + year;
     let transportCost, warehouseCost, isOptimized;
 
+    // Extract volume growth rate from capacity data if available
+    let volumeGrowthRate = 0.06; // Default 6% if no capacity data
+    if (capacityData && capacityData.yearly_results && year > 0) {
+      // Try to get growth rate from capacity analysis
+      const capacityYear = capacityData.yearly_results.find((cy: any) => cy.year === currentYear);
+      if (capacityYear && capacityYear.growth_rate) {
+        volumeGrowthRate = capacityYear.growth_rate / 100; // Convert percentage to decimal
+        console.log(`Using capacity growth rate for ${currentYear}: ${volumeGrowthRate * 100}%`);
+      }
+    }
+
     if (year === 0) {
       // Year 1 (2025): Baseline year, no optimization, no savings
       transportCost = baseline2025FreightCost;
@@ -265,12 +276,12 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
       } else {
         // Extrapolate if we run out of data
         const lastCost = actualFreightSpend[actualFreightSpend.length - 1];
-        const growthRate = 0.08; // 8% growth for extrapolation
+        const growthRate = volumeGrowthRate || 0.08; // Use capacity growth rate or 8% default
         transportCost = Math.round(lastCost * Math.pow(1 + growthRate, actualCostIndex - actualFreightSpend.length + 1));
       }
 
-      // Calculate warehouse costs with volume growth
-      const volumeGrowthFactor = Math.pow(1.06, year); // 6% annual volume growth
+      // Calculate warehouse costs with volume growth (from capacity data if available)
+      const volumeGrowthFactor = Math.pow(1 + volumeGrowthRate, year);
       warehouseCost = Math.round(baselineWarehouseCost * volumeGrowthFactor);
       isOptimized = true;
     }
