@@ -187,14 +187,13 @@ const fetchWithTimeout = async (
     // Handle AbortError specifically - check if error exists and has required properties
     if (error && typeof error === 'object' &&
         (('name' in error && error.name === 'AbortError') ||
-         ('message' in error && typeof error.message === 'string' && error.message.includes('aborted')))) {
+         ('message' in error && typeof error.message === 'string' &&
+          (error.message.includes('aborted') || error.message.includes('signal is aborted'))))) {
 
       const errorMessage = ('message' in error && typeof error.message === 'string') ? error.message : '';
 
       // Check if this was a timeout or external cancellation
-      const isTimeout = errorMessage.includes('timeout') ||
-                       errorMessage.includes('Request timeout') ||
-                       (controller.signal.aborted && !options.signal?.aborted);
+      const isTimeout = controller.signal.aborted && !options.signal?.aborted;
 
       if (isTimeout) {
         throw new FetchError(
