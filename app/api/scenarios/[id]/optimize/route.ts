@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OptimizationResultService, AuditLogService } from '@/lib/database';
-import { jobQueue } from '@/lib/job-queue';
+import { getJobQueue } from '@/lib/job-queue';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(
