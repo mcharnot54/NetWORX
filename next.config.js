@@ -4,7 +4,9 @@ const nextConfig = {
   // ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
 
   // Disable static generation to avoid Html import errors during build
-  trailingSlash: true,
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
 
   // Asset optimization
   images: {
