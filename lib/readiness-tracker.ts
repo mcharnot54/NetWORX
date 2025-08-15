@@ -267,7 +267,13 @@ export class ReadinessTracker {
         scenarioSelected: !!selectedScenario
       };
     } catch (error) {
-      console.error('Error checking system status:', error);
+      // Handle abort errors gracefully
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.debug('System status check aborted:', error.message);
+      } else {
+        console.error('Error checking system status:', error);
+      }
       return {
         databaseConnected: false,
         projectSelected: false,
