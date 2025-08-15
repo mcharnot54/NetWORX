@@ -33,15 +33,32 @@ export async function GET(request: NextRequest) {
     let dataPreview = null;
 
     if (tlFile.length > 0 && tlFile[0].processed_data?.data) {
-      const data = tlFile[0].processed_data.data;
-      
+      let data = tlFile[0].processed_data.data;
+
+      // Handle different data structures
+      if (!Array.isArray(data)) {
+        // If data is an object, try to get arrays from it
+        if (typeof data === 'object') {
+          const keys = Object.keys(data);
+          // Look for array properties
+          const arrayKey = keys.find(key => Array.isArray(data[key]));
+          if (arrayKey) {
+            data = data[arrayKey];
+          } else {
+            // Convert object to array of entries
+            data = Object.entries(data).map(([key, value]) => ({ key, value }));
+          }
+        } else {
+          data = [];
+        }
+      }
+
       // Get first few rows for preview
       dataPreview = {
         file_name: tlFile[0].file_name,
         total_rows: data.length,
         columns: data.length > 0 ? Object.keys(data[0]) : [],
-        first_3_rows: data.slice(0, 3),
-        last_3_rows: data.slice(-3)
+        first_3_rows: data.slice(0, 3)
       };
 
       // Look for baseline - check all numeric values over $1M
