@@ -958,19 +958,55 @@ export default function TransportOptimizer() {
                       <p className="scenario-description">{type.description}</p>
                       
                       {scenario && (
-                        <div className="scenario-metrics">
-                          <div className="metric">
-                            <span className="metric-label">Total Miles:</span>
-                            <span className="metric-value">{scenario.total_miles?.toLocaleString()}</span>
+                        <div className="scenario-details">
+                          <div className="scenario-summary">
+                            <div className="metric">
+                              <span className="metric-label">Route:</span>
+                              <span className="metric-value">{scenario.primary_route || `${scenario.cities?.[0]} ↔ ${scenario.cities?.[1]}`}</span>
+                            </div>
+                            <div className="metric">
+                              <span className="metric-label">Total Miles (Year 1):</span>
+                              <span className="metric-value">{scenario.total_miles?.toLocaleString()}</span>
+                            </div>
+                            <div className="metric">
+                              <span className="metric-label">Total Cost (Year 1):</span>
+                              <span className="metric-value">${scenario.total_cost?.toLocaleString()}</span>
+                            </div>
+                            <div className="metric">
+                              <span className="metric-label">Service Score:</span>
+                              <span className="metric-value">{scenario.service_score}%</span>
+                            </div>
                           </div>
-                          <div className="metric">
-                            <span className="metric-label">Total Cost:</span>
-                            <span className="metric-value">${scenario.total_cost?.toLocaleString()}</span>
-                          </div>
-                          <div className="metric">
-                            <span className="metric-label">Service Score:</span>
-                            <span className="metric-value">{scenario.service_score}%</span>
-                          </div>
+
+                          {scenario.yearly_analysis && scenario.yearly_analysis.length > 0 && (
+                            <div className="yearly-analysis">
+                              <h4 className="analysis-title">5-Year Growth Projection</h4>
+                              <div className="yearly-table">
+                                <div className="table-header">
+                                  <span>Year</span>
+                                  <span>Growth Rate</span>
+                                  <span>Transport Cost</span>
+                                  <span>Total Cost</span>
+                                  <span>Efficiency</span>
+                                </div>
+                                {scenario.yearly_analysis.slice(0, 5).map((yearData: any) => (
+                                  <div key={yearData.year} className="table-row">
+                                    <span>{yearData.year}</span>
+                                    <span>{yearData.growth_rate}%</span>
+                                    <span>${yearData.transport_cost?.toLocaleString()}</span>
+                                    <span>${yearData.total_cost?.toLocaleString()}</span>
+                                    <span>{yearData.efficiency_score}%</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {scenario.scenario_description && (
+                            <div className="scenario-description">
+                              <strong>Analysis:</strong> {scenario.scenario_description}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
