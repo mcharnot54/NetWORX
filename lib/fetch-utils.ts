@@ -338,8 +338,14 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
       const errorName = String(error.name || '');
       const errorMessage = String(error.message || '');
 
-      // Convert AbortErrors to FetchErrors with more context
+      // Handle AbortErrors gracefully - don't throw in most contexts
       if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+        // For connectivity checks, return a default value instead of throwing
+        if (context === 'checkConnectivity') {
+          console.debug(`Connectivity check cancelled: ${errorMessage}`);
+          return false as any; // Type assertion needed for generic return
+        }
+
         const reason = (errorMessage && errorMessage !== 'signal is aborted without reason')
           ? errorMessage
           : 'request was cancelled';
