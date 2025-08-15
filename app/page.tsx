@@ -329,17 +329,19 @@ export default function Dashboard() {
   // Automatic readiness tracking based on actual system status
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let updateAttempts = 0;
+    const maxUpdateAttempts = 3;
 
     const performAutomaticUpdate = async () => {
       if (isAutoUpdating) return; // Prevent concurrent updates
 
       setIsAutoUpdating(true);
       try {
-        console.log('Checking system status for automatic readiness update...');
+        console.debug('Checking system status for automatic readiness update...');
 
         // Debug: Show current scenario selection
         const scenarioId = ReadinessTracker.getSelectedScenarioId();
-        console.log('Selected scenario ID:', scenarioId);
+        console.debug('Selected scenario ID:', scenarioId);
 
         // Load any previously saved manual completions
         const savedProgress = ReadinessTracker.loadChecklistFromStorage();
@@ -350,22 +352,33 @@ export default function Dashboard() {
         setChecklistItems(updatedItems);
         setLastUpdateTime(new Date());
 
-        console.log('Readiness checklist updated automatically');
+        // Reset update attempts on success
+        updateAttempts = 0;
+
+        console.debug('Readiness checklist updated automatically');
       } catch (error) {
-        console.error('Error in automatic readiness update:', error);
+        updateAttempts++;
+        console.debug(`Readiness update attempt ${updateAttempts} failed:`, error?.message || 'Unknown error');
+
+        // Stop automatic updates after multiple failures to prevent error spam
+        if (updateAttempts >= maxUpdateAttempts) {
+          console.debug('Stopping automatic readiness updates due to repeated failures');
+          if (interval) clearInterval(interval);
+        }
       } finally {
         setIsAutoUpdating(false);
       }
     };
 
-    // Initial update
-    performAutomaticUpdate();
+    // Initial update with delay to let the page load
+    const initialTimeout = setTimeout(performAutomaticUpdate, 2000);
 
-    // Set up periodic updates every 15 seconds
-    interval = setInterval(performAutomaticUpdate, 15000);
+    // Set up periodic updates every 30 seconds (reduced frequency)
+    interval = setInterval(performAutomaticUpdate, 30000);
 
     return () => {
       if (interval) clearInterval(interval);
+      if (initialTimeout) clearTimeout(initialTimeout);
     };
   }, []); // Only run once on mount
 
@@ -379,7 +392,8 @@ export default function Dashboard() {
       setChecklistItems(updatedItems);
       setLastUpdateTime(new Date());
     } catch (error) {
-      console.error('Error refreshing readiness status:', error);
+      console.debug('Error refreshing readiness status:', error?.message || 'Network error');
+      // Don't show errors to user for manual refresh - just log them
     } finally {
       setIsAutoUpdating(false);
     }
