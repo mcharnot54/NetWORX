@@ -34,7 +34,26 @@ interface ChecklistItem {
   category: "data" | "warehouse" | "transport" | "inventory" | "config";
 }
 
+interface BaselineCosts {
+  warehouse_costs: {
+    operating_costs_other: { raw: number; formatted: string; percentage: string };
+    total_labor_costs: { raw: number; formatted: string; percentage: string };
+    rent_and_overhead: { raw: number; formatted: string; percentage: string };
+    subtotal: { raw: number; formatted: string; percentage: string };
+  };
+  transport_costs: {
+    freight_costs: { raw: number; formatted: string; percentage: string };
+  };
+  inventory_costs: {
+    total_inventory_costs: { raw: number; formatted: string; percentage: string };
+  };
+  total_baseline: { raw: number; formatted: string; percentage: string };
+}
+
 export default function Dashboard() {
+  const [baselineCosts, setBaselineCosts] = useState<BaselineCosts | null>(null);
+  const [costsLoading, setCostsLoading] = useState(true);
+  const [costsError, setCostsError] = useState<string | null>(null);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     // Data Processing Requirements
     {
@@ -236,6 +255,31 @@ export default function Dashboard() {
   const [showDetails, setShowDetails] = useState(false);
   const [isAutoUpdating, setIsAutoUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+
+  // Load baseline costs on component mount
+  useEffect(() => {
+    loadBaselineCosts();
+  }, []);
+
+  const loadBaselineCosts = async () => {
+    try {
+      setCostsLoading(true);
+      setCostsError(null);
+      const response = await fetch('/api/current-baseline-costs');
+      const result = await response.json();
+
+      if (result.success) {
+        setBaselineCosts(result.baseline_costs);
+      } else {
+        setCostsError(result.error || 'Failed to load baseline costs');
+      }
+    } catch (error) {
+      setCostsError('Error loading baseline costs');
+      console.error('Error loading baseline costs:', error);
+    } finally {
+      setCostsLoading(false);
+    }
+  };
 
   // Calculate completion statistics
   const totalItems = checklistItems.length;
