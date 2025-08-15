@@ -48,25 +48,13 @@
       "output": "dist"
     },
     "files": [
-      "electron/main.js",
-      "electron/preload.js",
-      "electron/assets/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": ".next/standalone",
-        "to": "app",
-        "filter": ["**/*"]
-      },
-      {
-        "from": ".next/static",
-        "to": "app/.next/static"
-      },
-      {
-        "from": "public",
-        "to": "app/public"
-      }
+      "electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "server.js",
+      "package.json",
+      "next.config.js",
+      "node_modules/**/*"
     ],
     "win": {
       "target": "nsis",
