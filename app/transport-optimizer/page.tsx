@@ -965,17 +965,22 @@ export default function TransportOptimizer() {
                               <span className="metric-value">{scenario.primary_route || `${scenario.cities?.[0]} ↔ ${scenario.cities?.[1]}`}</span>
                             </div>
                             <div className="metric">
-                              <span className="metric-label">Total Miles (Year 1):</span>
-                              <span className="metric-value">{scenario.total_miles?.toLocaleString()}</span>
+                              <span className="metric-label">2025 Baseline Distance:</span>
+                              <span className="metric-value">{scenario.total_miles?.toLocaleString()} miles</span>
                             </div>
                             <div className="metric">
-                              <span className="metric-label">Total Cost (Year 1):</span>
+                              <span className="metric-label">2025 Baseline Cost:</span>
                               <span className="metric-value">${scenario.total_cost?.toLocaleString()}</span>
                             </div>
                             <div className="metric">
-                              <span className="metric-label">Service Score:</span>
+                              <span className="metric-label">Baseline Service Score:</span>
                               <span className="metric-value">{scenario.service_score}%</span>
                             </div>
+                          </div>
+
+                          <div className="baseline-notice">
+                            <strong>⚠️ 2025 Baseline Year:</strong> No optimization applied. Standard operating costs with no savings.
+                            Optimization benefits begin in 2026.
                           </div>
 
                           {scenario.yearly_analysis && scenario.yearly_analysis.length > 0 && (
