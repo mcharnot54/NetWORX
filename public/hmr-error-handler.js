@@ -166,8 +166,9 @@
       }
 
       // Suppress 'Failed to fetch' errors in cloud environments
-      if (errorName === 'TypeError' && errorMessage === 'Failed to fetch') {
-        console.debug('Suppressed cloud fetch error:', errorMessage);
+      if (errorName === 'TypeError' && (errorMessage === 'Failed to fetch' ||
+          errorMessage.includes('fetch') || errorMessage.includes('NetworkError'))) {
+        console.debug('Suppressed network fetch error:', errorMessage);
         event.preventDefault();
         return false;
       }
