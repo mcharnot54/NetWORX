@@ -4,7 +4,7 @@ import { DataFileService } from '@/lib/database';
 // Get files for a scenario
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.nextUrl);
+    const { searchParams } = request.nextUrl;
     const scenarioId = searchParams.get('scenarioId');
 
     if (!scenarioId) {
