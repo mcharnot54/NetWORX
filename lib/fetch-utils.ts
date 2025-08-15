@@ -69,11 +69,14 @@ const isRetryableError = (error: Error): boolean => {
       return false;
     }
 
-    const errorName = String(error.name || '');
-    const errorMessage = String(error.message || '');
+    // Safe property access with fallbacks
+    const errorName = error && 'name' in error ? String(error.name || '') : '';
+    const errorMessage = error && 'message' in error ? String(error.message || '') : '';
 
     // Never retry AbortErrors - they indicate cancellation
-    if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+    if (errorName === 'AbortError' ||
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('signal is aborted')) {
       return false;
     }
 
@@ -83,16 +86,11 @@ const isRetryableError = (error: Error): boolean => {
     }
 
     // Retry network and timeout errors, but check safely
-    try {
-      if (errorMessage.includes('fetch') ||
-          errorMessage.includes('network') ||
-          errorMessage.includes('timeout') ||
-          errorMessage.includes('Failed to fetch')) {
-        return true;
-      }
-    } catch (e) {
-      // If we can't safely check the message, don't retry
-      return false;
+    if (errorMessage.includes('fetch') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('Failed to fetch')) {
+      return true;
     }
 
     // If it's a FetchError, check properties safely
@@ -101,7 +99,9 @@ const isRetryableError = (error: Error): boolean => {
     }
 
     return false;
-  } catch {
+  } catch (e) {
+    // If any error occurs during error checking, don't retry
+    console.debug('Error while checking if error is retryable:', e);
     return false;
   }
 };
