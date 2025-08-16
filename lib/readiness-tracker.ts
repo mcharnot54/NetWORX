@@ -1,9 +1,11 @@
 /**
  * Automatic Readiness Tracking Service
- * 
+ *
  * Monitors file uploads, data validation, and system configuration
  * to automatically update the Network Optimization Readiness checklist
  */
+
+import { safeFetchJson, safeAsync } from './error-utils';
 
 interface ChecklistItem {
   id: string;
@@ -53,9 +55,13 @@ export class ReadinessTracker {
     }
 
     try {
-      const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
-      if (!response.ok) {
-        console.warn('Failed to fetch file status');
+      const data = await safeFetchJson(`/api/files?scenarioId=${scenarioId}`, {
+        timeout: 5000,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!data) {
         return {
           forecast: false,
           sku: false,
@@ -64,8 +70,6 @@ export class ReadinessTracker {
           capacity: false
         };
       }
-
-      const data = await response.json();
       const files = data.data || [];
 
       // Check which data types have been uploaded and completed processing
@@ -89,7 +93,15 @@ export class ReadinessTracker {
 
       return uploadStatus;
     } catch (error) {
-      console.error('Error checking file upload status:', error);
+      // Handle different types of errors quietly
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.debug('File status check timed out');
+      } else if (error instanceof Error && error.message.includes('fetch')) {
+        console.debug('Network error checking file status');
+      } else {
+        console.debug('Error checking file upload status:', error);
+      }
       return {
         forecast: false,
         sku: false,
@@ -114,8 +126,13 @@ export class ReadinessTracker {
     }
 
     try {
-      const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
-      if (!response.ok) {
+      const data = await safeFetchJson(`/api/files?scenarioId=${scenarioId}`, {
+        timeout: 5000,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!data) {
         return {
           forecast: false,
           sku: false,
@@ -123,8 +140,6 @@ export class ReadinessTracker {
           allValidated: false
         };
       }
-
-      const data = await response.json();
       const files = data.data || [];
 
       // Check validation results for each required data type
@@ -154,7 +169,12 @@ export class ReadinessTracker {
 
       return validationStatus;
     } catch (error) {
-      console.error('Error checking validation status:', error);
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.debug('Validation status check timed out');
+      } else {
+        console.debug('Error checking validation status');
+      }
       return {
         forecast: false,
         sku: false,
@@ -196,19 +216,34 @@ export class ReadinessTracker {
 
     try {
       // Check if warehouse configurations exist
-      const warehouseResponse = await fetch(`/api/scenarios/${scenarioId}/warehouses`);
-      const warehouseData = warehouseResponse.ok ? await warehouseResponse.json() : { data: [] };
-      const hasWarehouseConfig = warehouseData.data && warehouseData.data.length > 0;
+      const hasWarehouseConfig = await safeAsync(async () => {
+        const warehouseData = await safeFetchJson(`/api/scenarios/${scenarioId}/warehouses`, {
+          timeout: 3000,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        return warehouseData?.data && warehouseData.data.length > 0;
+      }, false);
 
       // Check if transport configurations exist
-      const transportResponse = await fetch(`/api/scenarios/${scenarioId}/transport`);
-      const transportData = transportResponse.ok ? await transportResponse.json() : { data: [] };
-      const hasTransportConfig = transportData.data && transportData.data.length > 0;
+      const hasTransportConfig = await safeAsync(async () => {
+        const transportData = await safeFetchJson(`/api/scenarios/${scenarioId}/transport`, {
+          timeout: 3000,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        return transportData?.data && transportData.data.length > 0;
+      }, false);
 
       // Check capacity analysis completion
-      const capacityResponse = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
-      const capacityData = capacityResponse.ok ? await capacityResponse.json() : null;
-      const hasCapacityAnalysis = capacityData && capacityData.success;
+      const hasCapacityAnalysis = await safeAsync(async () => {
+        const capacityData = await safeFetchJson(`/api/scenarios/${scenarioId}/capacity-analysis`, {
+          timeout: 3000,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        return capacityData && capacityData.success;
+      }, false);
 
       return {
         warehouseConfig: hasWarehouseConfig,
@@ -223,7 +258,12 @@ export class ReadinessTracker {
         inventoryLeadTimes: hasCapacityAnalysis
       };
     } catch (error) {
-      console.error('Error checking configuration status:', error);
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.debug('Configuration status check timed out');
+      } else {
+        console.debug('Error checking configuration status');
+      }
       return {
         warehouseConfig: false,
         warehouseCosts: false,
@@ -244,18 +284,15 @@ export class ReadinessTracker {
    */
   static async checkSystemStatus(): Promise<SystemStatus> {
     try {
-      // Check database connection with timeout and abort handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      const dbResponse = await fetch('/api/health', {
-        signal: controller.signal,
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      clearTimeout(timeoutId);
-
-      const dbData = dbResponse.ok ? await dbResponse.json() : { connected: false };
+      // Check database connection with shorter timeout to prevent hanging
+      const dbData = await safeAsync(async () => {
+        const data = await safeFetchJson('/api/health', {
+          timeout: 3000,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        return data || { connected: false, status: 'unknown' };
+      }, { connected: false, status: 'unknown' });
       
       // Check if project/scenario are selected (from localStorage)
       const selectedProject = localStorage.getItem('selectedProject');
@@ -267,12 +304,12 @@ export class ReadinessTracker {
         scenarioSelected: !!selectedScenario
       };
     } catch (error) {
-      // Handle abort errors gracefully
+      // Handle abort errors and other errors gracefully
       if (error instanceof Error &&
           (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        console.debug('System status check aborted:', error.message);
+        console.debug('System status check timed out');
       } else {
-        console.error('Error checking system status:', error);
+        console.debug('Error in system status check');
       }
       return {
         databaseConnected: false,

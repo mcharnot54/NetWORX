@@ -377,13 +377,13 @@ export class OptimizationResultService {
   static async createOptimizationResult(data: Omit<OptimizationResult, 'id' | 'started_at'>): Promise<OptimizationResult> {
     const [result] = await sql`
       INSERT INTO optimization_results (
-        scenario_id, result_type, optimization_run_id, status, completed_at,
+        scenario_id, result_type, optimization_run_id, status, started_at, completed_at,
         execution_time_seconds, total_cost, cost_savings, efficiency_score,
         results_data, performance_metrics, recommendations
       )
       VALUES (
         ${data.scenario_id}, ${data.result_type}, ${data.optimization_run_id}, ${data.status},
-        ${data.completed_at || null}, ${data.execution_time_seconds || null}, ${data.total_cost || null},
+        NOW(), ${data.completed_at || null}, ${data.execution_time_seconds || null}, ${data.total_cost || null},
         ${data.cost_savings || null}, ${data.efficiency_score || null}, ${JSON.stringify(data.results_data)},
         ${JSON.stringify(data.performance_metrics)}, ${JSON.stringify(data.recommendations)}
       )

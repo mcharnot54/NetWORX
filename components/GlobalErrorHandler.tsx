@@ -17,7 +17,14 @@ export default function GlobalErrorHandler({ children }: GlobalErrorHandlerProps
         'Request was cancelled',
         'signal is aborted without reason',
         'Non-Error promise rejection captured',
-        'ResizeObserver loop limit exceeded'
+        'ResizeObserver loop limit exceeded',
+        'Failed to fetch',
+        'NetworkError',
+        'fetch',
+        'Network request failed',
+        'TypeError: Failed to fetch',
+        'AbortError',
+        'The user aborted a request'
       ];
 
       const shouldIgnore = ignorableErrors.some(ignorable => 

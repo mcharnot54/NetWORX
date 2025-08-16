@@ -33,6 +33,11 @@ export default function RootLayout({
           async
           suppressHydrationWarning
         />
+        <script
+          src="/fetch-debug.js"
+          async
+          suppressHydrationWarning
+        />
       </head>
       <body>
         <GlobalErrorHandler>

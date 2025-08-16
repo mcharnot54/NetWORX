@@ -34,7 +34,26 @@ interface ChecklistItem {
   category: "data" | "warehouse" | "transport" | "inventory" | "config";
 }
 
+interface BaselineCosts {
+  warehouse_costs: {
+    operating_costs_other: { raw: number; formatted: string; percentage: string };
+    total_labor_costs: { raw: number; formatted: string; percentage: string };
+    rent_and_overhead: { raw: number; formatted: string; percentage: string };
+    subtotal: { raw: number; formatted: string; percentage: string };
+  };
+  transport_costs: {
+    freight_costs: { raw: number; formatted: string; percentage: string };
+  };
+  inventory_costs: {
+    total_inventory_costs: { raw: number; formatted: string; percentage: string };
+  };
+  total_baseline: { raw: number; formatted: string; percentage: string };
+}
+
 export default function Dashboard() {
+  const [baselineCosts, setBaselineCosts] = useState<BaselineCosts | null>(null);
+  const [costsLoading, setCostsLoading] = useState(true);
+  const [costsError, setCostsError] = useState<string | null>(null);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     // Data Processing Requirements
     {
@@ -237,6 +256,51 @@ export default function Dashboard() {
   const [isAutoUpdating, setIsAutoUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
+  // Load baseline costs on component mount
+  useEffect(() => {
+    loadBaselineCosts();
+  }, []);
+
+  const loadBaselineCosts = async () => {
+    try {
+      setCostsLoading(true);
+      setCostsError(null);
+
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch('/api/current-baseline-costs', {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setBaselineCosts(result.baseline_costs);
+      } else {
+        setCostsError(result.error || 'Failed to load baseline costs');
+      }
+    } catch (error) {
+      if (error instanceof Error &&
+          (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        setCostsError('Request timed out - please try again');
+      } else {
+        setCostsError('Error loading baseline costs');
+      }
+      console.debug('Error loading baseline costs:', error);
+    } finally {
+      setCostsLoading(false);
+    }
+  };
+
   // Calculate completion statistics
   const totalItems = checklistItems.length;
   const requiredItems = checklistItems.filter((item) => item.required);
@@ -285,17 +349,19 @@ export default function Dashboard() {
   // Automatic readiness tracking based on actual system status
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let updateAttempts = 0;
+    const maxUpdateAttempts = 3;
 
     const performAutomaticUpdate = async () => {
       if (isAutoUpdating) return; // Prevent concurrent updates
 
       setIsAutoUpdating(true);
       try {
-        console.log('Checking system status for automatic readiness update...');
+        console.debug('Checking system status for automatic readiness update...');
 
         // Debug: Show current scenario selection
         const scenarioId = ReadinessTracker.getSelectedScenarioId();
-        console.log('Selected scenario ID:', scenarioId);
+        console.debug('Selected scenario ID:', scenarioId);
 
         // Load any previously saved manual completions
         const savedProgress = ReadinessTracker.loadChecklistFromStorage();
@@ -306,22 +372,33 @@ export default function Dashboard() {
         setChecklistItems(updatedItems);
         setLastUpdateTime(new Date());
 
-        console.log('Readiness checklist updated automatically');
+        // Reset update attempts on success
+        updateAttempts = 0;
+
+        console.debug('Readiness checklist updated automatically');
       } catch (error) {
-        console.error('Error in automatic readiness update:', error);
+        updateAttempts++;
+        console.debug(`Readiness update attempt ${updateAttempts} failed:`, error?.message || 'Unknown error');
+
+        // Stop automatic updates after multiple failures to prevent error spam
+        if (updateAttempts >= maxUpdateAttempts) {
+          console.debug('Stopping automatic readiness updates due to repeated failures');
+          if (interval) clearInterval(interval);
+        }
       } finally {
         setIsAutoUpdating(false);
       }
     };
 
-    // Initial update
-    performAutomaticUpdate();
+    // Initial update with delay to let the page load
+    const initialTimeout = setTimeout(performAutomaticUpdate, 2000);
 
-    // Set up periodic updates every 15 seconds
-    interval = setInterval(performAutomaticUpdate, 15000);
+    // Set up periodic updates every 30 seconds (reduced frequency)
+    interval = setInterval(performAutomaticUpdate, 30000);
 
     return () => {
       if (interval) clearInterval(interval);
+      if (initialTimeout) clearTimeout(initialTimeout);
     };
   }, []); // Only run once on mount
 
@@ -335,7 +412,8 @@ export default function Dashboard() {
       setChecklistItems(updatedItems);
       setLastUpdateTime(new Date());
     } catch (error) {
-      console.error('Error refreshing readiness status:', error);
+      console.debug('Error refreshing readiness status:', error?.message || 'Network error');
+      // Don't show errors to user for manual refresh - just log them
     } finally {
       setIsAutoUpdating(false);
     }
@@ -386,6 +464,423 @@ export default function Dashboard() {
 
           {/* Database Status Component */}
           <DatabaseStatus />
+
+          {/* Current Year Baseline Costs Section */}
+          <div
+            style={{
+              backgroundColor: "#f0f9ff",
+              border: "2px solid #0ea5e9",
+              borderRadius: "0.75rem",
+              padding: "1.5rem",
+              marginBottom: "2rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: "0 0 0.5rem 0",
+                    color: "#0c4a6e",
+                    fontSize: "1.25rem",
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <DollarSign size={20} />
+                  Current Year Baseline Costs (2025)
+                </h3>
+                <p
+                  style={{ margin: 0, color: "#0369a1", fontSize: "0.875rem" }}
+                >
+                  Actual costs extracted from your uploaded data files
+                </p>
+              </div>
+              <button
+                onClick={loadBaselineCosts}
+                disabled={costsLoading}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  padding: "0.5rem 1rem",
+                  backgroundColor: "#0ea5e9",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "0.375rem",
+                  fontSize: "0.875rem",
+                  fontWeight: "500",
+                  cursor: costsLoading ? "not-allowed" : "pointer",
+                  opacity: costsLoading ? 0.6 : 1,
+                }}
+              >
+                <RefreshCw size={14} className={costsLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
+
+            {costsLoading && (
+              <div style={{ textAlign: "center", padding: "2rem", color: "#0369a1" }}>
+                <RefreshCw size={24} className="animate-spin mx-auto mb-2" />
+                <p>Loading baseline costs from data files...</p>
+              </div>
+            )}
+
+            {costsError && (
+              <div
+                style={{
+                  backgroundColor: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: "0.5rem",
+                  padding: "1rem",
+                  color: "#dc2626",
+                  textAlign: "center",
+                }}
+              >
+                <AlertCircle size={20} className="mx-auto mb-2" />
+                <p>{costsError}</p>
+              </div>
+            )}
+
+            {baselineCosts && !costsLoading && baselineCosts.total_baseline.raw > 0 && (
+              <div>
+                {/* Total Baseline Display */}
+                <div
+                  style={{
+                    backgroundColor: "white",
+                    border: "2px solid #0ea5e9",
+                    borderRadius: "0.5rem",
+                    padding: "1.5rem",
+                    textAlign: "center",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "2.5rem",
+                      fontWeight: "bold",
+                      color: "#0c4a6e",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    {baselineCosts.total_baseline.formatted}
+                  </div>
+                  <div style={{ color: "#0369a1", fontSize: "1rem", fontWeight: "500" }}>
+                    Total Annual Baseline Costs
+                  </div>
+                </div>
+
+                {/* Cost Breakdown Grid */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                    gap: "1rem",
+                  }}
+                >
+                  {/* Warehouse Costs */}
+                  <div
+                    style={{
+                      backgroundColor: "white",
+                      border: "1px solid #e0f2fe",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <Target size={18} style={{ color: "#0ea5e9" }} />
+                      <h4
+                        style={{
+                          margin: 0,
+                          color: "#0c4a6e",
+                          fontSize: "1rem",
+                          fontWeight: "600",
+                        }}
+                      >
+                        Warehouse Costs
+                      </h4>
+                    </div>
+                    <div style={{ space: "0.75rem" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <span style={{ color: "#475569" }}>Operating Costs Other:</span>
+                        <span style={{ fontWeight: "500", color: "#0c4a6e" }}>
+                          {baselineCosts.warehouse_costs.operating_costs_other.formatted}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <span style={{ color: "#475569" }}>Total Labor Costs:</span>
+                        <span style={{ fontWeight: "500", color: "#0c4a6e" }}>
+                          {baselineCosts.warehouse_costs.total_labor_costs.formatted}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.75rem",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <span style={{ color: "#475569" }}>Rent and Overhead:</span>
+                        <span style={{ fontWeight: "500", color: "#0c4a6e" }}>
+                          {baselineCosts.warehouse_costs.rent_and_overhead.formatted}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          borderTop: "1px solid #e0f2fe",
+                          paddingTop: "0.5rem",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontWeight: "600",
+                          color: "#0c4a6e",
+                        }}
+                      >
+                        <span>Subtotal:</span>
+                        <span>{baselineCosts.warehouse_costs.subtotal.formatted}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transport Costs */}
+                  <div
+                    style={{
+                      backgroundColor: "white",
+                      border: "1px solid #e0f2fe",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <Truck size={18} style={{ color: "#0ea5e9" }} />
+                      <h4
+                        style={{
+                          margin: 0,
+                          color: "#0c4a6e",
+                          fontSize: "1rem",
+                          fontWeight: "600",
+                        }}
+                      >
+                        Transport Costs
+                      </h4>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontWeight: "600",
+                        color: "#0c4a6e",
+                        fontSize: "1.125rem",
+                      }}
+                    >
+                      <span>Freight Costs:</span>
+                      <span>{baselineCosts.transport_costs.freight_costs.formatted}</span>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "0.5rem",
+                        fontSize: "0.75rem",
+                        color: "#64748b",
+                        textAlign: "center",
+                      }}
+                    >
+                      {baselineCosts.transport_costs.freight_costs.percentage}% of total baseline
+                    </div>
+                  </div>
+
+                  {/* Inventory Costs */}
+                  <div
+                    style={{
+                      backgroundColor: "white",
+                      border: "1px solid #e0f2fe",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <Package size={18} style={{ color: "#0ea5e9" }} />
+                      <h4
+                        style={{
+                          margin: 0,
+                          color: "#0c4a6e",
+                          fontSize: "1rem",
+                          fontWeight: "600",
+                        }}
+                      >
+                        Inventory Costs
+                      </h4>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontWeight: "600",
+                        color: "#0c4a6e",
+                        fontSize: "1.125rem",
+                      }}
+                    >
+                      <span>Total Inventory Costs:</span>
+                      <span>{baselineCosts.inventory_costs.total_inventory_costs.formatted}</span>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "0.5rem",
+                        fontSize: "0.75rem",
+                        color: "#64748b",
+                        textAlign: "center",
+                      }}
+                    >
+                      {baselineCosts.inventory_costs.total_inventory_costs.percentage}% of total baseline
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Source Info */}
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    padding: "0.75rem",
+                    backgroundColor: "#e0f2fe",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.75rem",
+                    color: "#0369a1",
+                    textAlign: "center",
+                  }}
+                >
+                  💡 Baseline costs extracted from uploaded data files and scenario results
+                </div>
+              </div>
+            )}
+
+            {baselineCosts && !costsLoading && baselineCosts.total_baseline.raw === 0 && (
+              <div
+                style={{
+                  backgroundColor: "white",
+                  border: "2px dashed #cbd5e1",
+                  borderRadius: "0.5rem",
+                  padding: "2rem",
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "3rem",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  📊
+                </div>
+                <h4
+                  style={{
+                    margin: "0 0 0.5rem 0",
+                    color: "#475569",
+                    fontSize: "1.25rem",
+                    fontWeight: "600",
+                  }}
+                >
+                  No Baseline Costs Found
+                </h4>
+                <p
+                  style={{
+                    margin: "0 0 1rem 0",
+                    color: "#64748b",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  Upload data files containing cost information to see your baseline costs here.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: "1rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <a
+                    href="/data-processor"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#0ea5e9",
+                      color: "white",
+                      textDecoration: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "500",
+                    }}
+                  >
+                    <FileText size={16} />
+                    Upload Cost Data
+                  </a>
+                  <a
+                    href="/tl-data-check"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "white",
+                      color: "#0ea5e9",
+                      textDecoration: "none",
+                      border: "1px solid #0ea5e9",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "500",
+                    }}
+                  >
+                    <Truck size={16} />
+                    Extract TL Baseline
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Network Optimization Readiness Checklist */}
           <div

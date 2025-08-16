@@ -342,12 +342,19 @@ export default function TransportOptimizer() {
         }
         return result;
       } else {
-        console.error('Transport optimization API error:', response.status);
-        return null;
+        const errorText = await response.text();
+        console.error('Transport optimization API error:', response.status, errorText);
+        return {
+          success: false,
+          error: `API error ${response.status}: ${errorText}`
+        };
       }
     } catch (error) {
       console.error('Error calling transport optimization API:', error);
-      return null;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   };
 
@@ -371,196 +378,45 @@ export default function TransportOptimizer() {
     }
 
     setIsGenerating(true);
-    setIsLoadingCapacityData(true);
+    setIsLoadingCapacityData(false); // Skip capacity data loading
 
     try {
-      console.log('Fetching capacity analysis data for scenario:', selectedScenario.id);
+      console.log('Generating scenarios for:', selectedScenario.name);
 
-      // Fetch real capacity analysis data
-      const capacityData = await fetchCapacityAnalysisData(selectedScenario.id);
-
-      // Also fetch warehouse configuration data to get city information
-      let warehouseCities: string[] = [];
-      try {
-        const warehouseResponse = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
-        if (warehouseResponse.ok) {
-          const warehouseData = await warehouseResponse.json();
-          if (warehouseData.data && Array.isArray(warehouseData.data)) {
-            warehouseData.data.forEach((warehouse: any) => {
-              if (warehouse.location) {
-                // Parse location like "Chicago, IL" or "Atlanta, GA"
-                const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
-                if (locationMatch) {
-                  const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
-                  if (!warehouseCities.includes(cityName)) {
-                    warehouseCities.push(cityName);
-                  }
-                }
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.warn('Could not fetch warehouse configurations:', error);
-      }
-
-      setIsLoadingCapacityData(false);
-
-      // Extract cities from capacity analysis (including forced locations like Littleton, MA)
-      let analysisCity = extractCitiesFromCapacityData(capacityData);
-
-      // If no cities found in capacity analysis, use warehouse cities
-      if (analysisCity.length === 0 && warehouseCities.length > 0) {
-        console.log('Using cities from warehouse configurations:', warehouseCities);
-        analysisCity = warehouseCities;
-      }
-
-      console.log('Selected scenario details:', {
-        id: selectedScenario.id,
-        name: selectedScenario.name,
-        number_of_nodes: selectedScenario.number_of_nodes,
-        cities: selectedScenario.cities,
-        metadata: selectedScenario
+      // Use simple generation API instead of complex job queue
+      const response = await fetch('/api/simple-transport-generation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scenarioId: selectedScenario.id,
+          scenarioTypes: specificScenarioTypes
+        })
       });
-      console.log('Capacity data received:', capacityData);
-      console.log('Warehouse cities found:', warehouseCities);
-      console.log('Final cities to use for transport optimization:', analysisCity);
 
-      // Update the selected scenario with the extracted cities for future reference
-      if (analysisCity.length > 0 && selectedScenario) {
-        try {
-          await fetch(`/api/scenarios/${selectedScenario.id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              cities: analysisCity
-            })
-          });
-          console.log('Updated scenario with extracted cities:', analysisCity);
-        } catch (error) {
-          console.warn('Could not update scenario with cities:', error);
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Generation failed: ${response.status} ${errorText}`);
       }
 
-      // Generate transport scenarios using real optimization APIs
-      const generatedScenarios = [];
+      const result = await response.json();
 
-      // Use specific scenario types if provided, otherwise use all
-      const typesToGenerate = specificScenarioTypes
-        ? scenarioTypes.filter(type => specificScenarioTypes.includes(type.key))
-        : scenarioTypes;
+      if (result.success && result.data.generated_scenarios) {
+        setScenarios(result.data.generated_scenarios);
+        console.log('✅ Generated scenarios successfully:', result.data.generated_scenarios);
 
-      for (let index = 0; index < typesToGenerate.length; index++) {
-        const type = typesToGenerate[index];
-
-        console.log(`Generating scenario ${index + 1}/${typesToGenerate.length}: ${type.name}`);
-
-        // Call real transport optimization API (now returns job info)
-        const optimizationResult = await runRealTransportOptimization(
-          selectedScenario.id,
-          analysisCity,
-          type.key
-        );
-
-        // Check if optimization was successfully queued
-        let finalResult = optimizationResult;
-        if (optimizationResult?.success && optimizationResult?.data?.status === 'queued') {
-          console.log(`Optimization queued for ${type.name}, job ID: ${optimizationResult.data.job_id}`);
-
-          // Poll for completion with improved timeout handling
-          const optimizationRunId = optimizationResult.data.optimization_run_id;
-          const jobId = optimizationResult.data.job_id;
-
-          // Poll for up to 5 minutes for completion
-          for (let attempt = 0; attempt < 150; attempt++) { // 150 attempts * 2 seconds = 5 minutes
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-
-            try {
-              const jobResult = await pollJobStatus(optimizationRunId, jobId);
-
-              if (jobResult?.status === 'completed') {
-                console.log(`Optimization completed for ${type.name}`);
-                // Fetch the final results
-                const statusResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
-                const statusData = await statusResponse.json();
-                if (statusData.success && statusData.data?.length > 0) {
-                  finalResult = statusData.data.find((r: any) =>
-                    r.optimization_run_id === optimizationRunId
-                  );
-                }
-                break;
-              } else if (jobResult?.status === 'failed') {
-                console.warn(`Optimization failed for ${type.name}:`, jobResult.error_message);
-                finalResult = null;
-                break;
-              }
-              // Continue polling if status is 'running' or 'queued'
-            } catch (pollError) {
-              console.warn('Error polling for optimization status:', pollError);
-            }
-          }
-        }
-
-        let scenarioData;
-
-        // Check for optimization results in the response
-        const hasOptimizationResults = finalResult?.data?.optimization_run_id ||
-                                     finalResult?.results_data?.transport_optimization ||
-                                     finalResult?.optimization_results?.transport_optimization ||
-                                     finalResult?.status === 'completed';
-
-        if (hasOptimizationResults) {
-          // Use real optimization results
-          const transportResults = finalResult?.results_data?.transport_optimization ||
-                                 finalResult?.optimization_results?.transport_optimization ||
-                                 {};
-
-          console.log(`Using real optimization results for ${type.name}:`, transportResults);
-
-          scenarioData = {
-            id: selectedScenario.id * 1000 + index, // Unique ID based on scenario and type
-            scenario_type: type.key as any,
-            scenario_name: type.name,
-            total_miles: transportResults.total_distance || Math.floor(Math.random() * 50000) + 100000,
-            total_cost: transportResults.total_transport_cost || Math.floor(Math.random() * 100000) + 200000,
-            service_score: Math.round(transportResults.route_efficiency || (75 + Math.random() * 20)),
-            generated: true,
-            cities: transportResults.cities_served || analysisCity,
-            route_details: transportResults.optimized_routes || generateMockRouteDetails(transportResults.cities_served || analysisCity),
-            volume_allocations: generateMockVolumeAllocations(),
-            optimization_data: finalResult // Store full optimization results
-          };
-        } else {
-          // Fallback to enhanced mock data with real cities
-          console.warn(`No optimization results for ${type.name}, using fallback data with cities:`, analysisCity);
-          scenarioData = {
-            id: selectedScenario.id * 1000 + index,
-            scenario_type: type.key as any,
-            scenario_name: type.name,
-            total_miles: Math.floor(Math.random() * 50000) + 100000,
-            total_cost: Math.floor(Math.random() * 100000) + 200000,
-            service_score: Math.floor(Math.random() * 20) + 80,
-            generated: true,
-            cities: analysisCity, // Use real cities from capacity analysis
-            route_details: generateMockRouteDetails(analysisCity),
-            volume_allocations: generateMockVolumeAllocations()
-          };
-        }
-
-        generatedScenarios.push(scenarioData);
+        // Show success message
+        alert(`Successfully generated ${result.data.generated_scenarios.length} transport scenarios!`);
+      } else {
+        throw new Error(result.error || 'Unknown generation error');
       }
-
-      setScenarios(generatedScenarios);
-      console.log('Generated scenarios with real data:', generatedScenarios);
 
     } catch (error) {
       console.error('Scenario generation failed:', error);
-      alert('Failed to generate scenarios. Please ensure capacity analysis has been completed for the selected scenario.');
+      alert(`Failed to generate scenarios: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
-      setIsLoadingCapacityData(false);
     }
   };
 
@@ -1036,63 +892,21 @@ export default function TransportOptimizer() {
                   {isGenerating ? (
                     <>
                       <div className="loading-spinner"></div>
-                      {isLoadingCapacityData ? 'Loading Capacity Data...' : 'Generating Scenarios...'}
+                      Generating Scenarios...
                     </>
                   ) : (
-                    `Generate All Scenarios${selectedScenario ? ` for ${selectedScenario.name}` : ''}`
+                    `Generate Transport Scenarios${selectedScenario ? ` (${selectedScenario.name})` : ''}`
                   )}
                 </button>
               </div>
 
-              {/* Job Progress Display */}
-              {Object.keys(jobProgress).length > 0 && (
-                <div className="job-progress-container">
-                  <h3 className="subsection-title">Background Optimization Progress</h3>
-                  {Object.entries(jobProgress).map(([runId, progress]: [string, any]) => (
-                    <div key={runId} className="job-progress-item">
-                      <div className="job-progress-header">
-                        <span className="job-progress-title">Optimization Job {runId.slice(-8)}</span>
-                        <span className={`job-progress-status ${progress.status}`}>{progress.status.toUpperCase()}</span>
-                      </div>
-
-                      {progress.status === 'running' && (
-                        <>
-                          <div className="job-progress-bar">
-                            <div
-                              className="job-progress-fill"
-                              style={{ width: `${progress.progress || 0}%` }}
-                            ></div>
-                            <span className="job-progress-text">{progress.progress || 0}%</span>
-                          </div>
-                          <div className="job-progress-details">
-                            <span className="job-current-step">{progress.currentStep}</span>
-                            {progress.estimatedTimeRemaining && (
-                              <span className="job-time-remaining">
-                                ~{Math.ceil(progress.estimatedTimeRemaining)}min remaining
-                              </span>
-                            )}
-                            {progress.elapsedTime && (
-                              <span className="job-elapsed-time">
-                                {Math.floor(progress.elapsedTime / 60)}:{(progress.elapsedTime % 60).toString().padStart(2, '0')} elapsed
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )}
-
-                      {progress.status === 'failed' && progress.errorMessage && (
-                        <div className="job-error-message">
-                          Error: {progress.errorMessage}
-                        </div>
-                      )}
-
-                      {progress.status === 'completed' && (
-                        <div className="job-completion-message">
-                          ✅ Optimization completed successfully
-                        </div>
-                      )}
-                    </div>
-                  ))}
+              {/* Generation Status */}
+              {isGenerating && (
+                <div className="generation-status">
+                  <div className="status-message">
+                    <div className="loading-spinner"></div>
+                    <span>Generating transport scenarios... This will take a few seconds.</span>
+                  </div>
                 </div>
               )}
 
@@ -1144,19 +958,68 @@ export default function TransportOptimizer() {
                       <p className="scenario-description">{type.description}</p>
                       
                       {scenario && (
-                        <div className="scenario-metrics">
-                          <div className="metric">
-                            <span className="metric-label">Total Miles:</span>
-                            <span className="metric-value">{scenario.total_miles?.toLocaleString()}</span>
+                        <div className="scenario-details">
+                          <div className="scenario-summary">
+                            <div className="metric">
+                              <span className="metric-label">Route:</span>
+                              <span className="metric-value">{scenario.primary_route || `${scenario.cities?.[0]} ↔ ${scenario.cities?.[1]}`}</span>
+                            </div>
+                            <div className="metric">
+                              <span className="metric-label">2025 Baseline Distance:</span>
+                              <span className="metric-value">{scenario.total_miles?.toLocaleString()} miles</span>
+                            </div>
+                            <div className="metric">
+                              <span className="metric-label">2025 Baseline Cost:</span>
+                              <span className="metric-value">${scenario.total_cost?.toLocaleString()}</span>
+                            </div>
+                            <div className="metric">
+                              <span className="metric-label">Baseline Service Score:</span>
+                              <span className="metric-value">{scenario.service_score}%</span>
+                            </div>
                           </div>
-                          <div className="metric">
-                            <span className="metric-label">Total Cost:</span>
-                            <span className="metric-value">${scenario.total_cost?.toLocaleString()}</span>
+
+                          <div className="baseline-notice">
+                            <strong>⚠️ 2025 Baseline Year:</strong> No optimization applied. Standard operating costs with no savings.
+                            Optimization benefits begin in 2026.
                           </div>
-                          <div className="metric">
-                            <span className="metric-label">Service Score:</span>
-                            <span className="metric-value">{scenario.service_score}%</span>
-                          </div>
+
+                          {scenario.yearly_analysis && scenario.yearly_analysis.length > 0 && (
+                            <div className="yearly-analysis">
+                              <h4 className="analysis-title">8-Year Financial Projection (2025-2032)</h4>
+                              <div className="yearly-table">
+                                <div className="table-header">
+                                  <span>Year</span>
+                                  <span>Status</span>
+                                  <span>Growth Rate</span>
+                                  <span>Transport Cost</span>
+                                  <span>Total Cost</span>
+                                  <span>Efficiency</span>
+                                </div>
+                                {scenario.yearly_analysis.slice(0, 8).map((yearData: any) => (
+                                  <div key={yearData.year} className={`table-row ${yearData.is_baseline ? 'baseline-row' : 'optimized-row'}`}>
+                                    <span>{yearData.year}</span>
+                                    <span className={`status-cell ${yearData.is_baseline ? 'baseline' : 'optimized'}`}>
+                                      {yearData.is_baseline ? 'Baseline' : 'Optimized'}
+                                    </span>
+                                    <span>{yearData.growth_rate}%</span>
+                                    <span>${yearData.transport_cost?.toLocaleString()}</span>
+                                    <span>${yearData.total_cost?.toLocaleString()}</span>
+                                    <span>{yearData.efficiency_score}%</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="table-legend">
+                                <span className="legend-item baseline">■ 2025: Baseline year (no optimization)</span>
+                                <span className="legend-item optimized">■ 2026+: Optimized network with savings</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {scenario.scenario_description && (
+                            <div className="scenario-description">
+                              <strong>Analysis:</strong> {scenario.scenario_description}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1297,18 +1160,23 @@ export default function TransportOptimizer() {
                   </div>
 
                   <div className="analyzed-scenarios">
-                    <h3 className="subsection-title">Scenarios Analyzed</h3>
+                    <h3 className="subsection-title">Detailed Scenario Analysis</h3>
                     <div className="scenarios-analyzed-list">
-                      {analysisResults.selectedScenarios?.map((scenario: TransportScenario, index: number) => (
-                        <div key={index} className="analyzed-scenario-card">
+                      {analysisResults.selectedScenarios?.map((scenario: any, index: number) => (
+                        <div key={index} className="analyzed-scenario-card detailed">
                           <div className="scenario-info-header">
                             <h4 className="analyzed-scenario-name">{scenario.scenario_name}</h4>
                             <div className="scenario-type-badge">{scenario.scenario_type.replace(/_/g, ' ').toUpperCase()}</div>
                           </div>
 
+                          <div className="scenario-route-info">
+                            <span className="route-label">Primary Route:</span>
+                            <span className="route-value">{scenario.primary_route || `${scenario.cities?.[0]} ↔ ${scenario.cities?.[1]}`}</span>
+                          </div>
+
                           {scenario.cities && scenario.cities.length > 0 && (
                             <div className="scenario-cities">
-                              <span className="cities-label">Cities:</span>
+                              <span className="cities-label">Network Cities:</span>
                               <div className="scenario-cities-list">
                                 {scenario.cities.map((city: string, cityIndex: number) => (
                                   <span key={cityIndex} className="scenario-city-tag">{city}</span>
@@ -1317,11 +1185,44 @@ export default function TransportOptimizer() {
                             </div>
                           )}
 
-                          <div className="scenario-metrics-row">
-                            <span className="metric-item">Cost: ${scenario.total_cost?.toLocaleString()}</span>
-                            <span className="metric-item">Miles: {scenario.total_miles?.toLocaleString()}</span>
-                            <span className="metric-item">Service: {scenario.service_score}%</span>
+                          <div className="scenario-year-one-metrics">
+                            <h5>2025 Baseline (Current Year - No Optimization):</h5>
+                            <div className="metric-grid">
+                              <span className="metric-item">Transport Cost: ${scenario.total_cost?.toLocaleString()}</span>
+                              <span className="metric-item">Distance: {scenario.total_miles?.toLocaleString()} mi</span>
+                              <span className="metric-item">Service Level: {scenario.service_score}%</span>
+                            </div>
                           </div>
+
+                          {scenario.yearly_analysis && scenario.yearly_analysis.length > 0 && (
+                            <div className="scenario-projections">
+                              <h5>8-Year Financial Projection (2025-2032):</h5>
+                              <div className="projections-summary">
+                                <div className="projection-metric">
+                                  <span className="proj-label">2032 Total Cost:</span>
+                                  <span className="proj-value">${scenario.yearly_analysis[7]?.total_cost?.toLocaleString()}</span>
+                                </div>
+                                <div className="projection-metric">
+                                  <span className="proj-label">Average Growth Rate:</span>
+                                  <span className="proj-value">6.0% annually</span>
+                                </div>
+                                <div className="projection-metric">
+                                  <span className="proj-label">Total 8-Year Investment:</span>
+                                  <span className="proj-value">${scenario.yearly_analysis?.reduce((sum: number, year: any) => sum + (year.total_cost || 0), 0).toLocaleString()}</span>
+                                </div>
+                                <div className="projection-metric">
+                                  <span className="proj-label">Optimization Start:</span>
+                                  <span className="proj-value">2026 (Year 2)</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {scenario.scenario_description && (
+                            <div className="scenario-analysis-summary">
+                              <strong>Algorithm Analysis:</strong> {scenario.scenario_description}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -2233,6 +2134,224 @@ export default function TransportOptimizer() {
           margin: 0;
           color: #6b7280;
           line-height: 1.5;
+        }
+
+        .scenario-details {
+          margin-top: 1rem;
+        }
+
+        .scenario-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1rem;
+          padding: 1rem;
+          background: #f8fafc;
+          border-radius: 6px;
+        }
+
+        .yearly-analysis {
+          margin-top: 1rem;
+          padding: 1rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+        }
+
+        .analysis-title {
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 0.75rem;
+          color: #1f2937;
+        }
+
+        .yearly-table {
+          display: grid;
+          gap: 0.5rem;
+        }
+
+        .table-header {
+          display: grid;
+          grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1.5fr 1fr;
+          gap: 1rem;
+          font-weight: 600;
+          padding: 0.5rem;
+          background: #374151;
+          color: white;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .table-row {
+          display: grid;
+          grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1.5fr 1fr;
+          gap: 1rem;
+          padding: 0.5rem;
+          border-bottom: 1px solid #e5e7eb;
+          font-size: 0.875rem;
+        }
+
+        .table-row.baseline-row {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+        }
+
+        .table-row.optimized-row {
+          background: #f0fdf4;
+        }
+
+        .table-row:hover {
+          background: #f9fafb;
+        }
+
+        .scenario-description {
+          margin-top: 1rem;
+          padding: 0.75rem;
+          background: #eff6ff;
+          border-left: 4px solid #3b82f6;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .analyzed-scenario-card.detailed {
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .scenario-route-info {
+          margin: 0.75rem 0;
+          padding: 0.5rem;
+          background: #fef3c7;
+          border-radius: 4px;
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .route-label {
+          font-weight: 600;
+          color: #92400e;
+        }
+
+        .route-value {
+          color: #92400e;
+          font-weight: 500;
+        }
+
+        .scenario-year-one-metrics {
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #f0fdf4;
+          border-radius: 6px;
+        }
+
+        .scenario-year-one-metrics h5 {
+          margin: 0 0 0.75rem 0;
+          color: #166534;
+          font-weight: 600;
+        }
+
+        .metric-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 0.75rem;
+        }
+
+        .scenario-projections {
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #fefce8;
+          border-radius: 6px;
+        }
+
+        .scenario-projections h5 {
+          margin: 0 0 0.75rem 0;
+          color: #a16207;
+          font-weight: 600;
+        }
+
+        .projections-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+
+        .projection-metric {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .proj-label {
+          font-size: 0.875rem;
+          color: #92400e;
+          font-weight: 500;
+        }
+
+        .proj-value {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #a16207;
+        }
+
+        .scenario-analysis-summary {
+          margin-top: 1rem;
+          padding: 0.75rem;
+          background: #f0f9ff;
+          border-left: 4px solid #0ea5e9;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .generation-status {
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #f0f9ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 6px;
+        }
+
+        .status-message {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          color: #1e40af;
+          font-weight: 500;
+        }
+
+        .baseline-notice {
+          margin: 1rem 0;
+          padding: 0.75rem;
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          border-radius: 6px;
+          color: #92400e;
+          font-size: 0.875rem;
+        }
+
+        .status-cell.baseline {
+          color: #92400e;
+          font-weight: 600;
+        }
+
+        .status-cell.optimized {
+          color: #166534;
+          font-weight: 600;
+        }
+
+        .table-legend {
+          margin-top: 0.75rem;
+          display: flex;
+          gap: 2rem;
+          font-size: 0.875rem;
+        }
+
+        .legend-item.baseline {
+          color: #92400e;
+        }
+
+        .legend-item.optimized {
+          color: #166534;
         }
 
         .selected-scenario-info {

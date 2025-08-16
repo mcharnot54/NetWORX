@@ -131,8 +131,13 @@ class JobQueue {
   private async startProcessing(): Promise<void> {
     if (this.isProcessing) return;
 
-    // Don't start processing during build time
+    // Don't start processing during build time or if already processing
     if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return;
+    }
+
+    // Prevent multiple processing loops
+    if (this.isProcessing) {
       return;
     }
 
@@ -152,7 +157,7 @@ class JobQueue {
 
       if (runningJobs.length >= this.maxConcurrentJobs) {
         // Wait for running jobs to complete
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
         continue;
       }
 
@@ -161,7 +166,7 @@ class JobQueue {
       this.processJob(job);
       
       // Brief delay before checking for next job
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
     
     this.isProcessing = false;
@@ -172,13 +177,22 @@ class JobQueue {
    */
   private async processJob(job: OptimizationJob): Promise<void> {
     try {
+      // Check if job is already completed or failed
+      if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+        console.log(`Job ${job.id} already in final state: ${job.status}`);
+        return;
+      }
+
       // Mark job as running
       job.status = 'running';
       job.started_at = new Date();
       job.current_step = 'Initializing optimization';
       job.progress_percentage = 5;
 
-      console.log(`Starting job ${job.id} for scenario ${job.scenario_id}`);
+      console.log(`Starting job ${job.id} for scenario ${job.scenario_id}`, {
+        resultType: job.result_type,
+        optimizationParams: job.optimization_params
+      });
 
       // Set timeout for the job
       const timeoutHandle = setTimeout(() => {
@@ -204,12 +218,25 @@ class JobQueue {
         job.progress_percentage = 25;
 
         // Perform the optimization
+        console.log(`Calling performOptimization for job ${job.id} with params:`, {
+          scenarioId: job.scenario_id,
+          warehouseConfigsCount: warehouseConfigs.length,
+          transportConfigsCount: transportConfigs.length,
+          optimizationParams: job.optimization_params
+        });
+
         const results = await this.performOptimization({
           scenario,
           warehouseConfigs,
           transportConfigs,
           optimization_params: job.optimization_params,
           job // Pass job for progress updates
+        });
+
+        console.log(`Optimization completed for job ${job.id}`, {
+          totalCost: results.totalCost,
+          costSavings: results.costSavings,
+          efficiencyScore: results.efficiencyScore
         });
 
         job.current_step = 'Saving results';
@@ -310,14 +337,15 @@ class JobQueue {
       setTimeout(async () => {
         try {
           // Reset job status and try again
-          job.status = 'running';
+          job.status = 'queued'; // Set to queued instead of running to go through normal processing
           job.current_step = 'Retrying optimization';
-          job.progress_percentage = 5;
+          job.progress_percentage = 0;
+          job.recovery_attempted = true;
 
-          // Re-run the job processing
-          await this.processJob(job);
+          // Add the job back to the queue for normal processing instead of recursive call
+          this.startProcessing();
         } catch (retryError) {
-          // If retry also fails, handle it (but don't retry again immediately)
+          // If retry setup fails, handle it
           await this.finalizeJobFailure(job, retryError);
         }
       }, retryDelay);
