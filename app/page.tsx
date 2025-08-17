@@ -275,7 +275,7 @@ export default function Dashboard() {
         if (controller && !controller.signal.aborted) {
           controller.abort('Request timeout');
         }
-      }, 15000); // 15 second timeout (increased due to database operations)
+      }, 10000); // 10 second timeout to match fetch-utils default
 
       const response = await fetch('/api/current-baseline-costs', {
         signal: controller.signal,
