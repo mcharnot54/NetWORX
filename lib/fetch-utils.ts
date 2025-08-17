@@ -21,7 +21,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   exponentialBackoff: true,
 };
 
-const DEFAULT_TIMEOUT = 10000; // 10 seconds - much more reasonable
+const DEFAULT_TIMEOUT = 8000; // 8 seconds - more aggressive for better UX
 
 export class FetchError extends Error {
   public status?: number;
