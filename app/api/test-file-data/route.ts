@@ -64,12 +64,12 @@ export async function GET(request: NextRequest) {
     for (const file of files.slice(0, 3)) { // Check first 3 files
       if (file.has_processed_data) {
         try {
-          const fileData = await sql`
+          const fileData = await withTimeout(sql`
             SELECT processed_data
             FROM data_files
             WHERE id = ${file.id}
             LIMIT 1
-          `;
+          `, 1500);
 
           if (fileData && fileData.length > 0 && fileData[0]?.processed_data) {
             let processedData = fileData[0].processed_data;
