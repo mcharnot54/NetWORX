@@ -77,10 +77,17 @@ export default function TestBaseline() {
       const data = await response.json();
       setBaselineData(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch baseline costs';
-      setError(errorMessage);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch baseline costs';
+        setError(errorMessage);
+      }
       console.error('Baseline costs fetch error:', err);
     } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       setLoadingBaseline(false);
     }
   };
