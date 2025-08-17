@@ -253,6 +253,56 @@ export default function TestBaseline() {
             </div>
           )}
 
+          {/* Debug Data Structure */}
+          {debugData && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">🔍 File Structure Debug</h2>
+              {debugData.success ? (
+                <div className="space-y-4">
+                  {debugData.file_analysis?.map((analysis: any, index: number) => (
+                    <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                      <h3 className="font-bold text-lg">{analysis.file_name}</h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm mt-2">
+                        <div><strong>Data Location:</strong> {analysis.data_location}</div>
+                        <div><strong>Total Rows:</strong> {analysis.total_rows}</div>
+                        <div><strong>Structure:</strong> {analysis.data_structure}</div>
+                        <div><strong>Columns:</strong> {analysis.all_columns?.length || 0}</div>
+                      </div>
+
+                      {analysis.all_columns && (
+                        <div className="mt-2">
+                          <strong>Available Columns:</strong>
+                          <div className="text-xs bg-white p-2 rounded mt-1 max-h-20 overflow-auto">
+                            {analysis.all_columns.join(', ')}
+                          </div>
+                        </div>
+                      )}
+
+                      {analysis.sample_rows && analysis.sample_rows.length > 0 && (
+                        <div className="mt-2">
+                          <strong>Sample Data:</strong>
+                          <pre className="text-xs bg-white p-2 rounded mt-1 max-h-32 overflow-auto">
+                            {JSON.stringify(analysis.sample_rows.slice(0, 2), null, 2)}
+                          </pre>
+                        </div>
+                      )}
+
+                      {analysis.error && (
+                        <div className="mt-2 text-red-600">
+                          <strong>Error:</strong> {analysis.error}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-red-600">
+                  Debug Error: {debugData.error}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
