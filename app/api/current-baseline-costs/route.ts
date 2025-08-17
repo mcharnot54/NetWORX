@@ -99,13 +99,19 @@ export async function GET(request: NextRequest) {
         }
 
         // Check processed data files for financial data
-        const dataFiles = await sql`
-          SELECT file_name, processed_data, data_type
-          FROM data_files
-          WHERE scenario_id = ${scenario.id}
-          AND processing_status = 'completed'
-          AND processed_data IS NOT NULL
-        `;
+        let dataFiles = [];
+        try {
+          dataFiles = await sql`
+            SELECT file_name, processed_data, data_type
+            FROM data_files
+            WHERE scenario_id = ${scenario.id}
+            AND processing_status = 'completed'
+            AND processed_data IS NOT NULL
+          `;
+        } catch (dataFileError) {
+          console.debug(`data_files table not accessible for scenario ${scenario.id}`);
+          dataFiles = [];
+        }
 
         for (const file of dataFiles) {
           if (!file.processed_data?.data) continue;
