@@ -49,8 +49,10 @@
         logEntry.error = error;
         
         // Only log actual errors, not suppressed ones
-        if (!(error.name === 'AbortError' || error.message.includes('aborted'))) {
-          console.debug(`❌ Fetch #${requestId}: ${error.name} - ${error.message}`);
+        const errorMessage = error.message || '';
+        const errorName = error.name || '';
+        if (!(errorName === 'AbortError' || errorMessage.includes('aborted'))) {
+          console.debug(`❌ Fetch #${requestId}: ${errorName} - ${errorMessage}`);
         } else {
           console.debug(`⏹️ Fetch #${requestId}: Request aborted (expected)`);
         }
