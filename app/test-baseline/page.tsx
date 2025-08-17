@@ -96,17 +96,17 @@ export default function TestBaseline() {
           <div className="flex gap-4 mb-6">
             <button
               onClick={testFileData}
-              disabled={loading}
+              disabled={loadingFiles}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Loading...' : 'Test File Data'}
+              {loadingFiles ? 'Loading Files...' : 'Refresh File Data'}
             </button>
             <button
               onClick={testBaselineCosts}
-              disabled={loading}
+              disabled={loadingBaseline}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
             >
-              {loading ? 'Loading...' : 'Test Baseline Costs'}
+              {loadingBaseline ? 'Loading Costs...' : 'Refresh Baseline Costs'}
             </button>
           </div>
 
