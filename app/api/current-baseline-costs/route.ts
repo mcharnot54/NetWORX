@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
             WHERE scenario_id = ${scenario.id}
             ORDER BY created_at DESC
             LIMIT 1
-          `, 2000); // 2 second timeout for scenario results
+          `, 1000); // 1 second timeout for scenario results
         } catch (tableError) {
           console.debug(`scenario_results table not found for scenario ${scenario.id}`);
           scenarioResults = [];
