@@ -205,16 +205,18 @@ const fetchWithTimeout = async (
             true
           );
         } else {
-          // Handle external cancellation more gracefully
+          // For cancellations, don't throw - return null or a specific response
           const reason = errorMessage && errorMessage !== 'signal is aborted without reason'
             ? errorMessage
-            : 'Request was cancelled by user or system';
+            : 'Request was cancelled';
 
           console.debug(`Request cancelled for ${url}:`, reason);
+
+          // Instead of throwing, create a cancelled FetchError for graceful handling
           throw new FetchError(
-            reason,
-            undefined,
-            undefined,
+            'Request was cancelled',
+            0, // Use 0 status to indicate cancellation
+            'Cancelled',
             false,
             false
           );
