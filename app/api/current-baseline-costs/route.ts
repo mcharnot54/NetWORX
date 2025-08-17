@@ -149,14 +149,24 @@ export async function GET(request: NextRequest) {
           scenarioResults = [];
         }
 
+        // Add scenario results as fallback if available
         if (scenarioResults.length > 0) {
           const result = scenarioResults[0];
-          
-          baselineCosts.transport_costs.freight_costs += result.transportation_costs || 0;
-          baselineCosts.warehouse_costs.operating_costs_other += result.warehouse_operating_costs || 0;
-          baselineCosts.warehouse_costs.total_labor_costs += result.variable_labor_costs || 0;
-          baselineCosts.warehouse_costs.rent_and_overhead += result.facility_rent_costs || 0;
-          
+
+          // Only add if we don't already have better data from files
+          if (baselineCosts.transport_costs.freight_costs === 0) {
+            baselineCosts.transport_costs.freight_costs += result.transportation_costs || 0;
+          }
+          if (baselineCosts.warehouse_costs.operating_costs_other === 0) {
+            baselineCosts.warehouse_costs.operating_costs_other += result.warehouse_operating_costs || 0;
+          }
+          if (baselineCosts.warehouse_costs.total_labor_costs === 0) {
+            baselineCosts.warehouse_costs.total_labor_costs += result.variable_labor_costs || 0;
+          }
+          if (baselineCosts.warehouse_costs.rent_and_overhead === 0) {
+            baselineCosts.warehouse_costs.rent_and_overhead += result.facility_rent_costs || 0;
+          }
+
           baselineCosts.data_sources.push({
             type: 'scenario_results',
             scenario: scenario.name,
@@ -168,152 +178,6 @@ export async function GET(request: NextRequest) {
               rent: result.facility_rent_costs || 0
             }
           });
-        }
-
-        // Check processed data files for financial data
-        let dataFiles = [];
-        try {
-          dataFiles = await withTimeout(sql`
-            SELECT file_name, processed_data, data_type
-            FROM data_files
-            WHERE scenario_id = ${scenario.id}
-            AND processing_status = 'completed'
-            AND processed_data IS NOT NULL
-          `, 1000); // 1 second timeout for data files
-        } catch (dataFileError) {
-          console.debug(`data_files table not accessible for scenario ${scenario.id}`);
-          dataFiles = [];
-        }
-
-        for (const file of dataFiles) {
-          if (!file.processed_data?.data) continue;
-
-          const data = Array.isArray(file.processed_data.data) 
-            ? file.processed_data.data 
-            : (file.processed_data.data.data || []);
-
-          // Look for cost data in the processed data
-          for (const row of data) {
-            if (typeof row !== 'object' || !row) continue;
-
-            // Extract various cost fields from the data
-            for (const [key, value] of Object.entries(row)) {
-              const keyLower = key.toLowerCase();
-              let numValue = 0;
-
-              // Parse numeric values
-              if (typeof value === 'number') {
-                numValue = value;
-              } else if (typeof value === 'string') {
-                const cleaned = value.replace(/[$,\s]/g, '');
-                if (/^\d+\.?\d*$/.test(cleaned)) {
-                  numValue = parseFloat(cleaned);
-                }
-              }
-
-              if (numValue > 1000) { // Only consider significant amounts
-                // Categorize costs based on column names
-                if (keyLower.includes('freight') || keyLower.includes('transport') || keyLower.includes('shipping')) {
-                  baselineCosts.transport_costs.freight_costs += numValue;
-                } else if (keyLower.includes('labor') || keyLower.includes('wage') || keyLower.includes('payroll')) {
-                  baselineCosts.warehouse_costs.total_labor_costs += numValue;
-                } else if (keyLower.includes('rent') || keyLower.includes('lease') || keyLower.includes('overhead')) {
-                  baselineCosts.warehouse_costs.rent_and_overhead += numValue;
-                } else if (keyLower.includes('inventory') || keyLower.includes('stock') || keyLower.includes('carrying')) {
-                  baselineCosts.inventory_costs.total_inventory_costs += numValue;
-                } else if (keyLower.includes('operating') || keyLower.includes('operational')) {
-                  baselineCosts.warehouse_costs.operating_costs_other += numValue;
-                }
-              }
-            }
-          }
-
-          if (data.length > 0) {
-            baselineCosts.data_sources.push({
-              type: 'data_file',
-              scenario: scenario.name,
-              project: scenario.project_name,
-              file_name: file.file_name,
-              data_type: file.data_type,
-              rows_analyzed: data.length
-            });
-          }
-        }
-
-        // Also check the TL files specifically for freight costs
-        let tlFiles = [];
-        try {
-          tlFiles = await withTimeout(sql`
-            SELECT file_name, processed_data
-            FROM data_files
-            WHERE scenario_id = ${scenario.id}
-            AND (file_name ILIKE '%TL%' OR file_name ILIKE '%freight%' OR file_name ILIKE '%transport%')
-            AND processed_data IS NOT NULL
-          `, 1000); // 1 second timeout for TL files
-        } catch (tlFileError) {
-          console.debug(`TL files not accessible for scenario ${scenario.id}`);
-          tlFiles = [];
-        }
-
-        for (const tlFile of tlFiles) {
-          if (!tlFile.processed_data?.data) continue;
-
-          let data = tlFile.processed_data.data;
-          if (!Array.isArray(data)) {
-            if (typeof data === 'object') {
-              const keys = Object.keys(data);
-              const arrayKey = keys.find(key => Array.isArray(data[key]));
-              if (arrayKey) {
-                data = data[arrayKey];
-              } else {
-                data = Object.entries(data).map(([key, value]) => ({ key, value }));
-              }
-            } else {
-              data = [];
-            }
-          }
-
-          // Find the largest freight-related value as baseline
-          let maxFreightCost = 0;
-          for (const row of data) {
-            if (typeof row !== 'object') continue;
-            
-            for (const [key, value] of Object.entries(row)) {
-              const keyLower = key.toLowerCase();
-              let numValue = 0;
-
-              if (typeof value === 'number') {
-                numValue = value;
-              } else if (typeof value === 'string') {
-                const cleaned = value.replace(/[$,\s]/g, '');
-                if (/^\d+\.?\d*$/.test(cleaned)) {
-                  numValue = parseFloat(cleaned);
-                }
-              }
-
-              if (numValue > maxFreightCost && numValue > 100000 && 
-                  (keyLower.includes('freight') || keyLower.includes('transport') || 
-                   keyLower.includes('cost') || keyLower.includes('total') || 
-                   keyLower.includes('spend'))) {
-                maxFreightCost = numValue;
-              }
-            }
-          }
-
-          if (maxFreightCost > 0) {
-            // Use the max value, don't add it to existing (to avoid double counting)
-            if (maxFreightCost > baselineCosts.transport_costs.freight_costs) {
-              baselineCosts.transport_costs.freight_costs = maxFreightCost;
-              
-              baselineCosts.data_sources.push({
-                type: 'tl_baseline',
-                scenario: scenario.name,
-                project: scenario.project_name,
-                file_name: tlFile.file_name,
-                baseline_freight_cost: maxFreightCost
-              });
-            }
-          }
         }
 
       } catch (scenarioError) {
