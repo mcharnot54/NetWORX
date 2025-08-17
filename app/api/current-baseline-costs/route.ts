@@ -105,22 +105,30 @@ export async function GET(request: NextRequest) {
           // Extract costs based on file name and content
           console.log(`Processing file: ${file.file_name} with ${data.length} rows`);
 
-          // Process different types of cost files
-          if (file.file_name.toLowerCase().includes('warehouse budget') ||
-              file.file_name.toLowerCase().includes('operating expenses')) {
+          const fileNameLower = file.file_name.toLowerCase();
+
+          // Target specific transportation files first
+          if (fileNameLower.includes('2024 totals with inbound and outbound tl') ||
+              fileNameLower.includes('r&l curriculum associates') ||
+              fileNameLower.includes('ups invoice by state summary') ||
+              fileNameLower.includes('tl') ||
+              fileNameLower.includes('transport') ||
+              fileNameLower.includes('freight') ||
+              fileNameLower.includes('shipping')) {
+            // Extract transportation costs using specific column logic
+            extractTransportationCosts(data, baselineCosts, file.file_name);
+          } else if (fileNameLower.includes('warehouse budget') ||
+                     fileNameLower.includes('operating expenses') ||
+                     fileNameLower.includes('general operating')) {
             // Extract warehouse costs
             extractWarehouseCosts(data, baselineCosts, file.file_name);
-          } else if (file.file_name.toLowerCase().includes('tl') ||
-                     file.file_name.toLowerCase().includes('transport') ||
-                     file.file_name.toLowerCase().includes('freight')) {
-            // Extract transportation costs
-            extractTransportationCosts(data, baselineCosts, file.file_name);
-          } else if (file.file_name.toLowerCase().includes('network') ||
-                     file.file_name.toLowerCase().includes('capacity')) {
+          } else if (fileNameLower.includes('network') ||
+                     fileNameLower.includes('capacity')) {
             // Extract operational costs from network files
             extractOperationalCosts(data, baselineCosts, file.file_name);
-          } else if (file.file_name.toLowerCase().includes('growth') ||
-                     file.file_name.toLowerCase().includes('forecast')) {
+          } else if (fileNameLower.includes('growth') ||
+                     fileNameLower.includes('forecast') ||
+                     fileNameLower.includes('5 year')) {
             // Extract growth-related costs
             extractGrowthCosts(data, baselineCosts, file.file_name);
           } else {
