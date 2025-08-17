@@ -252,6 +252,50 @@ export default function TestBaseline() {
               )}
             </div>
 
+            {/* Transport Validation */}
+            <div className="card">
+              <h2 className="text-xl font-semibold mb-4">Transport Validation</h2>
+              {validationData ? (
+                <div className="space-y-4">
+                  {validationData.success ? (
+                    <>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="p-3 bg-blue-50 rounded">
+                          <strong>Files Found:</strong> {validationData.files_found}
+                        </div>
+
+                        <div className="p-3 bg-green-50 rounded">
+                          <strong>Transportation Totals (2024):</strong>
+                          <div className="text-sm mt-1">
+                            <div>TL: ${validationData.summary?.total_tl_cost?.toLocaleString() || '0'}</div>
+                            <div>LTL: ${validationData.summary?.total_ltl_cost?.toLocaleString() || '0'}</div>
+                            <div>Parcel: ${validationData.summary?.total_parcel_cost?.toLocaleString() || '0'}</div>
+                            <div><strong>Total: ${((validationData.summary?.total_tl_cost || 0) + (validationData.summary?.total_ltl_cost || 0) + (validationData.summary?.total_parcel_cost || 0)).toLocaleString()}</strong></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {validationData.validation_results?.map((result: any, index: number) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded">
+                          <strong>{result.file_name}</strong>
+                          <div className="text-sm mt-1">
+                            <div>Target: {result.target_columns?.target} - {result.target_columns?.description}</div>
+                            <div>Rows: {result.total_rows} | Values Found: {result.extracted_values?.length || 0}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="text-red-600">
+                      Error: {validationData.error}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500">Click "Validate Transport Extraction" to check specific column extraction...</p>
+              )}
+            </div>
+
             {/* Baseline Costs */}
             <div className="card">
               <h2 className="text-xl font-semibold mb-4">Baseline Costs</h2>
