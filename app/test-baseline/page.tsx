@@ -177,6 +177,13 @@ export default function TestBaseline() {
               {loadingFiles ? 'Loading Files...' : 'Refresh File Data'}
             </button>
             <button
+              onClick={testTransportValidation}
+              disabled={loadingValidation}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+            >
+              {loadingValidation ? 'Validating...' : 'Validate Transport Extraction'}
+            </button>
+            <button
               onClick={testBaselineCosts}
               disabled={loadingBaseline}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
