@@ -111,13 +111,13 @@ export async function GET(request: NextRequest) {
         // Check processed data files for financial data
         let dataFiles = [];
         try {
-          dataFiles = await sql`
+          dataFiles = await withTimeout(sql`
             SELECT file_name, processed_data, data_type
             FROM data_files
             WHERE scenario_id = ${scenario.id}
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
-          `;
+          `, 2000); // 2 second timeout for data files
         } catch (dataFileError) {
           console.debug(`data_files table not accessible for scenario ${scenario.id}`);
           dataFiles = [];
