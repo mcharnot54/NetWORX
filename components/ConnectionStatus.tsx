@@ -65,12 +65,12 @@ export default function ConnectionStatus({ showDetails = false }: ConnectionStat
     // Initial check
     checkServerConnectivity();
 
-    // Set up periodic checks
+    // Set up periodic checks (reduced frequency to minimize load)
     interval = setInterval(() => {
       if (!isCleanedUp && isMounted) {
         checkServerConnectivity();
       }
-    }, 30000);
+    }, 60000); // Check every 60 seconds instead of 30
 
     // Listen for online/offline events
     window.addEventListener('online', updateOnlineStatus);
