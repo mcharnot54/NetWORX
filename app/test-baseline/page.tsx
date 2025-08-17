@@ -58,9 +58,11 @@ export default function TestBaseline() {
 
     setLoadingBaseline(true);
     setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
       const response = await fetch('/api/current-baseline-costs', {
         method: 'GET',
