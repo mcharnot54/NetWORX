@@ -150,6 +150,9 @@ export default function TestBaseline() {
         await testFileData();
       }
       if (mounted) {
+        await testTransportValidation();
+      }
+      if (mounted) {
         await testBaselineCosts();
       }
     };
