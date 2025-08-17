@@ -36,10 +36,17 @@ export default function TestBaseline() {
       const data = await response.json();
       setFileData(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch file data';
-      setError(errorMessage);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch file data';
+        setError(errorMessage);
+      }
       console.error('File data fetch error:', err);
     } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       setLoadingFiles(false);
     }
   };
