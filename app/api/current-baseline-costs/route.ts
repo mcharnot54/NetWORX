@@ -3,17 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const { sql } = await import('@/lib/database');
-    
-    // Get the most recent scenario ID for active projects
-    const scenarios = await sql`
-      SELECT s.id, s.name, p.name as project_name 
-      FROM scenarios s
-      JOIN projects p ON s.project_id = p.id
-      WHERE p.status = 'active'
-      ORDER BY s.created_at DESC
-      LIMIT 5
-    `;
 
+    // Initialize baseline costs structure
     const baselineCosts = {
       warehouse_costs: {
         operating_costs_other: 0,
@@ -28,25 +19,63 @@ export async function GET(request: NextRequest) {
       },
       total_baseline: 0,
       data_sources: [],
-      scenarios_analyzed: scenarios.length
+      scenarios_analyzed: 0
     };
+
+    let scenarios = [];
+
+    try {
+      // Get the most recent scenario ID for active projects
+      scenarios = await sql`
+        SELECT s.id, s.name, p.name as project_name
+        FROM scenarios s
+        JOIN projects p ON s.project_id = p.id
+        WHERE p.status = 'active'
+        ORDER BY s.created_at DESC
+        LIMIT 5
+      `;
+      baselineCosts.scenarios_analyzed = scenarios.length;
+    } catch (dbError) {
+      console.log('Database tables not ready yet, returning empty baseline data');
+      scenarios = [];
+    }
+
+    // If no scenarios found, return early with empty but valid data
+    if (scenarios.length === 0) {
+      return NextResponse.json({
+        success: true,
+        baseline_costs: formatBaselineCosts(baselineCosts),
+        metadata: {
+          scenarios_analyzed: 0,
+          data_sources: [],
+          last_updated: new Date().toISOString(),
+          data_quality: 'No data available - database not initialized'
+        }
+      });
+    }
 
     // Analyze each scenario for cost data
     for (const scenario of scenarios) {
       try {
-        // Check scenario results first
-        const scenarioResults = await sql`
-          SELECT 
-            transportation_costs,
-            warehouse_operating_costs,
-            variable_labor_costs,
-            facility_rent_costs,
-            total_costs
-          FROM scenario_results
-          WHERE scenario_id = ${scenario.id}
-          ORDER BY created_at DESC
-          LIMIT 1
-        `;
+        // Check scenario results first - handle missing table gracefully
+        let scenarioResults = [];
+        try {
+          scenarioResults = await sql`
+            SELECT
+              transportation_costs,
+              warehouse_operating_costs,
+              variable_labor_costs,
+              facility_rent_costs,
+              total_costs
+            FROM scenario_results
+            WHERE scenario_id = ${scenario.id}
+            ORDER BY created_at DESC
+            LIMIT 1
+          `;
+        } catch (tableError) {
+          console.debug(`scenario_results table not found for scenario ${scenario.id}`);
+          scenarioResults = [];
+        }
 
         if (scenarioResults.length > 0) {
           const result = scenarioResults[0];
