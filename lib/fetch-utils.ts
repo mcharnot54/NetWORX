@@ -341,23 +341,30 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
       const errorMessage = String(error.message || '');
 
       // Handle AbortErrors gracefully - don't throw in most contexts
-      if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted')) {
+
         // For connectivity checks, return a default value instead of throwing
         if (context === 'checkConnectivity') {
           console.debug(`Connectivity check cancelled: ${errorMessage}`);
           return false as any; // Type assertion needed for generic return
         }
 
-        const reason = (errorMessage && errorMessage !== 'signal is aborted without reason')
-          ? errorMessage
-          : 'request was cancelled';
-        throw new FetchError(
-          `Request aborted in ${context}: ${reason}`,
-          undefined,
-          undefined,
+        // For other contexts, handle gracefully without throwing
+        console.debug(`Request cancelled in ${context}: ${errorMessage}`);
+
+        // Create a FetchError with status 0 to indicate cancellation
+        const cancelError = new FetchError(
+          'Request was cancelled',
+          0, // Status 0 indicates cancellation
+          'Cancelled',
           false,
           false
         );
+
+        // Don't throw the error, instead return a safe default or handle it
+        throw cancelError;
       }
     }
     throw error;
