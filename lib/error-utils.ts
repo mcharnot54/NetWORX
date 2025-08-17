@@ -168,11 +168,20 @@ export function suppressNetworkErrors() {
  * Check if an error should be handled quietly
  */
 export function isNetworkError(error: unknown): boolean {
-  return error instanceof Error && (
-    error.message.includes('Failed to fetch') ||
-    error.message.includes('NetworkError') ||
-    error.message.includes('fetch') ||
-    error.name === 'AbortError' ||
-    error.name === 'TimeoutError'
+  if (!(error instanceof Error)) return false;
+
+  const message = error.message || '';
+  const name = error.name || '';
+
+  return (
+    message.includes('Failed to fetch') ||
+    message.includes('NetworkError') ||
+    message.includes('fetch') ||
+    message.includes('aborted') ||
+    message.includes('cancelled') ||
+    message.includes('signal is aborted') ||
+    name === 'AbortError' ||
+    name === 'TimeoutError' ||
+    name === 'TypeError' && message.includes('fetch')
   );
 }
