@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
             WHERE scenario_id = ${scenario.id}
             AND (file_name ILIKE '%TL%' OR file_name ILIKE '%freight%' OR file_name ILIKE '%transport%')
             AND processed_data IS NOT NULL
-          `, 2000); // 2 second timeout for TL files
+          `, 1000); // 1 second timeout for TL files
         } catch (tlFileError) {
           console.debug(`TL files not accessible for scenario ${scenario.id}`);
           tlFiles = [];
