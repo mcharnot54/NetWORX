@@ -216,13 +216,20 @@ export default function TestBaseline() {
         <div className="card">
           <h1 className="text-2xl font-bold mb-6">Baseline Costs Test</h1>
           
-          <div className="flex gap-4 mb-6">
+          <div className="flex gap-4 mb-6 flex-wrap">
             <button
               onClick={testFileData}
               disabled={loadingFiles}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
               {loadingFiles ? 'Loading Files...' : 'Refresh File Data'}
+            </button>
+            <button
+              onClick={testDebugStructure}
+              disabled={loadingDebug}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+            >
+              {loadingDebug ? 'Debugging...' : 'Debug File Structure'}
             </button>
             <button
               onClick={testTransportValidation}
