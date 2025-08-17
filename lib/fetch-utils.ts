@@ -101,7 +101,10 @@ const isRetryableError = (error: Error): boolean => {
     return false;
   } catch (e) {
     // If any error occurs during error checking, don't retry
-    console.debug('Error while checking if error is retryable:', e);
+    // Avoid logging AbortErrors to prevent noise
+    if (e && typeof e === 'object' && 'name' in e && e.name !== 'AbortError') {
+      console.debug('Error while checking if error is retryable:', e);
+    }
     return false;
   }
 };
