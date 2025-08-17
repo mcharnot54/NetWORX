@@ -57,6 +57,49 @@ export default function TestBaseline() {
     }
   };
 
+  const testDebugStructure = async () => {
+    if (loadingDebug) return;
+
+    setLoadingDebug(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('/api/debug-file-structure', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setDebugData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Debug request timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch debug data';
+        setError(errorMessage);
+      }
+      console.error('Debug fetch error:', err);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      setLoadingDebug(false);
+    }
+  };
+
   const testTransportValidation = async () => {
     if (loadingValidation) return;
 
