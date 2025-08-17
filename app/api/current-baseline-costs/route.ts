@@ -169,13 +169,19 @@ export async function GET(request: NextRequest) {
         }
 
         // Also check the TL files specifically for freight costs
-        const tlFiles = await sql`
-          SELECT file_name, processed_data
-          FROM data_files
-          WHERE scenario_id = ${scenario.id}
-          AND (file_name ILIKE '%TL%' OR file_name ILIKE '%freight%' OR file_name ILIKE '%transport%')
-          AND processed_data IS NOT NULL
-        `;
+        let tlFiles = [];
+        try {
+          tlFiles = await sql`
+            SELECT file_name, processed_data
+            FROM data_files
+            WHERE scenario_id = ${scenario.id}
+            AND (file_name ILIKE '%TL%' OR file_name ILIKE '%freight%' OR file_name ILIKE '%transport%')
+            AND processed_data IS NOT NULL
+          `;
+        } catch (tlFileError) {
+          console.debug(`TL files not accessible for scenario ${scenario.id}`);
+          tlFiles = [];
+        }
 
         for (const tlFile of tlFiles) {
           if (!tlFile.processed_data?.data) continue;
