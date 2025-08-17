@@ -248,3 +248,178 @@ function formatBaselineCosts(baselineCosts: any) {
     total_baseline: formatCost(baselineCosts.total_baseline)
   };
 }
+
+// Extract warehouse operating costs from budget files
+function extractWarehouseCosts(data: any[], baselineCosts: any, fileName: string) {
+  console.log(`Extracting warehouse costs from ${fileName}`);
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    for (const [key, value] of Object.entries(row)) {
+      const keyLower = key.toLowerCase();
+      const numValue = parseNumericValue(value);
+
+      if (numValue > 1000) { // Only consider significant amounts
+        if (keyLower.includes('labor') || keyLower.includes('wage') || keyLower.includes('payroll') ||
+            keyLower.includes('employee') || keyLower.includes('staff')) {
+          baselineCosts.warehouse_costs.total_labor_costs += numValue;
+        } else if (keyLower.includes('rent') || keyLower.includes('lease') || keyLower.includes('facility') ||
+                   keyLower.includes('overhead') || keyLower.includes('space')) {
+          baselineCosts.warehouse_costs.rent_and_overhead += numValue;
+        } else if (keyLower.includes('operating') || keyLower.includes('utility') || keyLower.includes('maintenance') ||
+                   keyLower.includes('equipment') || keyLower.includes('supplies')) {
+          baselineCosts.warehouse_costs.operating_costs_other += numValue;
+        }
+      }
+    }
+  }
+
+  baselineCosts.data_sources.push({
+    type: 'warehouse_budget',
+    file_name: fileName,
+    rows_processed: data.length
+  });
+}
+
+// Extract transportation costs from TL files
+function extractTransportationCosts(data: any[], baselineCosts: any, fileName: string) {
+  console.log(`Extracting transportation costs from ${fileName}`);
+
+  let maxFreightCost = 0;
+  let totalFreightCost = 0;
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    for (const [key, value] of Object.entries(row)) {
+      const keyLower = key.toLowerCase();
+      const numValue = parseNumericValue(value);
+
+      if (numValue > 100000 && ( // Looking for substantial freight costs
+          keyLower.includes('freight') || keyLower.includes('transport') || keyLower.includes('shipping') ||
+          keyLower.includes('cost') || keyLower.includes('total') || keyLower.includes('spend'))) {
+
+        totalFreightCost += numValue;
+        if (numValue > maxFreightCost) {
+          maxFreightCost = numValue;
+        }
+      }
+    }
+  }
+
+  // Use the larger value - either the max single cost or the total
+  const freightCost = Math.max(maxFreightCost, totalFreightCost);
+  if (freightCost > baselineCosts.transport_costs.freight_costs) {
+    baselineCosts.transport_costs.freight_costs = freightCost;
+  }
+
+  baselineCosts.data_sources.push({
+    type: 'transportation_data',
+    file_name: fileName,
+    freight_cost_extracted: freightCost,
+    rows_processed: data.length
+  });
+}
+
+// Extract operational costs from network/capacity files
+function extractOperationalCosts(data: any[], baselineCosts: any, fileName: string) {
+  console.log(`Extracting operational costs from ${fileName}`);
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    for (const [key, value] of Object.entries(row)) {
+      const keyLower = key.toLowerCase();
+      const numValue = parseNumericValue(value);
+
+      if (numValue > 1000) {
+        if (keyLower.includes('operational') || keyLower.includes('operating') || keyLower.includes('overhead')) {
+          baselineCosts.warehouse_costs.operating_costs_other += numValue;
+        } else if (keyLower.includes('capacity') && keyLower.includes('cost')) {
+          baselineCosts.warehouse_costs.operating_costs_other += numValue;
+        }
+      }
+    }
+  }
+
+  baselineCosts.data_sources.push({
+    type: 'network_operations',
+    file_name: fileName,
+    rows_processed: data.length
+  });
+}
+
+// Extract growth-related costs from forecast files
+function extractGrowthCosts(data: any[], baselineCosts: any, fileName: string) {
+  console.log(`Extracting growth costs from ${fileName}`);
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    for (const [key, value] of Object.entries(row)) {
+      const keyLower = key.toLowerCase();
+      const numValue = parseNumericValue(value);
+
+      if (numValue > 1000) {
+        if (keyLower.includes('expansion') || keyLower.includes('growth') || keyLower.includes('investment')) {
+          baselineCosts.warehouse_costs.operating_costs_other += numValue;
+        }
+      }
+    }
+  }
+
+  baselineCosts.data_sources.push({
+    type: 'growth_forecast',
+    file_name: fileName,
+    rows_processed: data.length
+  });
+}
+
+// General cost extraction for any file type
+function extractGeneralCosts(data: any[], baselineCosts: any, fileName: string) {
+  console.log(`Extracting general costs from ${fileName}`);
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    for (const [key, value] of Object.entries(row)) {
+      const keyLower = key.toLowerCase();
+      const numValue = parseNumericValue(value);
+
+      if (numValue > 1000) { // Only consider significant amounts
+        // Categorize costs based on column names
+        if (keyLower.includes('freight') || keyLower.includes('transport') || keyLower.includes('shipping')) {
+          baselineCosts.transport_costs.freight_costs += numValue;
+        } else if (keyLower.includes('labor') || keyLower.includes('wage') || keyLower.includes('payroll')) {
+          baselineCosts.warehouse_costs.total_labor_costs += numValue;
+        } else if (keyLower.includes('rent') || keyLower.includes('lease') || keyLower.includes('overhead')) {
+          baselineCosts.warehouse_costs.rent_and_overhead += numValue;
+        } else if (keyLower.includes('inventory') || keyLower.includes('stock') || keyLower.includes('carrying')) {
+          baselineCosts.inventory_costs.total_inventory_costs += numValue;
+        } else if (keyLower.includes('operating') || keyLower.includes('operational')) {
+          baselineCosts.warehouse_costs.operating_costs_other += numValue;
+        }
+      }
+    }
+  }
+
+  baselineCosts.data_sources.push({
+    type: 'general_data',
+    file_name: fileName,
+    rows_processed: data.length
+  });
+}
+
+// Helper function to parse numeric values from various formats
+function parseNumericValue(value: any): number {
+  if (typeof value === 'number') {
+    return value;
+  } else if (typeof value === 'string') {
+    // Remove currency symbols, commas, spaces
+    const cleaned = value.replace(/[$,\s%]/g, '');
+    const numValue = parseFloat(cleaned);
+    return isNaN(numValue) ? 0 : numValue;
+  }
+  return 0;
+}
