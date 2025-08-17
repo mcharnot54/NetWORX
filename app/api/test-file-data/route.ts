@@ -5,22 +5,43 @@ export async function GET(request: NextRequest) {
     const { sql } = await import('@/lib/database');
     
     // Get all uploaded files with their basic info
-    const files = await sql`
-      SELECT 
-        id,
-        file_name, 
-        data_type,
-        file_size,
-        processing_status,
-        scenario_id,
-        created_at,
-        CASE 
-          WHEN processed_data IS NOT NULL THEN true
-          ELSE false
-        END as has_processed_data
-      FROM data_files
-      ORDER BY created_at DESC
-    `;
+    let files = [];
+    try {
+      files = await sql`
+        SELECT
+          id,
+          file_name,
+          data_type,
+          file_size,
+          processing_status,
+          scenario_id,
+          upload_date as created_at,
+          CASE
+            WHEN processed_data IS NOT NULL THEN true
+            ELSE false
+          END as has_processed_data
+        FROM data_files
+        ORDER BY upload_date DESC
+      `;
+    } catch (columnError) {
+      // Try without date column if it doesn't exist
+      console.log('Trying fallback query without date column');
+      files = await sql`
+        SELECT
+          id,
+          file_name,
+          data_type,
+          file_size,
+          processing_status,
+          scenario_id,
+          CASE
+            WHEN processed_data IS NOT NULL THEN true
+            ELSE false
+          END as has_processed_data
+        FROM data_files
+        ORDER BY id DESC
+      `;
+    }
 
     // Get sample data from a few processed files
     const sampleData = [];
