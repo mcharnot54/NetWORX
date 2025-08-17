@@ -422,15 +422,19 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
       return false;
     }
 
-    // Handle AbortError specifically to prevent propagation
+    // Handle ALL abort-related errors - never let them propagate
     if (error && typeof error === 'object') {
       const errorObj = error as any;
-      if (errorObj.name === 'AbortError' ||
-          (errorObj.message && typeof errorObj.message === 'string' &&
-           (errorObj.message.includes('aborted') ||
-            errorObj.message.includes('cancelled') ||
-            errorObj.message.includes('signal is aborted')))) {
-        // This is a normal cancellation, not a real error
+      const errorName = String(errorObj.name || '');
+      const errorMessage = String(errorObj.message || '');
+
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('cancelled') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('abort') ||
+          errorMessage.includes('The operation was aborted')) {
+        // Always return false for any abort-related error
         return false;
       }
     }
