@@ -187,39 +187,27 @@ const fetchWithTimeout = async (
       }
     }
 
-    // Handle AbortError specifically - check if error exists and has required properties
+    // Handle AbortError completely - NEVER let them propagate
     if (error && typeof error === 'object') {
       const errorName = 'name' in error ? String(error.name || '') : '';
       const errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
 
+      // Catch ALL possible abort-related errors
       if (errorName === 'AbortError' ||
+          errorName === 'AbortError' ||
           errorMessage.includes('aborted') ||
           errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('cancelled')) {
+          errorMessage.includes('cancelled') ||
+          errorMessage.includes('abort') ||
+          errorMessage.includes('The operation was aborted') ||
+          errorMessage.includes('signal is aborted without reason')) {
 
-        // Check if this was a timeout or external cancellation
-        const isTimeout = controller.signal.aborted && !options.signal?.aborted;
-
-        if (isTimeout) {
-          // For timeouts, throw a proper timeout error
-          throw new FetchError(
-            `Request timeout after ${timeout}ms`,
-            0,
-            'Timeout',
-            false,
-            true
-          );
-        } else {
-          // For cancellations, suppress the error and return null response
-          console.debug(`Request cancelled for ${url} - returning null`);
-
-          // Return a fake 204 No Content response instead of throwing
-          return new Response(null, {
-            status: 204,
-            statusText: 'Cancelled',
-            headers: { 'X-Cancelled': 'true' }
-          });
-        }
+        // Always return a 204 response for any abort-related error - NEVER throw
+        return new Response(null, {
+          status: 204,
+          statusText: 'Request Cancelled',
+          headers: { 'X-Cancelled': 'true', 'X-Abort-Reason': errorMessage || 'signal-aborted' }
+        });
       }
     }
 
