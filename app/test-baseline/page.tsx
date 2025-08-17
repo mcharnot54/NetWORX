@@ -6,8 +6,10 @@ import Navigation from "@/components/Navigation";
 export default function TestBaseline() {
   const [baselineData, setBaselineData] = useState<any>(null);
   const [fileData, setFileData] = useState<any>(null);
+  const [validationData, setValidationData] = useState<any>(null);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [loadingBaseline, setLoadingBaseline] = useState(false);
+  const [loadingValidation, setLoadingValidation] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const testFileData = async () => {
