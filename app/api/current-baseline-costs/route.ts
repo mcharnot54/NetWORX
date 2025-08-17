@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Helper function to add timeout to database operations
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 2000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
