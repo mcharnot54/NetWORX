@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
             WHERE scenario_id = ${scenario.id}
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
-          `, 2000); // 2 second timeout for data files
+          `, 1000); // 1 second timeout for data files
         } catch (dataFileError) {
           console.debug(`data_files table not accessible for scenario ${scenario.id}`);
           dataFiles = [];
