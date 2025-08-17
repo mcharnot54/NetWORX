@@ -277,3 +277,38 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Helper function to format baseline costs for display
+function formatBaselineCosts(baselineCosts: any) {
+  const formatCost = (cost: number) => ({
+    raw: cost,
+    formatted: cost > 1000000
+      ? `$${(cost / 1000000).toFixed(1)}M`
+      : cost > 1000
+        ? `$${(cost / 1000).toFixed(0)}K`
+        : `$${cost.toFixed(0)}`,
+    percentage: baselineCosts.total_baseline > 0
+      ? ((cost / baselineCosts.total_baseline) * 100).toFixed(1)
+      : '0.0'
+  });
+
+  return {
+    warehouse_costs: {
+      operating_costs_other: formatCost(baselineCosts.warehouse_costs.operating_costs_other),
+      total_labor_costs: formatCost(baselineCosts.warehouse_costs.total_labor_costs),
+      rent_and_overhead: formatCost(baselineCosts.warehouse_costs.rent_and_overhead),
+      subtotal: formatCost(
+        baselineCosts.warehouse_costs.operating_costs_other +
+        baselineCosts.warehouse_costs.total_labor_costs +
+        baselineCosts.warehouse_costs.rent_and_overhead
+      )
+    },
+    transport_costs: {
+      freight_costs: formatCost(baselineCosts.transport_costs.freight_costs)
+    },
+    inventory_costs: {
+      total_inventory_costs: formatCost(baselineCosts.inventory_costs.total_inventory_costs)
+    },
+    total_baseline: formatCost(baselineCosts.total_baseline)
+  };
+}
