@@ -145,15 +145,14 @@ const fetchWithTimeout = async (
     }
   }
 
-  // Set up timeout with proper error handling
+  // Set up timeout with comprehensive error handling
   const timeoutId = setTimeout(() => {
     try {
-      if (!controller.signal.aborted) {
-        controller.abort();
+      if (controller && !controller.signal.aborted) {
+        controller.abort('Request timeout');
       }
     } catch (error) {
-      // Ignore errors when aborting timeout - this is expected behavior
-      console.debug('Expected timeout abort error:', error);
+      // Completely ignore all abort errors - they're expected
     }
   }, timeout);
 
