@@ -253,7 +253,7 @@ export default function TestBaseline() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
               <h2 className="text-xl font-semibold mb-4">Uploaded Files Status</h2>
