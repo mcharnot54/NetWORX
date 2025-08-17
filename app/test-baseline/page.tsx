@@ -55,6 +55,49 @@ export default function TestBaseline() {
     }
   };
 
+  const testTransportValidation = async () => {
+    if (loadingValidation) return;
+
+    setLoadingValidation(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch('/api/validate-transport-extraction', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setValidationData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Validation request timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch validation data';
+        setError(errorMessage);
+      }
+      console.error('Validation fetch error:', err);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      setLoadingValidation(false);
+    }
+  };
+
   const testBaselineCosts = async () => {
     if (loadingBaseline) return; // Prevent multiple simultaneous calls
 
