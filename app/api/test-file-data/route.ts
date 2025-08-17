@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Get sample data from a few processed files
     const sampleData = [];
-    
+
     for (const file of files.slice(0, 3)) { // Check first 3 files
       if (file.has_processed_data) {
         try {
@@ -32,24 +32,60 @@ export async function GET(request: NextRequest) {
             SELECT processed_data
             FROM data_files
             WHERE id = ${file.id}
+            LIMIT 1
           `;
-          
-          if (fileData[0]?.processed_data?.data) {
-            const data = Array.isArray(fileData[0].processed_data.data) 
-              ? fileData[0].processed_data.data 
-              : Object.values(fileData[0].processed_data.data);
-              
-            sampleData.push({
-              file_name: file.file_name,
-              rows: Array.isArray(data) ? data.length : 0,
-              sample_row: Array.isArray(data) && data.length > 0 ? data[0] : null,
-              columns: Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' 
-                ? Object.keys(data[0]) 
-                : []
-            });
+
+          if (fileData && fileData.length > 0 && fileData[0]?.processed_data) {
+            let processedData = fileData[0].processed_data;
+
+            // Safely access the data property
+            let data = null;
+            if (processedData && typeof processedData === 'object' && processedData.data) {
+              data = processedData.data;
+
+              // Handle nested data structures
+              if (!Array.isArray(data) && typeof data === 'object') {
+                // Try to find an array in the data object
+                const keys = Object.keys(data);
+                const arrayKey = keys.find(key => Array.isArray(data[key]));
+                if (arrayKey) {
+                  data = data[arrayKey];
+                } else {
+                  // Convert object to array of key-value pairs
+                  data = Object.entries(data).map(([key, value]) => ({ [key]: value }));
+                }
+              }
+            }
+
+            if (Array.isArray(data) && data.length > 0) {
+              const firstRow = data[0];
+              sampleData.push({
+                file_name: file.file_name,
+                rows: data.length,
+                sample_row: typeof firstRow === 'object' && firstRow !== null ? firstRow : { value: firstRow },
+                columns: typeof firstRow === 'object' && firstRow !== null
+                  ? Object.keys(firstRow)
+                  : ['value']
+              });
+            } else {
+              sampleData.push({
+                file_name: file.file_name,
+                rows: 0,
+                sample_row: null,
+                columns: []
+              });
+            }
           }
         } catch (error) {
           console.error(`Error reading data from file ${file.file_name}:`, error);
+          // Add error info to sample data for debugging
+          sampleData.push({
+            file_name: file.file_name,
+            rows: 0,
+            sample_row: null,
+            columns: [],
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
         }
       }
     }
