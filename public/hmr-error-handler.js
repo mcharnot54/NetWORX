@@ -191,9 +191,12 @@
           errorMessage.includes('signal is aborted') ||
           errorMessage.includes('aborted without reason') ||
           errorMessage.includes('External signal abort') ||
-          errorMessage.includes('The operation was aborted')) {
+          errorMessage.includes('The operation was aborted') ||
+          errorMessage.includes('Request was cancelled') ||
+          errorMessage.includes('cancelled')) {
         console.debug('Suppressed unhandled AbortError rejection:', errorMessage || 'signal aborted');
         event.preventDefault();
+        event.stopPropagation();
         return false;
       }
 
