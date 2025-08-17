@@ -191,35 +191,31 @@ const fetchWithTimeout = async (
 
       if (errorName === 'AbortError' ||
           errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted')) {
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('cancelled')) {
 
         // Check if this was a timeout or external cancellation
         const isTimeout = controller.signal.aborted && !options.signal?.aborted;
 
         if (isTimeout) {
+          // For timeouts, throw a proper timeout error
           throw new FetchError(
             `Request timeout after ${timeout}ms`,
-            undefined,
-            undefined,
+            0,
+            'Timeout',
             false,
             true
           );
         } else {
-          // For cancellations, don't throw - return null or a specific response
-          const reason = errorMessage && errorMessage !== 'signal is aborted without reason'
-            ? errorMessage
-            : 'Request was cancelled';
+          // For cancellations, suppress the error and return null response
+          console.debug(`Request cancelled for ${url} - returning null`);
 
-          console.debug(`Request cancelled for ${url}:`, reason);
-
-          // Instead of throwing, create a cancelled FetchError for graceful handling
-          throw new FetchError(
-            'Request was cancelled',
-            0, // Use 0 status to indicate cancellation
-            'Cancelled',
-            false,
-            false
-          );
+          // Return a fake 204 No Content response instead of throwing
+          return new Response(null, {
+            status: 204,
+            statusText: 'Cancelled',
+            headers: { 'X-Cancelled': 'true' }
+          });
         }
       }
     }
