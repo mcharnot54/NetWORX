@@ -6,42 +6,84 @@ import Navigation from "@/components/Navigation";
 export default function TestBaseline() {
   const [baselineData, setBaselineData] = useState<any>(null);
   const [fileData, setFileData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [loadingBaseline, setLoadingBaseline] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const testFileData = async () => {
-    setLoading(true);
+    if (loadingFiles) return; // Prevent multiple simultaneous calls
+
+    setLoadingFiles(true);
     setError(null);
     try {
-      const response = await fetch('/api/test-file-data');
+      const response = await fetch('/api/test-file-data', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       setFileData(data);
     } catch (err) {
-      setError('Failed to fetch file data');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch file data';
+      setError(errorMessage);
+      console.error('File data fetch error:', err);
     } finally {
-      setLoading(false);
+      setLoadingFiles(false);
     }
   };
 
   const testBaselineCosts = async () => {
-    setLoading(true);
+    if (loadingBaseline) return; // Prevent multiple simultaneous calls
+
+    setLoadingBaseline(true);
     setError(null);
     try {
-      const response = await fetch('/api/current-baseline-costs');
+      const response = await fetch('/api/current-baseline-costs', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       setBaselineData(data);
     } catch (err) {
-      setError('Failed to fetch baseline costs');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch baseline costs';
+      setError(errorMessage);
+      console.error('Baseline costs fetch error:', err);
     } finally {
-      setLoading(false);
+      setLoadingBaseline(false);
     }
   };
 
   useEffect(() => {
-    testFileData();
-    testBaselineCosts();
+    // Only run once on mount
+    let mounted = true;
+
+    const loadData = async () => {
+      if (mounted) {
+        await testFileData();
+      }
+      if (mounted) {
+        await testBaselineCosts();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
