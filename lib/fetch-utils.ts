@@ -122,7 +122,11 @@ const fetchWithTimeout = async (
   if (options.signal) {
     // Check if already aborted
     if (options.signal.aborted) {
-      throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+      return new Response(null, {
+        status: 204,
+        statusText: 'Pre-cancelled',
+        headers: { 'X-Cancelled': 'true' }
+      });
     }
 
     // Listen for external abort
