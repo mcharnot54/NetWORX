@@ -286,12 +286,127 @@ function extractWarehouseCosts(data: any[], baselineCosts: any, fileName: string
   });
 }
 
-// Extract transportation costs from TL files
+// Extract transportation costs from specific files and columns as specified
 function extractTransportationCosts(data: any[], baselineCosts: any, fileName: string) {
   console.log(`Extracting transportation costs from ${fileName}`);
 
-  let maxFreightCost = 0;
   let totalFreightCost = 0;
+  const fileNameLower = fileName.toLowerCase();
+
+  // Handle specific files with targeted column extraction
+  if (fileNameLower.includes('2024 totals with inbound and outbound tl')) {
+    // Extract from column H across all tabs (Inbound, Outbound, Transfers)
+    totalFreightCost = extractFromColumnH(data, fileName);
+  } else if (fileNameLower.includes('r&l curriculum associates') && fileNameLower.includes('2024')) {
+    // Extract LTL costs from column V
+    totalFreightCost = extractFromColumnV(data, fileName);
+  } else if (fileNameLower.includes('ups invoice by state summary 2024')) {
+    // Extract parcel costs from column F
+    totalFreightCost = extractFromColumnF(data, fileName);
+  } else {
+    // Fallback: general freight cost extraction
+    totalFreightCost = extractGeneralFreightCosts(data, fileName);
+  }
+
+  // Add to baseline costs (accumulate from all transportation sources)
+  baselineCosts.transport_costs.freight_costs += totalFreightCost;
+
+  baselineCosts.data_sources.push({
+    type: 'transportation_data',
+    file_name: fileName,
+    freight_cost_extracted: totalFreightCost,
+    rows_processed: data.length,
+    extraction_method: getExtractionMethod(fileName)
+  });
+}
+
+// Extract from column H (TL costs - Inbound, Outbound, Transfers)
+function extractFromColumnH(data: any[], fileName: string): number {
+  let total = 0;
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    // Look for column H (could be named various ways)
+    for (const [key, value] of Object.entries(row)) {
+      // Column H could be identified by position or header name
+      if (key === 'H' || key === '__EMPTY_7' || // Excel column H is index 7
+          key.toLowerCase().includes('total') ||
+          key.toLowerCase().includes('cost') ||
+          key.toLowerCase().includes('amount') ||
+          key.toLowerCase().includes('charge')) {
+
+        const numValue = parseNumericValue(value);
+        if (numValue > 1000) { // Only significant amounts
+          total += numValue;
+        }
+      }
+    }
+  }
+
+  console.log(`Extracted ${total} from column H in ${fileName}`);
+  return total;
+}
+
+// Extract from column V (LTL R&L costs)
+function extractFromColumnV(data: any[], fileName: string): number {
+  let total = 0;
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    // Look for column V (could be named various ways)
+    for (const [key, value] of Object.entries(row)) {
+      // Column V could be identified by position or header name
+      if (key === 'V' || key === '__EMPTY_21' || // Excel column V is index 21
+          key.toLowerCase().includes('net') ||
+          key.toLowerCase().includes('charge') ||
+          key.toLowerCase().includes('cost') ||
+          key.toLowerCase().includes('amount')) {
+
+        const numValue = parseNumericValue(value);
+        if (numValue > 100) { // LTL costs can be smaller amounts
+          total += numValue;
+        }
+      }
+    }
+  }
+
+  console.log(`Extracted ${total} from column V (LTL) in ${fileName}`);
+  return total;
+}
+
+// Extract from column F (UPS Parcel costs)
+function extractFromColumnF(data: any[], fileName: string): number {
+  let total = 0;
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    // Look for column F (could be named various ways)
+    for (const [key, value] of Object.entries(row)) {
+      // Column F could be identified by position or header name
+      if (key === 'F' || key === '__EMPTY_5' || // Excel column F is index 5
+          key.toLowerCase().includes('net') ||
+          key.toLowerCase().includes('charge') ||
+          key.toLowerCase().includes('total') ||
+          key.toLowerCase().includes('amount')) {
+
+        const numValue = parseNumericValue(value);
+        if (numValue > 10) { // Parcel costs can be small amounts
+          total += numValue;
+        }
+      }
+    }
+  }
+
+  console.log(`Extracted ${total} from column F (UPS Parcel) in ${fileName}`);
+  return total;
+}
+
+// Fallback general freight cost extraction
+function extractGeneralFreightCosts(data: any[], fileName: string): number {
+  let total = 0;
 
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
@@ -300,30 +415,29 @@ function extractTransportationCosts(data: any[], baselineCosts: any, fileName: s
       const keyLower = key.toLowerCase();
       const numValue = parseNumericValue(value);
 
-      if (numValue > 100000 && ( // Looking for substantial freight costs
+      if (numValue > 1000 && ( // Looking for substantial freight costs
           keyLower.includes('freight') || keyLower.includes('transport') || keyLower.includes('shipping') ||
-          keyLower.includes('cost') || keyLower.includes('total') || keyLower.includes('spend'))) {
-
-        totalFreightCost += numValue;
-        if (numValue > maxFreightCost) {
-          maxFreightCost = numValue;
-        }
+          keyLower.includes('cost') || keyLower.includes('total') || keyLower.includes('spend') ||
+          keyLower.includes('charge') || keyLower.includes('net'))) {
+        total += numValue;
       }
     }
   }
 
-  // Use the larger value - either the max single cost or the total
-  const freightCost = Math.max(maxFreightCost, totalFreightCost);
-  if (freightCost > baselineCosts.transport_costs.freight_costs) {
-    baselineCosts.transport_costs.freight_costs = freightCost;
-  }
+  return total;
+}
 
-  baselineCosts.data_sources.push({
-    type: 'transportation_data',
-    file_name: fileName,
-    freight_cost_extracted: freightCost,
-    rows_processed: data.length
-  });
+// Get extraction method for logging
+function getExtractionMethod(fileName: string): string {
+  const fileNameLower = fileName.toLowerCase();
+  if (fileNameLower.includes('2024 totals with inbound and outbound tl')) {
+    return 'column_H_TL_totals';
+  } else if (fileNameLower.includes('r&l curriculum associates')) {
+    return 'column_V_LTL_costs';
+  } else if (fileNameLower.includes('ups invoice by state summary')) {
+    return 'column_F_parcel_costs';
+  }
+  return 'general_freight_extraction';
 }
 
 // Extract operational costs from network/capacity files
