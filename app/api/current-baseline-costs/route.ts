@@ -67,7 +67,69 @@ export async function GET(request: NextRequest) {
     // Analyze each scenario for cost data
     for (const scenario of scenarios) {
       try {
-        // Check scenario results first - handle missing table gracefully
+        // First, get all processed files for this scenario
+        let dataFiles = [];
+        try {
+          dataFiles = await withTimeout(sql`
+            SELECT file_name, processed_data, data_type, file_type, processing_status
+            FROM data_files
+            WHERE scenario_id = ${scenario.id}
+            AND processing_status = 'completed'
+            AND processed_data IS NOT NULL
+          `, 1500); // 1.5 second timeout for data files
+        } catch (dataFileError) {
+          console.debug(`data_files table not accessible for scenario ${scenario.id}`);
+          dataFiles = [];
+        }
+
+        // Process each uploaded file to extract baseline costs
+        for (const file of dataFiles) {
+          if (!file.processed_data?.data) continue;
+
+          let data = file.processed_data.data;
+          if (!Array.isArray(data)) {
+            // Handle nested data structures
+            if (typeof data === 'object') {
+              const keys = Object.keys(data);
+              const arrayKey = keys.find(key => Array.isArray(data[key]));
+              if (arrayKey) {
+                data = data[arrayKey];
+              } else {
+                data = Object.entries(data).map(([key, value]) => ({ [key]: value }));
+              }
+            } else {
+              continue;
+            }
+          }
+
+          // Extract costs based on file name and content
+          console.log(`Processing file: ${file.file_name} with ${data.length} rows`);
+
+          // Process different types of cost files
+          if (file.file_name.toLowerCase().includes('warehouse budget') ||
+              file.file_name.toLowerCase().includes('operating expenses')) {
+            // Extract warehouse costs
+            extractWarehouseCosts(data, baselineCosts, file.file_name);
+          } else if (file.file_name.toLowerCase().includes('tl') ||
+                     file.file_name.toLowerCase().includes('transport') ||
+                     file.file_name.toLowerCase().includes('freight')) {
+            // Extract transportation costs
+            extractTransportationCosts(data, baselineCosts, file.file_name);
+          } else if (file.file_name.toLowerCase().includes('network') ||
+                     file.file_name.toLowerCase().includes('capacity')) {
+            // Extract operational costs from network files
+            extractOperationalCosts(data, baselineCosts, file.file_name);
+          } else if (file.file_name.toLowerCase().includes('growth') ||
+                     file.file_name.toLowerCase().includes('forecast')) {
+            // Extract growth-related costs
+            extractGrowthCosts(data, baselineCosts, file.file_name);
+          } else {
+            // General cost extraction for any file
+            extractGeneralCosts(data, baselineCosts, file.file_name);
+          }
+        }
+
+        // Check scenario results as fallback - handle missing table gracefully
         let scenarioResults = [];
         try {
           scenarioResults = await withTimeout(sql`
