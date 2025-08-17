@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         // Check scenario results first - handle missing table gracefully
         let scenarioResults = [];
         try {
-          scenarioResults = await sql`
+          scenarioResults = await withTimeout(sql`
             SELECT
               transportation_costs,
               warehouse_operating_costs,
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
             WHERE scenario_id = ${scenario.id}
             ORDER BY created_at DESC
             LIMIT 1
-          `;
+          `, 2000); // 2 second timeout for scenario results
         } catch (tableError) {
           console.debug(`scenario_results table not found for scenario ${scenario.id}`);
           scenarioResults = [];
