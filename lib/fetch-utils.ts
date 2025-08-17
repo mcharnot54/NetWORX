@@ -128,12 +128,11 @@ const fetchWithTimeout = async (
     // Listen for external abort
     externalAbortHandler = () => {
       try {
-        if (!controller.signal.aborted) {
-          controller.abort();
+        if (controller && !controller.signal.aborted) {
+          controller.abort('External signal abort');
         }
       } catch (error) {
-        // Ignore errors when aborting - expected behavior
-        console.debug('Expected abort error:', error);
+        // Completely ignore all abort errors
       }
     };
 
