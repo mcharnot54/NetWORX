@@ -195,6 +195,9 @@ export default function TestBaseline() {
         await testFileData();
       }
       if (mounted) {
+        await testDebugStructure();
+      }
+      if (mounted) {
         await testTransportValidation();
       }
       if (mounted) {
