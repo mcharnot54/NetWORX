@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Get all uploaded files with their basic info
     let files = [];
     try {
-      files = await sql`
+      files = await withTimeout(sql`
         SELECT
           id,
           file_name,
@@ -32,25 +32,30 @@ export async function GET(request: NextRequest) {
           END as has_processed_data
         FROM data_files
         ORDER BY upload_date DESC
-      `;
+      `, 2000);
     } catch (columnError) {
       // Try without date column if it doesn't exist
       console.log('Trying fallback query without date column');
-      files = await sql`
-        SELECT
-          id,
-          file_name,
-          data_type,
-          file_size,
-          processing_status,
-          scenario_id,
-          CASE
-            WHEN processed_data IS NOT NULL THEN true
-            ELSE false
-          END as has_processed_data
-        FROM data_files
-        ORDER BY id DESC
-      `;
+      try {
+        files = await withTimeout(sql`
+          SELECT
+            id,
+            file_name,
+            data_type,
+            file_size,
+            processing_status,
+            scenario_id,
+            CASE
+              WHEN processed_data IS NOT NULL THEN true
+              ELSE false
+            END as has_processed_data
+          FROM data_files
+          ORDER BY id DESC
+        `, 2000);
+      } catch (fallbackError) {
+        console.error('Both queries failed:', fallbackError);
+        files = [];
+      }
     }
 
     // Get sample data from a few processed files
