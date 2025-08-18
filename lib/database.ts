@@ -456,11 +456,27 @@ export class DataFileService {
     return file as DataFile;
   }
 
-  static async getDataFiles(scenarioId: number): Promise<DataFile[]> {
+  static async getDataFiles(scenarioId: number, limit: number = 50): Promise<DataFile[]> {
+    // Limit the number of files returned and exclude large processed_data when listing
     return await sql`
-      SELECT * FROM data_files 
+      SELECT
+        id, scenario_id, file_name, file_type, file_size, data_type,
+        processing_status, upload_date, original_columns, mapped_columns,
+        validation_result,
+        -- Only include small portions of processed_data for listing
+        CASE
+          WHEN processed_data IS NOT NULL THEN
+            jsonb_build_object(
+              'file_content', processed_data->'file_content',
+              'excel_preserved', processed_data->'excel_preserved',
+              'reprocessed', processed_data->'reprocessed'
+            )
+          ELSE NULL
+        END as processed_data
+      FROM data_files
       WHERE scenario_id = ${scenarioId}
       ORDER BY upload_date DESC
+      LIMIT ${limit}
     ` as DataFile[];
   }
 
