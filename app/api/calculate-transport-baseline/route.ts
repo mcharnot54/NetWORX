@@ -128,7 +128,7 @@ export async function GET() {
 
           // Check first 5 rows to see if there's any structure
           const sampleRows = file.processed_data.parsedData.slice(0, 5);
-          console.log('R&L: Sample rows from parsedData:', sampleRows.map((row, i) => ({
+          console.log('R&L: Sample rows from parsedData:', sampleRows.map((row: any, i: number) => ({
             row: i,
             type: typeof row,
             keys: typeof row === 'object' && row ? Object.keys(row) : 'not object',
