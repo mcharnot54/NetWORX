@@ -178,9 +178,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`🚨 UPS ${sheetName}: Net Charge column not found! Available: ${sheetData.columnHeaders.join(', ')}`);
             }
 
-          // TL FILES: Extract from all cost columns like working API
+          // TL FILES: Use adaptive learning with intelligent column detection
           } else if (fileType === 'TL') {
-            addLog(`🚛 TL PROCESSING: Using working API logic - find any cost column`);
+            addLog(`🚛 TL PROCESSING: Using adaptive learning to find best cost column`);
 
             // Find rate column with correct priority: NET first, then Gross Rate as fallback
             const netColumns = ['Net Charge', 'Net Rate', 'Net Cost', 'net_charge', 'net_rate'];
