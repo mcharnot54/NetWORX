@@ -425,12 +425,11 @@ function extractFromColumnG(data: any[], fileName: string): number {
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
-    // Look for column G - Net Charges column for UPS Individual Item Cost file
+    // Look for the actual "Net Charge" column name from the Excel file
     for (const [key, value] of Object.entries(row)) {
-      if (key === 'G' || key === '__EMPTY_6' ||
+      if (key === 'Net Charge' || key === 'G' || key === '__EMPTY_6' ||
           key.toLowerCase().includes('net charges') ||
           key.toLowerCase().includes('net charge') ||
-          key.toLowerCase().includes('net cost') ||
           (key.toLowerCase().includes('net') && key.toLowerCase().includes('charge'))) {
 
         const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
@@ -442,7 +441,7 @@ function extractFromColumnG(data: any[], fileName: string): number {
     }
   }
 
-  console.log(`Extracted $${total} from column G (UPS Net Charges) in ${fileName} (${valuesFound} values from ${data.length} rows)`);
+  console.log(`Extracted $${total} from Net Charge column in ${fileName} (${valuesFound} values from ${data.length} rows)`);
   return total;
 }
 
