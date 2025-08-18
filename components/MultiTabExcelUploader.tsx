@@ -598,8 +598,11 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               for (let columnIndex = 0; columnIndex < sheetData.columnHeaders.length; columnIndex++) {
                 const columnKey = sheetData.columnHeaders[columnIndex];
                 if (row && row[columnKey] !== undefined && row[columnKey] !== null && row[columnKey] !== '') {
-                  const value = parseFloat(String(row[columnKey]).replace(/[$,\s]/g, ''));
-                  if (!isNaN(value) && value !== 0 && Math.abs(value) > 0.01) { // Include negative values, reasonable minimum
+                  const rawValue = String(row[columnKey]).replace(/[$,\s]/g, '');
+                  const value = parseFloat(rawValue);
+
+                  // Include any valid numeric value, including zeros (common in budget files)
+                  if (!isNaN(value) && Math.abs(value) >= 0) {
                     total += value;
                     valuesFound.push(`${columnKey}:${value}`);
                   }
