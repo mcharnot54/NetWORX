@@ -609,46 +609,42 @@ export default function DataProcessor() {
     try {
       addToLog(`Loading content for ${fileData.name} (ID: ${fileData.id})...`);
 
-      // Load file content
-      const contentResponse = await fetch(`/api/files/${fileData.id}/content`);
-      addToLog(`Content API response status: ${contentResponse.status}`);
+      // Load file content using robust fetch
+      const contentData = await robustFetchJson(`/api/files/${fileData.id}/content`, {
+        timeout: 10000, // 10 second timeout
+        retries: 2 // Retry twice on failure
+      });
 
-      if (contentResponse.ok) {
-        const contentData = await contentResponse.json();
-        const fileContent = contentData.file_content;
+      addToLog(`Content API succeeded`);
+      const fileContent = contentData.file_content;
+      addToLog(`File content length: ${fileContent?.length || 0}`);
 
-        addToLog(`File content length: ${fileContent?.length || 0}`);
+      if (fileContent) {
+        addToLog(`Reconstructing file object for ${fileData.name}...`);
 
-        if (fileContent) {
-          addToLog(`Reconstructing file object for ${fileData.name}...`);
+        // Reconstruct File object
+        const file = FileStorageUtils.base64ToFile(
+          fileContent,
+          fileData.name,
+          fileData.type
+        );
 
-          // Reconstruct File object
-          const file = FileStorageUtils.base64ToFile(
-            fileContent,
-            fileData.name,
-            fileData.type
-          );
+        addToLog(`Parsing file data for ${fileData.name}...`);
 
-          addToLog(`Parsing file data for ${fileData.name}...`);
+        // Re-parse the file data
+        const { data, columnHeaders } = await DataValidator.parseFile(file);
 
-          // Re-parse the file data
-          const { data, columnHeaders } = await DataValidator.parseFile(file);
+        addToLog(`✓ Successfully loaded ${fileData.name}: ${data.length} rows, ${columnHeaders.length} columns`);
 
-          addToLog(`✓ Successfully loaded ${fileData.name}: ${data.length} rows, ${columnHeaders.length} columns`);
-
-          return {
-            ...fileData,
-            file,
-            parsedData: data,
-            columnNames: columnHeaders,
-            fileContent
-          };
-        } else {
-          addToLog(`⚠ No file content returned for ${fileData.name}`);
-        }
+        return {
+          ...fileData,
+          file,
+          parsedData: data,
+          columnNames: columnHeaders,
+          fileContent
+        };
       } else {
-        const errorText = await contentResponse.text();
-        addToLog(`✗ Content API failed for ${fileData.name}: ${contentResponse.status} - ${errorText}`);
+        addToLog(`⚠ No file content returned for ${fileData.name}`);
       }
     } catch (error) {
       console.warn(`Could not load full data for ${fileData.name}:`, error);
