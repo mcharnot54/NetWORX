@@ -607,6 +607,88 @@ export default function TestBaseline() {
             </div>
           )}
 
+          {/* Deduplication Results */}
+          {deduplicationData && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">File Deduplication Analysis</h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div><strong>Total Files:</strong> {deduplicationData.total_files}</div>
+                  <div><strong>Unique Files:</strong> {deduplicationData.unique_files}</div>
+                  <div><strong>Duplicates Found:</strong> {deduplicationData.total_duplicates}</div>
+                  <div><strong>Mode:</strong> {deduplicationData.preview_mode ? 'Preview' : 'Executed'}</div>
+                </div>
+
+                <div className={`p-3 rounded ${deduplicationData.total_duplicates > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                  <div className={`font-medium ${deduplicationData.total_duplicates > 0 ? 'text-red-800' : 'text-green-800'}`}>
+                    {deduplicationData.summary?.action_taken}
+                  </div>
+                  {deduplicationData.total_duplicates > 0 && (
+                    <div className="text-red-600 text-sm mt-1">
+                      Files with duplicates: {deduplicationData.summary?.files_with_duplicates}
+                    </div>
+                  )}
+                </div>
+
+                {deduplicationData.duplicate_analysis && deduplicationData.duplicate_analysis.length > 0 && (
+                  <div>
+                    <strong>Duplicate Files Analysis:</strong>
+                    <div className="mt-2 space-y-3 max-h-96 overflow-y-auto">
+                      {deduplicationData.duplicate_analysis.map((dup: any, index: number) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded">
+                          <div className="font-medium text-gray-800 mb-2">
+                            📁 {dup.file_name} ({dup.total_copies} copies)
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="p-2 bg-green-100 rounded">
+                              <div className="text-green-800 font-medium text-sm">✓ KEEP:</div>
+                              <div className="text-xs text-green-700">
+                                ID: {dup.keep_file.id} | Scenario: {dup.keep_file.scenario_id}
+                              </div>
+                              <div className="text-xs text-green-600">
+                                Status: {dup.keep_file.status} | Has Data: {dup.keep_file.has_data ? 'Yes' : 'No'}
+                              </div>
+                            </div>
+
+                            <div className="p-2 bg-red-100 rounded">
+                              <div className="text-red-800 font-medium text-sm">✗ REMOVE ({dup.remove_files.length}):</div>
+                              {dup.remove_files.map((file: any, idx: number) => (
+                                <div key={idx} className="text-xs text-red-700">
+                                  ID: {file.id} | Scenario: {file.scenario_id} | Status: {file.status}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {deduplicationData.removal_results && deduplicationData.removal_results.length > 0 && (
+                  <div className="p-3 bg-green-50 rounded">
+                    <strong className="text-green-800">Removal Results:</strong>
+                    {deduplicationData.removal_results.map((result: any, index: number) => (
+                      <div key={index} className="text-green-700 text-sm mt-1">
+                        Batch {result.batch}: Removed {result.removed_ids.length} files (IDs: {result.removed_ids.join(', ')})
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {deduplicationData.preview_mode && deduplicationData.total_duplicates > 0 && (
+                  <div className="p-3 bg-blue-50 rounded">
+                    <div className="text-blue-800 font-medium">Ready to Execute</div>
+                    <div className="text-blue-700 text-sm mt-1">
+                      Click "Execute Deduplication" to permanently remove {deduplicationData.files_to_remove} duplicate files.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
