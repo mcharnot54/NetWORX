@@ -210,7 +210,7 @@ export class EnhancedExcelValidator {
       for (const sheetName of relevantSheets) {
         const worksheet = workbook.Sheets[sheetName];
         // Smart header detection - skip logo/empty rows
-        const rawDataWithHeaders = this.findActualHeaderRow(worksheet);
+        const rawDataWithHeaders = await this.findActualHeaderRow(worksheet);
         const rawData = rawDataWithHeaders.data;
         const headerRowIndex = rawDataWithHeaders.headerRowIndex;
 
