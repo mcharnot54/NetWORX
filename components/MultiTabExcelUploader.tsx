@@ -246,6 +246,15 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
   const handleFileUpload = async (uploadedFiles: FileList | null) => {
     if (!uploadedFiles || uploadedFiles.length === 0) return;
+    if (isProcessing) {
+      addLog('⚠ Processing already in progress. Please wait...');
+      return;
+    }
+
+    // Clear the input to allow re-selecting the same files
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
 
     setIsProcessing(true);
     addLog(`Starting processing of ${uploadedFiles.length} file(s)...`);
@@ -253,9 +262,16 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     try {
       const processedFiles: MultiTabFile[] = [];
 
-      for (const file of Array.from(uploadedFiles)) {
+      for (let i = 0; i < uploadedFiles.length; i++) {
+        const file = uploadedFiles[i];
+
         if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
           try {
+            // Add small delay to improve UI responsiveness
+            if (i > 0) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
             const processed = await processExcelFile(file);
             processedFiles.push(processed);
           } catch (error) {
