@@ -168,9 +168,64 @@ export class EnhancedExcelValidator {
         throw new Error('No valid data found in any sheet');
       }
 
-      // Step 5: Comprehensive validation
+      // Step 5: Apply data conversion and standardization
+      const conversionResults: { [sheetName: string]: any } = {};
+      let standardizedPrimaryData = primarySheetData;
+
+      try {
+        const { DataConverter } = await import('./data-converter');
+        const converter = new DataConverter({
+          strictMode: false,
+          preserveOriginalColumns: true,
+          unitStandardization: false
+        }, this.logger);
+
+        // Convert primary sheet data
+        if (primarySheetData.data.length > 0) {
+          const conversionResult = converter.convertToStandardFormat(
+            primarySheetData.data,
+            primarySheetData.detectedDataType
+          );
+
+          conversionResults[primarySheetData.sheetName] = conversionResult;
+
+          // Update primary data with standardized version
+          standardizedPrimaryData = {
+            ...primarySheetData,
+            data: conversionResult.data,
+            columnHeaders: conversionResult.standardColumns
+          };
+
+          this.logger(`Applied ${conversionResult.conversionsApplied.length} conversions to ${primarySheetData.sheetName}`, 'info');
+        }
+
+        // Convert multi-tab data
+        for (const [sheetName, sheetData] of Object.entries(multiTabData)) {
+          if (sheetData.data.length > 0 && sheetName !== primarySheetData.sheetName) {
+            const conversionResult = converter.convertToStandardFormat(
+              sheetData.data,
+              sheetData.detectedDataType
+            );
+
+            conversionResults[sheetName] = conversionResult;
+
+            // Update sheet data with standardized version
+            multiTabData[sheetName] = {
+              ...sheetData,
+              data: conversionResult.data,
+              columnHeaders: conversionResult.standardColumns
+            };
+
+            this.logger(`Applied ${conversionResult.conversionsApplied.length} conversions to ${sheetName}`, 'info');
+          }
+        }
+      } catch (converterError) {
+        this.logger(`Data conversion warning: ${converterError instanceof Error ? converterError.message : 'Unknown error'}`, 'warning');
+      }
+
+      // Step 6: Comprehensive validation
       const validationResult = this.performComprehensiveValidation(
-        primarySheetData,
+        standardizedPrimaryData,
         multiTabData,
         workbook.SheetNames
       );
@@ -182,8 +237,9 @@ export class EnhancedExcelValidator {
 
       return {
         validationResult,
-        cleanedData: primarySheetData,
-        multiTabData: Object.keys(multiTabData).length > 1 ? multiTabData : undefined
+        cleanedData: standardizedPrimaryData,
+        multiTabData: Object.keys(multiTabData).length > 1 ? multiTabData : undefined,
+        conversionResults: Object.keys(conversionResults).length > 0 ? conversionResults : undefined
       };
 
     } catch (error) {
