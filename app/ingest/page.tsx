@@ -12,7 +12,17 @@ interface MappingResult {
     extractedAmount: number;
     confidence: number;
   };
+  dbSource?: string;
+  dbHits?: number;
 }
+
+const CANONICAL_OPTIONS = [
+  "sku", "description", "item_class", "uom", "qty", "location", "loc_type", "lot", "serial", "owner", "warehouse", "area", "transaction_type", "transaction_ts",
+  "order_id", "ship_date", "origin_zip", "dest_zip", "service_level", "mode", "carrier", "weight_lb", "cube_cf", "pkgs", "freight_cost_usd",
+  "on_hand_qty", "allocated_qty", "available_qty", "reorder_point", "reorder_qty", "unit_cost_usd",
+  // Transport-specific fields
+  "net_charge", "gross_charge", "column_v", "ltl_cost", "tl_cost", "parcel_cost"
+];
 
 export default function IngestPage() {
   const [file, setFile] = useState<File | null>(null);
