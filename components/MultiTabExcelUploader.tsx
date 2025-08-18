@@ -147,9 +147,10 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       const fileType = detectFileType(file.name);
 
       // Create a single "tab" for the CSV data
+      const headers = data.length > 0 ? Object.keys(data[0]) : [];
       const sheetData = {
         data,
-        columnHeaders: report.headers,
+        columnHeaders: headers,
         rowCount: data.length,
         sheetName: file.name.replace('.csv', '')
       };
