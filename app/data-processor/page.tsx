@@ -1350,17 +1350,17 @@ export default function DataProcessor() {
 
                             try {
                               addToLog(`Testing content API for ${firstFile.name} (ID: ${firstFile.id})...`);
-                              const response = await fetch(`/api/files/${firstFile.id}/content`);
-                              addToLog(`API Response status: ${response.status}`);
-
-                              if (response.ok) {
-                                const result = await response.json();
+                              try {
+                                const result = await robustFetchJson(`/api/files/${firstFile.id}/content`, {
+                                  timeout: 15000,
+                                  retries: 2
+                                });
+                                addToLog(`API Response: SUCCESS`);
                                 addToLog(`Content available: ${result.has_content ? 'YES' : 'NO'}`);
                                 addToLog(`Content length: ${result.content_length || 0}`);
                                 addToLog(`File name from API: ${result.file_name}`);
-                              } else {
-                                const errorText = await response.text();
-                                addToLog(`API Error: ${response.status} - ${errorText}`);
+                              } catch (apiError) {
+                                addToLog(`API Error: ${apiError}`);
                               }
                             } catch (error) {
                               addToLog(`Test failed: ${error}`);
@@ -1369,7 +1369,7 @@ export default function DataProcessor() {
                           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
                           title="Test content API for first file"
                         >
-                          🔧 Test File API
+                          ���� Test File API
                         </button>
                       </div>
 
