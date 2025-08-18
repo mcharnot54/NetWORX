@@ -98,76 +98,117 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   };
 
   const processExcelFile = async (file: File): Promise<MultiTabFile> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = async (e) => {
-        try {
-          const XLSX = await import('xlsx');
-          const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'array' });
-          
-          const fileType = detectFileType(file.name);
-          const tabs: ExcelTab[] = [];
-          let totalExtracted = 0;
+    try {
+      // Use enhanced Excel validator
+      const { EnhancedExcelValidator } = await import('@/lib/enhanced-excel-validator');
 
-          addLog(`Processing ${file.name} - Found ${workbook.SheetNames.length} tabs: ${workbook.SheetNames.join(', ')}`);
+      const fileType = detectFileType(file.name);
+      const expectedDataType = fileType === 'UPS' ? 'network' : fileType === 'TL' ? 'transport' : fileType === 'RL' ? 'cost' : undefined;
 
-          for (const sheetName of workbook.SheetNames) {
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-            
-            if (jsonData.length === 0) continue;
-
-            const columns = Object.keys(jsonData[0] || {});
-            const sampleData = jsonData.slice(0, 5);
-            
-            // Extract transportation costs for this tab
-            const { column: targetColumn, amount: extractedAmount } = extractTransportationCosts({
-              name: sheetName,
-              rows: jsonData.length,
-              columns,
-              data: jsonData,
-              sampleData
-            }, fileType);
-
-            totalExtracted += extractedAmount;
-
-            tabs.push({
-              name: sheetName,
-              rows: jsonData.length,
-              columns,
-              data: jsonData,
-              sampleData,
-              targetColumn,
-              extractedAmount
-            });
-
-            addLog(`  ${sheetName}: ${jsonData.length} rows, ${columns.length} columns, extracted $${extractedAmount.toLocaleString()} from ${targetColumn}`);
-          }
-
-          const multiTabFile: MultiTabFile = {
-            file,
-            fileName: file.name,
-            fileSize: file.size,
-            tabs,
-            fileType,
-            totalExtracted,
-            processingStatus: 'completed'
-          };
-
-          addLog(`✓ ${file.name} processed: ${tabs.length} tabs, total extracted: $${totalExtracted.toLocaleString()}`);
-          resolve(multiTabFile);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          addLog(`✗ Error processing ${file.name}: ${errorMessage}`);
-          reject(error);
+      const validator = new EnhancedExcelValidator({
+        maxFileSizeMB: 200, // Increase for large transportation files
+        backupOriginal: false, // Don't backup in browser
+        validation: {
+          strictMode: false,
+          skipEmptyRows: true,
+          skipEmptyColumns: true,
+          autoDetectDataType: true
         }
+      }, (message, level) => addLog(`[${level?.toUpperCase()}] ${message}`));
+
+      addLog(`Processing ${file.name} with enhanced validation...`);
+
+      const result = await validator.processExcelFile(file, expectedDataType);
+
+      if (!result.validationResult.isValid) {
+        const errors = result.validationResult.errors.map(e => e.message).join('; ');
+        addLog(`⚠ Validation issues: ${errors}`);
+      }
+
+      // Log validation warnings
+      if (result.validationResult.warnings.length > 0) {
+        result.validationResult.warnings.forEach(warning => {
+          addLog(`⚠ ${warning.message}`);
+        });
+      }
+
+      // Log recommendations
+      if (result.validationResult.recommendations.length > 0) {
+        result.validationResult.recommendations.forEach(rec => {
+          addLog(`💡 ${rec}`);
+        });
+      }
+
+      const tabs: ExcelTab[] = [];
+      let totalExtracted = 0;
+
+      // Process multi-tab data if available
+      const tabData = result.multiTabData || { [result.cleanedData.sheetName]: result.cleanedData };
+
+      addLog(`Found ${Object.keys(tabData).length} sheets: ${Object.keys(tabData).join(', ')}`);
+
+      for (const [sheetName, sheetData] of Object.entries(tabData)) {
+        if (sheetData.data.length === 0) continue;
+
+        // Extract transportation costs for this tab
+        const { column: targetColumn, amount: extractedAmount } = extractTransportationCosts({
+          name: sheetName,
+          rows: sheetData.data.length,
+          columns: sheetData.columnHeaders,
+          data: sheetData.data,
+          sampleData: sheetData.data.slice(0, 5)
+        }, fileType);
+
+        totalExtracted += extractedAmount;
+
+        tabs.push({
+          name: sheetName,
+          rows: sheetData.data.length,
+          columns: sheetData.columnHeaders,
+          data: sheetData.data,
+          sampleData: sheetData.data.slice(0, 5),
+          targetColumn,
+          extractedAmount
+        });
+
+        addLog(`  ${sheetName}: ${sheetData.data.length} rows, ${sheetData.columnHeaders.length} columns`);
+        addLog(`    Extracted $${extractedAmount.toLocaleString()} from ${targetColumn}`);
+        addLog(`    Cleaning: ${sheetData.cleaningReport.rowsRemoved} rows removed, ${sheetData.cleaningReport.valuesConverted} values converted`);
+      }
+
+      const multiTabFile: MultiTabFile = {
+        file,
+        fileName: file.name,
+        fileSize: file.size,
+        tabs,
+        fileType,
+        totalExtracted,
+        processingStatus: 'completed'
       };
 
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsArrayBuffer(file);
-    });
+      // Add quality metrics to log
+      const quality = result.validationResult.dataQuality;
+      addLog(`✓ ${file.name} processed with ${(quality.completenessScore * 100).toFixed(1)}% data completeness`);
+      addLog(`  Total extracted: $${totalExtracted.toLocaleString()} from ${tabs.length} tabs`);
+      addLog(`  Processing time: ${result.validationResult.processingTime}ms`);
+
+      return multiTabFile;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addLog(`✗ Error processing ${file.name}: ${errorMessage}`);
+
+      return {
+        file,
+        fileName: file.name,
+        fileSize: file.size,
+        tabs: [],
+        fileType: detectFileType(file.name),
+        totalExtracted: 0,
+        processingStatus: 'error',
+        errorMessage
+      };
+    }
   };
 
   const handleFileUpload = async (uploadedFiles: FileList | null) => {
