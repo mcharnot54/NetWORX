@@ -125,7 +125,7 @@ export default function DataProcessor() {
       const result = await response.json();
       setDatabaseReady(result.success);
       if (!result.success) {
-        addToLog('�� Database connection issue detected');
+        addToLog('⚠ Database connection issue detected');
       }
     } catch (error) {
       setDatabaseReady(false);
@@ -233,6 +233,41 @@ export default function DataProcessor() {
     } finally {
       setLoadingSavedFiles(false);
     }
+  };
+
+  // Handle duplicate file conflicts
+  const handleDuplicateFile = async (fileName: string, conflictData: any): Promise<'skip' | 'replace' | 'force' | 'cancel'> => {
+    return new Promise((resolve) => {
+      const message = `File "${fileName}" already exists!\n\n` +
+        `Existing file:\n` +
+        `- ID: ${conflictData.existing_file?.id}\n` +
+        `- Status: ${conflictData.existing_file?.status}\n` +
+        `- Created: ${new Date(conflictData.existing_file?.created_at).toLocaleDateString()}\n\n` +
+        `Choose an action:\n` +
+        `• SKIP - Don't upload this file\n` +
+        `• REPLACE - Replace the existing file\n` +
+        `• DUPLICATE - Upload as duplicate anyway`;
+
+      const choice = prompt(message + '\n\nEnter: skip, replace, or duplicate');
+
+      switch (choice?.toLowerCase()) {
+        case 'skip':
+        case 's':
+          resolve('skip');
+          break;
+        case 'replace':
+        case 'r':
+          resolve('replace');
+          break;
+        case 'duplicate':
+        case 'd':
+        case 'force':
+          resolve('force');
+          break;
+        default:
+          resolve('cancel');
+      }
+    });
   };
 
   const saveFileToDatabase = async (fileData: FileData) => {
