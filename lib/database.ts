@@ -542,8 +542,8 @@ export class DataFileService {
       RETURNING *
     `;
 
-    const [file] = await sql.unsafe(query, values);
-    return file as DataFile;
+    const result = await sql.unsafe(query, values);
+    return result[0] as DataFile;
   }
 
   static async getDataFile(id: number): Promise<DataFile | null> {
