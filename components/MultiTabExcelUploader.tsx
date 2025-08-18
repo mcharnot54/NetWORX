@@ -210,6 +210,30 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       if (!bestColumn) {
         console.log(`UPS ${tab.name}: ERROR - NO NET CHARGE COLUMN FOUND! All columns:`, tab.columns);
+
+        // EMERGENCY: Try ANY column with numeric data as last resort
+        console.log(`UPS ${tab.name}: EMERGENCY - Trying ANY column with numeric data...`);
+        for (const col of tab.columns) {
+          if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+
+          let testAmount = 0;
+          let validValues = 0;
+          for (const row of tab.data) {
+            if (row && row[col]) {
+              const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue > 0.001) {
+                testAmount += numValue;
+                validValues++;
+              }
+            }
+          }
+          if (validValues > 10 && testAmount > 1000) { // Need substantial data
+            bestAmount = testAmount;
+            bestColumn = col;
+            console.log(`UPS ${tab.name}: EMERGENCY - Using ANY numeric column '${col}' with $${testAmount.toLocaleString()}`);
+            break;
+          }
+        }
       }
     } else if (fileType === 'TL') {
       // For TL files: Use column H specifically for TOTAL 2024 tab, other patterns for other tabs
@@ -310,7 +334,23 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         // Log filtering results for debugging
         console.log(`TL ${tab.name}: Filtered ${tab.data.length - filteredData.length} total rows, ${filteredData.length} data rows remaining`);
-        console.log(`TL ${tab.name}: Extracted $${bestAmount.toLocaleString()} from ${bestColumn}`);
+        console.log(`TL ${tab.name}: Extracted $${bestAmount.toLocaleString()} from column '${bestColumn}'`);
+
+        // If Column H extraction failed for TOTAL 2024, provide detailed debugging
+        if (tab.name === 'TOTAL 2024' && (!bestColumn || bestAmount === 0)) {
+          console.log(`TL TOTAL 2024 DEBUG: Failed to extract from Column H`);
+          console.log(`  - rateColumn found: ${rateColumn}`);
+          console.log(`  - bestColumn assigned: ${bestColumn}`);
+          console.log(`  - bestAmount: ${bestAmount}`);
+          console.log(`  - All columns (${tab.columns.length}):`, tab.columns);
+          console.log(`  - Sample data from first 3 rows:`);
+          for (let i = 0; i < Math.min(3, tab.data.length); i++) {
+            if (tab.data[i]) {
+              const row = tab.data[i];
+              console.log(`    Row ${i}:`, Object.keys(row).slice(0, 10).map(key => `${key}=${row[key]}`));
+            }
+          }
+        }
       }
     } else if (fileType === 'RL') {
       // For R&L files, ABSOLUTE PRIORITY: Column V first, then NET charges, NEVER gross charges
