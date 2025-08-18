@@ -170,7 +170,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       if (result.warnings && result.warnings.length > 0) {
         const warnings = result.warnings.join('; ');
-        addLog(`��� Warnings: ${warnings}`);
+        addLog(`⚠ Warnings: ${warnings}`);
       }
 
       // Log validation warnings
@@ -506,34 +506,66 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               rowData[index + 1] = row; // Excel rows are 1-indexed
             });
 
-            // Helper function to extract value from specific row and column range Y:AJ
+            // Helper function to extract value from specific row - auto-detect data columns
             const extractFromRowColumns = (rowNum: number): number => {
               const row = rowData[rowNum];
               if (!row) return 0;
 
-              // Excel columns Y:AJ correspond to indices 24-35 (Y=24, Z=25, AA=26, etc.)
-              const columnIndices = [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]; // Y through AJ
+              // First, scan row 21 (headcount) to find where the actual data columns are
+              let dataStartColumn = -1;
+              let dataEndColumn = -1;
+
+              if (rowNum === 21 || dataStartColumn === -1) {
+                // Scan for consecutive numeric values to find data range
+                const testRow = rowData[21]; // Always use row 21 as reference for column detection
+                if (testRow) {
+                  let consecutiveCount = 0;
+                  for (let i = 0; i < sheetData.columnHeaders.length; i++) {
+                    const columnKey = sheetData.columnHeaders[i];
+                    if (testRow[columnKey] !== undefined && testRow[columnKey] !== null) {
+                      const value = parseFloat(String(testRow[columnKey]).replace(/[$,\s]/g, ''));
+                      if (!isNaN(value) && value > 0) {
+                        if (dataStartColumn === -1) dataStartColumn = i;
+                        dataEndColumn = i;
+                        consecutiveCount++;
+                      } else if (consecutiveCount > 6) {
+                        // Found good data range, stop looking
+                        break;
+                      } else if (dataStartColumn !== -1) {
+                        // Reset if we had started but hit a gap
+                        consecutiveCount = 0;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Fallback to Y:AJ indices if auto-detection fails
+              if (dataStartColumn === -1) {
+                dataStartColumn = 24; // Y column
+                dataEndColumn = 35;   // AJ column
+              }
+
+              addLog(`    🔍 Row ${rowNum} scanning columns ${dataStartColumn} to ${dataEndColumn}`);
 
               let total = 0;
               let valuesFound = [];
 
-              for (const columnIndex of columnIndices) {
-                const headers = sheetData.columnHeaders;
-
-                if (columnIndex < headers.length) {
-                  const columnKey = headers[columnIndex];
-                  if (row && row[columnKey] !== undefined && row[columnKey] !== null) {
-                    const value = parseFloat(String(row[columnKey]).replace(/[$,\s]/g, ''));
-                    if (!isNaN(value) && value !== 0) { // Include negative values but exclude zero
-                      total += value;
-                      valuesFound.push(`${columnKey}:${value}`);
-                    }
+              for (let columnIndex = dataStartColumn; columnIndex <= dataEndColumn && columnIndex < sheetData.columnHeaders.length; columnIndex++) {
+                const columnKey = sheetData.columnHeaders[columnIndex];
+                if (row && row[columnKey] !== undefined && row[columnKey] !== null) {
+                  const value = parseFloat(String(row[columnKey]).replace(/[$,\s]/g, ''));
+                  if (!isNaN(value) && value !== 0) { // Include negative values but exclude zero
+                    total += value;
+                    valuesFound.push(`${columnKey}:${value}`);
                   }
                 }
               }
 
               if (valuesFound.length > 0) {
                 addLog(`    📊 Row ${rowNum} found values: ${valuesFound.join(', ')}`);
+              } else {
+                addLog(`    ❌ Row ${rowNum} no values found in detected range`);
               }
 
               return total;
