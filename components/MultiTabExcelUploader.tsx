@@ -210,7 +210,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`🚨 TL ${sheetName}: No valid rate column found! Available: ${sheetData.columnHeaders.join(', ')}`);
               targetColumn = 'No valid column';
             } else {
-              addLog(`🎯 TL ${sheetName}: Using column '${rateColumn}' (NET first, Gross Rate fallback)`);
+              addLog(`🎯 TL ${sheetName}: Adaptive learning selected column '${rateColumn}'`);
 
               // Initialize count variable to avoid ReferenceError
               let count = 0;
