@@ -71,6 +71,24 @@ const nextConfig = {
       });
     }
 
+    // Development optimizations
+    if (!isServer && process.env.NODE_ENV === 'development') {
+      // Reduce compilation time
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
+          },
+        },
+      };
+    }
+
     return config;
   }
 };
