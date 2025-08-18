@@ -154,7 +154,7 @@ function extractFromNetCharge(data: any[]): { total: number, valuesFound: number
   return { total, valuesFound };
 }
 
-// Extract from Column V (R&L LTL)
+// Extract from Column V (R&L LTL) - Enhanced for R&L file patterns
 function extractFromColumnV(data: any[]): { total: number, valuesFound: number } {
   let total = 0;
   let valuesFound = 0;
@@ -163,13 +163,22 @@ function extractFromColumnV(data: any[]): { total: number, valuesFound: number }
     if (typeof row !== 'object' || !row) continue;
 
     for (const [key, value] of Object.entries(row)) {
-      if (key === 'V' || key === '__EMPTY_21' ||
+      // More comprehensive column V detection for R&L data
+      if (key === 'V' || key === '__EMPTY_21' || key === '__EMPTY_20' ||
           key.toLowerCase().includes('net') ||
           key.toLowerCase().includes('charge') ||
-          key.toLowerCase().includes('cost')) {
-        
-        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-        if (!isNaN(numValue) && numValue > 100) {
+          key.toLowerCase().includes('cost') ||
+          key.toLowerCase().includes('amount') ||
+          key.toLowerCase().includes('total') ||
+          key.toLowerCase().includes('freight') ||
+          key.toLowerCase().includes('revenue') ||
+          // R&L specific patterns
+          key.toLowerCase().includes('customer charge') ||
+          key.toLowerCase().includes('line haul') ||
+          key.toLowerCase().includes('invoice')) {
+
+        const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
+        if (!isNaN(numValue) && numValue > 50) { // Lower threshold for LTL
           total += numValue;
           valuesFound++;
         }
@@ -177,6 +186,7 @@ function extractFromColumnV(data: any[]): { total: number, valuesFound: number }
     }
   }
 
+  console.log(`R&L Column V extraction: $${total} from ${valuesFound} values`);
   return { total, valuesFound };
 }
 
