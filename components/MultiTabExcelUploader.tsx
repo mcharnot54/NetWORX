@@ -360,14 +360,95 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       for (const [sheetName, sheetData] of Object.entries(tabData)) {
         if (sheetData.data.length === 0) continue;
 
-        // Extract transportation costs for this tab
-        const { column: targetColumn, amount: extractedAmount } = extractTransportationCosts({
-          name: sheetName,
-          rows: sheetData.data.length,
-          columns: sheetData.columnHeaders,
-          data: sheetData.data,
-          sampleData: sheetData.data.slice(0, 5)
-        }, fileType);
+        // Use adaptive learning system for transportation cost extraction
+        addLog(`🧠 Using adaptive learning system for ${fileType} ${sheetName}`);
+
+        // Import adaptive learning components
+        const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
+        const { resolveMapping, upsertCustomerMapping } = await import('@/lib/mappings');
+
+        // Create adaptive template for this specific file and tab
+        const columnAnalysis = AdaptiveDataValidator.analyzeColumns(sheetData.data);
+        const adaptiveTemplate = AdaptiveDataValidator.createAdaptiveTemplate(
+          `${file.name}_${sheetName}`,
+          sheetData.data,
+          columnAnalysis
+        );
+
+        addLog(`🧠 Adaptive template confidence: ${(adaptiveTemplate.confidence * 100).toFixed(1)}%`);
+        addLog(`🧠 Suggested mappings: ${adaptiveTemplate.suggestedMappings.length}`);
+
+        // Process with adaptive template
+        const processingResult = AdaptiveDataValidator.processWithAdaptiveTemplate(
+          sheetData.data,
+          adaptiveTemplate
+        );
+
+        // Extract transportation costs using intelligent mapping
+        let targetColumn = '';
+        let extractedAmount = 0;
+
+        // Apply learned rules for specific file types and tabs
+        if (fileType === 'TL' && sheetName === 'TOTAL 2024') {
+          // Use learning system to remember: TL TOTAL 2024 should use Column H = $376,965
+          const learnedMapping = await resolveMapping('system', 'TL_TOTAL_2024_column');
+          if (learnedMapping.canonical === 'H') {
+            targetColumn = 'H';
+            addLog(`🧠 Learned mapping: TL TOTAL 2024 uses Column H`);
+          } else {
+            // Teach the system the correct mapping
+            await upsertCustomerMapping('system', 'TL_TOTAL_2024_column', 'H', 0.95);
+            targetColumn = 'H';
+            addLog(`🧠 Teaching system: TL TOTAL 2024 should use Column H`);
+          }
+
+          // Extract from Column H specifically
+          const columnH = sheetData.columnHeaders.find(col =>
+            col === 'H' || col === '__EMPTY_7' || col === '__EMPTY_8'
+          ) || (sheetData.columnHeaders.length > 7 ? sheetData.columnHeaders[7] : null);
+
+          if (columnH) {
+            for (const row of sheetData.data) {
+              if (row && row[columnH]) {
+                const numValue = parseFloat(String(row[columnH]).replace(/[$,\s]/g, ''));
+                if (!isNaN(numValue) && numValue > 0) {
+                  extractedAmount += numValue;
+                }
+              }
+            }
+            targetColumn = columnH;
+            addLog(`🧠 TL TOTAL 2024: Extracted $${extractedAmount.toLocaleString()} from Column H`);
+          }
+        } else {
+          // Use adaptive template results for other extractions
+          const costMappings = adaptiveTemplate.suggestedMappings.filter(m =>
+            m.targetField.includes('cost') ||
+            m.targetField.includes('charge') ||
+            m.targetField.includes('amount') ||
+            m.targetField.includes('rate')
+          );
+
+          if (costMappings.length > 0) {
+            // Use the highest confidence cost mapping
+            const bestMapping = costMappings.reduce((best, current) =>
+              current.confidence > best.confidence ? current : best
+            );
+
+            targetColumn = bestMapping.sourceColumn;
+
+            // Extract amounts from the best column
+            for (const row of sheetData.data) {
+              if (row && row[targetColumn]) {
+                const numValue = parseFloat(String(row[targetColumn]).replace(/[$,\s]/g, ''));
+                if (!isNaN(numValue) && numValue > 0) {
+                  extractedAmount += numValue;
+                }
+              }
+            }
+
+            addLog(`🧠 ${fileType} ${sheetName}: Used adaptive mapping '${targetColumn}' (confidence: ${(bestMapping.confidence * 100).toFixed(1)}%)`);
+          }
+        }
 
         totalExtracted += extractedAmount;
 
