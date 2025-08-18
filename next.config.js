@@ -3,19 +3,16 @@ const nextConfig = {
   // Disable standalone for now to simplify build
   // ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
 
-  // Disable static generation to avoid Html import errors during build
+  // Disable problematic features that cause fetch failures
   experimental: {
     missingSuspenseWithCSRBailout: false,
-    // Optimize development server performance
+    // Disable turbo mode that's causing RSC payload issues
+    // turbo: false, // Commented out to disable turbo completely
     optimizePackageImports: ['lucide-react'],
-    // Fix dev server stability
-    turbo: {
-      loaders: {
-        '.xlsx': ['raw-loader'],
-        '.xls': ['raw-loader'],
-      },
-    },
   },
+
+  // Disable fast refresh to prevent WebSocket issues
+  reactStrictMode: false,
 
   // Improve development server stability - Increase buffers to prevent crashes
   onDemandEntries: {
