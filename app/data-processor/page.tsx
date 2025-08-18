@@ -125,7 +125,7 @@ export default function DataProcessor() {
       const result = await response.json();
       setDatabaseReady(result.success);
       if (!result.success) {
-        addToLog('⚠ Database connection issue detected');
+        addToLog('�� Database connection issue detected');
       }
     } catch (error) {
       setDatabaseReady(false);
@@ -268,7 +268,54 @@ export default function DataProcessor() {
         body: JSON.stringify(saveData),
       });
 
-      // Handle response without consuming body stream multiple times
+      // Handle duplicate file conflicts (409 status)
+      if (response.status === 409) {
+        const conflictData = await response.json();
+
+        // Ask user what to do with duplicate
+        const action = await handleDuplicateFile(fileData.name, conflictData);
+
+        if (action === 'skip') {
+          addToLog(`Skipped duplicate file: ${fileData.name}`);
+          return null;
+        } else if (action === 'replace') {
+          // Retry with replace_existing flag
+          const retryData = { ...saveData, replace_existing: true };
+          const retryResponse = await fetch('/api/files', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(retryData),
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error(`Failed to replace file: HTTP ${retryResponse.status}`);
+          }
+
+          const retryResult = await retryResponse.json();
+          addToLog(`Replaced existing file: ${fileData.name}`);
+          return retryResult.file.id;
+        } else if (action === 'force') {
+          // Retry with force_upload flag
+          const forceData = { ...saveData, force_upload: true };
+          const forceResponse = await fetch('/api/files', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(forceData),
+          });
+
+          if (!forceResponse.ok) {
+            throw new Error(`Failed to force upload file: HTTP ${forceResponse.status}`);
+          }
+
+          const forceResult = await forceResponse.json();
+          addToLog(`Force uploaded duplicate file: ${fileData.name}`);
+          return forceResult.file.id;
+        }
+
+        return null; // User cancelled
+      }
+
+      // Handle other errors
       if (!response.ok) {
         console.error('File save request failed:', response.status, response.statusText);
         throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
