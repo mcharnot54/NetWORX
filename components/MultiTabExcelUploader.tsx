@@ -78,11 +78,14 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       const targetColumn = columnH || fallbackH;
       
       if (!targetColumn) {
+        addLog(`🚨 TL TOTAL 2024: FATAL ERROR - NO Column H found! Returning $0`);
+        addLog(`🚨 Available columns: ${tab.columns.join(', ')}`);
         console.log(`TL TOTAL 2024: FATAL ERROR - NO Column H found! Returning $0`);
         console.log(`Available columns:`, tab.columns);
         return { column: '', amount: 0 };
       }
-      
+
+      addLog(`🚨 TL TOTAL 2024: Using Column H = '${targetColumn}'`);
       console.log(`TL TOTAL 2024: Using Column H = '${targetColumn}'`);
       
       // Extract from Column H ONLY - NO SMART FILTERING FOR TOTAL 2024
