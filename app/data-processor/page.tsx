@@ -1266,10 +1266,14 @@ export default function DataProcessor() {
                             addToLog('Testing server connection...');
 
                             try {
-                              const response = await robustFetchJson('/api/health', {
-                                timeout: 10000,
-                                retries: 1
-                              });
+                              const response = await withTimeout(
+                                robustFetchJson('/api/health', {
+                                  timeout: 8000,
+                                  retries: 0
+                                }),
+                                10000,
+                                'Health check'
+                              );
 
                               const duration = Date.now() - startTime;
                               addToLog(`✓ Server connection OK (${duration}ms)`);
@@ -1285,6 +1289,43 @@ export default function DataProcessor() {
                           title="Test server connection and response time"
                         >
                           🌐 Test Connection
+                        </button>
+                      </div>
+
+                      {/* Debug: Simple Ping Test */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            const startTime = Date.now();
+                            addToLog('Simple ping test...');
+
+                            try {
+                              // Use native fetch with a very short timeout
+                              const controller = new AbortController();
+                              const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                              const response = await fetch('/api/health', {
+                                signal: controller.signal
+                              });
+
+                              clearTimeout(timeoutId);
+                              const duration = Date.now() - startTime;
+
+                              if (response.ok) {
+                                addToLog(`✓ Simple ping OK (${duration}ms)`);
+                              } else {
+                                addToLog(`⚠ Simple ping returned ${response.status} (${duration}ms)`);
+                              }
+
+                            } catch (error) {
+                              const duration = Date.now() - startTime;
+                              addToLog(`✗ Simple ping failed after ${duration}ms: ${error}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                          title="Simple ping test with native fetch"
+                        >
+                          🏓 Simple Ping
                         </button>
                       </div>
 
