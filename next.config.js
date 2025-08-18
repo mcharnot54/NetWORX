@@ -14,12 +14,12 @@ const nextConfig = {
   // Disable fast refresh to prevent WebSocket issues
   reactStrictMode: false,
 
-  // Improve development server stability - Increase buffers to prevent crashes
+  // Improve development server stability - Aggressive caching for slow environments
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 60 * 1000, // Increased from 25s to 60s
+    maxInactiveAge: 300 * 1000, // 5 minutes - much longer caching
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 5, // Increased from 2 to 5
+    pagesBufferLength: 10, // Increased to prevent recompilation
   },
 
   // Fix cross-origin and networking issues
