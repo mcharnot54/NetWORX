@@ -188,29 +188,32 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             }
           }
 
-        } catch (learningError) {
-          addLog(`🚨 LEARNING SYSTEM ERROR: ${learningError}`);
-          addLog(`🔄 Falling back to basic extraction for ${fileType} ${sheetName}`);
+        } catch (safeError) {
+          addLog(`⚠️ Safe extraction error: ${safeError}. Using basic column detection.`);
 
-          // Fallback extraction logic
-          const costColumns = sheetData.columnHeaders.filter(col =>
-            col && (col.toLowerCase().includes('cost') ||
-                   col.toLowerCase().includes('charge') ||
-                   col.toLowerCase().includes('amount') ||
-                   col.toLowerCase().includes('rate'))
-          );
+          // Ultra-safe fallback - just find any numeric column
+          for (const col of sheetData.columnHeaders) {
+            if (col && !col.toLowerCase().includes('empty')) {
+              let testAmount = 0;
+              let testCount = 0;
 
-          if (costColumns.length > 0) {
-            targetColumn = costColumns[0];
-            for (const row of sheetData.data) {
-              if (row && row[targetColumn]) {
-                const numValue = parseFloat(String(row[targetColumn]).replace(/[$,\s]/g, ''));
-                if (!isNaN(numValue) && numValue > 0) {
-                  extractedAmount += numValue;
+              for (const row of sheetData.data.slice(0, 10)) { // Test only first 10 rows to prevent issues
+                if (row && row[col]) {
+                  const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+                  if (!isNaN(numValue) && numValue > 1) {
+                    testAmount += numValue;
+                    testCount++;
+                  }
                 }
               }
+
+              if (testCount > 0 && testAmount > 100) {
+                targetColumn = col;
+                extractedAmount = testAmount * (sheetData.data.length / 10); // Estimate full amount
+                addLog(`🔄 SAFE FALLBACK: Using ${col} with estimated $${extractedAmount.toLocaleString()}`);
+                break;
+              }
             }
-            addLog(`🔄 FALLBACK: Extracted $${extractedAmount.toLocaleString()} from ${targetColumn}`);
           }
         }
 
