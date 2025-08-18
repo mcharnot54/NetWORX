@@ -6,7 +6,11 @@ export async function GET() {
   try {
     const { sql } = await import('@/lib/database');
     
-    const analysis = {
+    const analysis: {
+      rl_analysis: any;
+      tl_analysis: any;
+      recommendations: any[];
+    } = {
       rl_analysis: {},
       tl_analysis: {},
       recommendations: []
