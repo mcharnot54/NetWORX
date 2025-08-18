@@ -150,7 +150,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         try {
           // Apply file-type specific extraction rules
-          addLog(`��� PROCESSING: ${fileType} file, analyzing ${sheetName} tab`);
+          addLog(`🧠 PROCESSING: ${fileType} file, analyzing ${sheetName} tab`);
 
           // UPS FILES: Extract from Column G (Net Charge) for all four tabs
           if (fileType === 'UPS') {
@@ -182,30 +182,95 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           } else if (fileType === 'TL') {
             addLog(`🚛 TL PROCESSING: Using working API logic - find any cost column`);
 
-            // Use EXACT same logic as working API - simple and direct
-            let count = 0;
+            // Find NET charge/rate column (prioritize NET, EXCLUDE GROSS per working API)
+            const netColumns = ['Net Charge', 'Net Rate', 'Net Cost', 'net_charge', 'net_rate'];
+            const fallbackColumns = ['Rate', 'Freight Cost', 'freight_cost', 'Cost', 'Charge', 'Amount'];
 
-            // Simple loop through all rows like working API
-            for (const row of sheetData.data) {
-              if (row && typeof row === 'object') {
-                // Look for cost columns - prioritize Gross Rate (exact same logic as working API)
-                for (const [key, value] of Object.entries(row)) {
-                  if (key === 'Gross Rate' ||
-                      key.toLowerCase().includes('gross') ||
-                      key.toLowerCase().includes('rate') ||
-                      key.toLowerCase().includes('total') ||
-                      key.toLowerCase().includes('cost') ||
-                      key.toLowerCase().includes('amount')) {
+            // First priority: NET columns
+            let rateColumn = sheetData.columnHeaders.find(col =>
+              netColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+            );
 
-                    const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-                    if (!isNaN(numValue) && numValue > 500) { // TL costs should be substantial
-                      extractedAmount += numValue;
-                      count++;
+            // Fallback: other columns but EXCLUDE gross
+            if (!rateColumn) {
+              rateColumn = sheetData.columnHeaders.find(col =>
+                !col.toLowerCase().includes('gross') && // EXCLUDE gross columns per user requirement
+                fallbackColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+              );
+            }
+
+            if (!rateColumn) {
+              addLog(`🚨 TL ${sheetName}: No valid rate column found! Available: ${sheetData.columnHeaders.join(', ')}`);
+            } else {
+              addLog(`🎯 TL ${sheetName}: Using column '${rateColumn}' (NET prioritized, GROSS excluded)`);
+
+              // Smart filtering logic from working API
+              const filteredData = sheetData.data.filter(row => {
+                if (!row) return false;
+
+                // Check for total keywords
+                const rowValues = Object.values(row).map(val => String(val).toLowerCase());
+                const hasTotal = rowValues.some(val =>
+                  val.includes('total') ||
+                  val.includes('sum') ||
+                  val.includes('grand') ||
+                  val.includes('subtotal')
+                );
+
+                if (hasTotal) return false;
+
+                // Smart check: if row has monetary value but no supporting data, exclude it
+                if (row[rateColumn]) {
+                  const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
+                  if (!isNaN(numValue) && numValue > 0) {
+                    // Check for supporting data columns
+                    const supportingDataColumns = Object.keys(row).filter(key =>
+                      key.toLowerCase().includes('origin') ||
+                      key.toLowerCase().includes('destination') ||
+                      key.toLowerCase().includes('from') ||
+                      key.toLowerCase().includes('to') ||
+                      key.toLowerCase().includes('route') ||
+                      key.toLowerCase().includes('lane') ||
+                      key.toLowerCase().includes('city') ||
+                      key.toLowerCase().includes('state') ||
+                      key.toLowerCase().includes('zip') ||
+                      key.toLowerCase().includes('location') ||
+                      key.toLowerCase().includes('service') ||
+                      key.toLowerCase().includes('mode') ||
+                      key.toLowerCase().includes('carrier')
+                    );
+
+                    // Count supporting data with actual values
+                    const supportingDataCount = supportingDataColumns.filter(col => {
+                      const value = row[col];
+                      return value && String(value).trim() !== '' &&
+                             String(value).toLowerCase() !== 'null' &&
+                             String(value).toLowerCase() !== 'n/a';
+                    }).length;
+
+                    // If no supporting data, it's likely a total row
+                    if (supportingDataCount === 0) {
+                      return false;
                     }
-                    break; // Found a cost column, move to next row (exact same as working API)
+                  }
+                }
+
+                return true;
+              });
+
+              // Calculate total
+              let count = 0;
+              for (const row of filteredData) {
+                if (row && row[rateColumn]) {
+                  const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
+                  if (!isNaN(numValue) && numValue > 1) {
+                    extractedAmount += numValue;
+                    count++;
                   }
                 }
               }
+
+              targetColumn = rateColumn;
             }
 
             targetColumn = 'Gross Rate'; // Set target column for display
@@ -546,7 +611,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             addLog(`✓ ${file.fileName} uploaded with preserved tab structure`);
           } else {
             const errorData = await uploadResponse.text();
-            addLog(`✗ Failed to upload ${file.fileName}: ${errorData}`);
+            addLog(`��� Failed to upload ${file.fileName}: ${errorData}`);
           }
         }
       }
