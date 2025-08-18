@@ -368,7 +368,7 @@ export default function DataProcessor() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id: fileId, ...updateData }),
-        timeout: 5000, // 5 second timeout for database updates
+        timeout: 15000, // 15 second timeout for database updates
         retries: 1 // Only retry once for database updates
       });
 
