@@ -1241,6 +1241,36 @@ export default function DataProcessor() {
                         </div>
                       </div>
 
+                      {/* Debug: Test Server Connection */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            const startTime = Date.now();
+                            addToLog('Testing server connection...');
+
+                            try {
+                              const response = await robustFetchJson('/api/health', {
+                                timeout: 10000,
+                                retries: 1
+                              });
+
+                              const duration = Date.now() - startTime;
+                              addToLog(`✓ Server connection OK (${duration}ms)`);
+                              addToLog(`Server status: ${response.status || 'healthy'}`);
+
+                            } catch (error) {
+                              const duration = Date.now() - startTime;
+                              addToLog(`✗ Server connection failed after ${duration}ms`);
+                              addToLog(`Error: ${error}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                          title="Test server connection and response time"
+                        >
+                          🌐 Test Connection
+                        </button>
+                      </div>
+
                       {/* Debug: Test File Count */}
                       <div className="group relative">
                         <button
@@ -1249,12 +1279,14 @@ export default function DataProcessor() {
 
                             try {
                               addToLog('Testing file count...');
-                              const response = await fetch(`/api/files/count?scenarioId=${selectedScenario.id}`);
-                              const result = await response.json();
+                              const response = await robustFetchJson(`/api/files/count?scenarioId=${selectedScenario.id}`, {
+                                timeout: 15000,
+                                retries: 2
+                              });
 
-                              addToLog(`Total files: ${result.total_files}`);
-                              addToLog(`Completed files: ${result.completed_files}`);
-                              addToLog(`Files with content: ${result.files_with_content}`);
+                              addToLog(`Total files: ${response.total_files}`);
+                              addToLog(`Completed files: ${response.completed_files}`);
+                              addToLog(`Files with content: ${response.files_with_content}`);
                             } catch (error) {
                               addToLog(`Error testing file count: ${error}`);
                             }
