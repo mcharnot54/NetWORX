@@ -323,8 +323,11 @@ function extractTransportationCosts(data: any[], baselineCosts: any, fileName: s
     file_name: fileName,
     freight_cost_extracted: totalFreightCost,
     rows_processed: data.length,
-    extraction_method: getExtractionMethod(fileName)
+    extraction_method: getExtractionMethod(fileName),
+    amount_added_to_baseline: totalFreightCost
   });
+
+  console.log(`Added $${totalFreightCost} to baseline from ${fileName} (total transport costs now: $${baselineCosts.transport_costs.freight_costs})`);
 }
 
 // Extract from column H (TL costs - Inbound, Outbound, Transfers) - Using validation logic
