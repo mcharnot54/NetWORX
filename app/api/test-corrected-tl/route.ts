@@ -7,11 +7,22 @@ function testCorrectTLExtraction(tabData: any, tabName: string) {
   const data = tabData.sample_data || tabData.data || [];
   const columns = tabData.columns || [];
   
-  // Find rate column
-  const rateColumns = ['Gross Rate', 'gross_rate', 'Rate', 'Freight Cost', 'freight_cost', 'Cost', 'Charge', 'Total', 'Amount'];
-  const rateColumn = columns.find((col: string) => 
-    rateColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+  // Find NET charge/rate column (prioritize NET, exclude GROSS)
+  const netColumns = ['Net Charge', 'Net Rate', 'Net Cost', 'net_charge', 'net_rate'];
+  const fallbackColumns = ['Rate', 'Freight Cost', 'freight_cost', 'Cost', 'Charge', 'Amount'];
+
+  // First priority: NET columns
+  let rateColumn = columns.find((col: string) =>
+    netColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
   );
+
+  // Fallback: other columns but EXCLUDE gross
+  if (!rateColumn) {
+    rateColumn = columns.find((col: string) =>
+      !col.toLowerCase().includes('gross') && // EXCLUDE gross columns per user requirement
+      fallbackColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+    );
+  }
   
   if (!rateColumn) {
     return {
