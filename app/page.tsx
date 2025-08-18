@@ -262,20 +262,31 @@ export default function Dashboard() {
   }, []);
 
   const loadBaselineCosts = async () => {
+    let controller: AbortController | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
       setCostsLoading(true);
       setCostsError(null);
 
       // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      controller = new AbortController();
+      timeoutId = setTimeout(() => {
+        if (controller && !controller.signal.aborted) {
+          controller.abort('Request timeout');
+        }
+      }, 10000); // 10 second timeout to match fetch-utils default
 
       const response = await fetch('/api/current-baseline-costs', {
         signal: controller.signal,
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      clearTimeout(timeoutId);
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -289,12 +300,27 @@ export default function Dashboard() {
         setCostsError(result.error || 'Failed to load baseline costs');
       }
     } catch (error) {
-      if (error instanceof Error &&
-          (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        setCostsError('Request timed out - please try again');
-      } else {
-        setCostsError('Error loading baseline costs');
+      // Clean up timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
+
+      // Handle abort errors gracefully
+      if (error instanceof Error) {
+        const errorMessage = error.message || '';
+        const errorName = error.name || '';
+
+        if (errorName === 'AbortError' ||
+            errorMessage.includes('aborted') ||
+            errorMessage.includes('signal is aborted')) {
+          setCostsError('Request timed out - please try again');
+          console.debug('Request was cancelled/timed out');
+          return; // Exit early to prevent further error processing
+        }
+      }
+
+      setCostsError('Error loading baseline costs');
       console.debug('Error loading baseline costs:', error);
     } finally {
       setCostsLoading(false);

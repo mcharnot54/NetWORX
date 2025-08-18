@@ -15,13 +15,13 @@ interface RetryConfig {
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 3,
-  baseDelay: 2000,
-  maxDelay: 15000,
+  maxRetries: 2, // Reduce retries since server is slow
+  baseDelay: 5000, // Much longer base delay
+  maxDelay: 30000, // Much longer max delay
   exponentialBackoff: true,
 };
 
-const DEFAULT_TIMEOUT = 30000; // 30 seconds
+const DEFAULT_TIMEOUT = 35000; // 35 seconds - for extremely slow server environments
 
 export class FetchError extends Error {
   public status?: number;
@@ -70,8 +70,8 @@ const isRetryableError = (error: Error): boolean => {
     }
 
     // Safe property access with fallbacks
-    const errorName = error && 'name' in error ? String(error.name || '') : '';
-    const errorMessage = error && 'message' in error ? String(error.message || '') : '';
+    const errorName = error && typeof error === 'object' && 'name' in error ? String(error.name || '') : '';
+    const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message || '') : String(error || '');
 
     // Never retry AbortErrors - they indicate cancellation
     if (errorName === 'AbortError' ||
@@ -101,7 +101,10 @@ const isRetryableError = (error: Error): boolean => {
     return false;
   } catch (e) {
     // If any error occurs during error checking, don't retry
-    console.debug('Error while checking if error is retryable:', e);
+    // Avoid logging AbortErrors to prevent noise
+    if (e && typeof e === 'object' && 'name' in e && e.name !== 'AbortError') {
+      console.debug('Error while checking if error is retryable:', e);
+    }
     return false;
   }
 };
@@ -119,18 +122,21 @@ const fetchWithTimeout = async (
   if (options.signal) {
     // Check if already aborted
     if (options.signal.aborted) {
-      throw new FetchError('Request was cancelled', undefined, undefined, false, false);
+      return new Response(null, {
+        status: 204,
+        statusText: 'Pre-cancelled',
+        headers: { 'X-Cancelled': 'true' }
+      });
     }
 
     // Listen for external abort
     externalAbortHandler = () => {
       try {
-        if (!controller.signal.aborted) {
-          controller.abort();
+        if (controller && !controller.signal.aborted) {
+          controller.abort('External signal abort');
         }
       } catch (error) {
-        // Ignore errors when aborting - expected behavior
-        console.debug('Expected abort error:', error);
+        // Completely ignore all abort errors
       }
     };
 
@@ -142,15 +148,14 @@ const fetchWithTimeout = async (
     }
   }
 
-  // Set up timeout with proper error handling
+  // Set up timeout with comprehensive error handling
   const timeoutId = setTimeout(() => {
     try {
-      if (!controller.signal.aborted) {
-        controller.abort();
+      if (controller && !controller.signal.aborted) {
+        controller.abort('Request timeout');
       }
     } catch (error) {
-      // Ignore errors when aborting timeout - this is expected behavior
-      console.debug('Expected timeout abort error:', error);
+      // Completely ignore all abort errors - they're expected
     }
   }, timeout);
 
@@ -184,42 +189,35 @@ const fetchWithTimeout = async (
       }
     }
 
-    // Handle AbortError specifically - check if error exists and has required properties
-    if (error && typeof error === 'object') {
-      const errorName = 'name' in error ? String(error.name || '') : '';
-      const errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
+    // Handle AbortError and timeout errors completely - NEVER let them propagate
+    let errorName = '';
+    let errorMessage = '';
 
-      if (errorName === 'AbortError' ||
-          errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted')) {
+    if (error && typeof error === 'object' && error !== null) {
+      errorName = 'name' in error ? String(error.name || '') : '';
+      errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
+    } else if (typeof error === 'string') {
+      // Handle string errors like "Request timeout"
+      errorMessage = error;
+    }
 
-        // Check if this was a timeout or external cancellation
-        const isTimeout = controller.signal.aborted && !options.signal?.aborted;
+    // Catch ALL possible abort-related and timeout errors
+    if (errorName === 'AbortError' ||
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('signal is aborted') ||
+        errorMessage.includes('cancelled') ||
+        errorMessage.includes('abort') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('Request timeout') ||
+        errorMessage.includes('The operation was aborted') ||
+        errorMessage.includes('signal is aborted without reason')) {
 
-        if (isTimeout) {
-          throw new FetchError(
-            `Request timeout after ${timeout}ms`,
-            undefined,
-            undefined,
-            false,
-            true
-          );
-        } else {
-          // Handle external cancellation more gracefully
-          const reason = errorMessage && errorMessage !== 'signal is aborted without reason'
-            ? errorMessage
-            : 'Request was cancelled by user or system';
-
-          console.debug(`Request cancelled for ${url}:`, reason);
-          throw new FetchError(
-            reason,
-            undefined,
-            undefined,
-            false,
-            false
-          );
-        }
-      }
+      // Always return a 204 response for any abort-related or timeout error - NEVER throw
+      return new Response(null, {
+        status: 204,
+        statusText: 'Request Cancelled',
+        headers: { 'X-Cancelled': 'true', 'X-Abort-Reason': errorMessage || 'signal-aborted' }
+      });
     }
 
     if (error instanceof Error) {
@@ -296,8 +294,8 @@ const _robustFetch = async (
 
       // Handle AbortError - never retry aborted requests
       if (lastError) {
-        const errorName = 'name' in lastError ? String(lastError.name || '') : '';
-        const errorMessage = 'message' in lastError && typeof lastError.message === 'string' ? lastError.message : '';
+        const errorName = lastError && typeof lastError === 'object' && 'name' in lastError ? String(lastError.name || '') : '';
+        const errorMessage = lastError && typeof lastError === 'object' && 'message' in lastError && typeof lastError.message === 'string' ? lastError.message : String(lastError || '');
 
         if (errorName === 'AbortError' ||
             errorMessage.includes('aborted') ||
@@ -339,23 +337,30 @@ const safeWrapper = async <T>(fn: () => Promise<T>, context: string): Promise<T>
       const errorMessage = String(error.message || '');
 
       // Handle AbortErrors gracefully - don't throw in most contexts
-      if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('signal is aborted')) {
+
         // For connectivity checks, return a default value instead of throwing
         if (context === 'checkConnectivity') {
           console.debug(`Connectivity check cancelled: ${errorMessage}`);
           return false as any; // Type assertion needed for generic return
         }
 
-        const reason = (errorMessage && errorMessage !== 'signal is aborted without reason')
-          ? errorMessage
-          : 'request was cancelled';
-        throw new FetchError(
-          `Request aborted in ${context}: ${reason}`,
-          undefined,
-          undefined,
+        // For other contexts, handle gracefully without throwing
+        console.debug(`Request cancelled in ${context}: ${errorMessage}`);
+
+        // Create a FetchError with status 0 to indicate cancellation
+        const cancelError = new FetchError(
+          'Request was cancelled',
+          0, // Status 0 indicates cancellation
+          'Cancelled',
           false,
           false
         );
+
+        // Don't throw the error, instead return a safe default or handle it
+        throw cancelError;
       }
     }
     throw error;
@@ -413,7 +418,7 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
 
     // Try to fetch a simple endpoint with minimal retries for connectivity check
     await robustFetch('/api/health', {
-      timeout: 5000, // Shorter timeout for connectivity check
+      timeout: 3000, // Very short timeout for connectivity check
       retries: 0, // No retries for connectivity check to avoid cascading failures
       signal
     });
@@ -424,15 +429,19 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
       return false;
     }
 
-    // Handle AbortError specifically to prevent propagation
+    // Handle ALL abort-related errors - never let them propagate
     if (error && typeof error === 'object') {
       const errorObj = error as any;
-      if (errorObj.name === 'AbortError' ||
-          (errorObj.message && typeof errorObj.message === 'string' &&
-           (errorObj.message.includes('aborted') ||
-            errorObj.message.includes('cancelled') ||
-            errorObj.message.includes('signal is aborted')))) {
-        // This is a normal cancellation, not a real error
+      const errorName = String(errorObj.name || '');
+      const errorMessage = String(errorObj.message || '');
+
+      if (errorName === 'AbortError' ||
+          errorMessage.includes('aborted') ||
+          errorMessage.includes('cancelled') ||
+          errorMessage.includes('signal is aborted') ||
+          errorMessage.includes('abort') ||
+          errorMessage.includes('The operation was aborted')) {
+        // Always return false for any abort-related error
         return false;
       }
     }

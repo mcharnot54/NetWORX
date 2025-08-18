@@ -13,11 +13,58 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'scenarioId is required' }, { status: 400 });
     }
 
-    const files = await DataFileService.getDataFiles(parseInt(scenarioId));
+    console.log('Fetching files for scenario:', scenarioId);
+
+    // Test database connection first
+    try {
+      const { sql } = await import('@/lib/database');
+      await sql`SELECT 1`;
+    } catch (dbError) {
+      console.error('Database connection failed in GET /api/files:', dbError);
+      return NextResponse.json({
+        error: 'Database connection failed',
+        details: dbError instanceof Error ? dbError.message : String(dbError)
+      }, { status: 503 });
+    }
+
+    // Check if the data_files table exists
+    try {
+      const { sql } = await import('@/lib/database');
+      await sql`SELECT 1 FROM data_files LIMIT 1`;
+    } catch (tableError) {
+      console.error('data_files table check failed:', tableError);
+      // Return empty files array if table doesn't exist yet
+      return NextResponse.json({
+        files: [],
+        warning: 'data_files table not ready yet',
+        message: 'Database needs initialization'
+      });
+    }
+
+    // Try a direct minimal query first to avoid the large response issue
+    const { sql } = await import('@/lib/database');
+
+    const files = await sql`
+      SELECT
+        id, scenario_id, file_name, file_type, file_size, data_type,
+        processing_status, upload_date, original_columns
+      FROM data_files
+      WHERE scenario_id = ${parseInt(scenarioId)}
+      ORDER BY upload_date DESC
+      LIMIT 10
+    `;
+
+    console.log(`Found ${files.length} files for scenario ${scenarioId}`);
     return NextResponse.json({ files });
+
   } catch (error) {
     console.error('Error fetching files:', error);
-    return NextResponse.json({ error: 'Failed to fetch files' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({
+      error: 'Failed to fetch files',
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
 
@@ -47,7 +94,9 @@ export async function POST(request: NextRequest) {
       processed_data,
       original_columns,
       mapped_columns,
-      file_content // Base64 encoded file content
+      file_content, // Base64 encoded file content
+      force_upload, // Option to bypass duplicate checking
+      replace_existing // Option to replace existing file instead of creating duplicate
     } = body;
 
     if (!scenario_id || !file_name || !file_type) {
@@ -84,6 +133,60 @@ export async function POST(request: NextRequest) {
           error: 'Invalid processed_data format',
           details: 'Cannot serialize processed_data to JSON'
         }, { status: 400 });
+      }
+    }
+
+    // Check for duplicate files before saving (unless force_upload is true)
+    let existingFileId = null;
+    if (!force_upload) {
+      try {
+        const { sql } = await import('@/lib/database');
+
+        const existingFiles = await sql`
+          SELECT id, file_name, scenario_id, processing_status, upload_date
+          FROM data_files
+          WHERE file_name = ${truncatedFileName}
+          ORDER BY upload_date DESC
+        `;
+
+        if (existingFiles.length > 0) {
+          // Check if exact duplicate exists in same scenario
+          const sameScenarioFile = existingFiles.find((f: any) => f.scenario_id === scenario_id);
+
+          if (sameScenarioFile) {
+            if (replace_existing) {
+              // Mark for replacement
+              existingFileId = sameScenarioFile.id;
+              console.log(`Will replace existing file ID: ${existingFileId}`);
+            } else {
+              return NextResponse.json({
+                error: 'Duplicate file exists',
+                details: `File "${truncatedFileName}" already exists in scenario ${scenario_id}`,
+                existing_file: {
+                  id: sameScenarioFile.id,
+                  scenario_id: sameScenarioFile.scenario_id,
+                  status: sameScenarioFile.processing_status,
+                  upload_date: sameScenarioFile.upload_date
+                },
+                action_required: 'Add force_upload=true or replace_existing=true to proceed',
+                options: {
+                  force_upload: 'Create duplicate file anyway',
+                  replace_existing: 'Replace the existing file'
+                }
+              }, { status: 409 }); // 409 Conflict
+            }
+          }
+
+          // Log duplicates in other scenarios
+          const otherScenarioFiles = existingFiles.filter((f: any) => f.scenario_id !== scenario_id);
+          if (otherScenarioFiles.length > 0) {
+            console.warn(`File "${truncatedFileName}" exists in other scenarios:`,
+              otherScenarioFiles.map((f: any) => `ID:${f.id} Scenario:${f.scenario_id}`));
+          }
+        }
+      } catch (duplicateCheckError) {
+        console.error('Error checking for duplicates:', duplicateCheckError);
+        // Continue with upload if duplicate check fails
       }
     }
 
@@ -127,13 +230,46 @@ export async function POST(request: NextRequest) {
 
     let savedFile;
     try {
-      savedFile = await DataFileService.createDataFile(fileData);
-      console.log('File saved successfully:', savedFile.id);
+      if (existingFileId && replace_existing) {
+        // Replace existing file
+        const { sql } = await import('@/lib/database');
+        await sql`
+          UPDATE data_files
+          SET
+            file_type = ${truncatedFileType},
+            file_size = ${file_size},
+            data_type = ${validDataType},
+            processing_status = ${processing_status || 'pending'},
+            validation_result = ${fileData.validation_result},
+            processed_data = ${fileData.processed_data},
+            original_columns = ${original_columns},
+            mapped_columns = ${fileData.mapped_columns},
+            updated_at = NOW()
+          WHERE id = ${existingFileId}
+        `;
+
+        // Get the updated file
+        const updatedFiles = await sql`
+          SELECT * FROM data_files WHERE id = ${existingFileId}
+        `;
+
+        savedFile = updatedFiles[0];
+        console.log(`File replaced successfully: ID ${existingFileId}`);
+      } else {
+        // Create new file
+        savedFile = await DataFileService.createDataFile(fileData);
+        console.log('File saved successfully:', savedFile.id);
+      }
     } catch (dbError) {
-      console.error('Database error while saving file:', dbError);
+      console.error('Database error while saving/updating file:', dbError);
       throw new Error(`Database operation failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
     }
-    return NextResponse.json({ file: savedFile });
+
+    return NextResponse.json({
+      file: savedFile,
+      action: existingFileId ? 'replaced' : 'created',
+      duplicate_prevention_active: !force_upload
+    });
   } catch (error) {
     console.error('Error saving file:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -168,5 +304,23 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating file:', error);
     return NextResponse.json({ error: 'Failed to update file' }, { status: 500 });
+  }
+}
+
+// Delete a file
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const fileId = searchParams.get('id');
+
+    if (!fileId) {
+      return NextResponse.json({ error: 'File id is required' }, { status: 400 });
+    }
+
+    await DataFileService.deleteDataFile(parseInt(fileId));
+    return NextResponse.json({ success: true, message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 });
   }
 }

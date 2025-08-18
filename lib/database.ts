@@ -165,14 +165,14 @@ export class ProjectService {
     base_year?: number;
     status?: 'active' | 'archived' | 'completed';
   }): Promise<Project> {
-    const [project] = await sql`
+    const result = await sql`
       INSERT INTO projects (name, description, owner_id, project_duration_years, base_year, status)
       VALUES (${data.name}, ${data.description || null}, ${data.owner_id || null},
               ${data.project_duration_years || 5}, ${data.base_year || new Date().getFullYear()},
               ${data.status || 'active'})
       RETURNING *
     `;
-    return project as Project;
+    return result[0] as Project;
   }
 
   static async getProjects(): Promise<Project[]> {
@@ -183,14 +183,14 @@ export class ProjectService {
   }
 
   static async getProject(id: number): Promise<Project | null> {
-    const [project] = await sql`
+    const result = await sql`
       SELECT * FROM projects WHERE id = ${id}
     `;
-    return project as Project || null;
+    return result[0] as Project || null;
   }
 
   static async updateProject(id: number, data: Partial<Project>): Promise<Project> {
-    const [project] = await sql`
+    const result = await sql`
       UPDATE projects
       SET name = COALESCE(${data.name}, name),
           description = COALESCE(${data.description}, description),
@@ -201,7 +201,7 @@ export class ProjectService {
       WHERE id = ${id}
       RETURNING *
     `;
-    return project as Project;
+    return result[0] as Project;
   }
 
   static async deleteProject(id: number): Promise<void> {
@@ -224,12 +224,12 @@ export class ScenarioService {
       throw new Error('project_id is required in metadata');
     }
 
-    const [scenario] = await sql`
+    const result = await sql`
       INSERT INTO scenarios (project_id, name, description, scenario_type, created_by, metadata)
       VALUES (${project_id}, ${data.name}, ${data.description || null}, ${data.scenario_type}, ${data.created_by || null}, ${JSON.stringify(data.metadata || {})})
       RETURNING *
     `;
-    return scenario as Scenario;
+    return result[0] as Scenario;
   }
 
   static async getScenarios(type?: string): Promise<Scenario[]> {
@@ -247,15 +247,15 @@ export class ScenarioService {
   }
 
   static async getScenario(id: number): Promise<Scenario | null> {
-    const [scenario] = await sql`
+    const result = await sql`
       SELECT * FROM scenarios WHERE id = ${id}
     `;
-    return scenario as Scenario || null;
+    return result[0] as Scenario || null;
   }
 
   static async updateScenario(id: number, data: Partial<Scenario>): Promise<Scenario> {
-    const [scenario] = await sql`
-      UPDATE scenarios 
+    const result = await sql`
+      UPDATE scenarios
       SET name = COALESCE(${data.name}, name),
           description = COALESCE(${data.description}, description),
           status = COALESCE(${data.status}, status),
@@ -264,7 +264,7 @@ export class ScenarioService {
       WHERE id = ${id}
       RETURNING *
     `;
-    return scenario as Scenario;
+    return result[0] as Scenario;
   }
 
   static async deleteScenario(id: number): Promise<void> {
@@ -275,7 +275,7 @@ export class ScenarioService {
 // Database operations for warehouse configurations
 export class WarehouseConfigService {
   static async createWarehouseConfig(data: Omit<WarehouseConfiguration, 'id' | 'created_at'>): Promise<WarehouseConfiguration> {
-    const [config] = await sql`
+    const result = await sql`
       INSERT INTO warehouse_configurations (
         scenario_id, warehouse_name, max_capacity, fixed_costs, variable_cost_per_unit,
         location_latitude, location_longitude, warehouse_type, automation_level, configuration_data
@@ -287,7 +287,7 @@ export class WarehouseConfigService {
       )
       RETURNING *
     `;
-    return config as WarehouseConfiguration;
+    return result[0] as WarehouseConfiguration;
   }
 
   static async getWarehouseConfigs(scenarioId: number): Promise<WarehouseConfiguration[]> {
@@ -299,8 +299,8 @@ export class WarehouseConfigService {
   }
 
   static async updateWarehouseConfig(id: number, data: Partial<WarehouseConfiguration>): Promise<WarehouseConfiguration> {
-    const [config] = await sql`
-      UPDATE warehouse_configurations 
+    const result = await sql`
+      UPDATE warehouse_configurations
       SET warehouse_name = COALESCE(${data.warehouse_name}, warehouse_name),
           max_capacity = COALESCE(${data.max_capacity}, max_capacity),
           fixed_costs = COALESCE(${data.fixed_costs}, fixed_costs),
@@ -313,7 +313,7 @@ export class WarehouseConfigService {
       WHERE id = ${id}
       RETURNING *
     `;
-    return config as WarehouseConfiguration;
+    return result[0] as WarehouseConfiguration;
   }
 
   static async deleteWarehouseConfig(id: number): Promise<void> {
@@ -324,7 +324,7 @@ export class WarehouseConfigService {
 // Database operations for transport configurations
 export class TransportConfigService {
   static async createTransportConfig(data: Omit<TransportConfiguration, 'id' | 'created_at'>): Promise<TransportConfiguration> {
-    const [config] = await sql`
+    const result = await sql`
       INSERT INTO transport_configurations (
         scenario_id, route_name, origin, destination, distance, base_freight_cost,
         fuel_cost_per_km, transit_time, vehicle_type, capacity, route_data
@@ -337,7 +337,7 @@ export class TransportConfigService {
       )
       RETURNING *
     `;
-    return config as TransportConfiguration;
+    return result[0] as TransportConfiguration;
   }
 
   static async getTransportConfigs(scenarioId: number): Promise<TransportConfiguration[]> {
@@ -349,8 +349,8 @@ export class TransportConfigService {
   }
 
   static async updateTransportConfig(id: number, data: Partial<TransportConfiguration>): Promise<TransportConfiguration> {
-    const [config] = await sql`
-      UPDATE transport_configurations 
+    const result = await sql`
+      UPDATE transport_configurations
       SET route_name = COALESCE(${data.route_name}, route_name),
           origin = COALESCE(${data.origin}, origin),
           destination = COALESCE(${data.destination}, destination),
@@ -364,7 +364,7 @@ export class TransportConfigService {
       WHERE id = ${id}
       RETURNING *
     `;
-    return config as TransportConfiguration;
+    return result[0] as TransportConfiguration;
   }
 
   static async deleteTransportConfig(id: number): Promise<void> {
@@ -375,7 +375,7 @@ export class TransportConfigService {
 // Database operations for optimization results
 export class OptimizationResultService {
   static async createOptimizationResult(data: Omit<OptimizationResult, 'id' | 'started_at'>): Promise<OptimizationResult> {
-    const [result] = await sql`
+    const queryResult = await sql`
       INSERT INTO optimization_results (
         scenario_id, result_type, optimization_run_id, status, started_at, completed_at,
         execution_time_seconds, total_cost, cost_savings, efficiency_score,
@@ -389,7 +389,7 @@ export class OptimizationResultService {
       )
       RETURNING *
     `;
-    return result as OptimizationResult;
+    return queryResult[0] as OptimizationResult;
   }
 
   static async getOptimizationResults(scenarioId: number): Promise<OptimizationResult[]> {
@@ -401,7 +401,7 @@ export class OptimizationResultService {
   }
 
   static async updateOptimizationResult(id: number, data: Partial<OptimizationResult>): Promise<OptimizationResult> {
-    const [result] = await sql`
+    const queryResult = await sql`
       UPDATE optimization_results
       SET status = COALESCE(${data.status}, status),
           completed_at = COALESCE(${data.completed_at}, completed_at),
@@ -415,11 +415,11 @@ export class OptimizationResultService {
       WHERE id = ${id}
       RETURNING *
     `;
-    return result as OptimizationResult;
+    return queryResult[0] as OptimizationResult;
   }
 
   static async updateOptimizationResultByRunId(optimizationRunId: string, data: Partial<OptimizationResult>): Promise<OptimizationResult> {
-    const [result] = await sql`
+    const queryResult = await sql`
       UPDATE optimization_results
       SET status = COALESCE(${data.status}, status),
           completed_at = COALESCE(${data.completed_at}, completed_at),
@@ -433,14 +433,14 @@ export class OptimizationResultService {
       WHERE optimization_run_id = ${optimizationRunId}
       RETURNING *
     `;
-    return result as OptimizationResult;
+    return queryResult[0] as OptimizationResult;
   }
 }
 
 // Database operations for data files
 export class DataFileService {
   static async createDataFile(data: Omit<DataFile, 'id' | 'upload_date'>): Promise<DataFile> {
-    const [file] = await sql`
+    const result = await sql`
       INSERT INTO data_files (
         scenario_id, file_name, file_type, file_size, data_type, processing_status,
         validation_result, processed_data, original_columns, mapped_columns
@@ -453,34 +453,127 @@ export class DataFileService {
       )
       RETURNING *
     `;
-    return file as DataFile;
+    return result[0] as DataFile;
   }
 
-  static async getDataFiles(scenarioId: number): Promise<DataFile[]> {
+  static async getDataFiles(scenarioId: number, limit: number = 50): Promise<DataFile[]> {
+    // Return only essential metadata to prevent response size issues
     return await sql`
-      SELECT * FROM data_files 
+      SELECT
+        id, scenario_id, file_name, file_type, file_size, data_type,
+        processing_status, upload_date, original_columns, mapped_columns,
+        validation_result,
+        -- Return minimal processed_data to avoid large responses
+        CASE
+          WHEN processed_data IS NOT NULL THEN
+            jsonb_build_object(
+              'columnNames', processed_data->'columnNames',
+              'excel_preserved', processed_data->'excel_preserved',
+              'reprocessed', processed_data->'reprocessed',
+              'file_content_available',
+              CASE
+                WHEN processed_data ? 'file_content' THEN true
+                ELSE false
+              END,
+              'row_count',
+              CASE
+                WHEN processed_data->'parsedData' IS NOT NULL THEN
+                  jsonb_array_length(processed_data->'parsedData')
+                ELSE 0
+              END
+            )
+          ELSE NULL
+        END as processed_data
+      FROM data_files
       WHERE scenario_id = ${scenarioId}
       ORDER BY upload_date DESC
+      LIMIT ${Math.min(limit, 10)}
     ` as DataFile[];
   }
 
   static async updateDataFile(id: number, data: Partial<DataFile>): Promise<DataFile> {
-    const [file] = await sql`
+    // Build dynamic update query only for provided fields
+    const updates = [];
+    const values: any[] = [];
+
+    if (data.processing_status !== undefined) {
+      updates.push(`processing_status = $${updates.length + 1}`);
+      values.push(data.processing_status);
+    }
+
+    if (data.validation_result !== undefined) {
+      updates.push(`validation_result = $${updates.length + 1}`);
+      values.push(JSON.stringify(data.validation_result));
+    }
+
+    if (data.processed_data !== undefined) {
+      updates.push(`processed_data = $${updates.length + 1}`);
+      values.push(JSON.stringify(data.processed_data));
+    }
+
+    if (data.file_name !== undefined) {
+      updates.push(`file_name = $${updates.length + 1}`);
+      values.push(data.file_name);
+    }
+
+    if (data.file_type !== undefined) {
+      updates.push(`file_type = $${updates.length + 1}`);
+      values.push(data.file_type);
+    }
+
+    if (data.data_type !== undefined) {
+      updates.push(`data_type = $${updates.length + 1}`);
+      values.push(data.data_type);
+    }
+
+    if (updates.length === 0) {
+      // No updates provided, just return the current file
+      const result = await sql`SELECT * FROM data_files WHERE id = ${id}`;
+      return result[0] as DataFile;
+    }
+
+    // Add id for WHERE clause
+    values.push(id);
+
+    const query = `
       UPDATE data_files
-      SET processing_status = COALESCE(${data.processing_status}, processing_status),
-          validation_result = COALESCE(${JSON.stringify(data.validation_result)}, validation_result),
-          processed_data = COALESCE(${JSON.stringify(data.processed_data)}, processed_data)
-      WHERE id = ${id}
+      SET ${updates.join(', ')}
+      WHERE id = $${values.length}
       RETURNING *
     `;
-    return file as DataFile;
+
+    const result = await sql.unsafe(query, values);
+    return result[0] as DataFile;
   }
 
   static async getDataFile(id: number): Promise<DataFile | null> {
-    const [file] = await sql`
+    const result = await sql`
       SELECT * FROM data_files WHERE id = ${id}
     `;
-    return file as DataFile || null;
+    return result[0] as DataFile || null;
+  }
+
+  static async getDataFileWithFullData(id: number): Promise<DataFile | null> {
+    // Get complete file data including all processed_data
+    const result = await sql`
+      SELECT * FROM data_files WHERE id = ${id}
+    `;
+    return result[0] as DataFile || null;
+  }
+
+  static async getFilesForProcessing(scenarioId: number): Promise<DataFile[]> {
+    // Get files with full data for processing - handle large data carefully
+    return await sql`
+      SELECT
+        id, scenario_id, file_name, file_type, file_size, data_type,
+        processing_status, upload_date, original_columns, mapped_columns,
+        validation_result, processed_data
+      FROM data_files
+      WHERE scenario_id = ${scenarioId}
+      AND processing_status = 'completed'
+      ORDER BY upload_date DESC
+      LIMIT 20
+    ` as DataFile[];
   }
 
   static async deleteDataFile(id: number): Promise<void> {
@@ -491,7 +584,7 @@ export class DataFileService {
 // Database operations for scenario iterations
 export class ScenarioIterationService {
   static async createIteration(data: Omit<ScenarioIteration, 'id' | 'created_at'>): Promise<ScenarioIteration> {
-    const [iteration] = await sql`
+    const result = await sql`
       INSERT INTO scenario_iterations (
         parent_scenario_id, iteration_name, iteration_number, changes_description,
         configuration_changes, results_comparison
@@ -503,7 +596,7 @@ export class ScenarioIterationService {
       )
       RETURNING *
     `;
-    return iteration as ScenarioIteration;
+    return result[0] as ScenarioIteration;
   }
 
   static async getIterations(parentScenarioId: number): Promise<ScenarioIteration[]> {

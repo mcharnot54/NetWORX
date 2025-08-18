@@ -12,34 +12,77 @@ export interface SafeFetchOptions extends RequestInit {
  * Safe fetch wrapper that handles network errors gracefully
  */
 export async function safeFetch(
-  url: string, 
+  url: string,
   options: SafeFetchOptions = {}
 ): Promise<Response | null> {
   const {
     timeout = 5000,
     retries = 0,
     retryDelay = 1000,
+    signal: externalSignal,
     ...fetchOptions
   } = options;
 
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    let controller: AbortController | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      // Create controller only if we need timeout or no external signal
+      controller = new AbortController();
+
+      // Combine external signal with timeout signal
+      if (externalSignal) {
+        if (externalSignal.aborted) {
+          throw new Error('Request already cancelled');
+        }
+        externalSignal.addEventListener('abort', () => {
+          if (controller && !controller.signal.aborted) {
+            controller.abort(externalSignal.reason || 'External cancellation');
+          }
+        }, { once: true });
+      }
+
+      // Set timeout only if controller exists and not already aborted
+      if (timeout > 0 && controller && !controller.signal.aborted) {
+        timeoutId = setTimeout(() => {
+          if (controller && !controller.signal.aborted) {
+            controller.abort('Request timeout');
+          }
+        }, timeout);
+      }
 
       const response = await fetch(url, {
         ...fetchOptions,
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       return response;
 
     } catch (error) {
+      // Clean up timeout if error occurs
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      // Handle AbortError specifically
+      if (error instanceof Error &&
+          (error.name === 'AbortError' ||
+           error.message.includes('aborted') ||
+           error.message.includes('cancelled'))) {
+        console.debug(`Request cancelled for ${url}:`, error.message);
+        return null;
+      }
+
       lastError = error instanceof Error ? error : new Error('Unknown fetch error');
-      
+
       // Don't retry on the last attempt
       if (attempt < retries) {
         await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -49,7 +92,9 @@ export async function safeFetch(
   }
 
   // Log errors quietly for debugging, don't throw
-  console.debug(`Fetch failed for ${url}:`, lastError?.message);
+  if (lastError && !isNetworkError(lastError)) {
+    console.debug(`Fetch failed for ${url}:`, lastError?.message);
+  }
   return null;
 }
 
@@ -123,11 +168,20 @@ export function suppressNetworkErrors() {
  * Check if an error should be handled quietly
  */
 export function isNetworkError(error: unknown): boolean {
-  return error instanceof Error && (
-    error.message.includes('Failed to fetch') ||
-    error.message.includes('NetworkError') ||
-    error.message.includes('fetch') ||
-    error.name === 'AbortError' ||
-    error.name === 'TimeoutError'
+  if (!(error instanceof Error)) return false;
+
+  const message = error.message || '';
+  const name = error.name || '';
+
+  return (
+    message.includes('Failed to fetch') ||
+    message.includes('NetworkError') ||
+    message.includes('fetch') ||
+    message.includes('aborted') ||
+    message.includes('cancelled') ||
+    message.includes('signal is aborted') ||
+    name === 'AbortError' ||
+    name === 'TimeoutError' ||
+    name === 'TypeError' && message.includes('fetch')
   );
 }
