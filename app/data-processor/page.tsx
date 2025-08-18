@@ -195,48 +195,8 @@ export default function DataProcessor() {
 
         const reconstructedFiles: FileData[] = await Promise.all(
           savedFiles.map(async (savedFile: any) => {
-            let fileContent: string | undefined;
-            let file: File | undefined;
-            let parsedData: any[] | undefined;
-            let columnNames: string[] | undefined;
-
-            // Load file content separately if available
-            if (savedFile.processed_data?.file_content_available) {
-              try {
-                const contentResponse = await fetch(`/api/files/${savedFile.id}/content`);
-                if (contentResponse.ok) {
-                  const contentData = await contentResponse.json();
-                  fileContent = contentData.file_content;
-                }
-              } catch (error) {
-                console.warn(`Could not load file content for ${savedFile.file_name}:`, error);
-              }
-            }
-
-            if (fileContent) {
-              try {
-                // Reconstruct File object from stored base64 data
-                file = FileStorageUtils.base64ToFile(
-                  fileContent,
-                  savedFile.file_name,
-                  savedFile.file_type
-                );
-
-                // Re-parse the file data (this might be slow but ensures fresh data)
-                const { data, columnHeaders } = await DataValidator.parseFile(file);
-                parsedData = data;
-                columnNames = columnHeaders;
-
-                console.log(`Reconstructed file: ${savedFile.file_name} with ${data.length} rows`);
-              } catch (error) {
-                console.warn(`Could not reconstruct file data for ${savedFile.file_name}:`, error);
-                addToLog(`⚠ Warning: Could not reconstruct data for ${savedFile.file_name}`);
-              }
-            } else {
-              console.warn(`No file content found for ${savedFile.file_name}`);
-              addToLog(`⚠ Warning: No file content found for ${savedFile.file_name}`);
-            }
-
+            // For now, just create basic file data without content reconstruction
+            // The content will be loaded separately when needed for processing
             return {
               id: savedFile.id,
               name: savedFile.file_name,
@@ -246,14 +206,14 @@ export default function DataProcessor() {
               detectedType: savedFile.data_type,
               detectedTemplate: null, // Will be re-detected if needed
               scenarioId: savedFile.scenario_id,
-              file,
-              parsedData,
-              columnNames,
-              processingResult: savedFile.processed_data?.processingResult,
+              file: undefined, // Will be loaded when needed
+              parsedData: undefined, // Will be loaded when needed
+              columnNames: savedFile.original_columns || [],
+              processingResult: undefined, // Will be loaded when needed
               validationStatus: savedFile.processing_status === 'completed' ? 'validated' :
                               savedFile.processing_status === 'failed' ? 'error' : 'pending',
               saved: true,
-              fileContent
+              fileContent: undefined // Will be loaded when needed
             } as FileData;
           })
         );
