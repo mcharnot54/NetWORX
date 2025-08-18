@@ -165,7 +165,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       // Look for rate-related columns
       const rateColumn = findColumnByPattern(['Gross Rate', 'Rate', 'Cost', 'Charge', 'Total', 'Amount']);
       if (rateColumn) {
-        // Filter out total rows and sum valid data rows
+        // Smart filtering: exclude total rows based on missing supporting data
         const filteredData = tab.data.filter(row => {
           if (!row) return false;
 
@@ -178,13 +178,52 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             val.includes('subtotal')
           );
 
-          return !hasTotal; // Exclude rows with total keywords
+          if (hasTotal) return false;
+
+          // Smart check: if row has a monetary value but no supporting data, it's likely a total
+          if (row[rateColumn]) {
+            const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && numValue > 0) {
+              // Check if this row has supporting data (origin, destination, etc.)
+              const supportingDataColumns = Object.keys(row).filter(key =>
+                key.toLowerCase().includes('origin') ||
+                key.toLowerCase().includes('destination') ||
+                key.toLowerCase().includes('from') ||
+                key.toLowerCase().includes('to') ||
+                key.toLowerCase().includes('route') ||
+                key.toLowerCase().includes('lane') ||
+                key.toLowerCase().includes('city') ||
+                key.toLowerCase().includes('state') ||
+                key.toLowerCase().includes('zip') ||
+                key.toLowerCase().includes('location') ||
+                key.toLowerCase().includes('service') ||
+                key.toLowerCase().includes('mode') ||
+                key.toLowerCase().includes('carrier')
+              );
+
+              // Count how many supporting data fields have actual values
+              const supportingDataCount = supportingDataColumns.filter(col => {
+                const value = row[col];
+                return value && String(value).trim() !== '' &&
+                       String(value).toLowerCase() !== 'null' &&
+                       String(value).toLowerCase() !== 'n/a';
+              }).length;
+
+              // If there's a monetary value but little/no supporting data, it's likely a total row
+              if (supportingDataCount === 0) {
+                console.log(`TL ${tab.name}: Excluding row with $${numValue.toLocaleString()} - no supporting data (likely total row)`);
+                return false;
+              }
+            }
+          }
+
+          return true; // Include valid data rows
         });
 
         for (const row of filteredData) {
           if (row && row[rateColumn]) {
             const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
-            if (!isNaN(numValue) && numValue > 1) { // Lowered threshold
+            if (!isNaN(numValue) && numValue > 1) {
               bestAmount += numValue;
             }
           }
@@ -193,6 +232,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         // Log filtering results for debugging
         console.log(`TL ${tab.name}: Filtered ${tab.data.length - filteredData.length} total rows, ${filteredData.length} data rows remaining`);
+        console.log(`TL ${tab.name}: Extracted $${bestAmount.toLocaleString()} from ${bestColumn}`);
       }
     } else if (fileType === 'RL') {
       // For R&L files, specifically look for column V first, then fallback to best cost column
