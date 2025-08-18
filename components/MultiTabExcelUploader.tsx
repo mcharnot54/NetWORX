@@ -422,6 +422,83 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         targetColumn = 'Productivity Metrics (Coordinates)';
       }
 
+      // Process inventory files
+      let inventoryMetrics: InventoryMetrics | undefined;
+      if (fileType === 'INVENTORY_TRACKER') {
+        addLog(`📦 INVENTORY TRACKER PROCESSING: Analyzing inventory data`);
+        inventoryMetrics = {};
+
+        // Scan for common inventory data patterns
+        const findInventoryValue = (searchTerms: string[]): number => {
+          for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+            const row = data[rowIndex];
+            const rowValues = Object.values(row);
+
+            // Check if this row contains any of our search terms
+            const rowText = rowValues.join(' ').toLowerCase();
+            if (searchTerms.some(term => rowText.includes(term))) {
+              // Look for numeric values in this row
+              for (const value of rowValues) {
+                if (value && typeof value === 'string') {
+                  const numValue = parseFloat(value.replace(/[$,\s]/g, ''));
+                  if (!isNaN(numValue) && numValue > 1000) { // Assuming inventory values > $1000
+                    addLog(`    📍 Found inventory value: ${numValue.toLocaleString()} for ${searchTerms[0]}`);
+                    return numValue;
+                  }
+                }
+              }
+            }
+          }
+          return 0;
+        };
+
+        // Extract key inventory metrics
+        inventoryMetrics.totalInventoryDollars = findInventoryValue(['total inventory', 'inventory total', 'total value', 'total stock']);
+
+        // Try to find category breakdowns
+        inventoryMetrics.categories = {
+          rawMaterials: findInventoryValue(['raw material', 'raw stock', 'materials']),
+          workInProgress: findInventoryValue(['work in progress', 'wip', 'in process']),
+          finishedGoods: findInventoryValue(['finished goods', 'finished product', 'final product']),
+        };
+
+        // Calculate total from categories if main total not found
+        if (!inventoryMetrics.totalInventoryDollars && inventoryMetrics.categories) {
+          inventoryMetrics.categories.totalByCategory =
+            (inventoryMetrics.categories.rawMaterials || 0) +
+            (inventoryMetrics.categories.workInProgress || 0) +
+            (inventoryMetrics.categories.finishedGoods || 0);
+
+          if (inventoryMetrics.categories.totalByCategory > 0) {
+            inventoryMetrics.totalInventoryDollars = inventoryMetrics.categories.totalByCategory;
+          }
+        }
+
+        // Look for sales data to calculate days supply
+        inventoryMetrics.dailySales = findInventoryValue(['daily sales', 'sales per day', 'average daily']);
+
+        // Calculate days supply if we have both inventory and sales
+        if (inventoryMetrics.totalInventoryDollars && inventoryMetrics.dailySales) {
+          inventoryMetrics.daysSupply = inventoryMetrics.totalInventoryDollars / inventoryMetrics.dailySales;
+          addLog(`📊 Days Supply: ${inventoryMetrics.daysSupply.toFixed(1)} days`);
+        }
+
+        // Set snapshot info
+        inventoryMetrics.snapshot = {
+          date: new Date().toISOString().split('T')[0],
+          location: 'Warehouse',
+          reportType: 'Baseline Inventory Analysis'
+        };
+
+        extractedAmount = inventoryMetrics.totalInventoryDollars || 0;
+        targetColumn = 'Inventory Metrics (Total Value)';
+
+        addLog(`🎯 INVENTORY TRACKER: Total inventory value $${extractedAmount.toLocaleString()}`);
+        if (inventoryMetrics.daysSupply) {
+          addLog(`📈 Days Supply: ${inventoryMetrics.daysSupply.toFixed(1)} days`);
+        }
+      }
+
       const tabs: ExcelTab[] = [{
         name: sheetData.sheetName,
         rows: sheetData.rowCount,
@@ -431,7 +508,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         targetColumn,
         extractedAmount,
         operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined,
-        productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined
+        productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined,
+        inventoryMetrics: fileType === 'INVENTORY_TRACKER' ? inventoryMetrics : undefined
       }];
 
       const multiTabFile: MultiTabFile = {
