@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
         for (const row of processedData.parsedData.slice(0, 10)) { // Test first 10 rows
           if (typeof row === 'object' && row) {
             for (const [key, value] of Object.entries(row)) {
-              if (key === 'G' || key === '__EMPTY_6' || 
-                  (typeof key === 'string' && key.toLowerCase().includes('net charges'))) {
+              if (key === 'Net Charge' || key === 'G' || key === '__EMPTY_6' ||
+                  (typeof key === 'string' && key.toLowerCase().includes('net charge'))) {
                 const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
                 if (!isNaN(numValue) && numValue > 0) {
                   totalUPS += numValue;
@@ -48,13 +48,13 @@ export async function GET(request: NextRequest) {
             }
           }
         }
-        
+
         // Now test full extraction
         totalUPS = 0; // Reset for full extraction
         for (const row of processedData.parsedData) {
           if (typeof row === 'object' && row) {
             for (const [key, value] of Object.entries(row)) {
-              if (key === 'G' || key === '__EMPTY_6') {
+              if (key === 'Net Charge' || key === 'G' || key === '__EMPTY_6') {
                 const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
                 if (!isNaN(numValue) && numValue > 0.01) {
                   totalUPS += numValue;
