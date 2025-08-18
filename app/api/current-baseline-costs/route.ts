@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
       baselineCosts.transport_costs.freight_costs +
       baselineCosts.inventory_costs.total_inventory_costs;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       baseline_costs: formatBaselineCosts(baselineCosts),
       metadata: {
@@ -219,6 +219,11 @@ export async function GET(request: NextRequest) {
         data_quality: baselineCosts.total_baseline > 0 ? 'Good' : 'No data found'
       }
     });
+
+    // Prevent caching of large responses
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    return response;
 
   } catch (error) {
     console.error('Error extracting baseline costs:', error);
