@@ -85,7 +85,7 @@ export async function GET() {
                   exists: true,
                   sample_values: columnVValues.slice(0, 5),
                   numeric_count: numericValues.length,
-                  sum: numericValues.reduce((sum: number, val: number) => sum + val, 0),
+                  sum: numericValues.reduce((sum: any, val: any) => sum + val, 0),
                   why_not_selected: numericValues.length < 5 ? 'Too few valid values' :
                                    numericValues.reduce((sum: number, val: number) => sum + val, 0) < 1000 ? 'Total too low' :
                                    'Should have been selected'
