@@ -97,17 +97,34 @@ export async function GET() {
         let finalDataSource = dataSource;
 
         // Check if this is actually a multi-tab file that was incorrectly processed as single tab
-        // Look for the file content in the database to check for multiple sheets
         if (file.processed_data?.parsedData && dataSource === 'parsedData') {
-          console.log('R&L: Checking if this should be multi-tab processed...');
-          // The user specifically mentioned this file has a Detail tab with column V
-          // We need to re-process this file to get the multi-tab structure
-          console.log('R&L: This file should have Detail, Table, and Sheet1 tabs according to the logs');
-          console.log('R&L: Current processing shows single parsedData array - need multi-tab extraction');
+          console.log('R&L: Deeper inspection of parsedData...');
 
-          // For now, let's try to extract from the existing parsedData but with better column detection
+          // Check first 5 rows to see if there's any structure
+          const sampleRows = file.processed_data.parsedData.slice(0, 5);
+          console.log('R&L: Sample rows from parsedData:', sampleRows.map((row, i) => ({
+            row: i,
+            type: typeof row,
+            keys: typeof row === 'object' && row ? Object.keys(row) : 'not object',
+            hasColumnV: typeof row === 'object' && row && 'V' in row
+          })));
+
+          // Look for rows that might have column V
+          let rowsWithColumnV = 0;
+          for (let i = 0; i < Math.min(100, file.processed_data.parsedData.length); i++) {
+            const row = file.processed_data.parsedData[i];
+            if (typeof row === 'object' && row && 'V' in row) {
+              rowsWithColumnV++;
+              if (rowsWithColumnV === 1) {
+                console.log(`R&L: Found row ${i} with column V:`, row);
+              }
+            }
+          }
+          console.log(`R&L: Found ${rowsWithColumnV} rows with column V in first 100 rows`);
+
+          // The user specifically mentioned this file has a Detail tab with column V
           finalData = file.processed_data.parsedData;
-          finalDataSource = 'parsedData_reprocessed';
+          finalDataSource = 'parsedData_inspected';
         }
 
         const { total, valuesFound } = extractFromColumnV(finalData);
