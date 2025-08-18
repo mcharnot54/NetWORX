@@ -381,31 +381,31 @@ function extractFromColumnV(data: any[], fileName: string): number {
   return total;
 }
 
-// Extract from column F (UPS Parcel costs)
+// Extract from column F (UPS Parcel costs) - Using validation logic
 function extractFromColumnF(data: any[], fileName: string): number {
   let total = 0;
+  let valuesFound = 0;
 
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
-    // Look for column F (could be named various ways)
+    // Look for column F (exact same logic as validation)
     for (const [key, value] of Object.entries(row)) {
-      // Column F could be identified by position or header name
-      if (key === 'F' || key === '__EMPTY_5' || // Excel column F is index 5
+      if (key === 'F' || key === '__EMPTY_5' ||
           key.toLowerCase().includes('net') ||
           key.toLowerCase().includes('charge') ||
-          key.toLowerCase().includes('total') ||
-          key.toLowerCase().includes('amount')) {
+          key.toLowerCase().includes('total')) {
 
-        const numValue = parseNumericValue(value);
-        if (numValue > 10) { // Parcel costs can be small amounts
+        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 10) {
           total += numValue;
+          valuesFound++;
         }
       }
     }
   }
 
-  console.log(`Extracted ${total} from column F (UPS Parcel) in ${fileName}`);
+  console.log(`Extracted $${total} from column F (UPS Parcel) in ${fileName} (${valuesFound} values from ${data.length} rows)`);
   return total;
 }
 
