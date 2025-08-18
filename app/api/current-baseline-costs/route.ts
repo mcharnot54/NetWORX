@@ -354,31 +354,30 @@ function extractFromColumnH(data: any[], fileName: string): number {
   return total;
 }
 
-// Extract from column V (LTL R&L costs)
+// Extract from column V (LTL R&L costs) - Using validation logic
 function extractFromColumnV(data: any[], fileName: string): number {
   let total = 0;
+  let valuesFound = 0;
 
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
-    // Look for column V (could be named various ways)
+    // Look for column V (exact same logic as validation)
     for (const [key, value] of Object.entries(row)) {
-      // Column V could be identified by position or header name
-      if (key === 'V' || key === '__EMPTY_21' || // Excel column V is index 21
+      if (key === 'V' || key === '__EMPTY_21' ||
           key.toLowerCase().includes('net') ||
-          key.toLowerCase().includes('charge') ||
-          key.toLowerCase().includes('cost') ||
-          key.toLowerCase().includes('amount')) {
+          key.toLowerCase().includes('charge')) {
 
-        const numValue = parseNumericValue(value);
-        if (numValue > 100) { // LTL costs can be smaller amounts
+        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 100) {
           total += numValue;
+          valuesFound++;
         }
       }
     }
   }
 
-  console.log(`Extracted ${total} from column V (LTL) in ${fileName}`);
+  console.log(`Extracted $${total} from column V (LTL) in ${fileName} (${valuesFound} values from ${data.length} rows)`);
   return total;
 }
 
