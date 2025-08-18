@@ -70,8 +70,8 @@ const isRetryableError = (error: Error): boolean => {
     }
 
     // Safe property access with fallbacks
-    const errorName = error && 'name' in error ? String(error.name || '') : '';
-    const errorMessage = error && 'message' in error ? String(error.message || '') : '';
+    const errorName = error && typeof error === 'object' && 'name' in error ? String(error.name || '') : '';
+    const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message || '') : String(error || '');
 
     // Never retry AbortErrors - they indicate cancellation
     if (errorName === 'AbortError' ||
