@@ -192,6 +192,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               let count = 0;
               let skippedCount = 0;
 
+              addLog(`🔍 TL ${sheetName}: Starting with ${sheetData.data.length} total rows, using column '${grossRateColumn}'`);
+
               // First filter: exclude rows with total keywords anywhere in the row
               const filteredData = sheetData.data.filter(row => {
                 if (!row) return false;
@@ -205,7 +207,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                   val.includes('subtotal')
                 );
 
-                if (hasTotal) return false;
+                if (hasTotal) {
+                  if (sheetName === 'TOTAL 2024') {
+                    addLog(`   🚫 Filtering row with total keyword: ${JSON.stringify(row).substring(0, 150)}...`);
+                  }
+                  return false;
+                }
 
                 // Smart check: if row has monetary value but no supporting data, exclude it
                 if (row[grossRateColumn]) {
