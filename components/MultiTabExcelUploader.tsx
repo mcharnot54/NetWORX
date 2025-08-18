@@ -165,7 +165,23 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       // Look for rate-related columns
       const rateColumn = findColumnByPattern(['Gross Rate', 'Rate', 'Cost', 'Charge', 'Total', 'Amount']);
       if (rateColumn) {
-        for (const row of tab.data) {
+        // Filter out total rows and sum valid data rows
+        const filteredData = tab.data.filter(row => {
+          if (!row) return false;
+
+          // Check if any field in the row contains total keywords
+          const rowValues = Object.values(row).map(val => String(val).toLowerCase());
+          const hasTotal = rowValues.some(val =>
+            val.includes('total') ||
+            val.includes('sum') ||
+            val.includes('grand') ||
+            val.includes('subtotal')
+          );
+
+          return !hasTotal; // Exclude rows with total keywords
+        });
+
+        for (const row of filteredData) {
           if (row && row[rateColumn]) {
             const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
             if (!isNaN(numValue) && numValue > 1) { // Lowered threshold
@@ -174,11 +190,14 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
         }
         bestColumn = rateColumn;
+
+        // Log filtering results for debugging
+        console.log(`TL ${tab.name}: Filtered ${tab.data.length - filteredData.length} total rows, ${filteredData.length} data rows remaining`);
       }
     } else if (fileType === 'RL') {
       // For R&L files, specifically look for column V first, then fallback to best cost column
 
-      // First priority: Look for exact column V
+      // First priority: Look for exact column V - be more lenient with criteria
       const columnV = tab.columns.find(col => col === 'V');
       if (columnV) {
         let testAmount = 0;
@@ -194,10 +213,16 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
         }
 
-        if (validValues > 5 && testAmount > 1000) { // Lower threshold for column V
+        // More lenient criteria for column V - prioritize it if it has ANY valid data
+        if (validValues > 0 && testAmount > 0 && isFinite(testAmount)) {
           bestAmount = testAmount;
           bestColumn = columnV;
+          console.log(`R&L ${tab.name}: Selected column V with ${validValues} values totaling $${testAmount.toLocaleString()}`);
+        } else {
+          console.log(`R&L ${tab.name}: Column V found but has no valid data (${validValues} values, $${testAmount})`);
         }
+      } else {
+        console.log(`R&L ${tab.name}: Column V not found in available columns:`, tab.columns);
       }
 
       // If column V didn't work, try other cost-related columns
