@@ -266,7 +266,9 @@ export default function DataProcessor() {
 
     try {
       // Convert file to base64 for storage
+      addToLog(`Converting ${fileData.name} to base64...`);
       const fileContent = await FileStorageUtils.fileToBase64(fileData.file);
+      addToLog(`File content converted: ${fileContent ? `${fileContent.length} characters` : 'NO CONTENT'}`);
 
       const saveData = {
         scenario_id: selectedScenario.id,
