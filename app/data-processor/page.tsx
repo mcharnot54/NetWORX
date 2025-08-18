@@ -631,7 +631,7 @@ export default function DataProcessor() {
 
       // Load file content using robust fetch
       const contentData = await robustFetchJson(`/api/files/${fileData.id}/content`, {
-        timeout: 10000, // 10 second timeout
+        timeout: 20000, // 20 second timeout for content loading
         retries: 2 // Retry twice on failure
       });
 
