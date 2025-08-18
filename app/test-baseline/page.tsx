@@ -701,6 +701,30 @@ export default function TestBaseline() {
             >
               📋 CHECK EXCEL SYSTEM STATUS
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/test-file-update', { method: 'POST' });
+                  const result = await response.json();
+
+                  if (result.success) {
+                    alert(
+                      `✅ FILE UPDATE TEST PASSED!\n\n` +
+                      `Database Connected: ${result.database_connected ? '✅' : '❌'}\n` +
+                      `Message: ${result.message}\n\n` +
+                      `File update functionality is working correctly.`
+                    );
+                  } else {
+                    alert(`❌ FILE UPDATE TEST FAILED:\n\n${result.error}`);
+                  }
+                } catch (error) {
+                  alert('❌ Failed to test file update: ' + error);
+                }
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-bold"
+            >
+              🧪 TEST FILE UPDATE
+            </button>
           </div>
 
           {error && (
