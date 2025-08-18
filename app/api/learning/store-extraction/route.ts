@@ -69,19 +69,29 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Future: Return learning analytics and pattern insights
   return NextResponse.json({
-    status: "Learning system operational",
+    status: "Advanced Adaptive Learning System Operational",
     capabilities: [
-      "Transportation cost extraction",
-      "Column pattern recognition", 
-      "Adaptive confidence scoring",
-      "Network optimization data prep",
-      "Complex operational cost structure support"
+      "🧠 Adaptive template generation",
+      "🎯 Dynamic column pattern recognition",
+      "📊 Real-time confidence scoring",
+      "🚀 Network optimization data preparation",
+      "💡 Self-improving extraction algorithms",
+      "🔄 Fallback safety mechanisms",
+      "🎪 Complex operational cost structure analysis"
     ],
     ready_for: [
-      "Inventory optimization",
-      "Warehouse cost analysis", 
-      "Multi-dimensional data structures",
-      "Advanced pattern learning"
+      "🏭 Advanced inventory optimization",
+      "🏢 Multi-facility warehouse analysis",
+      "📈 Multi-dimensional performance tracking",
+      "🤖 Machine learning pattern evolution",
+      "🔍 Predictive cost modeling",
+      "⚡ Real-time adaptation to new file formats"
+    ],
+    adaptive_features: [
+      "Self-learning column mappings",
+      "Dynamic template confidence adjustment",
+      "Automatic fallback to simple processing",
+      "Pattern recognition improvement over time"
     ]
   });
 }
