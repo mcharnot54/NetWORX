@@ -223,63 +223,94 @@ export default function IngestPage() {
             </div>
           )}
 
-          {/* Column Mapping Table */}
+          {/* Fix / Confirm Mappings */}
           <div className="bg-white rounded-lg border overflow-hidden">
-            <h3 className="font-semibold p-4 border-b bg-gray-50">Column Mapping Analysis</h3>
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-semibold">Fix / Confirm Mappings</h3>
+              <button
+                onClick={saveConfirmations}
+                disabled={savingMappings}
+                className="px-4 py-2 rounded bg-green-600 text-white font-medium disabled:opacity-50 hover:bg-green-700 transition-colors"
+              >
+                {savingMappings ? "Saving..." : "💾 Save Confirmations"}
+              </button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="text-left p-3 font-medium">Raw Header</th>
-                    <th className="text-left p-3 font-medium">→ Canonical Field</th>
+                    <th className="text-left p-3 font-medium">Current Mapping</th>
                     <th className="text-left p-3 font-medium">Confidence</th>
-                    <th className="text-left p-3 font-medium">Method</th>
-                    <th className="text-left p-3 font-medium">Transport Analysis</th>
+                    <th className="text-left p-3 font-medium">Source</th>
+                    <th className="text-left p-3 font-medium">Change To</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(result.report.mappingPreview || []).map((m: MappingResult, idx: number) => (
-                    <tr key={idx} className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                      <td className="p-3 font-mono text-gray-700">{m.rawHeader}</td>
-                      <td className="p-3">
-                        {m.mappedTo ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                            {m.mappedTo}
+                  {(result.report.mappingPreview || []).map((m: MappingResult, idx: number) => {
+                    const low = !m.mappedTo || (m.score < 0.8 && !m.dbSource);
+                    const currentMapping = edits[m.rawHeader] ?? m.mappedTo ?? "";
+
+                    return (
+                      <tr key={idx} className={low ? "bg-yellow-50" : (idx % 2 === 0 ? "bg-gray-50" : "bg-white")}>
+                        <td className="p-3 font-mono text-gray-700">{m.rawHeader}</td>
+                        <td className="p-3">
+                          {m.mappedTo ? (
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              m.dbSource ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                            }`}>
+                              {m.mappedTo}
+                            </span>
+                          ) : (
+                            <em className="text-red-600">unmapped</em>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${
+                                  m.dbSource ? 'bg-blue-500' :
+                                  m.score >= 0.8 ? 'bg-green-500' :
+                                  m.score >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${m.score * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-xs">{(m.score * 100).toFixed(0)}%</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            m.dbSource === 'customer' ? 'bg-blue-100 text-blue-700' :
+                            m.dbSource === 'global' ? 'bg-purple-100 text-purple-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {m.dbSource ? `DB (${m.dbSource})` : (m.classificationMethod || 'similarity')}
                           </span>
-                        ) : (
-                          <em className="text-red-600">unmapped</em>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${m.score >= 0.8 ? 'bg-green-500' : m.score >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                              style={{ width: `${m.score * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-xs">{(m.score * 100).toFixed(0)}%</span>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <span className="text-xs text-gray-600">{m.classificationMethod || 'similarity'}</span>
-                      </td>
-                      <td className="p-3">
-                        {m.transportAnalysis?.isTransportColumn && (
-                          <div className="text-xs">
-                            <div className="text-green-600 font-medium">
-                              {formatCurrency(m.transportAnalysis.extractedAmount)}
-                            </div>
-                            <div className="text-gray-500">
-                              {(m.transportAnalysis.confidence * 100).toFixed(0)}% confidence
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="p-3">
+                          <select
+                            className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            value={currentMapping}
+                            onChange={(e) => setEdit(m.rawHeader, e.target.value)}
+                          >
+                            <option value="">— choose —</option>
+                            {CANONICAL_OPTIONS.map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+            <div className="p-4 bg-gray-50 text-sm text-gray-600">
+              💡 <strong>Blue badges</strong> = Learned from your previous uploads |
+              <strong>Yellow rows</strong> = Low confidence, please review |
+              Changes will be remembered for future uploads
             </div>
           </div>
 
