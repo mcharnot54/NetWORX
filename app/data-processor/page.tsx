@@ -1333,6 +1333,25 @@ export default function DataProcessor() {
                           🔧 Test File API
                         </button>
                       </div>
+
+                      {/* Debug: Test File Upload Process */}
+                      <div className="group relative">
+                        <button
+                          onClick={() => {
+                            addToLog('=== FILE UPLOAD DIAGNOSIS ===');
+                            addToLog('The issue is that files were uploaded without content being saved.');
+                            addToLog('Solution: Please re-upload the files using the file upload area.');
+                            addToLog('OR use the "Fix Missing Content" feature if available.');
+                            addToLog('Current files in database have NO content stored.');
+                            addToLog('Once files are re-uploaded with content, validation will work.');
+                            addToLog('================================');
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+                          title="Show diagnosis of file upload issue"
+                        >
+                          🩺 Diagnose Issue
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
