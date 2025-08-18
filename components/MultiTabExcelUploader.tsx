@@ -163,6 +163,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         let targetColumn = '';
         let extractedAmount = 0;
+        let operatingCosts: OperatingCostData | undefined;
 
         try {
           // Apply file-type specific extraction rules
