@@ -53,41 +53,66 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     let bestColumn = '';
     let bestAmount = 0;
 
+    // Helper function to find column by pattern
+    const findColumnByPattern = (patterns: string[]): string | null => {
+      for (const pattern of patterns) {
+        for (const col of tab.columns) {
+          if (col && col.toLowerCase().includes(pattern.toLowerCase())) {
+            return col;
+          }
+        }
+      }
+      return null;
+    };
+
     if (fileType === 'UPS') {
-      // Extract from Net Charge column
-      for (const row of tab.data) {
-        if (row && row['Net Charge']) {
-          const numValue = parseFloat(String(row['Net Charge']).replace(/[$,\s]/g, ''));
-          if (!isNaN(numValue) && numValue > 0.01) {
-            bestAmount += numValue;
-          }
-        }
-      }
-      bestColumn = 'Net Charge';
-    } else if (fileType === 'TL') {
-      // Extract from Gross Rate column
-      for (const row of tab.data) {
-        if (row && row['Gross Rate']) {
-          const numValue = parseFloat(String(row['Gross Rate']).replace(/[$,\s]/g, ''));
-          if (!isNaN(numValue) && numValue > 100) {
-            bestAmount += numValue;
-          }
-        }
-      }
-      bestColumn = 'Gross Rate';
-    } else if (fileType === 'RL') {
-      // Find best cost column
-      for (const col of tab.columns) {
-        let testAmount = 0;
+      // Look for charge-related columns
+      const chargeColumn = findColumnByPattern(['Net Charge', 'Charge', 'Total Charge', 'Net Cost', 'Cost']);
+      if (chargeColumn) {
         for (const row of tab.data) {
-          if (row && row[col]) {
-            const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
-            if (!isNaN(numValue) && numValue > 50) {
-              testAmount += numValue;
+          if (row && row[chargeColumn]) {
+            const numValue = parseFloat(String(row[chargeColumn]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && numValue > 0.01) {
+              bestAmount += numValue;
             }
           }
         }
-        if (testAmount > bestAmount) {
+        bestColumn = chargeColumn;
+      }
+    } else if (fileType === 'TL') {
+      // Look for rate-related columns
+      const rateColumn = findColumnByPattern(['Gross Rate', 'Rate', 'Cost', 'Charge', 'Total', 'Amount']);
+      if (rateColumn) {
+        for (const row of tab.data) {
+          if (row && row[rateColumn]) {
+            const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && numValue > 1) { // Lowered threshold
+              bestAmount += numValue;
+            }
+          }
+        }
+        bestColumn = rateColumn;
+      }
+    } else if (fileType === 'RL') {
+      // Find best cost column by testing all numeric columns
+      for (const col of tab.columns) {
+        if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+
+        let testAmount = 0;
+        let validValues = 0;
+
+        for (const row of tab.data) {
+          if (row && row[col]) {
+            const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
+              testAmount += numValue;
+              validValues++;
+            }
+          }
+        }
+
+        // Only consider columns with reasonable number of valid values
+        if (validValues > 10 && testAmount > bestAmount && isFinite(testAmount)) {
           bestAmount = testAmount;
           bestColumn = col;
         }
