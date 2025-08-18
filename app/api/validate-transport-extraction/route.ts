@@ -20,22 +20,15 @@ export async function GET(request: NextRequest) {
     const validationResults = [];
 
     for (const file of transportFiles) {
-      if (!file.processed_data?.data) continue;
+      // Use the same data extraction logic as baseline costs
+      let allDataArrays = extractAllDataArrays(file.processed_data);
 
-      let data = file.processed_data.data;
-      if (!Array.isArray(data)) {
-        // Handle nested data structures
-        if (typeof data === 'object') {
-          const keys = Object.keys(data);
-          const arrayKey = keys.find(key => Array.isArray(data[key]));
-          if (arrayKey) {
-            data = data[arrayKey];
-          } else {
-            data = Object.entries(data).map(([key, value]) => ({ [key]: value }));
-          }
-        } else {
-          continue;
-        }
+      if (allDataArrays.length === 0) continue;
+
+      // Combine all data arrays for validation
+      let data: any[] = [];
+      for (const dataArray of allDataArrays) {
+        data = data.concat(dataArray.data);
       }
 
       const fileValidation = {
