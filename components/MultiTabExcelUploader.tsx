@@ -99,13 +99,14 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'OTHER' => {
+  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'INVENTORY_TRACKER' | 'OTHER' => {
     const lower = fileName.toLowerCase();
     if (lower.includes('ups') && lower.includes('individual')) return 'UPS';
     if (lower.includes('2024') && lower.includes('tl')) return 'TL';
     if (lower.includes('r&l') && lower.includes('curriculum')) return 'RL';
     if (lower.includes('warehouse') && (lower.includes('budget') || lower.includes('operating'))) return 'WAREHOUSE_BUDGET';
     if (lower.includes('warehouse') && lower.includes('production') && lower.includes('tracker')) return 'PRODUCTION_TRACKER';
+    if (lower.includes('inventory') || lower.includes('stock') || (lower.includes('warehouse') && lower.includes('inventory'))) return 'INVENTORY_TRACKER';
     return 'OTHER';
   };
 
