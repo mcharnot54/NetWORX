@@ -135,13 +135,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           for (const row of tab.data) {
             if (row && row[foundColumn]) {
               const numValue = parseFloat(String(row[foundColumn]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > 0.01) {
+              if (!isNaN(numValue) && numValue > 0.001) { // Even lower threshold for individual values
                 testAmount += numValue;
                 validValues++;
               }
             }
           }
-          if (validValues > 0) { // ANY data is good enough
+          if (validValues > 0 && testAmount > 10) { // Lower threshold - ANY meaningful data
             bestAmount = testAmount;
             bestColumn = foundColumn;
             console.log(`UPS ${tab.name}: FOUND exact Net Charge column '${foundColumn}' with ${validValues} values = $${testAmount.toLocaleString()}`);
@@ -164,13 +164,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           for (const row of tab.data) {
             if (row && row[netChargeColumn]) {
               const numValue = parseFloat(String(row[netChargeColumn]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > 0.01) {
+              if (!isNaN(numValue) && numValue > 0.001) { // Even lower threshold
                 testAmount += numValue;
                 validValues++;
               }
             }
           }
-          if (validValues > 0) {
+          if (validValues > 0 && testAmount > 10) {
             bestAmount = testAmount;
             bestColumn = netChargeColumn;
             console.log(`UPS ${tab.name}: FOUND Net+Charge column '${netChargeColumn}' with ${validValues} values = $${testAmount.toLocaleString()}`);
@@ -193,13 +193,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           for (const row of tab.data) {
             if (row && row[chargeCol]) {
               const numValue = parseFloat(String(row[chargeCol]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > 0.01) {
+              if (!isNaN(numValue) && numValue > 0.001) { // Even lower threshold
                 testAmount += numValue;
                 validValues++;
               }
             }
           }
-          if (validValues > 0) {
+          if (validValues > 0 && testAmount > 10) {
             bestAmount = testAmount;
             bestColumn = chargeCol;
             console.log(`UPS ${tab.name}: FOUND charge column '${chargeCol}' with ${validValues} values = $${testAmount.toLocaleString()}`);
@@ -217,11 +217,26 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       if (tab.name === 'TOTAL 2024') {
         // For TOTAL 2024 tab: Use column H specifically (as user requested)
-        rateColumn = tab.columns.find(col => col === 'H' || col === '__EMPTY_7');
+        // Look for Column H with various possible representations
+        rateColumn = tab.columns.find(col =>
+          col === 'H' ||
+          col === '__EMPTY_7' ||
+          col === '__EMPTY_8' ||
+          col === 'Column H' ||
+          col?.toLowerCase() === 'h'
+        );
+
+        // If no exact H found, try finding 8th column (0-indexed = 7)
+        if (!rateColumn && tab.columns.length > 7) {
+          rateColumn = tab.columns[7]; // 8th column (H)
+          console.log(`TL ${tab.name}: Using 8th column (${rateColumn}) as Column H`);
+        }
+
         if (rateColumn) {
-          console.log(`TL ${tab.name}: Using column H as requested by user`);
+          console.log(`TL ${tab.name}: Using column H as requested by user: ${rateColumn}`);
         } else {
           console.log(`TL ${tab.name}: Column H not found, available columns:`, tab.columns);
+          console.log(`TL ${tab.name}: Total columns: ${tab.columns.length}`);
         }
       } else {
         // For other TL tabs: Use standard pattern matching for freight_cost, etc.
