@@ -327,31 +327,30 @@ function extractTransportationCosts(data: any[], baselineCosts: any, fileName: s
   });
 }
 
-// Extract from column H (TL costs - Inbound, Outbound, Transfers)
+// Extract from column H (TL costs - Inbound, Outbound, Transfers) - Using validation logic
 function extractFromColumnH(data: any[], fileName: string): number {
   let total = 0;
+  let valuesFound = 0;
 
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
-    // Look for column H (could be named various ways)
+    // Look for column H (exact same logic as validation)
     for (const [key, value] of Object.entries(row)) {
-      // Column H could be identified by position or header name
-      if (key === 'H' || key === '__EMPTY_7' || // Excel column H is index 7
+      if (key === 'H' || key === '__EMPTY_7' ||
           key.toLowerCase().includes('total') ||
-          key.toLowerCase().includes('cost') ||
-          key.toLowerCase().includes('amount') ||
-          key.toLowerCase().includes('charge')) {
+          key.toLowerCase().includes('cost')) {
 
-        const numValue = parseNumericValue(value);
-        if (numValue > 1000) { // Only significant amounts
+        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 1000) {
           total += numValue;
+          valuesFound++;
         }
       }
     }
   }
 
-  console.log(`Extracted ${total} from column H in ${fileName}`);
+  console.log(`Extracted $${total} from column H in ${fileName} (${valuesFound} values from ${data.length} rows)`);
   return total;
 }
 
