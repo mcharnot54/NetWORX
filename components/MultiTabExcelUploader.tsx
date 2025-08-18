@@ -492,13 +492,36 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         addLog(`🎯 ADAPTIVE SUCCESS: Using full adaptive learning system!`);
 
       } catch (adaptiveError) {
-        addLog(`⚠ Adaptive learning failed, falling back to simple processor: ${adaptiveError instanceof Error ? adaptiveError.message : 'Unknown error'}`);
+        addLog(`⚠ Adaptive learning failed, falling back to basic XLSX processing: ${adaptiveError instanceof Error ? adaptiveError.message : 'Unknown error'}`);
         usingAdaptiveLearning = false;
 
-        // Fallback to simple processor
-        const { SimpleExcelProcessor } = await import('@/lib/simple-excel-processor');
-        result = await SimpleExcelProcessor.processFile(file);
-        result.usingAdaptiveLearning = false;
+        // Basic XLSX fallback processing
+        const XLSX = await import('xlsx');
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+
+        const sheets: any = {};
+        for (const sheetName of workbook.SheetNames) {
+          const worksheet = workbook.Sheets[sheetName];
+          const rawData = XLSX.utils.sheet_to_json(worksheet);
+
+          sheets[sheetName] = {
+            data: rawData,
+            columnHeaders: rawData.length > 0 ? Object.keys(rawData[0]) : [],
+            rowCount: rawData.length,
+            sheetName: sheetName
+          };
+        }
+
+        result = {
+          isValid: Object.keys(sheets).length > 0,
+          sheets,
+          detectedFileType: fileType,
+          totalExtracted: 0,
+          errors: [],
+          warnings: [],
+          usingAdaptiveLearning: false
+        };
       }
 
       if (!result.isValid) {
