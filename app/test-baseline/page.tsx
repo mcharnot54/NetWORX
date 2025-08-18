@@ -666,10 +666,11 @@ export default function TestBaseline() {
               {loadingTlDiagnostic ? 'Analyzing...' : 'Diagnose TL File Structure'}
             </button>
             <button
-              onClick={() => window.open('/api/fix-rl-tl-extraction', '_blank')}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-bold"
+              onClick={runInlineFix}
+              disabled={loadingInlineFix}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-bold disabled:opacity-50"
             >
-              🔧 FIX R&L + TL Extraction
+              {loadingInlineFix ? 'Fixing...' : '🔧 FIX R&L + TL (Inline Results)'}
             </button>
           </div>
 
