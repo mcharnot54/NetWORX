@@ -94,42 +94,21 @@ const nextConfig = {
       });
     }
 
-    // Development optimizations to prevent fetch failures
+    // Simplified development config to prevent fetch failures
     if (!isServer && process.env.NODE_ENV === 'development') {
-      // Reduce compilation time and prevent memory issues
+      // Minimal optimization to prevent issues
       config.optimization = {
         ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          maxSize: 200000, // Limit chunk size to prevent large payloads
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-              priority: 10,
-              maxSize: 300000,
-            },
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 5,
-              maxSize: 200000,
-            },
-          },
-        },
-        // Prevent memory leaks in development
-        sideEffects: false,
+        // Disable complex optimizations that cause issues
+        minimize: false,
+        splitChunks: false, // Disable chunk splitting that causes RSC issues
       };
 
-      // Add development server optimizations
+      // Disable hot reloading features that cause fetch failures
       config.devServer = {
         ...config.devServer,
-        compress: true,
-        historyApiFallback: true,
-        hot: true,
-        liveReload: true,
+        hot: false, // Disable hot reload
+        liveReload: false, // Disable live reload
       };
     }
 
