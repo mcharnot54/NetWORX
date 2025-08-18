@@ -309,33 +309,27 @@ export default function DataProcessor() {
         } else if (action === 'replace') {
           // Retry with replace_existing flag
           const retryData = { ...saveData, replace_existing: true };
-          const retryResponse = await fetch('/api/files', {
+          const retryResult = await robustFetchJson('/api/files', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(retryData),
+            timeout: 30000,
+            retries: 1
           });
 
-          if (!retryResponse.ok) {
-            throw new Error(`Failed to replace file: HTTP ${retryResponse.status}`);
-          }
-
-          const retryResult = await retryResponse.json();
           addToLog(`Replaced existing file: ${fileData.name}`);
           return retryResult.file.id;
         } else if (action === 'force') {
           // Retry with force_upload flag
           const forceData = { ...saveData, force_upload: true };
-          const forceResponse = await fetch('/api/files', {
+          const forceResult = await robustFetchJson('/api/files', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(forceData),
+            timeout: 30000,
+            retries: 1
           });
 
-          if (!forceResponse.ok) {
-            throw new Error(`Failed to force upload file: HTTP ${forceResponse.status}`);
-          }
-
-          const forceResult = await forceResponse.json();
           addToLog(`Force uploaded duplicate file: ${fileData.name}`);
           return forceResult.file.id;
         }
