@@ -258,6 +258,36 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         addLog(`    🎯 EXTRACTION: $${extractedAmount.toLocaleString()} from '${targetColumn}'`);
         addLog(`    📊 DATA QUALITY: ${sheetData.cleaningReport.rowsRemoved} rows removed, ${sheetData.cleaningReport.valuesConverted} values converted`);
         addLog(`    🧠 LEARNING DATA: Stored patterns for network analysis optimization`);
+
+        // Store extraction data for future learning and optimization
+        try {
+          const learningResponse = await fetch('/api/learning/store-extraction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              sheetName,
+              fileType,
+              columnName: targetColumn,
+              extractedAmount,
+              confidence: 0.85, // Will be calculated by adaptive system
+              method: 'adaptive_learning',
+              rowsProcessed: sheetData.data.length,
+              columnHeaders: sheetData.columnHeaders,
+              learningMetrics: {
+                patternDetected: `${fileType}_${sheetName}_pattern`,
+                processingTime: Date.now()
+              }
+            })
+          });
+
+          if (learningResponse.ok) {
+            const result = await learningResponse.json();
+            addLog(`🎯 STORED LEARNING: ${result.learningId} for future optimization`);
+          }
+        } catch (learningError) {
+          addLog(`⚠️ Learning storage warning: ${learningError}`);
+        }
       }
 
       const multiTabFile: MultiTabFile = {
