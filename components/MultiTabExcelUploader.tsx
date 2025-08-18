@@ -99,20 +99,43 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     };
 
     if (fileType === 'UPS') {
-      // For UPS files, always prioritize Net Charge over Gross Charge
-      const chargeColumn = findNetChargeColumn();
+      // For UPS files, find the column with the highest total (should be main Net Charge)
+      const potentialColumns = tab.columns.filter(col =>
+        col && (
+          col.toLowerCase().includes('net') && col.toLowerCase().includes('charge') ||
+          (col.toLowerCase().includes('charge') && !col.toLowerCase().includes('gross') && !col.toLowerCase().includes('additional'))
+        )
+      );
 
-      if (chargeColumn) {
+      // If no net charge columns found, expand search but still avoid gross
+      if (potentialColumns.length === 0) {
+        potentialColumns.push(...tab.columns.filter(col =>
+          col && col.toLowerCase().includes('charge') && !col.toLowerCase().includes('gross')
+        ));
+      }
+
+      // Test each potential column and pick the one with highest total
+      let bestColumnAmount = 0;
+      for (const testColumn of potentialColumns) {
+        let testAmount = 0;
         for (const row of tab.data) {
-          if (row && row[chargeColumn]) {
-            const numValue = parseFloat(String(row[chargeColumn]).replace(/[$,\s]/g, ''));
+          if (row && row[testColumn]) {
+            const numValue = parseFloat(String(row[testColumn]).replace(/[$,\s]/g, ''));
             if (!isNaN(numValue) && numValue > 0.01) {
-              bestAmount += numValue;
+              testAmount += numValue;
             }
           }
         }
-        bestColumn = chargeColumn;
+        if (testAmount > bestColumnAmount) {
+          bestColumnAmount = testAmount;
+          bestColumn = testColumn;
+          bestAmount = testAmount;
+        }
       }
+
+      // Log which column was selected for debugging
+      console.log(`UPS ${tab.name}: Selected column '${bestColumn}' with total $${bestAmount.toLocaleString()}`);
+      console.log(`Available charge columns:`, potentialColumns);
     } else if (fileType === 'TL') {
       // Look for rate-related columns
       const rateColumn = findColumnByPattern(['Gross Rate', 'Rate', 'Cost', 'Charge', 'Total', 'Amount']);
