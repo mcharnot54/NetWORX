@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withCache, CacheKeys } from '@/lib/cache-utils';
 
 // Helper function to add timeout to database operations with proper error handling
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 15000): Promise<T> {
