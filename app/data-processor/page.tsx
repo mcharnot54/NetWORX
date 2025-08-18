@@ -542,24 +542,30 @@ export default function DataProcessor() {
 
       // Update file in database if it was saved
       if (file.id) {
-        await updateFileInDatabase(file.id, {
-          // Mark as completed if we have Excel data, regardless of template validation
-          processing_status: hasExcelData ? 'completed' : 'failed',
-          validation_result: {
-            ...result,
-            excel_parsing_success: hasExcelData,
-            template_validation_success: templateValidationPassed,
-            note: hasExcelData ? 'Excel data preserved successfully' : 'Excel parsing failed'
-          },
-          processed_data: {
-            // Always preserve the original parsed Excel data
-            parsedData: file.parsedData,
-            columnNames: file.columnNames,
-            file_content: file.fileContent,
-            processingResult: result,
-            excel_preserved: hasExcelData
-          }
-        });
+        try {
+          await updateFileInDatabase(file.id, {
+            // Mark as completed if we have Excel data, regardless of template validation
+            processing_status: hasExcelData ? 'completed' : 'failed',
+            validation_result: {
+              ...result,
+              excel_parsing_success: hasExcelData,
+              template_validation_success: templateValidationPassed,
+              note: hasExcelData ? 'Excel data preserved successfully' : 'Excel parsing failed'
+            },
+            processed_data: {
+              // Always preserve the original parsed Excel data
+              parsedData: file.parsedData,
+              columnNames: file.columnNames,
+              file_content: file.fileContent,
+              processingResult: result,
+              excel_preserved: hasExcelData
+            }
+          });
+          addToLog(`✓ File status updated in database`);
+        } catch (updateError) {
+          addToLog(`⚠ Warning: Database update failed but file processing completed`);
+          console.error('Database update error:', updateError);
+        }
       }
 
       // Updated logging to reflect Excel-first approach
