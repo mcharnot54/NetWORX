@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String  @id @default(cuid())
+  name      String
+  uploads   Upload[]
+  mappings  SchemaMapping[]
+  createdAt DateTime @default(now())
+}
+
+model Upload {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  filename    String
+  fileHash    String
+  bytes       Int
+  status      UploadStatus @default(PARSING)
+  domain      Domain?   // WAREHOUSE | TRANSPORT | INVENTORY (detected or chosen)
+  reportJson  Json?
+  createdAt   DateTime @default(now())
+}
+
+enum UploadStatus { 
+  PARSING 
+  READY 
+  FAILED 
+}
+
+enum Domain { 
+  WAREHOUSE 
+  TRANSPORT 
+  INVENTORY 
+}
+
+model SchemaMapping {
+  id             String   @id @default(cuid())
+  customerId     String
+  customer       Customer @relation(fields: [customerId], references: [id])
+  rawHeaderNorm  String   // normalized raw header (lowercase, trimmed, alnum)
+  canonicalField String   // e.g., "sku"
+  confidence     Float
+  hits           Int      @default(1)
+  lastSeenAt     DateTime @default(now())
+  @@unique([customerId, rawHeaderNorm])
+}
+
+// Global learning models for cross-customer intelligence
+model GlobalMapping {
+  id             String  @id @default(cuid())
+  rawHeaderNorm  String  @unique
+  canonicalField String
+  confidence     Float
+  hits           Int      @default(1)
+  lastSeenAt     DateTime @default(now())
+}
+
+model ColumnProfile {
+  id          String   @id @default(cuid())
+  sampleHash  String   @unique // hash of first N non-null values for fast lookups
+  tokens      String   // space-joined tokens/features
+  canonical   String?  // set when confirmed
+  createdAt   DateTime @default(now())
+}
+
+// Enhanced models for transport data processing
+model TransportExtraction {
+  id          String   @id @default(cuid())
+  uploadId    String
+  fileName    String
+  sheetName   String
+  columnName  String
+  extractedAmount Float
+  confidence  Float
+  method      String   // "column_v", "header_match", "pattern_match"
+  rowsProcessed Int
+  createdAt   DateTime @default(now())
+}
+
+model HeaderLearning {
+  id             String   @id @default(cuid())
+  originalHeader String
+  normalizedHeader String
+  detectedColumn String   // A, B, C, V, etc.
+  confidence     Float
+  dataPattern    String   // "currency", "numeric", "text", "date"
+  sampleValues   Json     // first few non-null values
+  userConfirmed  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
