@@ -63,8 +63,8 @@ export async function GET() {
 
       console.log(`Processing ${file.file_name}: ${data.length} rows from ${dataSource}`);
 
-      // UPS Parcel File (Column F / Net Charge)
-      if (fileName.includes('ups invoice by state summary 2024')) {
+      // UPS Parcel File (Column F / Net Charge) - EXACT NAME MATCH
+      if (file.file_name === 'UPS Invoice by State Summary 2024.xlsx') {
         const { total, valuesFound } = extractFromNetCharge(data);
         if (total > results.transport_totals.ups_parcel.amount) {
           results.transport_totals.ups_parcel = {
@@ -78,8 +78,8 @@ export async function GET() {
         }
       }
 
-      // R&L LTL File (Column V)
-      else if (fileName.includes('r&l') || fileName.includes('curriculum associates')) {
+      // R&L LTL File (Column V) - EXACT NAME MATCH
+      else if (file.file_name === 'R&L - CURRICULUM ASSOCIATES 1.1.2024-12.31.2024 .xlsx') {
         const { total, valuesFound } = extractFromColumnV(data);
         if (total > results.transport_totals.rl_ltl.amount) {
           results.transport_totals.rl_ltl = {
@@ -93,8 +93,8 @@ export async function GET() {
         }
       }
 
-      // TL File (Column H)
-      else if (fileName.includes('2024 totals with inbound and outbound tl')) {
+      // TL File (Column H) - EXACT NAME MATCH
+      else if (file.file_name === '2024 TOTALS WITH INBOUND AND OUTBOUND TL (2).xlsx') {
         const { total, valuesFound } = extractFromColumnH(data);
         if (total > results.transport_totals.tl_costs.amount) {
           results.transport_totals.tl_costs = {
