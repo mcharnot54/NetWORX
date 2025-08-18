@@ -289,8 +289,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           console.log(`TL ${tab.name}: ERROR - Column H not found! Available columns:`, tab.columns);
           console.log(`TL ${tab.name}: Total columns: ${tab.columns.length}`);
           // DO NOT use any fallback for TOTAL 2024 - user wants Column H only!
-          bestColumn = '';
-          bestAmount = 0;
+          console.log(`TL ${tab.name}: EXITING - NO Column H found, returning $0 as requested`);
+          return { column: '', amount: 0 };
         }
       } else {
         // For other TL tabs: Use standard pattern matching for freight_cost, etc.
