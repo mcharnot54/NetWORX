@@ -171,7 +171,7 @@ export default function DataProcessor() {
     try {
       console.log('Loading files for scenario:', scenarioId);
       const responseData = await robustFetchJson(`/api/files?scenarioId=${scenarioId}`, {
-        timeout: 15000, // 15 second timeout for file loading
+        timeout: 30000, // 30 second timeout for file loading
         retries: 3 // Retry up to 3 times for reliability
       });
 
