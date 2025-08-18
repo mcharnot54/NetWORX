@@ -127,6 +127,22 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       for await (const record of rows) {
         data.push(record);
         rowCount++;
+
+        // If headers are still empty, try to extract from first record
+        if (report.headers.length === 0 && rowCount === 1 && record && typeof record === 'object') {
+          report.headers.push(...Object.keys(record));
+          addLog(`🔧 Headers extracted from first row: ${report.headers.join(', ')}`);
+        }
+      }
+
+      // Final fallback: if still no headers, create generic ones
+      if (report.headers.length === 0 && data.length > 0) {
+        const firstRow = data[0];
+        if (firstRow && typeof firstRow === 'object') {
+          const keys = Object.keys(firstRow);
+          report.headers.push(...keys);
+          addLog(`🔧 Generated headers from first data row: ${report.headers.join(', ')}`);
+        }
       }
 
       addLog(`📊 CSV loaded: ${report.headers.length} columns, ${data.length} rows`);
