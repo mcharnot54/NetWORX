@@ -517,7 +517,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           data: sheetData.data,
           sampleData: sheetData.data.slice(0, 5),
           targetColumn,
-          extractedAmount
+          extractedAmount,
+          operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined
         });
 
         // Add to total
