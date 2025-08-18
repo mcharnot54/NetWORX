@@ -52,12 +52,30 @@ interface ProductivityMetrics {
   };
 }
 
+interface InventoryMetrics {
+  totalInventoryDollars?: number;    // Total inventory value on hand
+  dailySales?: number;               // Average daily sales
+  daysSupply?: number;               // Calculated: totalInventoryDollars / dailySales
+  inventoryTurnover?: number;        // Annual turnover rate
+  categories?: {
+    rawMaterials?: number;
+    workInProgress?: number;
+    finishedGoods?: number;
+    totalByCategory?: number;
+  };
+  snapshot?: {
+    date?: string;
+    location?: string;
+    reportType?: string;
+  };
+}
+
 interface MultiTabFile {
   file: File;
   fileName: string;
   fileSize: number;
   tabs: ExcelTab[];
-  fileType: 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'OTHER';
+  fileType: 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'INVENTORY_TRACKER' | 'OTHER';
   totalExtracted: number;
   processingStatus: 'pending' | 'processing' | 'completed' | 'error';
   errorMessage?: string;
@@ -622,7 +640,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
           // UPS FILES: Extract from Column G (Net Charge) for all four tabs
           if (fileType === 'UPS') {
-            addLog(`📦 UPS PROCESSING: Looking for Net Charge column (Column G)`);
+            addLog(`���� UPS PROCESSING: Looking for Net Charge column (Column G)`);
 
             const netChargeColumn = sheetData.columnHeaders.find(col =>
               col === 'Net Charge' || col === 'G' ||
