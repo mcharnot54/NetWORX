@@ -168,12 +168,19 @@ export default function DataProcessor() {
     addToLog('Loading previously uploaded files...');
 
     try {
+      console.log('Loading files for scenario:', scenarioId);
       const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
+
       if (!response.ok) {
-        throw new Error('Failed to load files');
+        const errorText = await response.text();
+        console.error('Failed to load files - Response:', response.status, errorText);
+        throw new Error(`Failed to load files: HTTP ${response.status} - ${errorText}`);
       }
 
-      const { files: savedFiles } = await response.json();
+      const responseData = await response.json();
+      console.log('Files API response:', responseData);
+
+      const { files: savedFiles } = responseData;
 
       if (savedFiles && savedFiles.length > 0) {
         const reconstructedFiles: FileData[] = await Promise.all(
