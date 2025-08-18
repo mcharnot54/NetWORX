@@ -166,57 +166,55 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       addLog(`🧠 PROCESSING: ${fileType} file, analyzing CSV data`);
 
       if (fileType === 'WAREHOUSE_BUDGET') {
-        addLog(`🏭 WAREHOUSE BUDGET PROCESSING: Extracting operating costs from CSV`);
+        addLog(`🏭 WAREHOUSE BUDGET PROCESSING: Using coordinate-based extraction for CSV`);
         operatingCosts = {};
 
-        // Apply the same operating cost extraction logic
-        const rowData: { [key: number]: any } = {};
-        sheetData.data.forEach((row, index) => {
-          rowData[index] = row;
-        });
+        // Convert data to coordinate-based access (row, column indices)
+        const getValueAtCoordinate = (rowIndex: number, colIndex: number): number => {
+          if (rowIndex >= data.length) return 0;
 
-        // Helper function for CSV data extraction
-        const extractFromRowColumns = (excelRowNum: number): number => {
-          const arrayIndex = excelRowNum - 1;
-          const row = rowData[arrayIndex];
-          if (!row) {
-            addLog(`    ❌ Row ${excelRowNum} (index ${arrayIndex}) not found in CSV data (only ${sheetData.data.length} rows available)`);
-            return 0;
-          }
+          const row = data[rowIndex];
+          if (!row) return 0;
 
+          // Get all values from this row as an array
+          const rowValues = Object.values(row);
+          if (colIndex >= rowValues.length) return 0;
+
+          const cellValue = rowValues[colIndex];
+          if (!cellValue || cellValue === '') return 0;
+
+          const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
+          return !isNaN(numValue) ? numValue : 0;
+        };
+
+        // Sum across columns Y:AJ (columns 24-35) for specific rows
+        const extractFromRowRange = (excelRowNum: number, startCol: number = 24, endCol: number = 35): number => {
+          const rowIndex = excelRowNum - 1; // Convert to 0-based
           let total = 0;
           let valuesFound = [];
 
-          for (let columnIndex = 0; columnIndex < sheetData.columnHeaders.length; columnIndex++) {
-            const columnKey = sheetData.columnHeaders[columnIndex];
-            if (row && row[columnKey] !== undefined && row[columnKey] !== null && row[columnKey] !== '') {
-              const rawValue = String(row[columnKey]).replace(/[$,\s]/g, '');
-              const value = parseFloat(rawValue);
-
-              if (!isNaN(value) && Math.abs(value) >= 0) {
-                total += value;
-                valuesFound.push(`${columnKey}:${value}`);
-              }
+          for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
+            const value = getValueAtCoordinate(rowIndex, colIndex);
+            if (value !== 0) {
+              total += value;
+              valuesFound.push(`Col${colIndex}:${value}`);
             }
           }
 
-          if (valuesFound.length > 0) {
-            addLog(`    📊 Row ${excelRowNum} found ${valuesFound.length} values: ${valuesFound.slice(0, 5).join(', ')}${valuesFound.length > 5 ? '...' : ''} (Total: ${total})`);
-          }
-
+          addLog(`    📊 Row ${excelRowNum} (index ${rowIndex}) found ${valuesFound.length} values across cols ${startCol}-${endCol}: Total = ${total}`);
           return total;
         };
 
-        // Extract operating costs using same row numbers
-        operatingCosts.regularWages = extractFromRowColumns(30);
-        operatingCosts.employeeBenefits = extractFromRowColumns(63);
-        operatingCosts.tempEmployeeCosts = extractFromRowColumns(68);
-        operatingCosts.generalSupplies = extractFromRowColumns(78);
-        operatingCosts.office = extractFromRowColumns(88);
-        operatingCosts.telecom = extractFromRowColumns(165);
-        operatingCosts.otherExpense = extractFromRowColumns(194);
-        operatingCosts.leaseRent = extractFromRowColumns(177);
-        operatingCosts.headcount = extractFromRowColumns(21);
+        // Extract operating costs from specific coordinates
+        operatingCosts.regularWages = extractFromRowRange(30, 24, 35); // Row 30, cols Y:AJ
+        operatingCosts.employeeBenefits = extractFromRowRange(63, 24, 35); // Row 63, cols Y:AJ
+        operatingCosts.tempEmployeeCosts = extractFromRowRange(68, 24, 35); // Row 68, cols Y:AJ
+        operatingCosts.generalSupplies = extractFromRowRange(78, 24, 35); // Row 78, cols Y:AJ
+        operatingCosts.office = extractFromRowRange(88, 24, 35); // Row 88, cols Y:AJ
+        operatingCosts.telecom = extractFromRowRange(165, 24, 35); // Row 165, cols Y:AJ
+        operatingCosts.otherExpense = extractFromRowRange(194, 24, 35); // Row 194, cols Y:AJ
+        operatingCosts.leaseRent = extractFromRowRange(177, 24, 35); // Row 177, cols Y:AJ
+        operatingCosts.headcount = extractFromRowRange(21, 24, 35); // Row 21, cols Y:AJ
 
         operatingCosts.total = (operatingCosts.regularWages || 0) +
                               (operatingCosts.employeeBenefits || 0) +
@@ -234,79 +232,94 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         }
 
         extractedAmount = operatingCosts.total || 0;
-        targetColumn = 'Operating Costs (Multiple Rows)';
+        targetColumn = 'Operating Costs (Coordinate-based)';
 
         addLog(`🎯 CSV WAREHOUSE BUDGET: Total operating costs $${extractedAmount.toLocaleString()}`);
 
       } else if (fileType === 'PRODUCTION_TRACKER') {
-        addLog(`📊 PRODUCTION TRACKER PROCESSING: Extracting productivity metrics from CSV`);
+        addLog(`📊 PRODUCTION TRACKER PROCESSING: Using coordinate-based extraction for CSV`);
         productivityMetrics = {};
 
-        // Look for specific cells based on filename
+        // Convert Excel cell references to array indices
+        // AR = column 43 (0-based), Row 53 = index 52
+        const getValueAtCoordinate = (rowIndex: number, colIndex: number): number => {
+          if (rowIndex >= data.length) return 0;
+
+          const row = data[rowIndex];
+          if (!row) return 0;
+
+          const rowValues = Object.values(row);
+          if (colIndex >= rowValues.length) return 0;
+
+          const cellValue = rowValues[colIndex];
+          if (!cellValue || cellValue === '') return 0;
+
+          const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
+          return !isNaN(numValue) ? numValue : 0;
+        };
+
         if (file.name.toLowerCase().includes('dec24') || file.name.toLowerCase().includes('december') && file.name.toLowerCase().includes('2024')) {
-          addLog(`📅 Processing December 2024 productivity data from CSV`);
+          addLog(`📅 Processing December 2024 productivity data from CSV coordinates`);
 
-          // For CSV, look for AR53, AR71, AR72 equivalent data
-          // This would need to be mapped to actual column names in the CSV
-          const unitsShippedCol = report.headers.find(h => h.toLowerCase().includes('units') && h.toLowerCase().includes('shipped'));
-          const productiveHoursCol = report.headers.find(h => h.toLowerCase().includes('productive') && h.toLowerCase().includes('hours'));
-          const totalHoursCol = report.headers.find(h => h.toLowerCase().includes('total') && h.toLowerCase().includes('hours'));
+          // Excel AR53 = Column 43, Row 53 (index 52)
+          // Excel AR71 = Column 43, Row 71 (index 70)
+          // Excel AR72 = Column 43, Row 72 (index 71)
+          const unitsShipped = getValueAtCoordinate(52, 43); // AR53
+          const productiveHours = getValueAtCoordinate(70, 43); // AR71
+          const totalHours = getValueAtCoordinate(71, 43); // AR72
 
-          // Extract from last row with data (summary row)
-          const summaryRow = data[data.length - 1];
+          productivityMetrics.year2024 = {
+            unitsShipped,
+            productiveHours,
+            totalHours
+          };
 
-          if (summaryRow && unitsShippedCol) {
-            productivityMetrics.year2024 = {
-              unitsShipped: parseFloat(String(summaryRow[unitsShippedCol]).replace(/[$,\s]/g, '')) || 0,
-              productiveHours: productiveHoursCol ? parseFloat(String(summaryRow[productiveHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0,
-              totalHours: totalHoursCol ? parseFloat(String(summaryRow[totalHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0
-            };
-
-            // Calculate UPH metrics
-            if (productivityMetrics.year2024.unitsShipped && productivityMetrics.year2024.productiveHours) {
-              productivityMetrics.year2024.productiveUPH =
-                productivityMetrics.year2024.unitsShipped / productivityMetrics.year2024.productiveHours;
-            }
-            if (productivityMetrics.year2024.unitsShipped && productivityMetrics.year2024.totalHours) {
-              productivityMetrics.year2024.totalUPH =
-                productivityMetrics.year2024.unitsShipped / productivityMetrics.year2024.totalHours;
-            }
+          // Calculate UPH metrics
+          if (unitsShipped && productiveHours) {
+            productivityMetrics.year2024.productiveUPH = unitsShipped / productiveHours;
+          }
+          if (unitsShipped && totalHours) {
+            productivityMetrics.year2024.totalUPH = unitsShipped / totalHours;
           }
 
-          extractedAmount = productivityMetrics.year2024?.unitsShipped || 0;
+          addLog(`📦 2024 Units Shipped (AR53): ${unitsShipped}`);
+          addLog(`⏱️ 2024 Productive Hours (AR71): ${productiveHours}`);
+          addLog(`🕐 2024 Total Hours (AR72): ${totalHours}`);
+
+          extractedAmount = unitsShipped;
 
         } else if (file.name.toLowerCase().includes('apr25') || file.name.toLowerCase().includes('april') && file.name.toLowerCase().includes('2025')) {
-          addLog(`📅 Processing April 2025 productivity data from CSV`);
+          addLog(`📅 Processing April 2025 productivity data from CSV coordinates`);
 
-          // Similar processing for April 2025 data
-          const unitsShippedCol = report.headers.find(h => h.toLowerCase().includes('units') && h.toLowerCase().includes('shipped'));
-          const productiveHoursCol = report.headers.find(h => h.toLowerCase().includes('productive') && h.toLowerCase().includes('hours'));
-          const totalHoursCol = report.headers.find(h => h.toLowerCase().includes('total') && h.toLowerCase().includes('hours'));
+          // Excel AU53 = Column 46, Row 53 (index 52)
+          // Excel AU71 = Column 46, Row 71 (index 70)
+          // Excel AU72 = Column 46, Row 72 (index 71)
+          const unitsShipped = getValueAtCoordinate(52, 46); // AU53
+          const productiveHours = getValueAtCoordinate(70, 46); // AU71
+          const totalHours = getValueAtCoordinate(71, 46); // AU72
 
-          const summaryRow = data[data.length - 1];
+          productivityMetrics.year2025 = {
+            unitsShipped,
+            productiveHours,
+            totalHours
+          };
 
-          if (summaryRow && unitsShippedCol) {
-            productivityMetrics.year2025 = {
-              unitsShipped: parseFloat(String(summaryRow[unitsShippedCol]).replace(/[$,\s]/g, '')) || 0,
-              productiveHours: productiveHoursCol ? parseFloat(String(summaryRow[productiveHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0,
-              totalHours: totalHoursCol ? parseFloat(String(summaryRow[totalHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0
-            };
-
-            // Calculate UPH metrics
-            if (productivityMetrics.year2025.unitsShipped && productivityMetrics.year2025.productiveHours) {
-              productivityMetrics.year2025.productiveUPH =
-                productivityMetrics.year2025.unitsShipped / productivityMetrics.year2025.productiveHours;
-            }
-            if (productivityMetrics.year2025.unitsShipped && productivityMetrics.year2025.totalHours) {
-              productivityMetrics.year2025.totalUPH =
-                productivityMetrics.year2025.unitsShipped / productivityMetrics.year2025.totalHours;
-            }
+          // Calculate UPH metrics
+          if (unitsShipped && productiveHours) {
+            productivityMetrics.year2025.productiveUPH = unitsShipped / productiveHours;
+          }
+          if (unitsShipped && totalHours) {
+            productivityMetrics.year2025.totalUPH = unitsShipped / totalHours;
           }
 
-          extractedAmount = productivityMetrics.year2025?.unitsShipped || 0;
+          addLog(`📦 2025 Units Shipped (AU53): ${unitsShipped}`);
+          addLog(`⏱️ 2025 Productive Hours (AU71): ${productiveHours}`);
+          addLog(`🕐 2025 Total Hours (AU72): ${totalHours}`);
+
+          extractedAmount = unitsShipped;
         }
 
-        targetColumn = 'Productivity Metrics (CSV Data)';
+        targetColumn = 'Productivity Metrics (Coordinates)';
       }
 
       const tabs: ExcelTab[] = [{
@@ -731,7 +744,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 addLog(`⏱️ 2024 Productive Hours: ${productivityMetrics.year2024.productiveHours?.toLocaleString() || 0}`);
                 addLog(`🕐 2024 Total Hours: ${productivityMetrics.year2024.totalHours?.toLocaleString() || 0}`);
                 addLog(`📈 2024 Productive UPH: ${productivityMetrics.year2024.productiveUPH?.toFixed(2) || 0}`);
-                addLog(`📊 2024 Total UPH: ${productivityMetrics.year2024.totalUPH?.toFixed(2) || 0}`);
+                addLog(`�� 2024 Total UPH: ${productivityMetrics.year2024.totalUPH?.toFixed(2) || 0}`);
 
               } else if (sheetName.toLowerCase().includes('april') && sheetName.toLowerCase().includes('2025')) {
                 addLog(`📅 Processing April 2025 productivity data`);
