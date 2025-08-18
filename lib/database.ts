@@ -465,14 +465,57 @@ export class DataFileService {
   }
 
   static async updateDataFile(id: number, data: Partial<DataFile>): Promise<DataFile> {
-    const [file] = await sql`
+    // Build dynamic update query only for provided fields
+    const updates = [];
+    const values: any[] = [];
+
+    if (data.processing_status !== undefined) {
+      updates.push(`processing_status = $${updates.length + 1}`);
+      values.push(data.processing_status);
+    }
+
+    if (data.validation_result !== undefined) {
+      updates.push(`validation_result = $${updates.length + 1}`);
+      values.push(JSON.stringify(data.validation_result));
+    }
+
+    if (data.processed_data !== undefined) {
+      updates.push(`processed_data = $${updates.length + 1}`);
+      values.push(JSON.stringify(data.processed_data));
+    }
+
+    if (data.file_name !== undefined) {
+      updates.push(`file_name = $${updates.length + 1}`);
+      values.push(data.file_name);
+    }
+
+    if (data.file_type !== undefined) {
+      updates.push(`file_type = $${updates.length + 1}`);
+      values.push(data.file_type);
+    }
+
+    if (data.data_type !== undefined) {
+      updates.push(`data_type = $${updates.length + 1}`);
+      values.push(data.data_type);
+    }
+
+    if (updates.length === 0) {
+      // No updates provided, just return the current file
+      const [file] = await sql`SELECT * FROM data_files WHERE id = ${id}`;
+      return file as DataFile;
+    }
+
+    // Add id for WHERE clause
+    values.push(id);
+
+    const query = `
       UPDATE data_files
-      SET processing_status = COALESCE(${data.processing_status}, processing_status),
-          validation_result = COALESCE(${JSON.stringify(data.validation_result)}, validation_result),
-          processed_data = COALESCE(${JSON.stringify(data.processed_data)}, processed_data)
-      WHERE id = ${id}
+      SET ${updates.join(', ')}
+      WHERE id = $${values.length}
       RETURNING *
     `;
+
+    const [file] = await sql.unsafe(query, values);
     return file as DataFile;
   }
 
