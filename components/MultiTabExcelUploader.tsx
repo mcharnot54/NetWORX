@@ -187,8 +187,44 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         console.log(`UPS ${tab.name}: NO CHARGE COLUMN FOUND. All columns:`, tab.columns);
       }
     } else if (fileType === 'TL') {
-      // Look for NET rate/charge columns (NOT gross charges)
-      const rateColumn = findColumnByPattern(['Net Charge', 'Net Rate', 'Net Cost', 'Net Amount', 'Charge', 'Rate', 'Cost', 'Amount']);
+      // Look for NET rate/charge columns (NOT gross charges) - be more aggressive in finding columns
+      let rateColumn = findColumnByPattern(['Net Charge', 'Net Rate', 'Net Cost', 'Net Amount', 'Charge', 'Rate', 'Cost', 'Amount']);
+
+      // If no column found with pattern matching, try a more aggressive search
+      if (!rateColumn) {
+        console.log(`TL ${tab.name}: No column found with standard patterns, trying aggressive search...`);
+        console.log(`TL ${tab.name}: Available columns:`, tab.columns);
+
+        // Look for any numeric column that might contain rates/costs
+        for (const col of tab.columns) {
+          if (!col) continue;
+
+          // Skip gross columns
+          if (col.toLowerCase().includes('gross')) {
+            console.log(`TL ${tab.name}: Skipping GROSS column: ${col}`);
+            continue;
+          }
+
+          // Test if this column has numeric data
+          let hasNumericData = false;
+          let sampleTotal = 0;
+          for (const row of tab.data.slice(0, 10)) { // Test first 10 rows
+            if (row && row[col]) {
+              const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue > 1) {
+                hasNumericData = true;
+                sampleTotal += numValue;
+              }
+            }
+          }
+
+          if (hasNumericData && sampleTotal > 100) { // If column has substantial numeric data
+            rateColumn = col;
+            console.log(`TL ${tab.name}: Found numeric column '${col}' with sample total $${sampleTotal.toLocaleString()}`);
+            break;
+          }
+        }
+      }
       if (rateColumn) {
         // Smart filtering: exclude total rows based on missing supporting data
         const filteredData = tab.data.filter(row => {
