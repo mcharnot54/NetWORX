@@ -618,17 +618,26 @@ export default function DataProcessor() {
   // Function to load full file data when needed for processing
   const loadFullFileData = async (fileData: FileData): Promise<FileData> => {
     if (!fileData.id || fileData.file) {
+      addToLog(`${fileData.name}: Already loaded or no ID`);
       return fileData; // Already loaded or no ID
     }
 
     try {
+      addToLog(`Loading content for ${fileData.name} (ID: ${fileData.id})...`);
+
       // Load file content
       const contentResponse = await fetch(`/api/files/${fileData.id}/content`);
+      addToLog(`Content API response status: ${contentResponse.status}`);
+
       if (contentResponse.ok) {
         const contentData = await contentResponse.json();
         const fileContent = contentData.file_content;
 
+        addToLog(`File content length: ${fileContent?.length || 0}`);
+
         if (fileContent) {
+          addToLog(`Reconstructing file object for ${fileData.name}...`);
+
           // Reconstruct File object
           const file = FileStorageUtils.base64ToFile(
             fileContent,
@@ -636,8 +645,12 @@ export default function DataProcessor() {
             fileData.type
           );
 
+          addToLog(`Parsing file data for ${fileData.name}...`);
+
           // Re-parse the file data
           const { data, columnHeaders } = await DataValidator.parseFile(file);
+
+          addToLog(`✓ Successfully loaded ${fileData.name}: ${data.length} rows, ${columnHeaders.length} columns`);
 
           return {
             ...fileData,
@@ -646,11 +659,16 @@ export default function DataProcessor() {
             columnNames: columnHeaders,
             fileContent
           };
+        } else {
+          addToLog(`⚠ No file content returned for ${fileData.name}`);
         }
+      } else {
+        const errorText = await contentResponse.text();
+        addToLog(`✗ Content API failed for ${fileData.name}: ${contentResponse.status} - ${errorText}`);
       }
     } catch (error) {
       console.warn(`Could not load full data for ${fileData.name}:`, error);
-      addToLog(`⚠ Warning: Could not load full data for ${fileData.name}`);
+      addToLog(`✗ Error loading ${fileData.name}: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     return fileData;
