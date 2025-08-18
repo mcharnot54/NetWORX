@@ -579,17 +579,25 @@ export default function DataProcessor() {
 
       // Updated logging to reflect Excel-first approach
       if (hasExcelData) {
-        addToLog(`✓ Excel data processed for ${file.name} (${fullFileData.parsedData.length} rows)`);
+        addToLog(`✓ Excel data processed for ${file.name} (${fullFileData.parsedData?.length || 0} rows)`);
         if (templateValidationPassed) {
           addToLog(`✓ Template validation also passed`);
-          addToLog(DataProcessingUtils.formatDataQuality(result.summary?.dataQuality || result.dataQuality));
+          try {
+            addToLog(DataProcessingUtils.formatDataQuality(result.summary?.dataQuality || result.dataQuality));
+          } catch (formatError) {
+            addToLog(`✓ Template validation completed (formatting issue)`);
+          }
         } else {
           addToLog(`⚠ Template validation failed but Excel data preserved`);
           addToLog(`ℹ File marked as completed - data available for baseline calculations`);
         }
       } else {
         addToLog(`✗ Excel parsing failed for ${file.name}`);
-        addToLog(DataProcessingUtils.formatValidationResults(result.data?.metadata?.validationResults || []));
+        try {
+          addToLog(DataProcessingUtils.formatValidationResults(result.data?.metadata?.validationResults || []));
+        } catch (formatError) {
+          addToLog(`✗ Validation failed (details unavailable)`);
+        }
       }
 
     } catch (error) {
