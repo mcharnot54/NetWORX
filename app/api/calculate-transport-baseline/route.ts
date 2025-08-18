@@ -80,6 +80,15 @@ export async function GET() {
 
       // R&L LTL File (Column V) - EXACT NAME MATCH
       else if (file.file_name === 'R&L - CURRICULUM ASSOCIATES 1.1.2024-12.31.2024 .xlsx') {
+        // Debug: Log the entire file structure
+        console.log('R&L File Debug - Structure:', {
+          hasProcessedData: !!file.processed_data,
+          hasData: !!file.processed_data?.data,
+          dataType: typeof file.processed_data?.data,
+          dataKeys: file.processed_data?.data ? Object.keys(file.processed_data.data) : 'no keys',
+          dataLength: Array.isArray(file.processed_data?.data) ? file.processed_data.data.length : 'not array'
+        });
+
         // For R&L files, specifically target the Detail tab first
         let detailTabData = null;
         let finalData = data;
@@ -95,12 +104,21 @@ export async function GET() {
           } else {
             // Check for case variations
             const keys = Object.keys(file.processed_data.data);
+            console.log('R&L: Available sheet keys:', keys);
             const detailKey = keys.find(key => key.toLowerCase().includes('detail'));
             if (detailKey && Array.isArray(file.processed_data.data[detailKey])) {
               detailTabData = file.processed_data.data[detailKey];
               finalData = detailTabData;
               finalDataSource = `${detailKey}_tab`;
               console.log(`R&L: Found ${detailKey} tab with ${detailTabData.length} rows`);
+            } else {
+              console.log('R&L: No Detail tab found, trying first available sheet...');
+              const firstKey = keys[0];
+              if (firstKey && Array.isArray(file.processed_data.data[firstKey])) {
+                finalData = file.processed_data.data[firstKey];
+                finalDataSource = `${firstKey}_tab`;
+                console.log(`R&L: Using ${firstKey} tab with ${finalData.length} rows`);
+              }
             }
           }
         }
