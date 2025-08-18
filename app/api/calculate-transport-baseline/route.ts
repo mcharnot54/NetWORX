@@ -190,7 +190,7 @@ function extractFromColumnV(data: any[]): { total: number, valuesFound: number }
   return { total, valuesFound };
 }
 
-// Extract from Column H (TL costs)
+// Extract from Column H (TL costs) - Enhanced for TL file patterns
 function extractFromColumnH(data: any[]): { total: number, valuesFound: number } {
   let total = 0;
   let valuesFound = 0;
@@ -199,14 +199,22 @@ function extractFromColumnH(data: any[]): { total: number, valuesFound: number }
     if (typeof row !== 'object' || !row) continue;
 
     for (const [key, value] of Object.entries(row)) {
-      if (key === 'H' || key === '__EMPTY_7' || 
-          key.toLowerCase().includes('total') || 
+      // Enhanced column H detection for TL data
+      if (key === 'H' || key === '__EMPTY_7' || key === '__EMPTY_6' ||
+          key.toLowerCase().includes('total') ||
           key.toLowerCase().includes('cost') ||
           key.toLowerCase().includes('amount') ||
-          key.toLowerCase().includes('charge')) {
-        
-        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-        if (!isNaN(numValue) && numValue > 1000) {
+          key.toLowerCase().includes('charge') ||
+          key.toLowerCase().includes('freight') ||
+          key.toLowerCase().includes('rate') ||
+          key.toLowerCase().includes('price') ||
+          // TL specific patterns
+          key.toLowerCase().includes('truckload') ||
+          key.toLowerCase().includes('linehaul') ||
+          key.toLowerCase().includes('transportation')) {
+
+        const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
+        if (!isNaN(numValue) && numValue > 500) { // Adjusted threshold for TL
           total += numValue;
           valuesFound++;
         }
@@ -214,6 +222,7 @@ function extractFromColumnH(data: any[]): { total: number, valuesFound: number }
     }
   }
 
+  console.log(`TL Column H extraction: $${total} from ${valuesFound} values`);
   return { total, valuesFound };
 }
 
