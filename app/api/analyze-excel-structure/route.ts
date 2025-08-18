@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       }
       
       const headers = Object.keys(jsonData[0] || {});
-      const costColumns = identifyCostColumns(headers, jsonData);
+      const costColumns = await identifyCostColumns(headers, jsonData);
       const totalValues = calculateTotals(headers, jsonData);
       
       analysis.push({
