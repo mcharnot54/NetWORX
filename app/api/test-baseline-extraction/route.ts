@@ -4,16 +4,16 @@ export async function GET(request: NextRequest) {
   try {
     const { sql } = await import('@/lib/database');
 
-    // Get the transportation files that were uploaded
+    // Get the transportation files that were uploaded (broader pattern matching)
     const transportationFiles = await sql`
-      SELECT 
+      SELECT
         id, file_name, file_type, file_size, data_type, processing_status,
-        CASE 
+        CASE
           WHEN processed_data IS NOT NULL THEN jsonb_build_object(
             'has_data', true,
             'data_keys', COALESCE((processed_data ? 'data'), false),
             'parsedData_keys', COALESCE((processed_data ? 'parsedData'), false),
-            'size_estimate', CASE 
+            'size_estimate', CASE
               WHEN processed_data ? 'data' THEN 'data_present'
               WHEN processed_data ? 'parsedData' THEN 'parsedData_present'
               ELSE 'no_data_arrays'
@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
         END as data_info
       FROM data_files
       WHERE (
-        file_name ILIKE '%ups individual item cost%' OR
-        file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
-        file_name ILIKE '%r&l curriculum associates%'
+        file_name ILIKE '%ups%individual%item%cost%' OR
+        file_name ILIKE '%2024%totals%tl%' OR
+        file_name ILIKE '%r&l%curriculum%associates%'
       )
-      AND processing_status = 'completed'
+      AND processed_data IS NOT NULL
       ORDER BY file_name
     `;
 
