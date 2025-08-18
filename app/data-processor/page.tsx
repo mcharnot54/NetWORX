@@ -384,7 +384,25 @@ export default function DataProcessor() {
 
     } catch (error) {
       console.error('Error updating file in database:', error);
-      addToLog(`⚠ Warning: Could not update file status in database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      // Handle different types of errors
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      }
+
+      // Check if it's a timeout or network issue (non-critical)
+      if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout') ||
+          errorMessage.includes('204') || errorMessage.includes('cancelled')) {
+        addToLog(`⚠ Warning: Database update timed out (non-critical): ${errorMessage}`);
+      } else {
+        addToLog(`⚠ Warning: Could not update file status in database: ${errorMessage}`);
+      }
+
       // Don't re-throw the error to prevent breaking the flow
     }
   };
