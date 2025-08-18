@@ -208,8 +208,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
             if (!rateColumn) {
               addLog(`🚨 TL ${sheetName}: No valid rate column found! Available: ${sheetData.columnHeaders.join(', ')}`);
+              targetColumn = 'No valid column';
             } else {
-              addLog(`🎯 TL ${sheetName}: Using column '${rateColumn}' (NET prioritized, GROSS excluded)`);
+              addLog(`🎯 TL ${sheetName}: Using column '${rateColumn}' (NET first, Gross Rate fallback)`);
+
+              // Initialize count variable to avoid ReferenceError
+              let count = 0;
 
               // Smart filtering logic from working API
               const filteredData = sheetData.data.filter(row => {
@@ -265,8 +269,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 return true;
               });
 
-              // Calculate total
-              let count = 0;
+              // Calculate total from filtered data
               for (const row of filteredData) {
                 if (row && row[rateColumn]) {
                   const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
@@ -278,6 +281,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               }
 
               targetColumn = rateColumn;
+              addLog(`🔢 TL ${sheetName}: Processed ${count} rows from ${filteredData.length} filtered rows (${sheetData.data.length} total)`);
             }
 
             targetColumn = 'Gross Rate'; // Set target column for display
