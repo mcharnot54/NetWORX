@@ -653,7 +653,7 @@ export default function DataProcessor() {
           }
         } else {
           addToLog(`⚠ Template validation failed but Excel data preserved`);
-          addToLog(`�� File marked as completed - data available for baseline calculations`);
+          addToLog(`ℹ File marked as completed - data available for baseline calculations`);
         }
       } else {
         addToLog(`✗ Excel parsing failed for ${file.name}`);
@@ -1335,9 +1335,9 @@ export default function DataProcessor() {
                             addToLog('Simple ping test...');
 
                             try {
-                              // Use native fetch with a very short timeout
+                              // Use native fetch with a short timeout
                               const controller = new AbortController();
-                              const timeoutId = setTimeout(() => controller.abort(), 5000);
+                              const timeoutId = setTimeout(() => controller.abort(), 8000);
 
                               const response = await fetch('/api/health', {
                                 signal: controller.signal
@@ -1348,6 +1348,9 @@ export default function DataProcessor() {
 
                               if (response.ok) {
                                 addToLog(`✓ Simple ping OK (${duration}ms)`);
+                                if (duration > 5000) {
+                                  addToLog(`⚠ Server is slow (${Math.round(duration/1000)}s) - consider warming up`);
+                                }
                               } else {
                                 addToLog(`⚠ Simple ping returned ${response.status} (${duration}ms)`);
                               }
@@ -1355,12 +1358,26 @@ export default function DataProcessor() {
                             } catch (error) {
                               const duration = Date.now() - startTime;
                               addToLog(`✗ Simple ping failed after ${duration}ms: ${error}`);
+                              if (error.toString().includes('aborted')) {
+                                addToLog('💡 Server is very slow - try "Warm Up Server" first');
+                              }
                             }
                           }}
                           className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
                           title="Simple ping test with native fetch"
                         >
                           🏓 Simple Ping
+                        </button>
+                      </div>
+
+                      {/* Debug: Warm Up Server */}
+                      <div className="group relative">
+                        <button
+                          onClick={warmUpServer}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                          title="Warm up slow server (takes 30+ seconds initially)"
+                        >
+                          🔥 Warm Up Server
                         </button>
                       </div>
 
