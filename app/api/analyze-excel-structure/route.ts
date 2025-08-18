@@ -136,10 +136,10 @@ export async function POST(request: NextRequest) {
     const analysis: TabAnalysis[] = [];
     
     // Analyze each worksheet
-    workbook.SheetNames.forEach(sheetName => {
+    for (const sheetName of workbook.SheetNames) {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
-      
+
       if (jsonData.length === 0) {
         analysis.push({
           tabName: sheetName,
@@ -150,13 +150,13 @@ export async function POST(request: NextRequest) {
           costColumns: [],
           totalValues: []
         });
-        return;
+        continue;
       }
-      
+
       const headers = Object.keys(jsonData[0] || {});
       const costColumns = await identifyCostColumns(headers, jsonData);
       const totalValues = calculateTotals(headers, jsonData);
-      
+
       analysis.push({
         tabName: sheetName,
         columnCount: headers.length,
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         costColumns,
         totalValues: totalValues.sort((a, b) => b.total - a.total).slice(0, 10) // Top 10 by total value
       });
-    });
+    }
 
     return NextResponse.json({
       fileName: file.file_name,
