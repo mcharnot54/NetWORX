@@ -597,11 +597,30 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               return total;
             };
 
-            // Extract specific operating cost components
+            // Extract specific operating cost components with enhanced debugging
             try {
+              // Debug: Show what's actually in some of the target rows
+              addLog(`🔍 DEBUGGING TARGET ROWS:`);
+              for (const testRow of [30, 63, 68, 78, 88]) {
+                const arrayIndex = testRow - 1;
+                if (arrayIndex < sheetData.data.length) {
+                  const row = sheetData.data[arrayIndex];
+                  const nonEmptyValues = [];
+                  for (let i = 0; i < Math.min(10, sheetData.columnHeaders.length); i++) {
+                    const col = sheetData.columnHeaders[i];
+                    if (row && row[col] !== undefined && row[col] !== null && row[col] !== '') {
+                      nonEmptyValues.push(`${col}:"${row[col]}"`);
+                    }
+                  }
+                  addLog(`    Row ${testRow}: ${nonEmptyValues.length} non-empty values: ${nonEmptyValues.slice(0, 3).join(', ')}`);
+                } else {
+                  addLog(`    Row ${testRow}: BEYOND DATA RANGE (only ${sheetData.data.length} rows)`);
+                }
+              }
+
               // Regular wages (Row 30, columns Y:AJ) - planned labor cost for 2025
               operatingCosts.regularWages = extractFromRowColumns(30);
-              addLog(`💰 Regular wages (Row 30, cols Y:AJ): $${operatingCosts.regularWages?.toLocaleString() || 0}`);
+              addLog(`💰 Regular wages (Row 30): $${operatingCosts.regularWages?.toLocaleString() || 0}`);
 
               // Employee benefits (Row 63, columns Y:AJ)
               operatingCosts.employeeBenefits = extractFromRowColumns(63);
@@ -981,7 +1000,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       onFilesUploaded(files);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      addLog(`��� Database upload failed: ${errorMessage}`);
+      addLog(`✗ Database upload failed: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
     }
