@@ -183,10 +183,10 @@ export class ProjectService {
   }
 
   static async getProject(id: number): Promise<Project | null> {
-    const [project] = await sql`
+    const result = await sql`
       SELECT * FROM projects WHERE id = ${id}
     `;
-    return project as Project || null;
+    return result[0] as Project || null;
   }
 
   static async updateProject(id: number, data: Partial<Project>): Promise<Project> {
@@ -247,10 +247,10 @@ export class ScenarioService {
   }
 
   static async getScenario(id: number): Promise<Scenario | null> {
-    const [scenario] = await sql`
+    const result = await sql`
       SELECT * FROM scenarios WHERE id = ${id}
     `;
-    return scenario as Scenario || null;
+    return result[0] as Scenario || null;
   }
 
   static async updateScenario(id: number, data: Partial<Scenario>): Promise<Scenario> {
