@@ -80,15 +80,42 @@ export async function GET() {
 
       // R&L LTL File (Column V) - EXACT NAME MATCH
       else if (file.file_name === 'R&L - CURRICULUM ASSOCIATES 1.1.2024-12.31.2024 .xlsx') {
-        const { total, valuesFound } = extractFromColumnV(data);
+        // For R&L files, specifically target the Detail tab first
+        let detailTabData = null;
+        let finalData = data;
+        let finalDataSource = dataSource;
+
+        if (typeof file.processed_data.data === 'object' && file.processed_data.data) {
+          // Look for Detail tab specifically
+          if (file.processed_data.data.Detail && Array.isArray(file.processed_data.data.Detail)) {
+            detailTabData = file.processed_data.data.Detail;
+            finalData = detailTabData;
+            finalDataSource = 'Detail_tab';
+            console.log(`R&L: Found Detail tab with ${detailTabData.length} rows`);
+          } else {
+            // Check for case variations
+            const keys = Object.keys(file.processed_data.data);
+            const detailKey = keys.find(key => key.toLowerCase().includes('detail'));
+            if (detailKey && Array.isArray(file.processed_data.data[detailKey])) {
+              detailTabData = file.processed_data.data[detailKey];
+              finalData = detailTabData;
+              finalDataSource = `${detailKey}_tab`;
+              console.log(`R&L: Found ${detailKey} tab with ${detailTabData.length} rows`);
+            }
+          }
+        }
+
+        const { total, valuesFound } = extractFromColumnV(finalData);
+        console.log(`R&L extraction from ${finalDataSource}: $${total} from ${valuesFound} values`);
+
         if (total > results.transport_totals.rl_ltl.amount) {
           results.transport_totals.rl_ltl = {
             amount: total,
-            rows: data.length,
+            rows: finalData.length,
             file_id: file.id,
             status: 'calculated',
             values_found: valuesFound,
-            data_source: dataSource
+            data_source: finalDataSource
           };
         }
       }
