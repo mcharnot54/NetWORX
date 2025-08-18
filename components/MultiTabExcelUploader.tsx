@@ -176,16 +176,17 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         bestColumn = rateColumn;
       }
     } else if (fileType === 'RL') {
-      // Find best cost column by testing all numeric columns
-      for (const col of tab.columns) {
-        if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+      // For R&L files, specifically look for column V first, then fallback to best cost column
 
+      // First priority: Look for exact column V
+      const columnV = tab.columns.find(col => col === 'V');
+      if (columnV) {
         let testAmount = 0;
         let validValues = 0;
 
         for (const row of tab.data) {
-          if (row && row[col]) {
-            const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+          if (row && row[columnV]) {
+            const numValue = parseFloat(String(row[columnV]).replace(/[$,\s]/g, ''));
             if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
               testAmount += numValue;
               validValues++;
@@ -193,10 +194,45 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
         }
 
-        // Only consider columns with reasonable number of valid values
-        if (validValues > 10 && testAmount > bestAmount && isFinite(testAmount)) {
+        if (validValues > 5 && testAmount > 1000) { // Lower threshold for column V
           bestAmount = testAmount;
-          bestColumn = col;
+          bestColumn = columnV;
+        }
+      }
+
+      // If column V didn't work, try other cost-related columns
+      if (!bestColumn) {
+        for (const col of tab.columns) {
+          if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+
+          // Prioritize cost-related column names
+          const isLikelyCostColumn = col.toLowerCase().includes('net') ||
+                                   col.toLowerCase().includes('charge') ||
+                                   col.toLowerCase().includes('cost') ||
+                                   col.toLowerCase().includes('amount') ||
+                                   col.toLowerCase().includes('total') ||
+                                   col.toLowerCase().includes('freight') ||
+                                   col.toLowerCase().includes('revenue');
+
+          let testAmount = 0;
+          let validValues = 0;
+
+          for (const row of tab.data) {
+            if (row && row[col]) {
+              const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
+                testAmount += numValue;
+                validValues++;
+              }
+            }
+          }
+
+          // Boost score for likely cost columns
+          const threshold = isLikelyCostColumn ? 5 : 10;
+          if (validValues > threshold && testAmount > bestAmount && isFinite(testAmount)) {
+            bestAmount = testAmount;
+            bestColumn = col;
+          }
         }
       }
     }
