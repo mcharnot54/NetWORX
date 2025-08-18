@@ -67,16 +67,22 @@ export async function GET(request: NextRequest) {
     // Analyze each scenario for cost data
     for (const scenario of scenarios) {
       try {
-        // First, get all processed files for this scenario
+        // Get the specific transportation files directly (not filtered by scenario)
         let dataFiles = [];
         try {
           dataFiles = await withTimeout(sql`
-            SELECT file_name, processed_data, data_type, file_type, processing_status
+            SELECT file_name, processed_data, data_type, file_type, processing_status, id
             FROM data_files
-            WHERE scenario_id = ${scenario.id}
+            WHERE (
+              file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
+              file_name ILIKE '%r&l curriculum associates%' OR
+              file_name ILIKE '%ups invoice by state summary 2024%'
+            )
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
           `, 1500); // 1.5 second timeout for data files
+
+          console.log(`Found ${dataFiles.length} transportation files for baseline extraction`);
         } catch (dataFileError) {
           console.debug(`data_files table not accessible for scenario ${scenario.id}`);
           dataFiles = [];
