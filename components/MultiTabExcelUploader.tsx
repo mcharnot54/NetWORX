@@ -245,11 +245,10 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         processingStatus: 'completed'
       };
 
-      // Add quality metrics to log
-      const quality = result.validationResult.dataQuality;
-      addLog(`✓ ${file.name} processed with ${(quality.completenessScore * 100).toFixed(1)}% data completeness`);
+      // Add completion log
+      addLog(`✓ ${file.name} processed successfully`);
       addLog(`  Total extracted: $${totalExtracted.toLocaleString()} from ${tabs.length} tabs`);
-      addLog(`  Processing time: ${result.validationResult.processingTime}ms`);
+      addLog(`  File type detected: ${result.detectedFileType}`);
 
       return multiTabFile;
 
