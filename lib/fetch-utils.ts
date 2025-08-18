@@ -294,8 +294,8 @@ const _robustFetch = async (
 
       // Handle AbortError - never retry aborted requests
       if (lastError) {
-        const errorName = 'name' in lastError ? String(lastError.name || '') : '';
-        const errorMessage = 'message' in lastError && typeof lastError.message === 'string' ? lastError.message : '';
+        const errorName = lastError && typeof lastError === 'object' && 'name' in lastError ? String(lastError.name || '') : '';
+        const errorMessage = lastError && typeof lastError === 'object' && 'message' in lastError && typeof lastError.message === 'string' ? lastError.message : String(lastError || '');
 
         if (errorName === 'AbortError' ||
             errorMessage.includes('aborted') ||
