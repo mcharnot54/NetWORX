@@ -423,7 +423,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
                 : 'border-gray-300 hover:border-blue-400 cursor-pointer'
             }`}
-            onClick={() => !isProcessing && fileInputRef.current?.click()}
+            onClick={() => {
+              console.log('Upload area clicked, isProcessing:', isProcessing);
+              if (!isProcessing && fileInputRef.current) {
+                console.log('Triggering file input click');
+                fileInputRef.current.click();
+              }
+            }}
           >
             {isProcessing ? (
               <>
