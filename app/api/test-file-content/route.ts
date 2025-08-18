@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
       total_files: files.length,
       files: fileStatus,
       summary: {
-        with_content: fileStatus.filter(f => f.has_file_content).length,
-        without_content: fileStatus.filter(f => !f.has_file_content).length,
+        with_content: fileStatus.filter(f => f.file_content_available).length,
+        without_content: fileStatus.filter(f => !f.file_content_available).length,
         completed_status: fileStatus.filter(f => f.processing_status === 'completed').length,
         pending_status: fileStatus.filter(f => f.processing_status === 'pending').length
       }
