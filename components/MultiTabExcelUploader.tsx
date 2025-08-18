@@ -149,47 +149,139 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         let extractedAmount = 0;
 
         try {
-          // Safer approach: Use lightweight pattern matching instead of heavy adaptive analysis
-          // This prevents memory crashes while still learning patterns
+          // Apply file-type specific extraction rules
+          addLog(`🧠 PROCESSING: ${fileType} file, analyzing ${sheetName} tab`);
 
-          addLog(`🧠 SAFE LEARNING: Using lightweight pattern recognition to avoid memory issues`);
+          // UPS FILES: Extract from Column G (Net Charge) for all four tabs
+          if (fileType === 'UPS') {
+            addLog(`📦 UPS PROCESSING: Looking for Net Charge column (Column G)`);
 
-          // SAFE LEARNING: Apply specific rules without heavy processing to prevent crashes
+            const netChargeColumn = sheetData.columnHeaders.find(col =>
+              col === 'Net Charge' || col === 'G' ||
+              col.toLowerCase().includes('net') && col.toLowerCase().includes('charge')
+            );
 
-          if (fileType === 'TL' && sheetName === 'TOTAL 2024') {
-            // LEARNED RULE: TL TOTAL 2024 always uses Column H = $376,965
-            addLog(`🧠 APPLYING LEARNED RULE: TL TOTAL 2024 uses Column H`);
-
-            const columnH = sheetData.columnHeaders.find(col =>
-              col === 'H' || col === '__EMPTY_7' || col === '__EMPTY_8'
-            ) || (sheetData.columnHeaders.length > 7 ? sheetData.columnHeaders[7] : null);
-
-            if (columnH) {
+            if (netChargeColumn) {
               let count = 0;
               for (const row of sheetData.data) {
-                if (row && row[columnH]) {
-                  const numValue = parseFloat(String(row[columnH]).replace(/[$,\s]/g, ''));
+                if (row && row[netChargeColumn]) {
+                  const numValue = parseFloat(String(row[netChargeColumn]).replace(/[$,\s]/g, ''));
                   if (!isNaN(numValue) && numValue > 0) {
                     extractedAmount += numValue;
                     count++;
                   }
                 }
               }
-              targetColumn = columnH;
-              addLog(`🎯 TL TOTAL 2024: Extracted $${extractedAmount.toLocaleString()} from Column H (${count} rows)`);
+              targetColumn = netChargeColumn;
+              addLog(`🎯 UPS ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows)`);
             } else {
-              addLog(`🚨 TL TOTAL 2024: Column H not found! Available: ${sheetData.columnHeaders.join(', ')}`);
+              addLog(`🚨 UPS ${sheetName}: Net Charge column not found! Available: ${sheetData.columnHeaders.join(', ')}`);
             }
+
+          // TL FILES: Extract from Column H (Gross Rate) for all tabs
+          } else if (fileType === 'TL') {
+            addLog(`🚛 TL PROCESSING: Looking for Gross Rate column (Column H)`);
+
+            // Find Gross Rate column or Column H
+            const grossRateColumn = sheetData.columnHeaders.find(col =>
+              col === 'Gross Rate' || col === 'H' ||
+              col.toLowerCase().includes('gross') && col.toLowerCase().includes('rate')
+            );
+
+            if (grossRateColumn) {
+              let count = 0;
+              let skippedCount = 0;
+
+              for (const row of sheetData.data) {
+                if (row && row[grossRateColumn]) {
+                  const numValue = parseFloat(String(row[grossRateColumn]).replace(/[$,\s]/g, ''));
+
+                  if (!isNaN(numValue) && numValue > 0) {
+                    // Check for supporting data to avoid totals-only rows
+                    const supportingDataColumns = Object.keys(row).filter(key =>
+                      key.toLowerCase().includes('origin') ||
+                      key.toLowerCase().includes('destination') ||
+                      key.toLowerCase().includes('from') ||
+                      key.toLowerCase().includes('to') ||
+                      key.toLowerCase().includes('route') ||
+                      key.toLowerCase().includes('lane') ||
+                      key.toLowerCase().includes('city') ||
+                      key.toLowerCase().includes('state') ||
+                      key.toLowerCase().includes('zip') ||
+                      key.toLowerCase().includes('location') ||
+                      key.toLowerCase().includes('service') ||
+                      key.toLowerCase().includes('mode') ||
+                      key.toLowerCase().includes('carrier')
+                    );
+
+                    const supportingDataCount = supportingDataColumns.filter(col => {
+                      const value = row[col];
+                      return value && String(value).trim() !== '' &&
+                             String(value).toLowerCase() !== 'null' &&
+                             String(value).toLowerCase() !== 'n/a';
+                    }).length;
+
+                    // Skip rows with large numbers but no supporting data (total rows)
+                    if (supportingDataCount === 0 && numValue > 10000) {
+                      addLog(`   Skipping large value $${numValue.toLocaleString()} - no supporting data (likely total row)`);
+                      skippedCount++;
+                    } else {
+                      extractedAmount += numValue;
+                      count++;
+                    }
+                  }
+                }
+              }
+
+              targetColumn = grossRateColumn;
+              addLog(`🎯 TL ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows, ${skippedCount} skipped)`);
+            } else {
+              addLog(`🚨 TL ${sheetName}: Gross Rate column not found! Available: ${sheetData.columnHeaders.join(', ')}`);
+            }
+
+          // R&L FILES: Extract from Column V for Detail tab
+          } else if (fileType === 'RL') {
+            addLog(`🚚 R&L PROCESSING: Looking for total cost column (Column V)`);
+
+            // For R&L, focus on Detail tab with Column V
+            if (sheetName.toLowerCase().includes('detail')) {
+              const columnV = sheetData.columnHeaders.find(col =>
+                col === 'V' || col.toLowerCase().includes('total') || col.toLowerCase().includes('cost')
+              ) || (sheetData.columnHeaders.length > 21 ? sheetData.columnHeaders[21] : null); // Column V is 22nd column (index 21)
+
+              if (columnV) {
+                let count = 0;
+                for (const row of sheetData.data) {
+                  if (row && row[columnV]) {
+                    const numValue = parseFloat(String(row[columnV]).replace(/[$,\s]/g, ''));
+                    if (!isNaN(numValue) && numValue > 0) {
+                      extractedAmount += numValue;
+                      count++;
+                    }
+                  }
+                }
+                targetColumn = columnV;
+                addLog(`🎯 R&L ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows)`);
+              } else {
+                addLog(`🚨 R&L ${sheetName}: Column V not found! Available: ${sheetData.columnHeaders.join(', ')}`);
+              }
+            } else {
+              addLog(`🔄 R&L ${sheetName}: Skipping non-Detail tab`);
+            }
+
           } else {
-            // SAFE PATTERN MATCHING: Find best cost column without heavy processing
+            // FALLBACK: Generic cost column detection for other file types
+            addLog(`🔍 GENERIC PROCESSING: Looking for cost columns`);
+
             const costColumns = sheetData.columnHeaders.filter(col =>
-              col && !col.toLowerCase().includes('gross') && (
+              col && (
                 col.toLowerCase().includes('net') ||
                 col.toLowerCase().includes('charge') ||
                 col.toLowerCase().includes('cost') ||
                 col.toLowerCase().includes('amount') ||
                 col.toLowerCase().includes('rate') ||
-                col.toLowerCase().includes('freight')
+                col.toLowerCase().includes('freight') ||
+                col.toLowerCase().includes('total')
               )
             );
 
