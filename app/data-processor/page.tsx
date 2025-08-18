@@ -592,6 +592,47 @@ export default function DataProcessor() {
     }
   };
 
+  // Function to load full file data when needed for processing
+  const loadFullFileData = async (fileData: FileData): Promise<FileData> => {
+    if (!fileData.id || fileData.file) {
+      return fileData; // Already loaded or no ID
+    }
+
+    try {
+      // Load file content
+      const contentResponse = await fetch(`/api/files/${fileData.id}/content`);
+      if (contentResponse.ok) {
+        const contentData = await contentResponse.json();
+        const fileContent = contentData.file_content;
+
+        if (fileContent) {
+          // Reconstruct File object
+          const file = FileStorageUtils.base64ToFile(
+            fileContent,
+            fileData.name,
+            fileData.type
+          );
+
+          // Re-parse the file data
+          const { data, columnHeaders } = await DataValidator.parseFile(file);
+
+          return {
+            ...fileData,
+            file,
+            parsedData: data,
+            columnNames: columnHeaders,
+            fileContent
+          };
+        }
+      }
+    } catch (error) {
+      console.warn(`Could not load full data for ${fileData.name}:`, error);
+      addToLog(`⚠ Warning: Could not load full data for ${fileData.name}`);
+    }
+
+    return fileData;
+  };
+
   const processAllFiles = async () => {
     if (files.length === 0) {
       addToLog("No files to process");
