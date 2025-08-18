@@ -1644,15 +1644,26 @@ export default function DataProcessor() {
                       <div className="group relative">
                         <button
                           onClick={() => {
-                            addToLog('=== FILE UPLOAD DIAGNOSIS ===');
-                            addToLog('Files are being saved to database but content is missing.');
-                            addToLog('Solution: Clear files and re-upload with improved upload process.');
-                            addToLog('New upload process uses robustFetch for better reliability.');
-                            addToLog('Use "Test File Storage" to check current file status.');
+                            addToLog('=== SYSTEM DIAGNOSIS ===');
+                            addToLog('🐌 SERVER PERFORMANCE ISSUE DETECTED:');
+                            addToLog('- Server responses taking 20+ seconds initially');
+                            addToLog('- Server needs "warming up" to become responsive');
+                            addToLog('- This causes timeout errors in normal operations');
+                            addToLog('');
+                            addToLog('🔧 SOLUTIONS:');
+                            addToLog('1. Click "🔥 Warm Up Server" first (takes 30+ seconds)');
+                            addToLog('2. After warming, server should respond in 1-5 seconds');
+                            addToLog('3. Then try file operations normally');
+                            addToLog('4. If still timing out, try again - server may need more warming');
+                            addToLog('');
+                            addToLog('📊 FILE ISSUES:');
+                            addToLog('- Files may be saved but content missing due to timeouts');
+                            addToLog('- Use "🔍 Test File Storage" to check current status');
+                            addToLog('- Re-upload files after server is warmed up');
                             addToLog('================================');
                           }}
                           className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-                          title="Show diagnosis of file upload issue"
+                          title="Show comprehensive system diagnosis"
                         >
                           🩺 Diagnose Issue
                         </button>
