@@ -43,26 +43,32 @@ enum Domain {
   INVENTORY 
 }
 
+// Per-customer mapping memory
 model SchemaMapping {
   id             String   @id @default(cuid())
   customerId     String
   customer       Customer @relation(fields: [customerId], references: [id])
   rawHeaderNorm  String   // normalized raw header (lowercase, trimmed, alnum)
-  canonicalField String   // e.g., "sku"
+  canonicalField String   // e.g., "sku", "freight_cost_usd", "column_v"
   confidence     Float
   hits           Int      @default(1)
   lastSeenAt     DateTime @default(now())
+
   @@unique([customerId, rawHeaderNorm])
+  @@index([customerId])
+  @@index([rawHeaderNorm])
 }
 
 // Global learning models for cross-customer intelligence
 model GlobalMapping {
-  id             String  @id @default(cuid())
-  rawHeaderNorm  String  @unique
+  id             String   @id @default(cuid())
+  rawHeaderNorm  String   @unique
   canonicalField String
   confidence     Float
   hits           Int      @default(1)
   lastSeenAt     DateTime @default(now())
+
+  @@index([rawHeaderNorm])
 }
 
 model ColumnProfile {
