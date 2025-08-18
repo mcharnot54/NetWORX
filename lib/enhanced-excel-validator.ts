@@ -116,12 +116,13 @@ export class EnhancedExcelValidator {
   }
 
   /**
-   * Main file processing method with comprehensive validation
+   * Main file processing method with comprehensive validation and standardization
    */
   async processExcelFile(file: File, expectedDataType?: string): Promise<{
     validationResult: AdvancedValidationResult;
     cleanedData: CleanedExcelData;
     multiTabData?: { [sheetName: string]: CleanedExcelData };
+    conversionResults?: { [sheetName: string]: any };
   }> {
     const startTime = Date.now();
     this.logger(`Processing Excel file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, 'info');
