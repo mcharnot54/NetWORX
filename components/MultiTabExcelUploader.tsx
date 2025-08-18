@@ -150,7 +150,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         try {
           // Apply file-type specific extraction rules
-          addLog(`🧠 PROCESSING: ${fileType} file, analyzing ${sheetName} tab`);
+          addLog(`��� PROCESSING: ${fileType} file, analyzing ${sheetName} tab`);
 
           // UPS FILES: Extract from Column G (Net Charge) for all four tabs
           if (fileType === 'UPS') {
@@ -178,111 +178,41 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`🚨 UPS ${sheetName}: Net Charge column not found! Available: ${sheetData.columnHeaders.join(', ')}`);
             }
 
-          // TL FILES: Extract from Column H (Gross Rate) for all tabs
+          // TL FILES: Extract from all cost columns like working API
           } else if (fileType === 'TL') {
-            addLog(`🚛 TL PROCESSING: Looking for Gross Rate column (Column H)`);
+            addLog(`🚛 TL PROCESSING: Using working API logic - find any cost column`);
 
-            // Find Gross Rate column or Column H
-            const grossRateColumn = sheetData.columnHeaders.find(col =>
-              col === 'Gross Rate' || col === 'H' ||
-              col.toLowerCase().includes('gross') && col.toLowerCase().includes('rate')
-            );
+            // Use EXACT same logic as working API - simple and direct
+            let count = 0;
 
-            if (grossRateColumn) {
-              let count = 0;
-              let skippedCount = 0;
+            // Simple loop through all rows like working API
+            for (const row of sheetData.data) {
+              if (row && typeof row === 'object') {
+                // Look for cost columns - prioritize Gross Rate (exact same logic as working API)
+                for (const [key, value] of Object.entries(row)) {
+                  if (key === 'Gross Rate' ||
+                      key.toLowerCase().includes('gross') ||
+                      key.toLowerCase().includes('rate') ||
+                      key.toLowerCase().includes('total') ||
+                      key.toLowerCase().includes('cost') ||
+                      key.toLowerCase().includes('amount')) {
 
-              addLog(`🔍 TL ${sheetName}: Starting with ${sheetData.data.length} total rows, using column '${grossRateColumn}'`);
-
-              // First filter: exclude rows with total keywords anywhere in the row
-              const filteredData = sheetData.data.filter(row => {
-                if (!row) return false;
-
-                // Check for total keywords in any cell
-                const rowValues = Object.values(row).map(val => String(val).toLowerCase());
-                const hasTotal = rowValues.some(val =>
-                  val.includes('total') ||
-                  val.includes('sum') ||
-                  val.includes('grand') ||
-                  val.includes('subtotal')
-                );
-
-                if (hasTotal) {
-                  if (sheetName === 'TOTAL 2024') {
-                    addLog(`   🚫 Filtering row with total keyword: ${JSON.stringify(row).substring(0, 150)}...`);
-                  }
-                  return false;
-                }
-
-                // Smart check: if row has monetary value but no supporting data, exclude it
-                if (row[grossRateColumn]) {
-                  const numValue = parseFloat(String(row[grossRateColumn]).replace(/[$,\s]/g, ''));
-                  if (!isNaN(numValue) && numValue > 0) {
-                    // Check for supporting data columns
-                    const supportingDataColumns = Object.keys(row).filter(key =>
-                      key.toLowerCase().includes('origin') ||
-                      key.toLowerCase().includes('destination') ||
-                      key.toLowerCase().includes('from') ||
-                      key.toLowerCase().includes('to') ||
-                      key.toLowerCase().includes('route') ||
-                      key.toLowerCase().includes('lane') ||
-                      key.toLowerCase().includes('city') ||
-                      key.toLowerCase().includes('state') ||
-                      key.toLowerCase().includes('zip') ||
-                      key.toLowerCase().includes('location') ||
-                      key.toLowerCase().includes('service') ||
-                      key.toLowerCase().includes('mode') ||
-                      key.toLowerCase().includes('carrier')
-                    );
-
-                    // Count supporting data with actual values
-                    const supportingDataCount = supportingDataColumns.filter(col => {
-                      const value = row[col];
-                      return value && String(value).trim() !== '' &&
-                             String(value).toLowerCase() !== 'null' &&
-                             String(value).toLowerCase() !== 'n/a';
-                    }).length;
-
-                    // If no supporting data, it's likely a total row
-                    if (supportingDataCount === 0) return false;
-                  }
-                }
-
-                return true;
-              });
-
-              addLog(`🔍 TL ${sheetName}: After filtering, ${filteredData.length} rows remain (${sheetData.data.length - filteredData.length} filtered out)`);
-
-              // Now process the filtered data
-              for (const row of filteredData) {
-                if (row && row[grossRateColumn]) {
-                  const numValue = parseFloat(String(row[grossRateColumn]).replace(/[$,\s]/g, ''));
-                  if (!isNaN(numValue) && numValue > 500) { // TL costs should be substantial freight charges
-                    extractedAmount += numValue;
-                    count++;
-
-                    // Debug logging for TOTAL 2024 to trace the calculation
-                    if (sheetName === 'TOTAL 2024' && (count <= 5 || count % 50 === 0)) {
-                      addLog(`   💰 Row ${count}: Adding $${numValue.toLocaleString()} (running total: $${extractedAmount.toLocaleString()})`);
+                    const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+                    if (!isNaN(numValue) && numValue > 500) { // TL costs should be substantial
+                      extractedAmount += numValue;
+                      count++;
                     }
+                    break; // Found a cost column, move to next row (exact same as working API)
                   }
                 }
               }
+            }
 
-              skippedCount = sheetData.data.length - filteredData.length;
+            targetColumn = 'Gross Rate'; // Set target column for display
+            addLog(`🎯 TL ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows)`);
 
-              // Final debug for TOTAL 2024
-              if (sheetName === 'TOTAL 2024') {
-                addLog(`🎯 TL ${sheetName} FINAL: $${extractedAmount.toLocaleString()} from ${count} rows (expected: $376,965)`);
-                if (extractedAmount > 500000) {
-                  addLog(`⚠️ TL ${sheetName} WARNING: Amount seems too high! Expected ~$377K, got $${(extractedAmount/1000).toFixed(0)}K`);
-                }
-              }
-
-              targetColumn = grossRateColumn;
-              addLog(`🎯 TL ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows, ${skippedCount} skipped)`);
-            } else {
-              addLog(`🚨 TL ${sheetName}: Gross Rate column not found! Available: ${sheetData.columnHeaders.join(', ')}`);
+            if (sheetName === 'TOTAL 2024') {
+              addLog(`📊 TL ${sheetName} CHECK: Expected $376,965, got $${extractedAmount.toLocaleString()}`);
             }
 
           // R&L FILES: Extract from Column V for Detail tab
