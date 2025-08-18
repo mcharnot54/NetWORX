@@ -52,25 +52,33 @@ export async function GET(request: NextRequest) {
     let scenarios = [];
 
     try {
-      // Get scenarios with caching to reduce database load
-      scenarios = await withCache(
-        CacheKeys.SCENARIOS,
-        async () => {
-          return await withTimeout(sql`
-            SELECT s.id, s.name, p.name as project_name
-            FROM scenarios s
-            JOIN projects p ON s.project_id = p.id
-            WHERE p.status = 'active'
-            ORDER BY s.created_at DESC
-            LIMIT 3
-          `, 10000); // 10 second timeout for this query
-        },
-        2 * 60 * 1000 // Cache for 2 minutes
-      );
+      // Try to get scenarios with a simple direct query first to test DB connectivity
+      scenarios = await withTimeout(sql`
+        SELECT s.id, s.name, p.name as project_name
+        FROM scenarios s
+        JOIN projects p ON s.project_id = p.id
+        WHERE p.status = 'active'
+        ORDER BY s.created_at DESC
+        LIMIT 3
+      `, 8000); // Reduced timeout for faster failure detection
+
       baselineCosts.scenarios_analyzed = scenarios.length;
     } catch (dbError) {
-      console.log('Database tables not ready yet, returning empty baseline data:', (dbError as any)?.message || 'Unknown error');
+      const errorMessage = (dbError as any)?.message || 'Database connection issue';
+      console.log('Database not accessible, returning empty baseline data:', errorMessage);
       scenarios = [];
+
+      // Return early if database is not accessible
+      return NextResponse.json({
+        success: true,
+        baseline_costs: formatBaselineCosts(baselineCosts),
+        metadata: {
+          scenarios_analyzed: 0,
+          data_sources: [],
+          last_updated: new Date().toISOString(),
+          data_quality: 'Database not accessible - check connection'
+        }
+      });
     }
 
     // If no scenarios found, return early with empty but valid data
