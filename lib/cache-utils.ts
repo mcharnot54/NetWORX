@@ -79,11 +79,22 @@ class SimpleCache {
 // Global cache instance
 export const apiCache = new SimpleCache();
 
-// Cleanup expired entries every 10 minutes
-if (typeof window === 'undefined') { // Only on server side
-  setInterval(() => {
-    apiCache.cleanup();
+// Cleanup expired entries every 10 minutes - only in stable server environments
+if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+  const cleanupInterval = setInterval(() => {
+    try {
+      apiCache.cleanup();
+    } catch (error) {
+      console.debug('Cache cleanup error:', error);
+    }
   }, 10 * 60 * 1000);
+
+  // Prevent memory leaks
+  if (typeof process !== 'undefined' && process.once) {
+    process.once('exit', () => {
+      clearInterval(cleanupInterval);
+    });
+  }
 }
 
 // Helper function to cache database results
