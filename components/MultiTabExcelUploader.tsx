@@ -185,7 +185,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           return !isNaN(numValue) ? numValue : 0;
         };
 
-        // Since CSV columns are compressed, scan ALL available columns for numeric data
+        // Extract from first 12 month columns for 2025 data (Y:AJ = columns 24-35)
         const extractFromRowRange = (excelRowNum: number): number => {
           const rowIndex = excelRowNum - 1; // Convert to 0-based
 
@@ -201,18 +201,31 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           let valuesFound = [];
           const rowValues = Object.values(row);
 
-          // Scan ALL columns in this row for numeric values
-          rowValues.forEach((cellValue, colIndex) => {
+          // Extract from first 12 columns after column 24 (Y:AJ range for 2025 monthly data)
+          // Find the first substantial numeric values that represent the 12 months
+          let monthlyValues = [];
+          let startCol = -1;
+
+          // First, scan to find where meaningful data starts (typically around column 24)
+          for (let colIndex = 20; colIndex < Math.min(rowValues.length, 50); colIndex++) {
+            const cellValue = rowValues[colIndex];
             if (cellValue && cellValue !== '') {
               const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue !== 0) {
-                total += numValue;
-                valuesFound.push(`Col${colIndex}:${numValue}`);
+              if (!isNaN(numValue) && numValue > 0) {
+                if (startCol === -1) startCol = colIndex;
+                monthlyValues.push({ colIndex, value: numValue });
+                if (monthlyValues.length >= 12) break; // Stop after 12 monthly values
               }
             }
+          }
+
+          // Sum the first 12 monthly values found
+          monthlyValues.slice(0, 12).forEach(({ colIndex, value }) => {
+            total += value;
+            valuesFound.push(`Month${colIndex - (startCol || 0) + 1}:${value}`);
           });
 
-          addLog(`    📊 Row ${excelRowNum} (index ${rowIndex}) found ${valuesFound.length} values: ${valuesFound.join(', ')} | Total = ${total}`);
+          addLog(`    📊 Row ${excelRowNum} - 2025 Monthly Data (12 months): ${valuesFound.join(', ')} | Total = ${total}`);
           return total;
         };
 
