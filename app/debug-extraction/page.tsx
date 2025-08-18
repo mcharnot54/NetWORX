@@ -9,11 +9,11 @@ export default function DebugExtraction() {
   const debugRLFile = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/debug-rl-specifically');
+      const response = await fetch('/api/debug-rl-column-v');
       const data = await response.json();
-      setDebugData({ type: 'R&L', data });
+      setDebugData({ type: 'R&L Column V', data });
     } catch (error) {
-      setDebugData({ type: 'R&L', error: error instanceof Error ? error.message : 'Unknown error' });
+      setDebugData({ type: 'R&L Column V', error: error instanceof Error ? error.message : 'Unknown error' });
     }
     setIsLoading(false);
   };
@@ -21,11 +21,11 @@ export default function DebugExtraction() {
   const debugTLFile = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/diagnose-tl-structure');
+      const response = await fetch('/api/debug-tl-totals');
       const data = await response.json();
-      setDebugData({ type: 'TL', data });
+      setDebugData({ type: 'TL Totals', data });
     } catch (error) {
-      setDebugData({ type: 'TL', error: error instanceof Error ? error.message : 'Unknown error' });
+      setDebugData({ type: 'TL Totals', error: error instanceof Error ? error.message : 'Unknown error' });
     }
     setIsLoading(false);
   };
