@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { DataProvider } from "@/context/DataContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { DevErrorBoundary } from "@/components/DevErrorBoundary";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import GlobalErrorHandler from "@/components/GlobalErrorHandler";
 
