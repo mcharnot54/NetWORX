@@ -330,6 +330,117 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`🔄 R&L ${sheetName}: Skipping non-Detail tab`);
             }
 
+          // WAREHOUSE BUDGET FILES: Extract operating costs from specific rows and columns
+          } else if (fileType === 'WAREHOUSE_BUDGET') {
+            addLog(`🏭 WAREHOUSE BUDGET PROCESSING: Extracting operating costs from specific rows`);
+
+            const operatingCosts: OperatingCostData = {};
+
+            // Convert data to row-indexed format for easier access
+            const rowData: { [key: number]: any } = {};
+            sheetData.data.forEach((row, index) => {
+              rowData[index + 1] = row; // Excel rows are 1-indexed
+            });
+
+            // Helper function to extract value from specific row and column range
+            const extractFromRowColumns = (rowNum: number, columnRange?: string[]): number => {
+              const row = rowData[rowNum];
+              if (!row) return 0;
+
+              let total = 0;
+              if (columnRange) {
+                // Extract from specific column range (e.g., Y:AJ for regular wages)
+                for (const col of columnRange) {
+                  if (row[col]) {
+                    const value = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+                    if (!isNaN(value) && value > 0) {
+                      total += value;
+                    }
+                  }
+                }
+              } else {
+                // Extract from any numeric column in the row
+                for (const [key, value] of Object.entries(row)) {
+                  const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+                  if (!isNaN(numValue) && numValue > 0 && numValue < 100000000) { // Reasonable upper bound
+                    total = Math.max(total, numValue); // Take largest value in row
+                  }
+                }
+              }
+              return total;
+            };
+
+            // Extract specific operating cost components
+            try {
+              // Regular wages (Row 30, columns Y:AJ) - planned labor cost for 2025
+              const wageColumns = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ'];
+              operatingCosts.regularWages = extractFromRowColumns(30, wageColumns);
+              addLog(`💰 Regular wages (Row 30): $${operatingCosts.regularWages?.toLocaleString() || 0}`);
+
+              // Employee benefits (Row 63)
+              operatingCosts.employeeBenefits = extractFromRowColumns(63);
+              addLog(`🏥 Employee benefits (Row 63): $${operatingCosts.employeeBenefits?.toLocaleString() || 0}`);
+
+              // Temp employee costs (Row 68)
+              operatingCosts.tempEmployeeCosts = extractFromRowColumns(68);
+              addLog(`👥 Temp employee costs (Row 68): $${operatingCosts.tempEmployeeCosts?.toLocaleString() || 0}`);
+
+              // General supplies (Row 78)
+              operatingCosts.generalSupplies = extractFromRowColumns(78);
+              addLog(`📦 General supplies (Row 78): $${operatingCosts.generalSupplies?.toLocaleString() || 0}`);
+
+              // Office (Row 88)
+              operatingCosts.office = extractFromRowColumns(88);
+              addLog(`🏢 Office costs (Row 88): $${operatingCosts.office?.toLocaleString() || 0}`);
+
+              // Telecom (Row 165)
+              operatingCosts.telecom = extractFromRowColumns(165);
+              addLog(`📞 Telecom (Row 165): $${operatingCosts.telecom?.toLocaleString() || 0}`);
+
+              // Other expense (Row 194) - check for 3PL costs
+              operatingCosts.otherExpense = extractFromRowColumns(194);
+              addLog(`📊 Other expense (Row 194): $${operatingCosts.otherExpense?.toLocaleString() || 0}`);
+
+              // Lease/Rent (Row 177)
+              operatingCosts.leaseRent = extractFromRowColumns(177);
+              addLog(`🏠 Lease/Rent (Row 177): $${operatingCosts.leaseRent?.toLocaleString() || 0}`);
+
+              // Headcount (Row 21) - FTEs
+              operatingCosts.headcount = extractFromRowColumns(21);
+              addLog(`👨‍💼 Headcount FTEs (Row 21): ${operatingCosts.headcount?.toLocaleString() || 0}`);
+
+              // Calculate total operating costs
+              operatingCosts.total = (operatingCosts.regularWages || 0) +
+                                   (operatingCosts.employeeBenefits || 0) +
+                                   (operatingCosts.tempEmployeeCosts || 0) +
+                                   (operatingCosts.generalSupplies || 0) +
+                                   (operatingCosts.office || 0) +
+                                   (operatingCosts.telecom || 0) +
+                                   (operatingCosts.otherExpense || 0) +
+                                   (operatingCosts.leaseRent || 0);
+
+              // Check if Other Expense > 15% of total (indicates 3PL costs)
+              if (operatingCosts.otherExpense && operatingCosts.total &&
+                  (operatingCosts.otherExpense / operatingCosts.total) > 0.15) {
+                operatingCosts.thirdPartyLogistics = operatingCosts.otherExpense;
+                addLog(`🚚 3PL DETECTED: Other expense (${((operatingCosts.otherExpense / operatingCosts.total) * 100).toFixed(1)}%) indicates 3PL costs`);
+              }
+
+              extractedAmount = operatingCosts.total || 0;
+              targetColumn = 'Operating Costs (Multiple Rows)';
+
+              addLog(`🎯 WAREHOUSE BUDGET ${sheetName}: Total operating costs $${extractedAmount.toLocaleString()}`);
+              addLog(`📋 BREAKDOWN: Wages: $${operatingCosts.regularWages?.toLocaleString() || 0}, Benefits: $${operatingCosts.employeeBenefits?.toLocaleString() || 0}, Supplies: $${operatingCosts.generalSupplies?.toLocaleString() || 0}`);
+
+              if (operatingCosts.thirdPartyLogistics) {
+                addLog(`🚚 3PL COSTS: $${operatingCosts.thirdPartyLogistics.toLocaleString()} (separate line item)`);
+              }
+
+            } catch (operatingError) {
+              addLog(`⚠️ Operating cost extraction error: ${operatingError instanceof Error ? operatingError.message : 'Unknown error'}`);
+              operatingCosts.total = 0;
+            }
+
           } else {
             // FALLBACK: Generic cost column detection for other file types
             addLog(`🔍 GENERIC PROCESSING: Looking for cost columns`);
