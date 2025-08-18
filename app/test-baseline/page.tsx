@@ -754,6 +754,36 @@ export default function TestBaseline() {
             >
               🔍 DEBUG DATABASE
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/test-file-loading?scenarioId=1');
+                  const result = await response.json();
+
+                  if (result.success) {
+                    alert(
+                      `✅ FILE LOADING TEST PASSED!\n\n` +
+                      `Scenario ID: ${result.test_scenario_id}\n` +
+                      `Files Found: ${result.files_count}\n` +
+                      `Response Status: ${result.response_data.status}\n` +
+                      `Message: ${result.message}\n\n` +
+                      `File loading functionality is working correctly.`
+                    );
+                  } else {
+                    alert(
+                      `❌ FILE LOADING TEST FAILED:\n\n` +
+                      `Error: ${result.error}\n` +
+                      `Details: ${result.body?.error || 'No additional details'}`
+                    );
+                  }
+                } catch (error) {
+                  alert('❌ Failed to test file loading: ' + error);
+                }
+              }}
+              className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 font-bold"
+            >
+              📁 TEST FILE LOADING
+            </button>
           </div>
 
           {error && (
