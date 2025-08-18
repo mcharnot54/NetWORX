@@ -160,7 +160,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       // Log recommendations
       if (result.validationResult.recommendations.length > 0) {
         result.validationResult.recommendations.forEach(rec => {
-          addLog(`���� ${rec}`);
+          addLog(`💡 ${rec}`);
         });
       }
 
@@ -442,6 +442,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               type="file"
               multiple
               accept=".xlsx,.xls"
+              disabled={isProcessing}
               onChange={(e) => handleFileUpload(e.target.files)}
               className="hidden"
             />
