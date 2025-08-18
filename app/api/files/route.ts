@@ -41,7 +41,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const files = await DataFileService.getDataFiles(parseInt(scenarioId));
+    // Try a direct minimal query first to avoid the large response issue
+    const { sql } = await import('@/lib/database');
+
+    const files = await sql`
+      SELECT
+        id, scenario_id, file_name, file_type, file_size, data_type,
+        processing_status, upload_date, original_columns
+      FROM data_files
+      WHERE scenario_id = ${parseInt(scenarioId)}
+      ORDER BY upload_date DESC
+      LIMIT 10
+    `;
+
     console.log(`Found ${files.length} files for scenario ${scenarioId}`);
     return NextResponse.json({ files });
 
