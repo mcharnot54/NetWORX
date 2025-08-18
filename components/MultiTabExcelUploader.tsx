@@ -53,21 +53,81 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
   const processExcelFile = async (file: File): Promise<MultiTabFile> => {
     try {
-      // Use simple Excel processor to avoid chunk loading issues
-      const { SimpleExcelProcessor } = await import('@/lib/simple-excel-processor');
+      // Try enhanced processing first, fallback to simple if chunk loading fails
+      let result: any;
+      let usingAdaptiveLearning = true;
 
       const fileType = detectFileType(file.name);
 
-      addLog(`Processing ${file.name} with simple processor...`);
+      try {
+        // Attempt to use the full enhanced Excel validator with adaptive learning
+        addLog(`🧠 Attempting adaptive learning processing for ${file.name}...`);
 
-      const result = await SimpleExcelProcessor.processFile(file);
+        // Import with static import to avoid dynamic chunk issues
+        const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
+        const XLSX = await import('xlsx');
+
+        // Process file with adaptive learning
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+
+        const sheets: any = {};
+        let totalExtracted = 0;
+
+        // Process each sheet with adaptive learning
+        for (const sheetName of workbook.SheetNames) {
+          const worksheet = workbook.Sheets[sheetName];
+          const rawData = XLSX.utils.sheet_to_json(worksheet);
+
+          if (rawData.length === 0) continue;
+
+          // Use adaptive learning to analyze and process the data
+          const columnAnalysis = AdaptiveDataValidator.analyzeColumns(rawData);
+          const adaptiveTemplate = AdaptiveDataValidator.createAdaptiveTemplate(file.name, rawData, columnAnalysis);
+
+          addLog(`🧠 ADAPTIVE: Created template for ${sheetName} with ${(adaptiveTemplate.confidence * 100).toFixed(1)}% confidence`);
+
+          // Process with adaptive template
+          const processedResult = AdaptiveDataValidator.processWithAdaptiveTemplate(rawData, adaptiveTemplate);
+
+          sheets[sheetName] = {
+            data: rawData,
+            columnHeaders: Object.keys(rawData[0] || {}),
+            rowCount: rawData.length,
+            sheetName: sheetName,
+            adaptiveTemplate: adaptiveTemplate,
+            processedResult: processedResult
+          };
+        }
+
+        result = {
+          isValid: Object.keys(sheets).length > 0,
+          sheets,
+          detectedFileType: fileType,
+          totalExtracted: 0, // Will be calculated below
+          errors: [],
+          warnings: [],
+          usingAdaptiveLearning: true
+        };
+
+        addLog(`🎯 ADAPTIVE SUCCESS: Using full adaptive learning system!`);
+
+      } catch (adaptiveError) {
+        addLog(`⚠ Adaptive learning failed, falling back to simple processor: ${adaptiveError instanceof Error ? adaptiveError.message : 'Unknown error'}`);
+        usingAdaptiveLearning = false;
+
+        // Fallback to simple processor
+        const { SimpleExcelProcessor } = await import('@/lib/simple-excel-processor');
+        result = await SimpleExcelProcessor.processFile(file);
+        result.usingAdaptiveLearning = false;
+      }
 
       if (!result.isValid) {
-        const errors = result.errors.join('; ');
+        const errors = result.errors?.join('; ') || 'Processing failed';
         addLog(`⚠ Processing issues: ${errors}`);
       }
 
-      if (result.warnings.length > 0) {
+      if (result.warnings && result.warnings.length > 0) {
         const warnings = result.warnings.join('; ');
         addLog(`⚠ Warnings: ${warnings}`);
       }
