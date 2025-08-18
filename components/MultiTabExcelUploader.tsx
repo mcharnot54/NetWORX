@@ -1807,24 +1807,65 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           </div>
 
           {/* Summary */}
-          <div className="mt-6 p-4 bg-green-50 rounded-lg border-2 border-green-200">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-green-900">🔒 LOCKED Warehouse Baseline 2025:</span>
-              <span className="font-bold text-xl text-green-900">
-                {formatCurrency(files.reduce((sum, f) => sum + f.totalExtracted, 0))}
-              </span>
+          <div className="mt-6 space-y-4">
+            {/* Warehouse Operating Costs */}
+            <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-green-900">🔒 LOCKED Warehouse Operating Costs 2025:</span>
+                <span className="font-bold text-xl text-green-900">
+                  {formatCurrency(files.filter(f => f.fileType === 'WAREHOUSE_BUDGET').reduce((sum, f) => sum + f.totalExtracted, 0))}
+                </span>
+              </div>
+              {files.some(f => f.fileType === 'WAREHOUSE_BUDGET' && f.totalExtracted > 0) && (
+                <div className="mt-3 text-sm text-green-700 bg-green-100 p-3 rounded">
+                  <div className="font-medium mb-1">✅ Operating Cost Categories Locked:</div>
+                  <div className="space-y-1">
+                    <div>• <strong>Labor Costs:</strong> $3,330,436 (Wages, Benefits, Temp)</div>
+                    <div>• <strong>OPEX:</strong> $676,300 (Supplies, Equipment, Telecom)</div>
+                    <div>• <strong>Lease/Rent:</strong> $693,068</div>
+                    <div>• <strong>OTHER OPEX*:</strong> $2,868,399 (*3PL Services)</div>
+                  </div>
+                </div>
+              )}
             </div>
-            {files.length > 0 && files.reduce((sum, f) => sum + f.totalExtracted, 0) > 0 && (
-              <div className="mt-3 text-sm text-green-700 bg-green-100 p-3 rounded">
-                <div className="font-medium mb-1">✅ Baseline Categories Locked:</div>
-                <div className="space-y-1">
-                  <div>• <strong>Labor Costs:</strong> $3,330,436 (Wages, Benefits, Temp)</div>
-                  <div>• <strong>OPEX:</strong> $676,300 (Supplies, Equipment, Telecom)</div>
-                  <div>• <strong>Lease/Rent:</strong> $693,068</div>
-                  <div>• <strong>OTHER OPEX*:</strong> $2,868,399 (*3PL Services)</div>
+
+            {/* Inventory Baseline */}
+            {files.some(f => f.fileType === 'INVENTORY_TRACKER') && (
+              <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-blue-900">📦 Inventory Baseline:</span>
+                  <span className="font-bold text-xl text-blue-900">
+                    {formatCurrency(files.filter(f => f.fileType === 'INVENTORY_TRACKER').reduce((sum, f) => sum + f.totalExtracted, 0))}
+                  </span>
+                </div>
+                <div className="mt-3 text-sm text-blue-700 bg-blue-100 p-3 rounded">
+                  <div className="font-medium mb-1">📊 Inventory Metrics:</div>
+                  {files.filter(f => f.fileType === 'INVENTORY_TRACKER').map((file, idx) =>
+                    file.tabs.filter(tab => tab.inventoryMetrics).map((tab, tabIdx) => (
+                      <div key={`${idx}-${tabIdx}`} className="space-y-1">
+                        <div>• <strong>Total Inventory Dollars:</strong> {formatCurrency(tab.inventoryMetrics?.totalInventoryDollars || 0)}</div>
+                        {tab.inventoryMetrics?.daysSupply && (
+                          <div>• <strong>Days Supply vs Sales:</strong> {tab.inventoryMetrics.daysSupply.toFixed(1)} days</div>
+                        )}
+                        {tab.inventoryMetrics?.inventoryTurnover && (
+                          <div>• <strong>Annual Turnover Rate:</strong> {tab.inventoryMetrics.inventoryTurnover.toFixed(2)}x</div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
+
+            {/* Combined Total */}
+            <div className="p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-gray-900">🎯 Total Warehouse Baseline (Operating + Inventory):</span>
+                <span className="font-bold text-xl text-gray-900">
+                  {formatCurrency(files.reduce((sum, f) => sum + f.totalExtracted, 0))}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
