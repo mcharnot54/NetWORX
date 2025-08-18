@@ -171,13 +171,21 @@ export default function DataProcessor() {
       console.log('Loading files for scenario:', scenarioId);
       const response = await fetch(`/api/files?scenarioId=${scenarioId}`);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to load files - Response:', response.status, errorText);
-        throw new Error(`Failed to load files: HTTP ${response.status} - ${errorText}`);
+      // Read the response body once, regardless of status
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error(`Invalid response format: ${response.status}`);
       }
 
-      const responseData = await response.json();
+      if (!response.ok) {
+        console.error('Failed to load files - Response:', response.status, responseData);
+        const errorMessage = responseData?.error || responseData?.details || 'Unknown error';
+        throw new Error(`Failed to load files: HTTP ${response.status} - ${errorMessage}`);
+      }
+
       console.log('Files API response:', responseData);
 
       const { files: savedFiles } = responseData;
