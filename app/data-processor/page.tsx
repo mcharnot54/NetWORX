@@ -388,15 +388,23 @@ export default function DataProcessor() {
         body: JSON.stringify({ id: fileId, ...updateData }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to update file - Response:', response.status, errorText);
-        throw new Error(`Failed to update file: HTTP ${response.status} - ${errorText}`);
+      // Read the response body once, regardless of status
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error(`Invalid response format: ${response.status}`);
       }
 
-      const result = await response.json();
-      console.log('File updated successfully:', result);
-      return result;
+      if (!response.ok) {
+        console.error('Failed to update file - Response:', response.status, responseData);
+        const errorMessage = responseData?.error || responseData?.details || 'Unknown error';
+        throw new Error(`Failed to update file: HTTP ${response.status} - ${errorMessage}`);
+      }
+
+      console.log('File updated successfully:', responseData);
+      return responseData;
 
     } catch (error) {
       console.error('Error updating file in database:', error);
