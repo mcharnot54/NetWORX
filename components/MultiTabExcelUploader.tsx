@@ -113,11 +113,16 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         if (sheetData.data.length === 0) continue;
 
         // Use adaptive learning system for transportation cost extraction
-        addLog(`🧠 Using adaptive learning system for ${fileType} ${sheetName}`);
+        addLog(`🧠 LEARNING SYSTEM: Processing ${fileType} ${sheetName} - ${sheetData.columnHeaders.length} columns, ${sheetData.data.length} rows`);
+        addLog(`🧠 COLUMNS: ${sheetData.columnHeaders.join(', ')}`);
 
-        // Import adaptive learning components
-        const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
-        const { resolveMapping, upsertCustomerMapping } = await import('@/lib/mappings');
+        let targetColumn = '';
+        let extractedAmount = 0;
+
+        try {
+          // Import adaptive learning components
+          const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
+          const { resolveMapping, upsertCustomerMapping } = await import('@/lib/mappings');
 
         // Create adaptive template for this specific file and tab
         const columnAnalysis = AdaptiveDataValidator.analyzeColumns(sheetData.data);
@@ -136,9 +141,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           adaptiveTemplate
         );
 
-        // Extract transportation costs using intelligent mapping
-        let targetColumn = '';
-        let extractedAmount = 0;
+          // Extract transportation costs using intelligent mapping
 
         // Apply learned rules for specific file types and tabs
         if (fileType === 'TL' && sheetName === 'TOTAL 2024') {
@@ -199,6 +202,43 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             }
 
             addLog(`🧠 ${fileType} ${sheetName}: Used adaptive mapping '${targetColumn}' (confidence: ${(bestMapping.confidence * 100).toFixed(1)}%)`);
+            addLog(`🧠 LEARNING: Storing successful extraction pattern for future use`);
+
+            // Store this successful mapping for future learning
+            try {
+              await upsertCustomerMapping('system', `${fileType}_${sheetName}_${targetColumn}`, bestMapping.targetField, bestMapping.confidence);
+              addLog(`🧠 STORED: Mapping ${targetColumn} -> ${bestMapping.targetField} with confidence ${(bestMapping.confidence * 100).toFixed(1)}%`);
+            } catch (mappingError) {
+              addLog(`⚠️ Failed to store mapping: ${mappingError}`);
+            }
+          } else {
+            addLog(`🚨 ${fileType} ${sheetName}: No cost mappings found in adaptive template`);
+          }
+        }
+
+        } catch (learningError) {
+          addLog(`🚨 LEARNING SYSTEM ERROR: ${learningError}`);
+          addLog(`🔄 Falling back to basic extraction for ${fileType} ${sheetName}`);
+
+          // Fallback extraction logic
+          const costColumns = sheetData.columnHeaders.filter(col =>
+            col && (col.toLowerCase().includes('cost') ||
+                   col.toLowerCase().includes('charge') ||
+                   col.toLowerCase().includes('amount') ||
+                   col.toLowerCase().includes('rate'))
+          );
+
+          if (costColumns.length > 0) {
+            targetColumn = costColumns[0];
+            for (const row of sheetData.data) {
+              if (row && row[targetColumn]) {
+                const numValue = parseFloat(String(row[targetColumn]).replace(/[$,\s]/g, ''));
+                if (!isNaN(numValue) && numValue > 0) {
+                  extractedAmount += numValue;
+                }
+              }
+            }
+            addLog(`🔄 FALLBACK: Extracted $${extractedAmount.toLocaleString()} from ${targetColumn}`);
           }
         }
 
