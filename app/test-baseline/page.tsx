@@ -447,6 +447,64 @@ export default function TestBaseline() {
             </div>
           )}
 
+          {/* UPS Duplicate Diagnostic Results */}
+          {upsDiagnosticData && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">UPS File Duplicate Analysis</h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div><strong>Total UPS Files:</strong> {upsDiagnosticData.total_ups_files || 0}</div>
+                  <div><strong>Total Extracted:</strong> ${upsDiagnosticData.total_extracted_value?.toLocaleString() || 0}</div>
+                  <div><strong>Duplicates Found:</strong> {upsDiagnosticData.total_ups_files > 1 ? 'YES' : 'NO'}</div>
+                </div>
+
+                {upsDiagnosticData.file_analysis && upsDiagnosticData.file_analysis.length > 0 && (
+                  <div>
+                    <strong>File Analysis:</strong>
+                    <div className="mt-2 space-y-3">
+                      {upsDiagnosticData.file_analysis.map((file: any) => (
+                        <div key={file.file_id} className={`p-3 rounded ${file.extracted_total > 0 ? 'bg-green-50' : 'bg-gray-50'}`}>
+                          <div className="font-medium">
+                            File ID: {file.file_id} | Scenario: {file.scenario_id} | Status: {file.processing_status}
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            Data: {file.data_structure} | Rows: {file.rows_found} | Location: {file.data_location}
+                          </div>
+                          <div className={`text-sm font-medium mt-1 ${file.extracted_total > 0 ? 'text-green-700' : 'text-gray-500'}`}>
+                            Extracted: ${file.extracted_total?.toLocaleString() || 0}
+                            {file.column_f_values && file.column_f_values.length > 0 && (
+                              <span className="ml-2">({file.column_f_values.length} values found)</span>
+                            )}
+                          </div>
+                          {file.column_f_values && file.column_f_values.length > 0 && (
+                            <div className="mt-2 text-xs">
+                              <strong>Sample values:</strong> {file.column_f_values.slice(0, 3).map((v: any) => `$${v.parsed_value.toLocaleString()}`).join(', ')}
+                              {file.column_f_values.length > 3 && '...'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {upsDiagnosticData.duplicate_summary && (
+                  <div className="p-3 bg-yellow-50 rounded">
+                    <strong className="text-yellow-800">Summary:</strong>
+                    <div className="text-yellow-700 text-sm mt-1">
+                      Files by scenario: {JSON.stringify(upsDiagnosticData.duplicate_summary.files_by_scenario)}
+                    </div>
+                    {upsDiagnosticData.total_ups_files > 1 && (
+                      <div className="text-yellow-800 text-sm mt-2 font-medium">
+                        ⚠️ Multiple UPS files detected! This may cause double-counting in baseline calculations.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
