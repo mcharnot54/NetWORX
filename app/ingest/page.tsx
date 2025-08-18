@@ -29,6 +29,9 @@ export default function IngestPage() {
   const [domain, setDomain] = useState("TRANSPORT");
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [customerId, setCustomerId] = useState<string>("cust_001"); // You can modify this based on your auth system
+  const [edits, setEdits] = useState<Record<string, string>>({}); // rawHeader -> canonical
+  const [savingMappings, setSavingMappings] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
