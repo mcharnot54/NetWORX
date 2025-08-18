@@ -542,6 +542,14 @@ export class DataFileService {
     return file as DataFile || null;
   }
 
+  static async getDataFileWithFullData(id: number): Promise<DataFile | null> {
+    // Get complete file data including all processed_data
+    const [file] = await sql`
+      SELECT * FROM data_files WHERE id = ${id}
+    `;
+    return file as DataFile || null;
+  }
+
   static async deleteDataFile(id: number): Promise<void> {
     await sql`DELETE FROM data_files WHERE id = ${id}`;
   }
