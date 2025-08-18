@@ -674,28 +674,32 @@ export default function TestBaseline() {
             </button>
             <button
               onClick={async () => {
-                if (confirm('This will reprocess ALL failed Excel files to extract actual data. Continue?')) {
-                  try {
-                    setError('Processing all Excel files... this may take a moment...');
-                    const response = await fetch('/api/fix-all-excel-files', { method: 'POST' });
-                    const result = await response.json();
+                try {
+                  const response = await fetch('/api/check-excel-system');
+                  const result = await response.json();
 
-                    if (result.success) {
-                      alert(`✅ EXCEL FIX COMPLETE!\n\nFixed: ${result.summary?.fixed || 0} files\nFailed: ${result.summary?.failed || 0} files\n\nPage will refresh to show updated data.`);
-                      window.location.reload();
-                    } else {
-                      alert('❌ Fix failed: ' + result.error);
-                    }
-                    setError(null);
-                  } catch (error) {
-                    alert('❌ Failed to fix Excel files: ' + error);
-                    setError(null);
+                  if (result.success) {
+                    const status = result.system_status;
+                    alert(
+                      `📋 EXCEL SYSTEM STATUS:\n\n` +
+                      `Database Ready: ${status.database_ready ? '✅' : '❌'}\n` +
+                      `Tables Exist: ${status.tables_exist ? '✅' : '❌'}\n` +
+                      `Processing Fixes: ${status.excel_processing_fixes_applied ? '✅' : '❌'}\n` +
+                      `Duplicate Prevention: ${status.duplicate_prevention_active ? '✅' : '❌'}\n` +
+                      `Current Files: ${status.file_count}\n\n` +
+                      `${result.message}\n\n` +
+                      `Next Steps:\n${result.next_steps?.join('\n') || 'None'}`
+                    );
+                  } else {
+                    alert('❌ System check failed: ' + result.error);
                   }
+                } catch (error) {
+                  alert('❌ Failed to check system: ' + error);
                 }
               }}
-              className="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 font-bold"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold"
             >
-              🔥 FIX ALL EXCEL FILES
+              📋 CHECK EXCEL SYSTEM STATUS
             </button>
           </div>
 
