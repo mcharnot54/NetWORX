@@ -335,7 +335,7 @@ function extractTransportationCosts(data: any[], baselineCosts: any, fileName: s
   console.log(`Added $${totalFreightCost} to baseline from ${fileName} (total transport costs now: $${baselineCosts.transport_costs.freight_costs})`);
 }
 
-// Extract from column H (TL costs - Inbound, Outbound, Transfers) - Using validation logic
+// Extract from TL "Gross Rate" column (TL costs - Inbound, Outbound, Transfers)
 function extractFromColumnH(data: any[], fileName: string): number {
   let total = 0;
   let valuesFound = 0;
@@ -343,14 +343,16 @@ function extractFromColumnH(data: any[], fileName: string): number {
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
-    // Look for column H (exact same logic as validation)
+    // Look for "Gross Rate" column in TL files
     for (const [key, value] of Object.entries(row)) {
-      if (key === 'H' || key === '__EMPTY_7' ||
+      if (key === 'Gross Rate' || key === 'H' || key === '__EMPTY_7' ||
+          key.toLowerCase().includes('gross') ||
+          key.toLowerCase().includes('rate') ||
           key.toLowerCase().includes('total') ||
           key.toLowerCase().includes('cost')) {
 
         const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-        if (!isNaN(numValue) && numValue > 1000) {
+        if (!isNaN(numValue) && numValue > 100) { // TL costs should be substantial
           total += numValue;
           valuesFound++;
         }
@@ -358,35 +360,50 @@ function extractFromColumnH(data: any[], fileName: string): number {
     }
   }
 
-  console.log(`Extracted $${total} from column H in ${fileName} (${valuesFound} values from ${data.length} rows)`);
+  console.log(`Extracted $${total} from TL costs in ${fileName} (${valuesFound} values from ${data.length} rows)`);
   return total;
 }
 
-// Extract from column V (LTL R&L costs) - Using validation logic
+// Extract from R&L LTL costs - find best cost column
 function extractFromColumnV(data: any[], fileName: string): number {
-  let total = 0;
+  let bestTotal = 0;
+  let bestColumn = null;
   let valuesFound = 0;
 
-  for (const row of data) {
-    if (typeof row !== 'object' || !row) continue;
-
-    // Look for column V (exact same logic as validation)
-    for (const [key, value] of Object.entries(row)) {
-      if (key === 'V' || key === '__EMPTY_21' ||
-          key.toLowerCase().includes('net') ||
-          key.toLowerCase().includes('charge')) {
-
-        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-        if (!isNaN(numValue) && numValue > 100) {
-          total += numValue;
-          valuesFound++;
-        }
-      }
+  // Get all column names to test
+  const allColumns = new Set();
+  for (const row of data.slice(0, 10)) {
+    if (typeof row === 'object' && row) {
+      Object.keys(row).forEach(key => allColumns.add(key));
     }
   }
 
-  console.log(`Extracted $${total} from column V (LTL) in ${fileName} (${valuesFound} values from ${data.length} rows)`);
-  return total;
+  // Test each column for cost data
+  for (const testCol of Array.from(allColumns)) {
+    let testTotal = 0;
+    let testCount = 0;
+
+    for (const row of data) {
+      if (typeof row !== 'object' || !row) continue;
+
+      if (row[testCol]) {
+        const numValue = parseFloat(String(row[testCol]).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 50) { // LTL cost threshold
+          testTotal += numValue;
+          testCount++;
+        }
+      }
+    }
+
+    if (testTotal > bestTotal) {
+      bestTotal = testTotal;
+      bestColumn = testCol;
+      valuesFound = testCount;
+    }
+  }
+
+  console.log(`Extracted $${bestTotal} from R&L column "${bestColumn}" in ${fileName} (${valuesFound} values from ${data.length} rows)`);
+  return bestTotal;
 }
 
 // Extract from column F (UPS Parcel costs) - Using validation logic
