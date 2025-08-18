@@ -269,13 +269,13 @@ export default function Dashboard() {
       setCostsLoading(true);
       setCostsError(null);
 
-      // Add timeout to prevent hanging
+      // Add timeout to prevent hanging - increased for slow server environment
       controller = new AbortController();
       timeoutId = setTimeout(() => {
         if (controller && !controller.signal.aborted) {
           controller.abort('Request timeout');
         }
-      }, 10000); // 10 second timeout to match fetch-utils default
+      }, 25000); // 25 second timeout for slow environment
 
       const response = await fetch('/api/current-baseline-costs', {
         signal: controller.signal,
@@ -467,7 +467,7 @@ export default function Dashboard() {
   const runOptimization = () => {
     if (isReadyForOptimization) {
       alert(
-        "🚀 All required configurations are complete! Network optimization simulation would start here.",
+        "���� All required configurations are complete! Network optimization simulation would start here.",
       );
     } else {
       alert(
