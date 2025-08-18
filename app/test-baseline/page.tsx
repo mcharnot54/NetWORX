@@ -180,6 +180,89 @@ export default function TestBaseline() {
     }
   };
 
+  const previewDeduplication = async () => {
+    if (loadingDeduplication) return;
+
+    setLoadingDeduplication(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('/api/deduplicate-files', {
+        method: 'GET', // GET endpoint runs preview mode
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setDeduplicationData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Deduplication preview timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to preview deduplication';
+        setError(errorMessage);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoadingDeduplication(false);
+    }
+  };
+
+  const executeDeduplication = async () => {
+    if (loadingDeduplication) return;
+
+    if (!confirm('Are you sure you want to permanently remove duplicate files? This cannot be undone.')) {
+      return;
+    }
+
+    setLoadingDeduplication(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const response = await fetch('/api/deduplicate-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preview: false }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setDeduplicationData(data);
+
+      // Refresh file data after deduplication
+      await testFileData();
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Deduplication execution timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to execute deduplication';
+        setError(errorMessage);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoadingDeduplication(false);
+    }
+  };
+
   const testTransportValidation = async () => {
     if (loadingValidation) return;
 
