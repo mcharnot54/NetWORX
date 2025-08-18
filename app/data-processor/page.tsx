@@ -681,7 +681,7 @@ export default function DataProcessor() {
         continue;
       }
 
-      const fileData = file.processingResult.data;
+      const fileData = fullFileData.processingResult.data;
       
       // Merge data by category
       if (fileData.operationalReporting) {
