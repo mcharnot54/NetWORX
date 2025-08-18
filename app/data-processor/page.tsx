@@ -412,13 +412,11 @@ export default function DataProcessor() {
     // Remove from database if it was saved
     if (file.id) {
       try {
-        const response = await fetch(`/api/files/${file.id}`, {
+        await robustFetchJson(`/api/files/${file.id}`, {
           method: 'DELETE',
+          timeout: 10000,
+          retries: 1
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to delete file from database');
-        }
 
         addToLog(`✓ Removed ${file.name} from database`);
       } catch (error) {
