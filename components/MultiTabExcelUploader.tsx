@@ -50,494 +50,243 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   };
 
   const extractTransportationCosts = (tab: ExcelTab, fileType: 'UPS' | 'TL' | 'RL' | 'OTHER'): { column: string; amount: number } => {
-    let bestColumn = '';
-    let bestAmount = 0;
-
-    // Helper function to find column by pattern, PRIORITIZING NET and EXCLUDING GROSS
-    const findColumnByPattern = (patterns: string[]): string | null => {
-      // First pass: Look for NET columns specifically
-      for (const col of tab.columns) {
-        if (col && col.toLowerCase().includes('net')) {
-          for (const pattern of patterns) {
-            if (col.toLowerCase().includes(pattern.toLowerCase())) {
-              console.log(`Found NET column: ${col} (prioritized over gross)`);
-              return col;
-            }
+    console.log(`\n=== EXTRACTING from ${fileType} ${tab.name} ===`);
+    console.log(`Available columns (${tab.columns.length}):`, tab.columns);
+    
+    // ================================
+    // TL TOTAL 2024 - COLUMN H ONLY!
+    // ================================
+    if (fileType === 'TL' && tab.name === 'TOTAL 2024') {
+      console.log(`TL TOTAL 2024: FORCED to use ONLY Column H - NO OTHER COLUMNS ALLOWED!`);
+      
+      // Find Column H with all possible representations
+      const columnH = tab.columns.find(col => 
+        col === 'H' || 
+        col === '__EMPTY_7' ||
+        col === '__EMPTY_8' ||
+        col === 'Column H' ||
+        col?.toLowerCase() === 'h'
+      );
+      
+      // Try 8th column if no explicit H found
+      const fallbackH = !columnH && tab.columns.length > 7 ? tab.columns[7] : null;
+      const targetColumn = columnH || fallbackH;
+      
+      if (!targetColumn) {
+        console.log(`TL TOTAL 2024: FATAL ERROR - NO Column H found! Returning $0`);
+        console.log(`Available columns:`, tab.columns);
+        return { column: '', amount: 0 };
+      }
+      
+      console.log(`TL TOTAL 2024: Using Column H = '${targetColumn}'`);
+      
+      // Extract from Column H ONLY - NO SMART FILTERING FOR TOTAL 2024
+      let total = 0;
+      let count = 0;
+      for (const row of tab.data) {
+        if (row && row[targetColumn]) {
+          const numValue = parseFloat(String(row[targetColumn]).replace(/[$,\s]/g, ''));
+          if (!isNaN(numValue) && numValue > 0) {
+            total += numValue;
+            count++;
           }
         }
       }
-
-      // Second pass: Look for other patterns but EXCLUDE gross columns
-      for (const pattern of patterns) {
-        for (const col of tab.columns) {
-          if (col && col.toLowerCase().includes(pattern.toLowerCase())) {
-            // EXPLICITLY EXCLUDE any columns containing "gross"
-            if (col.toLowerCase().includes('gross')) {
-              console.log(`Skipping GROSS column: ${col} - user wants NET charges only`);
-              continue;
-            }
-            return col;
-          }
-        }
-      }
-      return null;
-    };
-
-    // Helper function to find net charge columns specifically
-    const findNetChargeColumn = (): string | null => {
-      // First priority: exact matches for net charge
-      const netChargePatterns = ['Net Charge', 'net_charge', 'net charge'];
-      for (const pattern of netChargePatterns) {
-        for (const col of tab.columns) {
-          if (col && col.toLowerCase() === pattern.toLowerCase()) {
-            return col;
-          }
-        }
-      }
-
-      // Second priority: columns containing 'net' and 'charge'
-      for (const col of tab.columns) {
-        if (col && col.toLowerCase().includes('net') && col.toLowerCase().includes('charge')) {
-          return col;
-        }
-      }
-
-      // Third priority: just 'charge' but not 'gross'
-      for (const col of tab.columns) {
-        if (col && col.toLowerCase().includes('charge') && !col.toLowerCase().includes('gross')) {
-          return col;
-        }
-      }
-
-      return null;
-    };
-
+      
+      console.log(`TL TOTAL 2024: Column H extracted $${total.toLocaleString()} from ${count} rows`);
+      return { column: targetColumn, amount: total };
+    }
+    
+    // ================================
+    // UPS FILES - AGGRESSIVE SEARCH
+    // ================================
     if (fileType === 'UPS') {
-      // For UPS files: AGGRESSIVELY find "Net Charge" column across ALL quarterly tabs
-      console.log(`UPS ${tab.name}: Starting aggressive Net Charge search. Available columns:`, tab.columns);
-
-      // Step 1: Look for exact "Net Charge" matches (case insensitive) AND Column G
-      const netChargePatterns = [
-        'Net Charge',
-        'net_charge',
-        'NetCharge',
-        'NET_CHARGE',
-        'net charge'
-      ];
-
-      // ALSO check Column G specifically (user mentioned this)
-      const columnG = tab.columns.find(col =>
-        col === 'G' ||
+      console.log(`UPS ${tab.name}: Looking for charge columns...`);
+      
+      let bestAmount = 0;
+      let bestColumn = '';
+      
+      // Step 1: Try Column G first (user mentioned this)
+      const columnG = tab.columns.find(col => 
+        col === 'G' || 
         col === '__EMPTY_6' ||
         col === 'Column G' ||
         col?.toLowerCase() === 'g'
       );
-
-      if (columnG && !bestColumn) {
-        let testAmount = 0;
-        let validValues = 0;
+      
+      if (columnG) {
+        let total = 0;
+        let count = 0;
         for (const row of tab.data) {
           if (row && row[columnG]) {
             const numValue = parseFloat(String(row[columnG]).replace(/[$,\s]/g, ''));
             if (!isNaN(numValue) && numValue > 0.001) {
-              testAmount += numValue;
-              validValues++;
+              total += numValue;
+              count++;
             }
           }
         }
-        if (validValues > 10 && testAmount > 1000) { // Need substantial data
-          bestAmount = testAmount;
-          bestColumn = columnG;
-          console.log(`UPS ${tab.name}: FOUND Column G '${columnG}' with ${validValues} values = $${testAmount.toLocaleString()}`);
+        if (count > 100 && total > 10000) { // Substantial data
+          console.log(`UPS ${tab.name}: Found Column G '${columnG}' with $${total.toLocaleString()} from ${count} rows`);
+          return { column: columnG, amount: total };
         }
       }
-
-      for (const pattern of netChargePatterns) {
-        const foundColumn = tab.columns.find(col =>
-          col && col.toLowerCase() === pattern.toLowerCase()
+      
+      // Step 2: Look for all charge columns
+      const chargeColumns = tab.columns.filter(col => 
+        col && 
+        col.toLowerCase().includes('charge') && 
+        !col.toLowerCase().includes('gross')
+      );
+      
+      console.log(`UPS ${tab.name}: Found charge columns:`, chargeColumns);
+      
+      for (const col of chargeColumns) {
+        let total = 0;
+        let count = 0;
+        for (const row of tab.data) {
+          if (row && row[col]) {
+            const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && numValue > 0.001) {
+              total += numValue;
+              count++;
+            }
+          }
+        }
+        if (total > bestAmount && count > 10) {
+          bestAmount = total;
+          bestColumn = col;
+          console.log(`UPS ${tab.name}: Best so far: '${col}' = $${total.toLocaleString()} from ${count} rows`);
+        }
+      }
+      
+      if (bestColumn) {
+        console.log(`UPS ${tab.name}: FINAL CHOICE: '${bestColumn}' = $${bestAmount.toLocaleString()}`);
+        return { column: bestColumn, amount: bestAmount };
+      }
+      
+      console.log(`UPS ${tab.name}: ERROR - No charge columns found!`);
+      return { column: '', amount: 0 };
+    }
+    
+    // ================================
+    // OTHER TL TABS
+    // ================================
+    if (fileType === 'TL') {
+      console.log(`TL ${tab.name}: Using standard TL extraction`);
+      
+      // Find freight cost columns
+      const patterns = ['freight_cost', 'Net Charge', 'Net Rate', 'Net Cost', 'Charge', 'Rate', 'Cost', 'Amount'];
+      let rateColumn = null;
+      
+      for (const pattern of patterns) {
+        rateColumn = tab.columns.find(col => 
+          col && col.toLowerCase().includes(pattern.toLowerCase()) && !col.toLowerCase().includes('gross')
         );
-        if (foundColumn) {
-          let testAmount = 0;
-          let validValues = 0;
-          for (const row of tab.data) {
-            if (row && row[foundColumn]) {
-              const numValue = parseFloat(String(row[foundColumn]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > 0.001) { // Even lower threshold for individual values
-                testAmount += numValue;
-                validValues++;
-              }
-            }
-          }
-          if (validValues > 0 && testAmount > 10) { // Lower threshold - ANY meaningful data
-            bestAmount = testAmount;
-            bestColumn = foundColumn;
-            console.log(`UPS ${tab.name}: FOUND exact Net Charge column '${foundColumn}' with ${validValues} values = $${testAmount.toLocaleString()}`);
-            break;
-          }
-        }
+        if (rateColumn) break;
       }
-
-      // Step 2: If no exact match, look for columns containing "net" AND "charge"
-      if (!bestColumn) {
-        console.log(`UPS ${tab.name}: No exact match, looking for columns with 'net' AND 'charge'...`);
-        const netChargeColumn = tab.columns.find(col =>
-          col &&
-          col.toLowerCase().includes('net') &&
-          col.toLowerCase().includes('charge')
-        );
-        if (netChargeColumn) {
-          let testAmount = 0;
-          let validValues = 0;
-          for (const row of tab.data) {
-            if (row && row[netChargeColumn]) {
-              const numValue = parseFloat(String(row[netChargeColumn]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > 0.001) { // Even lower threshold
-                testAmount += numValue;
-                validValues++;
-              }
-            }
-          }
-          if (validValues > 0 && testAmount > 10) {
-            bestAmount = testAmount;
-            bestColumn = netChargeColumn;
-            console.log(`UPS ${tab.name}: FOUND Net+Charge column '${netChargeColumn}' with ${validValues} values = $${testAmount.toLocaleString()}`);
-          }
-        }
-      }
-
-      // Step 3: Last resort - any column with "charge" but NOT "gross"
-      if (!bestColumn) {
-        console.log(`UPS ${tab.name}: Last resort - looking for any 'charge' column (excluding gross)...`);
-        const chargeColumns = tab.columns.filter(col =>
-          col &&
-          col.toLowerCase().includes('charge') &&
-          !col.toLowerCase().includes('gross')
-        );
-
-        for (const chargeCol of chargeColumns) {
-          let testAmount = 0;
-          let validValues = 0;
-          for (const row of tab.data) {
-            if (row && row[chargeCol]) {
-              const numValue = parseFloat(String(row[chargeCol]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > 0.001) { // Even lower threshold
-                testAmount += numValue;
-                validValues++;
-              }
-            }
-          }
-          if (validValues > 0 && testAmount > 10) {
-            bestAmount = testAmount;
-            bestColumn = chargeCol;
-            console.log(`UPS ${tab.name}: FOUND charge column '${chargeCol}' with ${validValues} values = $${testAmount.toLocaleString()}`);
-            break;
-          }
-        }
-      }
-
-      if (!bestColumn) {
-        console.log(`UPS ${tab.name}: ERROR - NO NET CHARGE COLUMN FOUND! All columns:`, tab.columns);
-
-        // EMERGENCY: Try ANY column with numeric data as last resort
-        console.log(`UPS ${tab.name}: EMERGENCY - Trying ANY column with numeric data...`);
-        for (const col of tab.columns) {
-          if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
-
-          let testAmount = 0;
-          let validValues = 0;
-          for (const row of tab.data) {
-            if (row && row[col]) {
-              const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > 0.001) {
-                testAmount += numValue;
-                validValues++;
-              }
-            }
-          }
-          if (validValues > 10 && testAmount > 1000) { // Need substantial data
-            bestAmount = testAmount;
-            bestColumn = col;
-            console.log(`UPS ${tab.name}: EMERGENCY - Using ANY numeric column '${col}' with $${testAmount.toLocaleString()}`);
-            break;
-          }
-        }
-      }
-    } else if (fileType === 'TL') {
-      // For TL files: Use column H specifically for TOTAL 2024 tab, other patterns for other tabs
-      let rateColumn;
-
-      if (tab.name === 'TOTAL 2024') {
-        // For TOTAL 2024 tab: Use column H specifically (as user requested)
-        // Look for Column H with various possible representations
-        rateColumn = tab.columns.find(col =>
-          col === 'H' ||
-          col === '__EMPTY_7' ||
-          col === '__EMPTY_8' ||
-          col === 'Column H' ||
-          col?.toLowerCase() === 'h'
-        );
-
-        // If no exact H found, try finding 8th column (0-indexed = 7)
-        if (!rateColumn && tab.columns.length > 7) {
-          rateColumn = tab.columns[7]; // 8th column (H)
-          console.log(`TL ${tab.name}: Using 8th column (${rateColumn}) as Column H`);
-        }
-
-        if (rateColumn) {
-          console.log(`TL ${tab.name}: FORCED to use ONLY column H as requested: ${rateColumn}`);
-        } else {
-          console.log(`TL ${tab.name}: ERROR - Column H not found! Available columns:`, tab.columns);
-          console.log(`TL ${tab.name}: Total columns: ${tab.columns.length}`);
-          // DO NOT use any fallback for TOTAL 2024 - user wants Column H only!
-          console.log(`TL ${tab.name}: EXITING - NO Column H found, returning $0 as requested`);
-          return { column: '', amount: 0 };
-        }
-      } else {
-        // For other TL tabs: Use standard pattern matching for freight_cost, etc.
-        rateColumn = findColumnByPattern(['Net Charge', 'Net Rate', 'Net Cost', 'freight_cost', 'Charge', 'Rate', 'Cost', 'Amount']);
-      }
-
-      // CRITICAL: For TOTAL 2024, ONLY proceed if we found Column H - no other columns allowed!
-      if (rateColumn && (tab.name !== 'TOTAL 2024' || (tab.name === 'TOTAL 2024' && rateColumn))) {
-        // Smart filtering: exclude total rows based on missing supporting data
-        const filteredData = tab.data.filter(row => {
-          if (!row) return false;
-
-          // Check if any field in the row contains total keywords
+      
+      if (rateColumn) {
+        // Smart filtering: exclude total rows
+        let total = 0;
+        let count = 0;
+        
+        for (const row of tab.data) {
+          if (!row) continue;
+          
+          // Skip rows with total keywords
           const rowValues = Object.values(row).map(val => String(val).toLowerCase());
           const hasTotal = rowValues.some(val =>
-            val.includes('total') ||
-            val.includes('sum') ||
-            val.includes('grand') ||
-            val.includes('subtotal')
+            val.includes('total') || val.includes('sum') || val.includes('grand')
           );
-
-          if (hasTotal) return false;
-
-          // Smart check: if row has a monetary value but no supporting data, it's likely a total
+          if (hasTotal) continue;
+          
           if (row[rateColumn]) {
             const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
-            if (!isNaN(numValue) && numValue > 0) {
-              // Check if this row has supporting data (origin, destination, etc.)
-              const supportingDataColumns = Object.keys(row).filter(key =>
-                key.toLowerCase().includes('origin') ||
-                key.toLowerCase().includes('destination') ||
-                key.toLowerCase().includes('from') ||
-                key.toLowerCase().includes('to') ||
-                key.toLowerCase().includes('route') ||
-                key.toLowerCase().includes('lane') ||
-                key.toLowerCase().includes('city') ||
-                key.toLowerCase().includes('state') ||
-                key.toLowerCase().includes('zip') ||
-                key.toLowerCase().includes('location') ||
-                key.toLowerCase().includes('service') ||
-                key.toLowerCase().includes('mode') ||
-                key.toLowerCase().includes('carrier')
-              );
-
-              // Count how many supporting data fields have actual values
-              const supportingDataCount = supportingDataColumns.filter(col => {
-                const value = row[col];
-                return value && String(value).trim() !== '' &&
-                       String(value).toLowerCase() !== 'null' &&
-                       String(value).toLowerCase() !== 'n/a';
-              }).length;
-
-              // If there's a monetary value but little/no supporting data, it's likely a total row
-              if (supportingDataCount === 0) {
-                console.log(`TL ${tab.name}: Excluding row with $${numValue.toLocaleString()} - no supporting data (likely total row)`);
-                return false;
-              }
-            }
-          }
-
-          return true; // Include valid data rows
-        });
-
-        for (const row of filteredData) {
-          if (row && row[rateColumn]) {
-            const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
             if (!isNaN(numValue) && numValue > 1) {
-              bestAmount += numValue;
+              total += numValue;
+              count++;
             }
           }
         }
-        bestColumn = rateColumn;
-
-        // Log filtering results for debugging
-        console.log(`TL ${tab.name}: Filtered ${tab.data.length - filteredData.length} total rows, ${filteredData.length} data rows remaining`);
-        console.log(`TL ${tab.name}: Extracted $${bestAmount.toLocaleString()} from column '${bestColumn}'`);
-
-        // If Column H extraction failed for TOTAL 2024, provide detailed debugging
-        if (tab.name === 'TOTAL 2024' && (!bestColumn || bestAmount === 0)) {
-          console.log(`TL TOTAL 2024 DEBUG: Failed to extract from Column H`);
-          console.log(`  - rateColumn found: ${rateColumn}`);
-          console.log(`  - bestColumn assigned: ${bestColumn}`);
-          console.log(`  - bestAmount: ${bestAmount}`);
-          console.log(`  - All columns (${tab.columns.length}):`, tab.columns);
-          console.log(`  - Sample data from first 3 rows:`);
-          for (let i = 0; i < Math.min(3, tab.data.length); i++) {
-            if (tab.data[i]) {
-              const row = tab.data[i];
-              console.log(`    Row ${i}:`, Object.keys(row).slice(0, 10).map(key => `${key}=${row[key]}`));
-            }
-          }
-        }
+        
+        console.log(`TL ${tab.name}: Extracted $${total.toLocaleString()} from '${rateColumn}' (${count} rows)`);
+        return { column: rateColumn, amount: total };
       }
-    } else if (fileType === 'RL') {
-      // For R&L files, ABSOLUTE PRIORITY: Column V first, then NET charges, NEVER gross charges
-
+      
+      console.log(`TL ${tab.name}: No rate column found`);
+      return { column: '', amount: 0 };
+    }
+    
+    // ================================
+    // R&L FILES  
+    // ================================
+    if (fileType === 'RL') {
+      console.log(`R&L ${tab.name}: Looking for Column V or NET charges`);
+      
       // HIGHEST PRIORITY: Look for exact column V
       const columnV = tab.columns.find(col => col === 'V');
       if (columnV) {
-        let testAmount = 0;
-        let validValues = 0;
+        let total = 0;
+        let count = 0;
 
         for (const row of tab.data) {
           if (row && row[columnV]) {
             const numValue = parseFloat(String(row[columnV]).replace(/[$,\s]/g, ''));
             if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
-              testAmount += numValue;
-              validValues++;
+              total += numValue;
+              count++;
             }
           }
         }
 
-        // Column V gets priority if it has ANY valid data
-        if (validValues > 0 && testAmount > 0 && isFinite(testAmount)) {
-          bestAmount = testAmount;
-          bestColumn = columnV;
-          console.log(`R&L ${tab.name}: Selected column V with ${validValues} values totaling $${testAmount.toLocaleString()}`);
+        if (count > 0 && total > 0 && isFinite(total)) {
+          console.log(`R&L ${tab.name}: Selected column V with ${count} values totaling $${total.toLocaleString()}`);
+          return { column: columnV, amount: total };
         }
       }
 
-      // SECOND PRIORITY: If no column V or column V has no data, look for NET charges ONLY
-      if (!bestColumn || bestAmount === 0) {
-        console.log(`R&L ${tab.name}: Column V not usable, looking for NET charges (NO GROSS)...`);
+      // SECOND PRIORITY: Look for NET charge columns
+      const netChargeColumns = tab.columns.filter(col =>
+        col &&
+        col.toLowerCase().includes('net') &&
+        (col.toLowerCase().includes('charge') || col.toLowerCase().includes('cost') || col.toLowerCase().includes('amount'))
+      );
 
-        // Look for NET charge columns specifically - EXCLUDE gross
-        const netChargeColumns = tab.columns.filter(col =>
-          col &&
-          col.toLowerCase().includes('net') &&
-          (col.toLowerCase().includes('charge') || col.toLowerCase().includes('cost') || col.toLowerCase().includes('amount'))
-        );
+      let bestAmount = 0;
+      let bestColumn = '';
+      
+      for (const netCol of netChargeColumns) {
+        let total = 0;
+        let count = 0;
 
-        for (const netCol of netChargeColumns) {
-          let testAmount = 0;
-          let validValues = 0;
-
-          for (const row of tab.data) {
-            if (row && row[netCol]) {
-              const numValue = parseFloat(String(row[netCol]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
-                testAmount += numValue;
-                validValues++;
-              }
+        for (const row of tab.data) {
+          if (row && row[netCol]) {
+            const numValue = parseFloat(String(row[netCol]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
+              total += numValue;
+              count++;
             }
           }
+        }
 
-          if (validValues > 5 && testAmount > bestAmount && isFinite(testAmount)) {
-            bestAmount = testAmount;
-            bestColumn = netCol;
-            console.log(`R&L ${tab.name}: Selected NET column '${netCol}' with $${testAmount.toLocaleString()}`);
-          }
+        if (count > 5 && total > bestAmount && isFinite(total)) {
+          bestAmount = total;
+          bestColumn = netCol;
         }
       }
-
-      // THIRD PRIORITY: If still no NET charges found, try other columns but EXCLUDE gross completely
-      if (!bestColumn || bestAmount === 0) {
-        console.log(`R&L ${tab.name}: No NET charges found, trying other cost columns (EXCLUDING GROSS)...`);
-
-        // Priority order for R&L cost columns - NET prioritized, GROSS EXCLUDED
-        const priorityColumns = [
-          'Net Charge',
-          'net_charge',
-          'NetCharge',
-          'Charge',  // Only if not gross
-          'charge',
-          'Net Amount',
-          'Amount',
-          'Cost',
-          'Total',
-          'Freight'
-        ];
-
-        // First, try exact matches for priority columns (exclude gross)
-        for (const priorityCol of priorityColumns) {
-          if (tab.columns.includes(priorityCol)) {
-            let testAmount = 0;
-            let validValues = 0;
-
-            for (const row of tab.data) {
-              if (row && row[priorityCol]) {
-                const numValue = parseFloat(String(row[priorityCol]).replace(/[$,\s]/g, ''));
-                if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
-                  testAmount += numValue;
-                  validValues++;
-                }
-              }
-            }
-
-            if (validValues > 5 && testAmount > 1000 && isFinite(testAmount)) {
-              bestAmount = testAmount;
-              bestColumn = priorityCol;
-              console.log(`R&L ${tab.name}: Using fallback column '${priorityCol}' with $${testAmount.toLocaleString()}`);
-              break;
-            }
-          }
-        }
-
-        // LAST RESORT: pattern matching but EXPLICITLY EXCLUDE gross columns
-        if (!bestColumn || bestAmount === 0) {
-          for (const col of tab.columns) {
-            if (!col ||
-                col.toLowerCase().includes('empty') ||
-                col.toLowerCase().includes('null') ||
-                col.toLowerCase().includes('address') ||
-                col.toLowerCase().includes('consignee') ||
-                col.toLowerCase().includes('shipper') ||
-                col.toLowerCase().includes('gross')) { // EXCLUDE GROSS COLUMNS
-              continue;
-            }
-
-            // Only consider cost-related columns
-            const isLikelyCostColumn = col.toLowerCase().includes('net') ||
-                                     col.toLowerCase().includes('charge') ||
-                                     col.toLowerCase().includes('cost') ||
-                                     col.toLowerCase().includes('amount') ||
-                                     col.toLowerCase().includes('total') ||
-                                     col.toLowerCase().includes('freight') ||
-                                     col.toLowerCase().includes('revenue');
-
-            if (!isLikelyCostColumn) continue;
-
-            let testAmount = 0;
-            let validValues = 0;
-
-            for (const row of tab.data) {
-              if (row && row[col]) {
-                const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
-                if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
-                  testAmount += numValue;
-                  validValues++;
-                }
-              }
-            }
-
-            if (validValues > 5 && testAmount > bestAmount && testAmount > 1000 && isFinite(testAmount)) {
-              bestAmount = testAmount;
-              bestColumn = col;
-            }
-          }
-
-          if (bestColumn) {
-            console.log(`R&L ${tab.name}: Using pattern-matched column '${bestColumn}' with $${bestAmount.toLocaleString()} (GROSS EXCLUDED)`);
-          }
-        }
+      
+      if (bestColumn) {
+        console.log(`R&L ${tab.name}: Selected NET column '${bestColumn}' with $${bestAmount.toLocaleString()}`);
+        return { column: bestColumn, amount: bestAmount };
       }
+      
+      console.log(`R&L ${tab.name}: No suitable columns found`);
+      return { column: '', amount: 0 };
     }
-
-    return { column: bestColumn, amount: bestAmount };
+    
+    console.log(`Unknown file type ${fileType}`);
+    return { column: '', amount: 0 };
   };
 
   const processExcelFile = async (file: File): Promise<MultiTabFile> => {
