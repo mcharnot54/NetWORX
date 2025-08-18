@@ -541,6 +541,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             method: usingAdaptiveLearning ? 'adaptive_learning' : 'pattern_matching',
             rowsProcessed: sheetData.data.length,
             columnHeaders: sheetData.columnHeaders,
+            operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined,
             learningMetrics: {
               patternDetected: `${fileType}_${sheetName}_${usingAdaptiveLearning ? 'adaptive' : 'simple'}`,
               adaptiveConfidence: usingAdaptiveLearning && sheetData.adaptiveTemplate ? sheetData.adaptiveTemplate.confidence : undefined,
@@ -744,7 +745,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             addLog(`✓ ${file.fileName} uploaded with preserved tab structure`);
           } else {
             const errorData = await uploadResponse.text();
-            addLog(`��� Failed to upload ${file.fileName}: ${errorData}`);
+            addLog(`✗ Failed to upload ${file.fileName}: ${errorData}`);
           }
         }
       }
