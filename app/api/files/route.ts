@@ -306,3 +306,21 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to update file' }, { status: 500 });
   }
 }
+
+// Delete a file
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const fileId = searchParams.get('id');
+
+    if (!fileId) {
+      return NextResponse.json({ error: 'File id is required' }, { status: 400 });
+    }
+
+    await DataFileService.deleteDataFile(parseInt(fileId));
+    return NextResponse.json({ success: true, message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 });
+  }
+}
