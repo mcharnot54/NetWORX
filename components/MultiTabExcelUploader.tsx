@@ -108,9 +108,25 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
         const XLSX = await import('xlsx');
 
-        // Process file with adaptive learning
+        // Process file with adaptive learning - special handling for macro-enabled files
         const buffer = await file.arrayBuffer();
-        const workbook = XLSX.read(buffer, { type: 'array' });
+        const isXlsm = file.name.toLowerCase().endsWith('.xlsm');
+
+        addLog(`📁 File type: ${isXlsm ? 'Macro-enabled (.xlsm)' : 'Standard Excel'}`);
+
+        const workbook = XLSX.read(buffer, {
+          type: 'array',
+          cellFormula: false,  // Don't try to preserve formulas
+          cellHTML: false,     // Don't preserve HTML
+          cellNF: false,       // Don't preserve number formats
+          cellDates: true,     // Parse dates
+          bookDeps: false,     // Don't load dependencies
+          bookFiles: false,    // Don't load file relationships
+          bookProps: false,    // Don't load properties
+          bookSheets: false,   // Don't load sheet relationships
+          bookVBA: false,      // Don't load VBA/macros
+          raw: false           // Process the data
+        });
 
         const sheets: any = {};
         let totalExtracted = 0;
@@ -965,7 +981,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       onFilesUploaded(files);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      addLog(`✗ Database upload failed: ${errorMessage}`);
+      addLog(`��� Database upload failed: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
     }
