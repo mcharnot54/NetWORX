@@ -134,7 +134,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       // Log validation warnings
       const tabs: ExcelTab[] = [];
-      const totalExtracted = result.totalExtracted;
+      let totalExtracted = 0; // Calculate from individual tabs instead of using result.totalExtracted
 
       addLog(`Found ${Object.keys(result.sheets).length} sheets: ${Object.keys(result.sheets).join(', ')}`);
 
