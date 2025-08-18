@@ -16,7 +16,12 @@ const extractionSchema = z.object({
     patternDetected: z.string().optional(),
     adaptiveConfidence: z.number().optional(),
     fallbackUsed: z.boolean().optional(),
-    processingTime: z.number().optional()
+    processingTime: z.number().optional(),
+    adaptiveTemplate: z.object({
+      id: z.string(),
+      confidence: z.number(),
+      mappingsCount: z.number()
+    }).optional()
   }).optional()
 });
 
