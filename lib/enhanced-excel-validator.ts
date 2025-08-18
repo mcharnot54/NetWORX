@@ -147,11 +147,18 @@ export class EnhancedExcelValidator {
 
       for (const sheetName of relevantSheets) {
         const worksheet = workbook.Sheets[sheetName];
-        const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
-        
+        // Smart header detection - skip logo/empty rows
+        const rawDataWithHeaders = this.findActualHeaderRow(worksheet);
+        const rawData = rawDataWithHeaders.data;
+        const headerRowIndex = rawDataWithHeaders.headerRowIndex;
+
         if (rawData.length === 0) {
           this.logger(`Sheet '${sheetName}' is empty, skipping`, 'warning');
           continue;
+        }
+
+        if (headerRowIndex > 0) {
+          this.logger(`Found header row at row ${headerRowIndex + 1} in sheet '${sheetName}' (skipped ${headerRowIndex} logo/empty rows)`, 'info');
         }
 
         // Clean and process sheet data
