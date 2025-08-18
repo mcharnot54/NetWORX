@@ -7,6 +7,7 @@ const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/data-processor", label: "Data Processor" },
   { href: "/multi-tab-upload", label: "📊 Multi-Tab Upload" },
+  { href: "/test-enhanced-validation", label: "🔍 Enhanced Validation" },
   { href: "/missing-data-demo", label: "🧠 Missing Data AI" },
   { href: "/capacity-optimizer", label: "Capacity Optimizer" },
   { href: "/warehouse-optimizer", label: "Warehouse Optimizer" },
