@@ -15,9 +15,9 @@ interface RetryConfig {
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 2, // Reduce retries since server is slow
-  baseDelay: 5000, // Much longer base delay
-  maxDelay: 30000, // Much longer max delay
+  maxRetries: 1, // Further reduce retries for timeout issues
+  baseDelay: 8000, // Even longer base delay
+  maxDelay: 20000, // Reasonable max delay
   exponentialBackoff: true,
 };
 
