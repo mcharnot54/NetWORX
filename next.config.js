@@ -18,6 +18,11 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
 
+  // Fix cross-origin warnings in development
+  allowedDevOrigins: [
+    '2b0e10ddb207455f9e730942e3cdf7bc-1deef392babe403b940b6173f.fly.dev'
+  ],
+
   // Asset optimization
   images: {
     unoptimized: process.env.ELECTRON === 'true'
