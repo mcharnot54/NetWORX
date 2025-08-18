@@ -1,247 +1,26 @@
-// HMR Error Handler for Cloud Environments
+// Minimal HMR error handler - removed fetch wrapping that was causing issues
 (function() {
   if (typeof window === 'undefined') {
     return;
   }
 
-  // Check if we're in development mode and likely in a cloud environment
-  const isDevelopment = window.location.hostname.includes('fly.dev') ||
-                       window.location.hostname.includes('vercel.app') ||
-                       window.location.hostname.includes('netlify.app') ||
-                       window.location.search.includes('reload=');
-
-  if (!isDevelopment) {
-    return;
-  }
-
-  // Override the original fetch for HMR requests
-  const originalFetch = window.fetch;
-  let hmrErrorCount = 0;
-  const MAX_HMR_ERRORS = 2; // Reduced threshold
-
-  window.fetch = function(resource, options) {
-    // Check if this is an HMR-related request
-    const url = typeof resource === 'string' ? resource : resource?.url;
-    if (!url) {
-      return originalFetch.apply(this, arguments);
-    }
-
-    const isHMRRequest = url.includes('_next/static') ||
-                        url.includes('webpack') ||
-                        url.includes('hot-update') ||
-                        url.includes('reload=') ||
-                        url.includes('hmrM');
-
-    if (isHMRRequest) {
-      return originalFetch.apply(this, arguments)
-        .catch(error => {
-          // Only count TypeError: Failed to fetch errors
-          if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-            hmrErrorCount++;
-            console.warn(`HMR fetch failed (${hmrErrorCount}/${MAX_HMR_ERRORS}):`, error.message);
-          } else {
-            console.warn('HMR error (not counted):', error.message);
-            // Return original error for other types
-            return Promise.reject(error);
-          }
-
-          // If we've had too many HMR errors, suggest a refresh
-          if (hmrErrorCount >= MAX_HMR_ERRORS) {
-            console.warn('Multiple HMR failures detected. Consider refreshing the page.');
-            
-            // Show a subtle notification
-            if (!document.getElementById('hmr-error-notice')) {
-              const notice = document.createElement('div');
-              notice.id = 'hmr-error-notice';
-              notice.innerHTML = `
-                <div style="
-                  position: fixed;
-                  top: 20px;
-                  right: 20px;
-                  background: #fef3c7;
-                  border: 2px solid #f59e0b;
-                  border-radius: 8px;
-                  padding: 12px 16px;
-                  z-index: 10000;
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  font-size: 14px;
-                  color: #92400e;
-                  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                  max-width: 300px;
-                ">
-                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-weight: 600;">⚠️ Hot Reload Issues</span>
-                  </div>
-                  <div style="font-size: 12px; margin-bottom: 8px;">
-                    Code changes may not update automatically.
-                  </div>
-                  <button onclick="window.location.reload()" style="
-                    background: #f59e0b;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 6px 12px;
-                    font-size: 12px;
-                    cursor: pointer;
-                    margin-right: 8px;
-                  ">
-                    Refresh Page
-                  </button>
-                  <button onclick="this.parentElement.parentElement.remove()" style="
-                    background: transparent;
-                    color: #92400e;
-                    border: 1px solid #d97706;
-                    border-radius: 4px;
-                    padding: 6px 12px;
-                    font-size: 12px;
-                    cursor: pointer;
-                  ">
-                    Dismiss
-                  </button>
-                </div>
-              `;
-              document.body.appendChild(notice);
-
-              // Auto-dismiss after 10 seconds
-              setTimeout(() => {
-                if (document.getElementById('hmr-error-notice')) {
-                  document.getElementById('hmr-error-notice').remove();
-                }
-              }, 10000);
-            }
-            
-            // Reset counter after showing notice
-            hmrErrorCount = 0;
-          }
-
-          // Return a resolved promise to prevent further errors
-          return Promise.resolve(new Response('', { status: 200 }));
-        });
-    }
-
-    // For non-HMR requests, use original behavior
-    return originalFetch.apply(this, arguments);
-  };
-
-  // Reset error count on successful page loads
-  window.addEventListener('load', () => {
-    hmrErrorCount = 0;
-    const notice = document.getElementById('hmr-error-notice');
-    if (notice) {
-      notice.remove();
-    }
-  });
-
-  // Handle WebSocket connection errors for HMR
-  const originalWebSocket = window.WebSocket;
-  window.WebSocket = function(url, protocols) {
-    const ws = new originalWebSocket(url, protocols);
-    
-    ws.addEventListener('error', (event) => {
-      if (url.includes('_next/webpack-hmr')) {
-        console.warn('HMR WebSocket connection failed. Hot reloading may not work properly.');
-      }
-    });
-
-    return ws;
-  };
-
-  // Global error handler to suppress AbortErrors from cancelled requests
-  window.addEventListener('error', (event) => {
-    const error = event.error;
-    if (error) {
-      const errorName = String(error.name || '');
-      const errorMessage = String(error.message || '');
-
-      // Detect AbortErrors with multiple patterns
-      if (errorName === 'AbortError' ||
-          errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('aborted without reason') ||
-          errorMessage.includes('External signal abort') ||
-          errorMessage.includes('The operation was aborted') ||
-          errorMessage.includes('Request was cancelled') ||
-          errorMessage.includes('cancelled')) {
-        console.debug('Suppressed AbortError:', errorMessage || 'signal aborted');
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
-      }
-
-      // Suppress 'Failed to fetch' errors in cloud environments
-      if (errorName === 'TypeError' && (errorMessage === 'Failed to fetch' ||
-          errorMessage.includes('fetch') || errorMessage.includes('NetworkError'))) {
-        console.debug('Suppressed network fetch error:', errorMessage);
-        event.preventDefault();
-        return false;
-      }
-    }
-  });
-
-  // Handle unhandled promise rejections for AbortErrors
+  // Just handle unhandled promise rejections for AbortErrors without interfering with fetch
   window.addEventListener('unhandledrejection', (event) => {
     const error = event.reason;
     if (error) {
       const errorName = String(error.name || '');
       const errorMessage = String(error.message || '');
 
-      // Detect AbortErrors with multiple patterns
-      if (errorName === 'AbortError' ||
-          errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('aborted without reason') ||
-          errorMessage.includes('External signal abort') ||
-          errorMessage.includes('The operation was aborted') ||
-          errorMessage.includes('Request was cancelled') ||
-          errorMessage.includes('cancelled')) {
-        console.debug('Suppressed unhandled AbortError rejection:', errorMessage || 'signal aborted');
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
-      }
-
-      // Suppress 'Failed to fetch' errors in cloud environments
-      if (errorName === 'TypeError' && (errorMessage === 'Failed to fetch' ||
-          errorMessage.includes('fetch') || errorMessage.includes('NetworkError'))) {
-        console.debug('Suppressed unhandled network fetch error:', errorMessage);
+      // Only suppress specific AbortErrors that are known to be harmless
+      if (errorName === 'AbortError' && 
+          (errorMessage.includes('signal is aborted') || 
+           errorMessage.includes('aborted without reason'))) {
+        console.debug('Suppressed harmless AbortError:', errorMessage);
         event.preventDefault();
         return false;
       }
     }
   });
 
-  // Store reference to avoid double-wrapping
-  if (!window.__hmr_fetch_wrapped) {
-    const originalWindowFetch = window.fetch;
-    window.fetch = function(resource, ...args) {
-      const url = typeof resource === 'string' ? resource : resource?.url;
-      const isAPIRequest = url && (url.includes('/api/') || url.startsWith('/api/'));
-      const isHMRRequest = url && (url.includes('_next/static') || url.includes('webpack') || url.includes('hot-update'));
-
-      return originalWindowFetch.apply(this, [resource, ...args]).catch(error => {
-        const errorName = String(error.name || '');
-        const errorMessage = String(error.message || '');
-
-        // Only handle AbortErrors for HMR requests, not API requests
-        if (isHMRRequest && (errorName === 'AbortError' ||
-            errorMessage.includes('aborted') ||
-            errorMessage.includes('signal is aborted') ||
-            errorMessage.includes('aborted without reason'))) {
-          console.debug('HMR fetch AbortError suppressed:', errorMessage);
-          return Promise.resolve(new Response('', { status: 200 }));
-        }
-
-        // For TypeError: Failed to fetch in cloud environments, add retries for HMR only
-        if (isHMRRequest && errorName === 'TypeError' && errorMessage === 'Failed to fetch') {
-          console.debug('HMR fetch failed, returning empty response to avoid blocking');
-          return Promise.resolve(new Response('', { status: 200 }));
-        }
-
-        throw error;
-      });
-    };
-    window.__hmr_fetch_wrapped = true;
-  }
-
-  console.log('HMR error handler and comprehensive AbortError suppression initialized for cloud environment');
+  console.log('Minimal HMR error handler initialized');
 })();
