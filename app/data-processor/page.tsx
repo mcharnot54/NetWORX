@@ -236,7 +236,13 @@ export default function DataProcessor() {
       }
     } catch (error) {
       console.error('Error loading saved files:', error);
-      addToLog('⚠ Could not load previously uploaded files');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addToLog(`⚠ Could not load previously uploaded files: ${errorMessage}`);
+
+      // Check if it's a database/table issue
+      if (errorMessage.includes('404') || errorMessage.includes('table') || errorMessage.includes('database')) {
+        addToLog('ℹ This might be a database setup issue. Try setting up the database first.');
+      }
     } finally {
       setLoadingSavedFiles(false);
     }
