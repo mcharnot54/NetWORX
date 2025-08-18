@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
             )
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
-          `, 1500); // 1.5 second timeout for data files
+          `, 6000); // 6 second timeout for data files
 
           console.log(`Found ${dataFiles.length} transportation files for baseline extraction`);
         } catch (dataFileError) {
