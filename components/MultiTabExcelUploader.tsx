@@ -257,8 +257,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             excel_preserved: true
           };
 
-          // Upload to database
-          const uploadResponse = await fetch('/api/files', {
+          // Upload to database using multi-tab endpoint
+          const uploadResponse = await fetch('/api/files/multi-tab-upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
