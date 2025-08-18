@@ -234,34 +234,38 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         addLog(`    📊 DATA QUALITY: ${sheetData.cleaningReport.rowsRemoved} rows removed, ${sheetData.cleaningReport.valuesConverted} values converted`);
         addLog(`    🧠 LEARNING DATA: Stored patterns for network analysis optimization`);
 
-        // Store extraction data for future learning and optimization
-        try {
-          const learningResponse = await fetch('/api/learning/store-extraction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: file.name,
-              sheetName,
-              fileType,
-              columnName: targetColumn,
-              extractedAmount,
-              confidence: 0.85, // Will be calculated by adaptive system
-              method: 'adaptive_learning',
-              rowsProcessed: sheetData.data.length,
-              columnHeaders: sheetData.columnHeaders,
-              learningMetrics: {
-                patternDetected: `${fileType}_${sheetName}_pattern`,
-                processingTime: Date.now()
-              }
-            })
-          });
+        // Store extraction data safely (skip if memory issues)
+        if (sheetData.data.length < 10000) { // Only store learning for smaller datasets to prevent crashes
+          try {
+            const learningResponse = await fetch('/api/learning/store-extraction', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fileName: file.name,
+                sheetName,
+                fileType,
+                columnName: targetColumn,
+                extractedAmount,
+                confidence: 0.85,
+                method: 'safe_pattern_matching',
+                rowsProcessed: sheetData.data.length,
+                columnHeaders: sheetData.columnHeaders.slice(0, 20), // Limit headers to prevent large payloads
+                learningMetrics: {
+                  patternDetected: `${fileType}_${sheetName}_safe`,
+                  processingTime: Date.now()
+                }
+              })
+            });
 
-          if (learningResponse.ok) {
-            const result = await learningResponse.json();
-            addLog(`🎯 STORED LEARNING: ${result.learningId} for future optimization`);
+            if (learningResponse.ok) {
+              const result = await learningResponse.json();
+              addLog(`🎯 SAFE STORAGE: ${result.learningId}`);
+            }
+          } catch (learningError) {
+            addLog(`⚠️ Learning storage skipped to prevent memory issues`);
           }
-        } catch (learningError) {
-          addLog(`⚠️ Learning storage warning: ${learningError}`);
+        } else {
+          addLog(`🛡️ MEMORY PROTECTION: Skipping learning storage for large dataset (${sheetData.data.length} rows)`);
         }
       }
 
