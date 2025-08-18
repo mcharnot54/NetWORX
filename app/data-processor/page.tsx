@@ -375,8 +375,8 @@ export default function DataProcessor() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id: fileId, ...updateData }),
-        timeout: 10000, // 10 second timeout
-        retries: 2 // Retry failed requests twice
+        timeout: 5000, // 5 second timeout for database updates
+        retries: 1 // Only retry once for database updates
       });
 
       console.log('File updated successfully:', responseData);
@@ -1554,7 +1554,7 @@ export default function DataProcessor() {
                     <ul className="text-blue-600 mt-1 space-y-1">
                       <li>• Historical Sales Data</li>
                       <li>• Demand Projection</li>
-                      <li>• Growth Forecasts</li>
+                      <li>��� Growth Forecasts</li>
                       <li>• SKU Performance</li>
                     </ul>
                   </div>
