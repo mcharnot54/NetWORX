@@ -302,18 +302,18 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               ) || (sheetData.columnHeaders.length > 21 ? sheetData.columnHeaders[21] : null); // Column V is 22nd column (index 21)
 
               if (columnV) {
-                let count = 0;
+                let rlCount = 0;
                 for (const row of sheetData.data) {
                   if (row && row[columnV]) {
                     const numValue = parseFloat(String(row[columnV]).replace(/[$,\s]/g, ''));
                     if (!isNaN(numValue) && numValue > 0) {
                       extractedAmount += numValue;
-                      count++;
+                      rlCount++;
                     }
                   }
                 }
                 targetColumn = columnV;
-                addLog(`🎯 R&L ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows)`);
+                addLog(`🎯 R&L ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${rlCount} rows)`);
               } else {
                 addLog(`🚨 R&L ${sheetName}: Column V not found! Available: ${sheetData.columnHeaders.join(', ')}`);
               }
