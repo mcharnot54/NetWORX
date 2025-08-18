@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Helper function to add timeout to database operations
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 2000): Promise<T> {
+// Helper function to add timeout to database operations - increased timeouts
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         WHERE p.status = 'active'
         ORDER BY s.created_at DESC
         LIMIT 5
-      `, 1500); // 1.5 second timeout for this query
+      `, 5000); // 5 second timeout for this query
       baselineCosts.scenarios_analyzed = scenarios.length;
     } catch (dbError) {
       console.log('Database tables not ready yet, returning empty baseline data');
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         let dataFiles = [];
         try {
           dataFiles = await withTimeout(sql`
-            SELECT file_name, processed_data, data_type, file_type, processing_status, id
+            SELECT file_name, data_type, file_type, processing_status, id, processed_data
             FROM data_files
             WHERE (
               file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
@@ -81,7 +81,8 @@ export async function GET(request: NextRequest) {
             )
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
-          `, 1500); // 1.5 second timeout for data files
+            LIMIT 10
+          `, 6000); // 6 second timeout for data files
 
           console.log(`Found ${dataFiles.length} transportation files for baseline extraction`);
         } catch (dataFileError) {
@@ -89,8 +90,11 @@ export async function GET(request: NextRequest) {
           dataFiles = [];
         }
 
-        // Process each uploaded file to extract baseline costs
-        for (const file of dataFiles) {
+        // Process each uploaded file to extract baseline costs (limit processing time)
+        const maxFilesToProcess = 5; // Limit to prevent timeouts
+        const filesToProcess = dataFiles.slice(0, maxFilesToProcess);
+
+        for (const file of filesToProcess) {
           // Extract all possible data arrays from complex nested structures
           let allDataArrays = extractAllDataArrays(file.processed_data);
 
@@ -151,7 +155,7 @@ export async function GET(request: NextRequest) {
             WHERE scenario_id = ${scenario.id}
             ORDER BY created_at DESC
             LIMIT 1
-          `, 1000); // 1 second timeout for scenario results
+          `, 3000); // 3 second timeout for scenario results
         } catch (tableError) {
           console.debug(`scenario_results table not found for scenario ${scenario.id}`);
           scenarioResults = [];
@@ -201,7 +205,7 @@ export async function GET(request: NextRequest) {
       baselineCosts.transport_costs.freight_costs +
       baselineCosts.inventory_costs.total_inventory_costs;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       baseline_costs: formatBaselineCosts(baselineCosts),
       metadata: {
@@ -211,6 +215,11 @@ export async function GET(request: NextRequest) {
         data_quality: baselineCosts.total_baseline > 0 ? 'Good' : 'No data found'
       }
     });
+
+    // Prevent caching of large responses
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    return response;
 
   } catch (error) {
     console.error('Error extracting baseline costs:', error);
@@ -335,7 +344,7 @@ function extractTransportationCosts(data: any[], baselineCosts: any, fileName: s
   console.log(`Added $${totalFreightCost} to baseline from ${fileName} (total transport costs now: $${baselineCosts.transport_costs.freight_costs})`);
 }
 
-// Extract from TL "Gross Rate" column (TL costs - Inbound, Outbound, Transfers)
+// Extract from TL "NET Charge/Rate" column (TL costs - Inbound, Outbound, Transfers) - NO GROSS RATES
 function extractFromColumnH(data: any[], fileName: string): number {
   let total = 0;
   let valuesFound = 0;
@@ -343,16 +352,29 @@ function extractFromColumnH(data: any[], fileName: string): number {
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
-    // Look for "Gross Rate" column in TL files
+    // Look for NET charge/rate columns in TL files - EXCLUDE gross columns
     for (const [key, value] of Object.entries(row)) {
-      if (key === 'Gross Rate' || key === 'H' || key === '__EMPTY_7' ||
-          key.toLowerCase().includes('gross') ||
-          key.toLowerCase().includes('rate') ||
-          key.toLowerCase().includes('total') ||
-          key.toLowerCase().includes('cost')) {
+      // PRIORITIZE NET columns
+      if (key.toLowerCase().includes('net') &&
+          (key.toLowerCase().includes('charge') ||
+           key.toLowerCase().includes('rate') ||
+           key.toLowerCase().includes('cost'))) {
 
         const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-        if (!isNaN(numValue) && numValue > 100) { // TL costs should be substantial
+        if (!isNaN(numValue) && numValue > 100) {
+          total += numValue;
+          valuesFound++;
+        }
+      }
+      // FALLBACK: other columns but EXCLUDE gross
+      else if (!key.toLowerCase().includes('gross') &&
+               (key === 'H' || key === '__EMPTY_7' ||
+                key.toLowerCase().includes('rate') ||
+                key.toLowerCase().includes('charge') ||
+                key.toLowerCase().includes('cost'))) {
+
+        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 100) {
           total += numValue;
           valuesFound++;
         }
@@ -360,7 +382,7 @@ function extractFromColumnH(data: any[], fileName: string): number {
     }
   }
 
-  console.log(`Extracted $${total} from TL costs in ${fileName} (${valuesFound} values from ${data.length} rows)`);
+  console.log(`Extracted $${total} from TL NET charges in ${fileName} (${valuesFound} values from ${data.length} rows) - EXCLUDED gross rates per user requirement`);
   return total;
 }
 

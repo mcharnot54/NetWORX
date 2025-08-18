@@ -102,7 +102,7 @@ export class EnhancedExcelValidator {
     },
     {
       dataType: 'transport',
-      patterns: ['transport', 'tl', 'ltl', 'truckload', 'r&l', 'curriculum', 'inbound', 'outbound']
+      patterns: ['transport', 'tl', 'ltl', 'truckload', 'r&l', 'curriculum', 'inbound', 'outbound', 'total', 'ib', 'ob', 'ma', 'nh', 'littleton']
     },
     {
       dataType: 'capacity',
@@ -113,6 +113,68 @@ export class EnhancedExcelValidator {
   constructor(config: Partial<FileValidationConfig> = {}, logger?: (message: string, level?: 'info' | 'warning' | 'error') => void) {
     this.config = { ...EnhancedExcelValidator.DEFAULT_CONFIG, ...config };
     this.logger = logger || ((msg, level) => console.log(`[${level?.toUpperCase() || 'INFO'}] ${msg}`));
+  }
+
+  /**
+   * Find the actual header row by skipping logo/empty rows at the top
+   */
+  private async findActualHeaderRow(worksheet: any): Promise<{ data: any[], headerRowIndex: number }> {
+    // Dynamic import to avoid SSR issues
+    const XLSX = await import('xlsx');
+    // Get raw data with row numbers preserved
+    const allRowsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+    let bestHeaderRowIndex = 0;
+    let bestScore = 0;
+
+    // Check first 10 rows to find the row with most meaningful column headers
+    for (let i = 0; i < Math.min(10, allRowsRaw.length); i++) {
+      const row = allRowsRaw[i] as any[];
+      if (!row || row.length === 0) continue;
+
+      let score = 0;
+
+      // Score based on meaningful column headers
+      for (let j = 0; j < row.length; j++) {
+        const cell = row[j];
+        if (cell && typeof cell === 'string' && cell.trim().length > 0) {
+          // Higher score for meaningful column names
+          if (cell.toLowerCase().includes('date') ||
+              cell.toLowerCase().includes('amount') ||
+              cell.toLowerCase().includes('cost') ||
+              cell.toLowerCase().includes('total') ||
+              cell.toLowerCase().includes('charge') ||
+              cell.toLowerCase().includes('net') ||
+              cell.toLowerCase().includes('freight') ||
+              cell.toLowerCase().includes('revenue') ||
+              /^[A-Z]$/.test(cell.trim()) || // Single letter columns like V
+              cell.length > 2) { // Any meaningful text
+            score += 2;
+          } else {
+            score += 1;
+          }
+        }
+      }
+
+      // Prefer rows with at least 3 meaningful columns
+      if (score > bestScore && score >= 3) {
+        bestScore = score;
+        bestHeaderRowIndex = i;
+      }
+    }
+
+    // Convert to object format starting from the detected header row
+    const dataStartingFromHeader = allRowsRaw.slice(bestHeaderRowIndex);
+    const objectData = XLSX.utils.sheet_to_json(worksheet, {
+      header: dataStartingFromHeader[0] as string[],
+      range: bestHeaderRowIndex,
+      defval: null
+    });
+
+    return {
+      data: objectData,
+      headerRowIndex: bestHeaderRowIndex
+    };
   }
 
   /**
@@ -147,11 +209,18 @@ export class EnhancedExcelValidator {
 
       for (const sheetName of relevantSheets) {
         const worksheet = workbook.Sheets[sheetName];
-        const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
-        
+        // Smart header detection - skip logo/empty rows
+        const rawDataWithHeaders = await this.findActualHeaderRow(worksheet);
+        const rawData = rawDataWithHeaders.data;
+        const headerRowIndex = rawDataWithHeaders.headerRowIndex;
+
         if (rawData.length === 0) {
           this.logger(`Sheet '${sheetName}' is empty, skipping`, 'warning');
           continue;
+        }
+
+        if (headerRowIndex > 0) {
+          this.logger(`Found header row at row ${headerRowIndex + 1} in sheet '${sheetName}' (skipped ${headerRowIndex} logo/empty rows)`, 'info');
         }
 
         // Clean and process sheet data
@@ -536,10 +605,63 @@ export class EnhancedExcelValidator {
   }
 
   /**
-   * Clean network and transport data
+   * Clean network and transport data with smart total row filtering
    */
   private cleanNetworkTransportData(data: any[]): any[] {
-    return data.map(row => {
+    // First filter out total rows
+    const filteredData = data.filter(row => {
+      if (!row || typeof row !== 'object') return false;
+
+      // Check for total keywords
+      const rowValues = Object.values(row).map(val => String(val).toLowerCase());
+      const hasTotal = rowValues.some(val =>
+        val.includes('total') ||
+        val.includes('sum') ||
+        val.includes('grand') ||
+        val.includes('subtotal')
+      );
+
+      if (hasTotal) return false;
+
+      // Smart check: exclude rows with monetary values but no supporting data
+      const monetaryColumns = Object.keys(row).filter(col =>
+        col.toLowerCase().includes('rate') ||
+        col.toLowerCase().includes('cost') ||
+        col.toLowerCase().includes('charge') ||
+        col.toLowerCase().includes('freight')
+      );
+
+      for (const moneyCol of monetaryColumns) {
+        const numValue = parseFloat(String(row[moneyCol]).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 0) {
+          // Check for supporting data
+          const supportingDataColumns = Object.keys(row).filter(key =>
+            key.toLowerCase().includes('origin') ||
+            key.toLowerCase().includes('destination') ||
+            key.toLowerCase().includes('from') ||
+            key.toLowerCase().includes('to') ||
+            key.toLowerCase().includes('city') ||
+            key.toLowerCase().includes('state') ||
+            key.toLowerCase().includes('location')
+          );
+
+          const supportingDataCount = supportingDataColumns.filter(col => {
+            const value = row[col];
+            return value && String(value).trim() !== '' &&
+                   String(value).toLowerCase() !== 'null';
+          }).length;
+
+          // If large monetary value with no supporting data, exclude
+          if (supportingDataCount === 0 && numValue > 1000) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    return filteredData.map(row => {
       const cleanedRow = { ...row };
 
       // Clean city/location names

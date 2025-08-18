@@ -3,9 +3,42 @@ const nextConfig = {
   // Disable standalone for now to simplify build
   // ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
 
-  // Disable static generation to avoid Html import errors during build
+  // Disable problematic features that cause fetch failures
   experimental: {
     missingSuspenseWithCSRBailout: false,
+    // Disable turbo mode that's causing RSC payload issues
+    // turbo: false, // Commented out to disable turbo completely
+    optimizePackageImports: ['lucide-react'],
+  },
+
+  // Disable fast refresh to prevent WebSocket issues
+  reactStrictMode: false,
+
+  // Improve development server stability - Increase buffers to prevent crashes
+  onDemandEntries: {
+    // Period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 60 * 1000, // Increased from 25s to 60s
+    // Number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 5, // Increased from 2 to 5
+  },
+
+  // Fix cross-origin and networking issues
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          },
+        ],
+      },
+    ];
   },
 
   // Asset optimization
@@ -59,6 +92,24 @@ const nextConfig = {
         'utf-8-validate': 'commonjs utf-8-validate',
         'bufferutil': 'commonjs bufferutil',
       });
+    }
+
+    // Simplified development config to prevent fetch failures
+    if (!isServer && process.env.NODE_ENV === 'development') {
+      // Minimal optimization to prevent issues
+      config.optimization = {
+        ...config.optimization,
+        // Disable complex optimizations that cause issues
+        minimize: false,
+        splitChunks: false, // Disable chunk splitting that causes RSC issues
+      };
+
+      // Disable hot reloading features that cause fetch failures
+      config.devServer = {
+        ...config.devServer,
+        hot: false, // Disable hot reload
+        liveReload: false, // Disable live reload
+      };
     }
 
     return config;

@@ -1,10 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface TransportTotal {
+  amount: number;
+  rows: number;
+  file_id: number | null;
+  status: string;
+  values_found?: number;
+  data_source?: string;
+}
+
+interface TransportResults {
+  success: boolean;
+  transport_totals: {
+    ups_parcel: TransportTotal;
+    rl_ltl: TransportTotal;
+    tl_costs: TransportTotal;
+  };
+  total_transport_baseline: number;
+  files_analyzed: Array<{
+    id: number;
+    name: string;
+    rows: number;
+    data_source: string;
+    file_type: string;
+  }>;
+}
+
 export async function GET() {
   try {
     const { sql } = await import('@/lib/database');
-    
-    const results = {
+
+    const results: TransportResults = {
       success: true,
       transport_totals: {
         ups_parcel: { amount: 0, rows: 0, file_id: null, status: 'not_found' },
@@ -80,15 +106,64 @@ export async function GET() {
 
       // R&L LTL File (Column V) - EXACT NAME MATCH
       else if (file.file_name === 'R&L - CURRICULUM ASSOCIATES 1.1.2024-12.31.2024 .xlsx') {
-        const { total, valuesFound } = extractFromColumnV(data);
+        // Debug: Log the entire file structure
+        console.log('R&L File Debug - Structure:', {
+          hasProcessedData: !!file.processed_data,
+          hasData: !!file.processed_data?.data,
+          hasParsedData: !!file.processed_data?.parsedData,
+          parsedDataLength: Array.isArray(file.processed_data?.parsedData) ? file.processed_data.parsedData.length : 'not array',
+          processedDataKeys: file.processed_data ? Object.keys(file.processed_data) : 'no processed_data',
+          firstRowSample: Array.isArray(file.processed_data?.parsedData) && file.processed_data.parsedData.length > 0
+            ? Object.keys(file.processed_data.parsedData[0] || {})
+            : 'no sample available'
+        });
+
+        // For R&L files, we need to check if there's a multi-tab structure beyond just parsedData
+        let finalData = data;
+        let finalDataSource = dataSource;
+
+        // Check if this is actually a multi-tab file that was incorrectly processed as single tab
+        if (file.processed_data?.parsedData && dataSource === 'parsedData') {
+          console.log('R&L: Deeper inspection of parsedData...');
+
+          // Check first 5 rows to see if there's any structure
+          const sampleRows = file.processed_data.parsedData.slice(0, 5);
+          console.log('R&L: Sample rows from parsedData:', sampleRows.map((row: any, i: number) => ({
+            row: i,
+            type: typeof row,
+            keys: typeof row === 'object' && row ? Object.keys(row) : 'not object',
+            hasColumnV: typeof row === 'object' && row && 'V' in row
+          })));
+
+          // Look for rows that might have column V
+          let rowsWithColumnV = 0;
+          for (let i = 0; i < Math.min(100, file.processed_data.parsedData.length); i++) {
+            const row = file.processed_data.parsedData[i];
+            if (typeof row === 'object' && row && 'V' in row) {
+              rowsWithColumnV++;
+              if (rowsWithColumnV === 1) {
+                console.log(`R&L: Found row ${i} with column V:`, row);
+              }
+            }
+          }
+          console.log(`R&L: Found ${rowsWithColumnV} rows with column V in first 100 rows`);
+
+          // The user specifically mentioned this file has a Detail tab with column V
+          finalData = file.processed_data.parsedData;
+          finalDataSource = 'parsedData_inspected';
+        }
+
+        const { total, valuesFound } = extractFromColumnV(finalData);
+        console.log(`R&L extraction from ${finalDataSource}: $${total} from ${valuesFound} values`);
+
         if (total > results.transport_totals.rl_ltl.amount) {
           results.transport_totals.rl_ltl = {
             amount: total,
-            rows: data.length,
+            rows: finalData.length,
             file_id: file.id,
             status: 'calculated',
             values_found: valuesFound,
-            data_source: dataSource
+            data_source: finalDataSource
           };
         }
       }
@@ -158,35 +233,60 @@ function extractFromNetCharge(data: any[]): { total: number, valuesFound: number
 function extractFromColumnV(data: any[]): { total: number, valuesFound: number } {
   let total = 0;
   let valuesFound = 0;
+  let columnsFound = new Set<string>();
+
+  // First, log the available columns in the first few rows
+  if (data.length > 0) {
+    console.log('R&L Column V - Available columns in first row:', Object.keys(data[0]));
+  }
 
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
     for (const [key, value] of Object.entries(row)) {
-      // More comprehensive column V detection for R&L data
-      if (key === 'V' || key === '__EMPTY_21' || key === '__EMPTY_20' ||
-          key.toLowerCase().includes('net') ||
-          key.toLowerCase().includes('charge') ||
-          key.toLowerCase().includes('cost') ||
-          key.toLowerCase().includes('amount') ||
-          key.toLowerCase().includes('total') ||
-          key.toLowerCase().includes('freight') ||
-          key.toLowerCase().includes('revenue') ||
-          // R&L specific patterns
-          key.toLowerCase().includes('customer charge') ||
-          key.toLowerCase().includes('line haul') ||
-          key.toLowerCase().includes('invoice')) {
+      // Primary target: Exact column V
+      if (key === 'V') {
+        const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
+        if (!isNaN(numValue) && numValue > 50) {
+          total += numValue;
+          valuesFound++;
+          columnsFound.add(key);
+        }
+      }
+      // Secondary: Common Excel column V patterns
+      else if (key === '__EMPTY_21' || key === '__EMPTY_20') {
+        const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
+        if (!isNaN(numValue) && numValue > 50) {
+          total += numValue;
+          valuesFound++;
+          columnsFound.add(key);
+        }
+      }
+      // Fallback: Column headers that might contain cost data
+      else if (key.toLowerCase().includes('net') ||
+               key.toLowerCase().includes('charge') ||
+               key.toLowerCase().includes('cost') ||
+               key.toLowerCase().includes('amount') ||
+               key.toLowerCase().includes('total') ||
+               key.toLowerCase().includes('freight') ||
+               key.toLowerCase().includes('revenue') ||
+               // R&L specific patterns
+               key.toLowerCase().includes('customer charge') ||
+               key.toLowerCase().includes('line haul') ||
+               key.toLowerCase().includes('invoice')) {
 
         const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
         if (!isNaN(numValue) && numValue > 50) { // Lower threshold for LTL
           total += numValue;
           valuesFound++;
+          columnsFound.add(key);
         }
       }
     }
   }
 
   console.log(`R&L Column V extraction: $${total} from ${valuesFound} values`);
+  console.log(`R&L Columns used:`, Array.from(columnsFound));
   return { total, valuesFound };
 }
 
