@@ -339,14 +339,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         };
 
         if (file.name.toLowerCase().includes('dec24') || file.name.toLowerCase().includes('december') && file.name.toLowerCase().includes('2024')) {
-          addLog(`📅 Processing December 2024 productivity data - scanning for largest values in target rows`);
+          addLog(`📅 Processing December 2024 productivity data - extracting from AR53, AR71, AR72`);
 
-          // Look for units shipped around row 53 (index 52)
-          const unitsShipped = findLargestValueInRow(52); // Row 53
-          // Look for productive hours around row 71 (index 70)
-          const productiveHours = findLargestValueInRow(70); // Row 71
-          // Look for total hours around row 72 (index 71)
-          const totalHours = findLargestValueInRow(71); // Row 72
+          // Extract from specific cells in December 2024 tab
+          const unitsShipped = extractFromSpecificCell(53, 'AR'); // AR53
+          const productiveHours = extractFromSpecificCell(71, 'AR'); // AR71
+          const totalHours = extractFromSpecificCell(72, 'AR'); // AR72
 
           productivityMetrics.year2024 = {
             unitsShipped,
@@ -362,21 +360,19 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             productivityMetrics.year2024.totalUPH = unitsShipped / totalHours;
           }
 
-          addLog(`📦 2024 Units Shipped (Row 53): ${unitsShipped}`);
-          addLog(`⏱️ 2024 Productive Hours (Row 71): ${productiveHours}`);
-          addLog(`🕐 2024 Total Hours (Row 72): ${totalHours}`);
+          addLog(`📦 2024 Units Shipped (AR53): ${unitsShipped}`);
+          addLog(`⏱️ 2024 Productive Hours (AR71): ${productiveHours}`);
+          addLog(`🕐 2024 Total Hours (AR72): ${totalHours}`);
 
           extractedAmount = unitsShipped;
 
         } else if (file.name.toLowerCase().includes('apr25') || file.name.toLowerCase().includes('april') && file.name.toLowerCase().includes('2025')) {
-          addLog(`📅 Processing April 2025 productivity data - scanning for largest values in target rows`);
+          addLog(`📅 Processing April 2025 productivity data - extracting from AU53, AU71, AU72`);
 
-          // Look for units shipped around row 53 (index 52)
-          const unitsShipped = findLargestValueInRow(52); // Row 53
-          // Look for productive hours around row 71 (index 70)
-          const productiveHours = findLargestValueInRow(70); // Row 71
-          // Look for total hours around row 72 (index 71)
-          const totalHours = findLargestValueInRow(71); // Row 72
+          // Extract from specific cells in April 2025 tab
+          const unitsShipped = extractFromSpecificCell(53, 'AU'); // AU53
+          const productiveHours = extractFromSpecificCell(71, 'AU'); // AU71
+          const totalHours = extractFromSpecificCell(72, 'AU'); // AU72
 
           productivityMetrics.year2025 = {
             unitsShipped,
@@ -392,9 +388,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             productivityMetrics.year2025.totalUPH = unitsShipped / totalHours;
           }
 
-          addLog(`📦 2025 Units Shipped (Row 53): ${unitsShipped}`);
-          addLog(`⏱️ 2025 Productive Hours (Row 71): ${productiveHours}`);
-          addLog(`🕐 2025 Total Hours (Row 72): ${totalHours}`);
+          addLog(`📦 2025 YTD Units Shipped (AU53): ${unitsShipped}`);
+          addLog(`⏱️ 2025 YTD Productive Hours (AU71): ${productiveHours}`);
+          addLog(`🕐 2025 YTD Total Hours (AU72): ${totalHours}`);
 
           extractedAmount = unitsShipped;
         }
