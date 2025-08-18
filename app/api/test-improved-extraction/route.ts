@@ -12,7 +12,7 @@ export async function GET() {
     const { sql } = await import('@/lib/database');
     const files = await sql`
       SELECT id, file_name, file_content, file_size, upload_date
-      FROM files
+      FROM data_files
       WHERE scenario_id = 2
       AND processing_status = 'completed'
       ORDER BY upload_date ASC
