@@ -90,6 +90,171 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     return 'OTHER';
   };
 
+  // CSV processing function to handle CSV files as single-tab data
+  const processCsvFile = async (file: File): Promise<MultiTabFile> => {
+    try {
+      addLog(`📄 Processing CSV file: ${file.name}`);
+
+      const text = await file.text();
+      const lines = text.split('\n');
+
+      if (lines.length === 0) {
+        throw new Error('Empty CSV file');
+      }
+
+      // Parse CSV manually (simple comma-separated parsing)
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+          const row: any = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+          data.push(row);
+        }
+      }
+
+      addLog(`📊 CSV parsed: ${headers.length} columns, ${data.length} rows`);
+
+      const fileType = detectFileType(file.name);
+
+      // Create a single "tab" for the CSV data
+      const sheetData = {
+        data,
+        columnHeaders: headers,
+        rowCount: data.length,
+        sheetName: file.name.replace('.csv', '')
+      };
+
+      // Apply the same processing logic as Excel files
+      let targetColumn = '';
+      let extractedAmount = 0;
+      let operatingCosts: OperatingCostData | undefined;
+      let productivityMetrics: ProductivityMetrics | undefined;
+
+      addLog(`🧠 PROCESSING: ${fileType} file, analyzing CSV data`);
+
+      if (fileType === 'WAREHOUSE_BUDGET') {
+        addLog(`🏭 WAREHOUSE BUDGET PROCESSING: Extracting operating costs from CSV`);
+        operatingCosts = {};
+
+        // Apply the same operating cost extraction logic
+        const rowData: { [key: number]: any } = {};
+        sheetData.data.forEach((row, index) => {
+          rowData[index] = row;
+        });
+
+        // Helper function for CSV data extraction
+        const extractFromRowColumns = (excelRowNum: number): number => {
+          const arrayIndex = excelRowNum - 1;
+          const row = rowData[arrayIndex];
+          if (!row) {
+            addLog(`    ❌ Row ${excelRowNum} (index ${arrayIndex}) not found in CSV data (only ${sheetData.data.length} rows available)`);
+            return 0;
+          }
+
+          let total = 0;
+          let valuesFound = [];
+
+          for (let columnIndex = 0; columnIndex < sheetData.columnHeaders.length; columnIndex++) {
+            const columnKey = sheetData.columnHeaders[columnIndex];
+            if (row && row[columnKey] !== undefined && row[columnKey] !== null && row[columnKey] !== '') {
+              const rawValue = String(row[columnKey]).replace(/[$,\s]/g, '');
+              const value = parseFloat(rawValue);
+
+              if (!isNaN(value) && Math.abs(value) >= 0) {
+                total += value;
+                valuesFound.push(`${columnKey}:${value}`);
+              }
+            }
+          }
+
+          if (valuesFound.length > 0) {
+            addLog(`    📊 Row ${excelRowNum} found ${valuesFound.length} values: ${valuesFound.slice(0, 5).join(', ')}${valuesFound.length > 5 ? '...' : ''} (Total: ${total})`);
+          }
+
+          return total;
+        };
+
+        // Extract operating costs using same row numbers
+        operatingCosts.regularWages = extractFromRowColumns(30);
+        operatingCosts.employeeBenefits = extractFromRowColumns(63);
+        operatingCosts.tempEmployeeCosts = extractFromRowColumns(68);
+        operatingCosts.generalSupplies = extractFromRowColumns(78);
+        operatingCosts.office = extractFromRowColumns(88);
+        operatingCosts.telecom = extractFromRowColumns(165);
+        operatingCosts.otherExpense = extractFromRowColumns(194);
+        operatingCosts.leaseRent = extractFromRowColumns(177);
+        operatingCosts.headcount = extractFromRowColumns(21);
+
+        operatingCosts.total = (operatingCosts.regularWages || 0) +
+                              (operatingCosts.employeeBenefits || 0) +
+                              (operatingCosts.tempEmployeeCosts || 0) +
+                              (operatingCosts.generalSupplies || 0) +
+                              (operatingCosts.office || 0) +
+                              (operatingCosts.telecom || 0) +
+                              (operatingCosts.otherExpense || 0) +
+                              (operatingCosts.leaseRent || 0);
+
+        if (operatingCosts.otherExpense && operatingCosts.total &&
+            (operatingCosts.otherExpense / operatingCosts.total) > 0.15) {
+          operatingCosts.thirdPartyLogistics = operatingCosts.otherExpense;
+          addLog(`🚚 3PL DETECTED: Other expense indicates 3PL costs`);
+        }
+
+        extractedAmount = operatingCosts.total || 0;
+        targetColumn = 'Operating Costs (Multiple Rows)';
+
+        addLog(`🎯 CSV WAREHOUSE BUDGET: Total operating costs $${extractedAmount.toLocaleString()}`);
+      }
+
+      const tabs: ExcelTab[] = [{
+        name: sheetData.sheetName,
+        rows: sheetData.rowCount,
+        columns: sheetData.columnHeaders,
+        data: sheetData.data,
+        sampleData: sheetData.data.slice(0, 5),
+        targetColumn,
+        extractedAmount,
+        operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined,
+        productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined
+      }];
+
+      const multiTabFile: MultiTabFile = {
+        file,
+        fileName: file.name,
+        fileSize: file.size,
+        tabs,
+        fileType,
+        totalExtracted: extractedAmount,
+        processingStatus: 'completed'
+      };
+
+      addLog(`✓ ${file.name} CSV processed successfully`);
+      addLog(`  Total extracted: $${extractedAmount.toLocaleString()}`);
+
+      return multiTabFile;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addLog(`✗ Error processing CSV ${file.name}: ${errorMessage}`);
+
+      return {
+        file,
+        fileName: file.name,
+        fileSize: file.size,
+        tabs: [],
+        fileType: detectFileType(file.name),
+        totalExtracted: 0,
+        processingStatus: 'error',
+        errorMessage
+      };
+    }
+  };
+
   // REMOVED: Simple extraction function replaced with adaptive learning system
 
   const processExcelFile = async (file: File): Promise<MultiTabFile> => {
