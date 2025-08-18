@@ -528,8 +528,8 @@ export class DataFileService {
 
     if (updates.length === 0) {
       // No updates provided, just return the current file
-      const [file] = await sql`SELECT * FROM data_files WHERE id = ${id}`;
-      return file as DataFile;
+      const result = await sql`SELECT * FROM data_files WHERE id = ${id}`;
+      return result[0] as DataFile;
     }
 
     // Add id for WHERE clause
