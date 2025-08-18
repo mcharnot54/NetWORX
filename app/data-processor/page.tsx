@@ -381,28 +381,15 @@ export default function DataProcessor() {
     try {
       console.log('Updating file in database:', { fileId, updateData });
 
-      const response = await fetch('/api/files', {
+      const responseData = await robustFetchJson('/api/files', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id: fileId, ...updateData }),
+        timeout: 10000, // 10 second timeout
+        retries: 2 // Retry failed requests twice
       });
-
-      // Read the response body once, regardless of status
-      let responseData;
-      try {
-        responseData = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        throw new Error(`Invalid response format: ${response.status}`);
-      }
-
-      if (!response.ok) {
-        console.error('Failed to update file - Response:', response.status, responseData);
-        const errorMessage = responseData?.error || responseData?.details || 'Unknown error';
-        throw new Error(`Failed to update file: HTTP ${response.status} - ${errorMessage}`);
-      }
 
       console.log('File updated successfully:', responseData);
       return responseData;
