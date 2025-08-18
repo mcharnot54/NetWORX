@@ -275,7 +275,7 @@ export default function Dashboard() {
         if (controller && !controller.signal.aborted) {
           controller.abort('Request timeout');
         }
-      }, 25000); // 25 second timeout for slow environment
+      }, 60000); // 60 second timeout for extremely slow environment
 
       const response = await fetch('/api/current-baseline-costs', {
         signal: controller.signal,
