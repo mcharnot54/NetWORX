@@ -695,7 +695,7 @@ export default function DataProcessor() {
       }
 
       // Aggregate quality metrics
-      const fileQuality = file.processingResult.summary.dataQuality;
+      const fileQuality = fullFileData.processingResult.summary.dataQuality;
       totalValidRecords += fileQuality.validRecords;
       totalRecords += fileQuality.totalRecords;
       
