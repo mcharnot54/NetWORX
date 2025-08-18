@@ -1293,6 +1293,46 @@ export default function DataProcessor() {
                           🔍 Test File Content
                         </button>
                       </div>
+
+                      {/* Debug: Test Single File Content API */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            if (files.length === 0) {
+                              addToLog('No files available to test');
+                              return;
+                            }
+
+                            const firstFile = files[0];
+                            if (!firstFile.id) {
+                              addToLog('First file has no ID');
+                              return;
+                            }
+
+                            try {
+                              addToLog(`Testing content API for ${firstFile.name} (ID: ${firstFile.id})...`);
+                              const response = await fetch(`/api/files/${firstFile.id}/content`);
+                              addToLog(`API Response status: ${response.status}`);
+
+                              if (response.ok) {
+                                const result = await response.json();
+                                addToLog(`Content available: ${result.has_content ? 'YES' : 'NO'}`);
+                                addToLog(`Content length: ${result.content_length || 0}`);
+                                addToLog(`File name from API: ${result.file_name}`);
+                              } else {
+                                const errorText = await response.text();
+                                addToLog(`API Error: ${response.status} - ${errorText}`);
+                              }
+                            } catch (error) {
+                              addToLog(`Test failed: ${error}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                          title="Test content API for first file"
+                        >
+                          🔧 Test File API
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
