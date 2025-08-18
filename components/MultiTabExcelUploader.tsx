@@ -11,6 +11,21 @@ interface ExcelTab {
   sampleData: any[];
   targetColumn?: string; // For transportation files
   extractedAmount?: number;
+  operatingCosts?: OperatingCostData; // For operating cost files
+}
+
+interface OperatingCostData {
+  regularWages?: number;    // Row 30, columns Y:AJ
+  employeeBenefits?: number; // Row 63
+  tempEmployeeCosts?: number; // Row 68
+  generalSupplies?: number;  // Row 78
+  office?: number;          // Row 88
+  telecom?: number;         // Row 165
+  otherExpense?: number;    // Row 194
+  leaseRent?: number;       // Row 177
+  headcount?: number;       // Row 21 (FTEs)
+  total?: number;
+  thirdPartyLogistics?: number; // If Other Expense > 15% of total
 }
 
 interface MultiTabFile {
@@ -18,7 +33,7 @@ interface MultiTabFile {
   fileName: string;
   fileSize: number;
   tabs: ExcelTab[];
-  fileType: 'UPS' | 'TL' | 'RL' | 'OTHER';
+  fileType: 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'OTHER';
   totalExtracted: number;
   processingStatus: 'pending' | 'processing' | 'completed' | 'error';
   errorMessage?: string;
@@ -41,11 +56,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'OTHER' => {
+  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'OTHER' => {
     const lower = fileName.toLowerCase();
     if (lower.includes('ups') && lower.includes('individual')) return 'UPS';
     if (lower.includes('2024') && lower.includes('tl')) return 'TL';
     if (lower.includes('r&l') && lower.includes('curriculum')) return 'RL';
+    if (lower.includes('warehouse') && (lower.includes('budget') || lower.includes('operating'))) return 'WAREHOUSE_BUDGET';
     return 'OTHER';
   };
 
