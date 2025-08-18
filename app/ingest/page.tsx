@@ -33,18 +33,68 @@ export default function IngestPage() {
   const [edits, setEdits] = useState<Record<string, string>>({}); // rawHeader -> canonical
   const [savingMappings, setSavingMappings] = useState(false);
 
+  function setEdit(raw: string, canon: string) {
+    setEdits(prev => ({ ...prev, [raw]: canon }));
+  }
+
+  async function saveConfirmations() {
+    if (!result) return;
+    setSavingMappings(true);
+
+    try {
+      const toConfirm = (result.report.mappingPreview as MappingResult[])
+        .map((m: MappingResult) => {
+          const chosen = edits[m.rawHeader] ?? m.mappedTo ?? null;
+          if (!chosen) return null;
+
+          // Higher confidence for DB mappings and high-scoring ML mappings
+          const conf = m.dbSource ? 0.95 : (m.score >= 0.8 ? 0.95 : 0.9);
+
+          return {
+            rawHeader: m.rawHeader,
+            canonicalField: chosen,
+            scope: "both" as const, // Save to both customer and global
+            confidence: conf
+          };
+        })
+        .filter(Boolean);
+
+      const res = await fetch("/api/mappings/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, confirmations: toConfirm }),
+      });
+
+      const json = await res.json();
+
+      if (json.ok) {
+        alert(`✅ Saved ${json.count} mappings! The system will remember these for future uploads.`);
+        setEdits({}); // Clear edits after successful save
+      } else {
+        alert(`❌ Error: ${json.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Save mappings error:", error);
+      alert("❌ Failed to save mappings");
+    } finally {
+      setSavingMappings(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
     setBusy(true);
-    
+
     try {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("domain", domain);
+      fd.append("customerId", customerId);
       const res = await fetch("/api/ingest", { method: "POST", body: fd });
       const json = await res.json();
       setResult(json);
+      setEdits({}); // Clear any previous edits
     } catch (error) {
       console.error("Upload error:", error);
     } finally {
