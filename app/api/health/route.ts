@@ -3,20 +3,15 @@ import { withCache, CacheKeys } from '@/lib/cache-utils';
 
 export async function GET(request: NextRequest) {
   try {
-    // Cache health check for 30 seconds to reduce load
-    const healthData = await withCache(
-      CacheKeys.HEALTH_CHECK,
-      async () => ({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV,
-        memory: process.memoryUsage(),
-      }),
-      30 * 1000 // 30 seconds cache
-    );
-
-    return NextResponse.json(healthData);
+    // Simple, fast health check without caching
+    return NextResponse.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
+      // Simplified memory check to avoid performance issues
+      memoryUsage: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
+    });
   } catch (error) {
     return NextResponse.json(
       {
