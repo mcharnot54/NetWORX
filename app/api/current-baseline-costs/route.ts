@@ -453,7 +453,7 @@ function extractFromColumnV(data: any[], fileName: string): number {
 
     if (testTotal > bestTotal) {
       bestTotal = testTotal;
-      bestColumn = testCol;
+      bestColumn = String(testCol);
       valuesFound = testCount;
     }
   }
