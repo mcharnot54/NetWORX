@@ -134,7 +134,36 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         // Process each sheet with adaptive learning
         for (const sheetName of workbook.SheetNames) {
           const worksheet = workbook.Sheets[sheetName];
-          const rawData = XLSX.utils.sheet_to_json(worksheet);
+
+          // For macro-enabled files, use different parsing options
+          const parseOptions = isXlsm ? {
+            header: 1,          // Use array of arrays format
+            defval: '',         // Default value for empty cells
+            blankrows: true,    // Include blank rows
+            raw: false,         // Process values
+            dateNF: 'yyyy-mm-dd' // Date format
+          } : {};
+
+          let rawData;
+          if (isXlsm) {
+            // Convert array format to object format for macro-enabled files
+            const arrayData = XLSX.utils.sheet_to_json(worksheet, parseOptions);
+            rawData = arrayData.map((row, index) => {
+              if (Array.isArray(row)) {
+                const obj = {};
+                row.forEach((cell, colIndex) => {
+                  const columnName = colIndex < 26 ?
+                    String.fromCharCode(65 + colIndex) :
+                    `__EMPTY_${colIndex}`;
+                  obj[columnName] = cell;
+                });
+                return obj;
+              }
+              return row;
+            }).filter(row => row && Object.keys(row).length > 0);
+          } else {
+            rawData = XLSX.utils.sheet_to_json(worksheet);
+          }
 
           if (rawData.length === 0) continue;
 
