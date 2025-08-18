@@ -53,41 +53,148 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     let bestColumn = '';
     let bestAmount = 0;
 
-    if (fileType === 'UPS') {
-      // Extract from Net Charge column
-      for (const row of tab.data) {
-        if (row && row['Net Charge']) {
-          const numValue = parseFloat(String(row['Net Charge']).replace(/[$,\s]/g, ''));
-          if (!isNaN(numValue) && numValue > 0.01) {
-            bestAmount += numValue;
+    // Helper function to find column by pattern, avoiding gross charges
+    const findColumnByPattern = (patterns: string[]): string | null => {
+      for (const pattern of patterns) {
+        for (const col of tab.columns) {
+          if (col && col.toLowerCase().includes(pattern.toLowerCase())) {
+            // Skip any columns that contain "gross" when looking for charges
+            if (pattern.toLowerCase().includes('charge') && col.toLowerCase().includes('gross')) {
+              continue;
+            }
+            return col;
           }
         }
       }
-      bestColumn = 'Net Charge';
-    } else if (fileType === 'TL') {
-      // Extract from Gross Rate column
-      for (const row of tab.data) {
-        if (row && row['Gross Rate']) {
-          const numValue = parseFloat(String(row['Gross Rate']).replace(/[$,\s]/g, ''));
-          if (!isNaN(numValue) && numValue > 100) {
-            bestAmount += numValue;
+      return null;
+    };
+
+    // Helper function to find net charge columns specifically
+    const findNetChargeColumn = (): string | null => {
+      // First priority: exact matches for net charge
+      const netChargePatterns = ['Net Charge', 'net_charge', 'net charge'];
+      for (const pattern of netChargePatterns) {
+        for (const col of tab.columns) {
+          if (col && col.toLowerCase() === pattern.toLowerCase()) {
+            return col;
           }
         }
       }
-      bestColumn = 'Gross Rate';
-    } else if (fileType === 'RL') {
-      // Find best cost column
+
+      // Second priority: columns containing 'net' and 'charge'
       for (const col of tab.columns) {
-        let testAmount = 0;
+        if (col && col.toLowerCase().includes('net') && col.toLowerCase().includes('charge')) {
+          return col;
+        }
+      }
+
+      // Third priority: just 'charge' but not 'gross'
+      for (const col of tab.columns) {
+        if (col && col.toLowerCase().includes('charge') && !col.toLowerCase().includes('gross')) {
+          return col;
+        }
+      }
+
+      return null;
+    };
+
+    if (fileType === 'UPS') {
+      // For UPS files, be very specific about column priority to ensure consistency
+      const exactNetChargeColumns = [
+        'Net Charge',     // Exact match with space
+        'net_charge',     // Lowercase with underscore
+        'NetCharge',      // PascalCase
+        'NET_CHARGE'      // All caps
+      ];
+
+      // First, try exact matches for Net Charge variations
+      for (const exactColumn of exactNetChargeColumns) {
+        if (tab.columns.includes(exactColumn)) {
+          let testAmount = 0;
+          for (const row of tab.data) {
+            if (row && row[exactColumn]) {
+              const numValue = parseFloat(String(row[exactColumn]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue > 0.01) {
+                testAmount += numValue;
+              }
+            }
+          }
+          // Only use this column if it has substantial data (> $1000)
+          if (testAmount > 1000) {
+            bestAmount = testAmount;
+            bestColumn = exactColumn;
+            break;
+          }
+        }
+      }
+
+      // If no exact match found with good data, find columns with "charge" but exclude problematic ones
+      if (!bestColumn) {
+        const chargeColumns = tab.columns.filter(col =>
+          col &&
+          col.toLowerCase().includes('charge') &&
+          !col.toLowerCase().includes('gross') &&
+          !col.toLowerCase().includes('additional') &&
+          !col.toLowerCase().includes('adjustment')
+        );
+
+        // Test each charge column and pick the one with highest total
+        let bestColumnAmount = 0;
+        for (const testColumn of chargeColumns) {
+          let testAmount = 0;
+          for (const row of tab.data) {
+            if (row && row[testColumn]) {
+              const numValue = parseFloat(String(row[testColumn]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue > 0.01) {
+                testAmount += numValue;
+              }
+            }
+          }
+          if (testAmount > bestColumnAmount && testAmount > 1000) {
+            bestColumnAmount = testAmount;
+            bestColumn = testColumn;
+            bestAmount = testAmount;
+          }
+        }
+      }
+
+      // Log detailed info for debugging
+      console.log(`UPS ${tab.name}: Available columns:`, tab.columns.filter(c => c && c.toLowerCase().includes('charge')));
+      console.log(`UPS ${tab.name}: Selected '${bestColumn}' with total $${bestAmount.toLocaleString()}`);
+    } else if (fileType === 'TL') {
+      // Look for rate-related columns
+      const rateColumn = findColumnByPattern(['Gross Rate', 'Rate', 'Cost', 'Charge', 'Total', 'Amount']);
+      if (rateColumn) {
         for (const row of tab.data) {
-          if (row && row[col]) {
-            const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
-            if (!isNaN(numValue) && numValue > 50) {
-              testAmount += numValue;
+          if (row && row[rateColumn]) {
+            const numValue = parseFloat(String(row[rateColumn]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && numValue > 1) { // Lowered threshold
+              bestAmount += numValue;
             }
           }
         }
-        if (testAmount > bestAmount) {
+        bestColumn = rateColumn;
+      }
+    } else if (fileType === 'RL') {
+      // Find best cost column by testing all numeric columns
+      for (const col of tab.columns) {
+        if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+
+        let testAmount = 0;
+        let validValues = 0;
+
+        for (const row of tab.data) {
+          if (row && row[col]) {
+            const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
+              testAmount += numValue;
+              validValues++;
+            }
+          }
+        }
+
+        // Only consider columns with reasonable number of valid values
+        if (validValues > 10 && testAmount > bestAmount && isFinite(testAmount)) {
           bestAmount = testAmount;
           bestColumn = col;
         }
@@ -220,17 +327,42 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   };
 
   const handleFileUpload = async (uploadedFiles: FileList | null) => {
-    if (!uploadedFiles || uploadedFiles.length === 0) return;
+    console.log('handleFileUpload called with:', uploadedFiles);
+
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      console.log('No files detected');
+      addLog('⚠ No files selected or detected');
+      return;
+    }
+
+    if (isProcessing) {
+      addLog('⚠ Processing already in progress. Please wait...');
+      return;
+    }
+
+    console.log(`Processing ${uploadedFiles.length} files:`, Array.from(uploadedFiles).map(f => f.name));
 
     setIsProcessing(true);
     addLog(`Starting processing of ${uploadedFiles.length} file(s)...`);
 
+    // Log each file being processed
+    Array.from(uploadedFiles).forEach((file, index) => {
+      addLog(`  File ${index + 1}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+    });
+
     try {
       const processedFiles: MultiTabFile[] = [];
 
-      for (const file of Array.from(uploadedFiles)) {
+      for (let i = 0; i < uploadedFiles.length; i++) {
+        const file = uploadedFiles[i];
+
         if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
           try {
+            // Add small delay to improve UI responsiveness
+            if (i > 0) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
             const processed = await processExcelFile(file);
             processedFiles.push(processed);
           } catch (error) {
@@ -264,6 +396,10 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       addLog(`✗ Processing failed: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
+      // Clear the input to allow re-selecting the same files next time
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -368,21 +504,46 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         
         <div className="space-y-4">
           <div 
-            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isProcessing
+                ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                : 'border-gray-300 hover:border-blue-400 cursor-pointer'
+            }`}
+            onClick={() => {
+              console.log('Upload area clicked, isProcessing:', isProcessing);
+              if (!isProcessing && fileInputRef.current) {
+                console.log('Triggering file input click');
+                fileInputRef.current.click();
+              }
+            }}
           >
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-2">
-              Drop Excel files here or <span className="text-blue-600">click to browse</span>
-            </p>
-            <p className="text-sm text-gray-500">
-              Supports .xlsx and .xls files with multiple tabs
-            </p>
+            {isProcessing ? (
+              <>
+                <RefreshCw className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-spin" />
+                <p className="text-gray-600 mb-2 font-medium">
+                  Processing files... Please wait
+                </p>
+                <p className="text-sm text-gray-500">
+                  This may take several seconds for large files
+                </p>
+              </>
+            ) : (
+              <>
+                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">
+                  Drop Excel files here or <span className="text-blue-600">click to browse</span>
+                </p>
+                <p className="text-sm text-gray-500">
+                  Supports .xlsx and .xls files with multiple tabs
+                </p>
+              </>
+            )}
             <input
               ref={fileInputRef}
               type="file"
               multiple
               accept=".xlsx,.xls"
+              disabled={isProcessing}
               onChange={(e) => handleFileUpload(e.target.files)}
               className="hidden"
             />
