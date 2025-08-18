@@ -53,90 +53,23 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
   const processExcelFile = async (file: File): Promise<MultiTabFile> => {
     try {
-      // Use enhanced Excel validator - static import to avoid chunk loading issues
-      const { EnhancedExcelValidator } = await import('@/lib/enhanced-excel-validator').catch(async () => {
-        // Fallback: create a simplified validator if import fails
-        return {
-          EnhancedExcelValidator: class {
-            constructor(config: any, logger: any) {
-              this.config = config;
-              this.logger = logger;
-            }
-            async processExcelFile(file: File, expectedDataType?: string) {
-              // Simplified processing using basic XLSX
-              const XLSX = await import('xlsx');
-              const buffer = await file.arrayBuffer();
-              const workbook = XLSX.read(buffer, { type: 'array' });
-
-              const result = {
-                validationResult: {
-                  isValid: true,
-                  errors: [],
-                  warnings: [],
-                  dataQuality: { completenessScore: 0.8, totalRecords: 0 },
-                  recommendations: [],
-                  processingTime: 0,
-                  detectedDataType: expectedDataType || 'transport',
-                  sheetsProcessed: workbook.SheetNames
-                },
-                cleanedData: {
-                  data: [],
-                  columnHeaders: [],
-                  originalColumns: [],
-                  cleaningReport: { rowsRemoved: 0, columnsRemoved: 0, valuesConverted: 0, duplicatesRemoved: 0 },
-                  detectedDataType: expectedDataType || 'transport',
-                  sheetName: workbook.SheetNames[0] || ''
-                },
-                multiTabData: {}
-              };
-
-              // Process each sheet
-              for (const sheetName of workbook.SheetNames) {
-                const worksheet = workbook.Sheets[sheetName];
-                const data = XLSX.utils.sheet_to_json(worksheet);
-
-                result.multiTabData[sheetName] = {
-                  data: data,
-                  columnHeaders: Object.keys(data[0] || {}),
-                  originalColumns: Object.keys(data[0] || {}),
-                  cleaningReport: { rowsRemoved: 0, columnsRemoved: 0, valuesConverted: 0, duplicatesRemoved: 0 },
-                  detectedDataType: expectedDataType || 'transport',
-                  sheetName: sheetName
-                };
-              }
-
-              result.cleanedData = result.multiTabData[workbook.SheetNames[0]] || result.cleanedData;
-              result.validationResult.dataQuality.totalRecords = result.cleanedData.data.length;
-
-              return result;
-            }
-            config: any;
-            logger: any;
-          }
-        };
-      });
+      // Use simple Excel processor to avoid chunk loading issues
+      const { SimpleExcelProcessor } = await import('@/lib/simple-excel-processor');
 
       const fileType = detectFileType(file.name);
-      const expectedDataType = fileType === 'UPS' ? 'network' : fileType === 'TL' ? 'transport' : fileType === 'RL' ? 'cost' : undefined;
 
-      const validator = new EnhancedExcelValidator({
-        maxFileSizeMB: 200, // Increase for large transportation files
-        backupOriginal: false, // Don't backup in browser
-        validation: {
-          strictMode: false,
-          skipEmptyRows: true,
-          skipEmptyColumns: true,
-          autoDetectDataType: true
-        }
-      }, (message, level) => addLog(`[${level?.toUpperCase()}] ${message}`));
+      addLog(`Processing ${file.name} with simple processor...`);
 
-      addLog(`Processing ${file.name} with enhanced validation...`);
+      const result = await SimpleExcelProcessor.processFile(file);
 
-      const result = await validator.processExcelFile(file, expectedDataType);
+      if (!result.isValid) {
+        const errors = result.errors.join('; ');
+        addLog(`⚠ Processing issues: ${errors}`);
+      }
 
-      if (!result.validationResult.isValid) {
-        const errors = result.validationResult.errors.map(e => e.message).join('; ');
-        addLog(`⚠ Validation issues: ${errors}`);
+      if (result.warnings.length > 0) {
+        const warnings = result.warnings.join('; ');
+        addLog(`⚠ Warnings: ${warnings}`);
       }
 
       // Log validation warnings
