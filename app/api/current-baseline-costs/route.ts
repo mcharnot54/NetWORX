@@ -71,15 +71,7 @@ export async function GET(request: NextRequest) {
         let dataFiles = [];
         try {
           dataFiles = await withTimeout(sql`
-            SELECT file_name, data_type, file_type, processing_status, id,
-                   CASE
-                     WHEN processed_data IS NOT NULL THEN jsonb_build_object(
-                       'hasData', true,
-                       'dataSize', length(processed_data::text),
-                       'keys', COALESCE(jsonb_object_keys(processed_data), '[]'::jsonb)
-                     )
-                     ELSE jsonb_build_object('hasData', false)
-                   END as processed_data_summary
+            SELECT file_name, data_type, file_type, processing_status, id, processed_data
             FROM data_files
             WHERE (
               file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
@@ -89,6 +81,7 @@ export async function GET(request: NextRequest) {
             )
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
+            LIMIT 10
           `, 6000); // 6 second timeout for data files
 
           console.log(`Found ${dataFiles.length} transportation files for baseline extraction`);
