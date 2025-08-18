@@ -1606,7 +1606,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           extractedAmount,
           operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined,
           productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined,
-          inventoryMetrics: fileType === 'INVENTORY_TRACKER' ? inventoryMetrics : undefined
+          inventoryMetrics: fileType === 'INVENTORY_TRACKER' ? inventoryMetrics : undefined,
+          salesData: fileType === 'SALES_DATA' ? salesData : undefined,
+          networkFootprintData: fileType === 'NETWORK_FOOTPRINT' ? networkFootprintData : undefined
         });
 
         // Add to total
