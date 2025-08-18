@@ -8,14 +8,22 @@ export async function GET() {
   try {
     const { sql } = await import('@/lib/database');
     
-    // Get all transport files
+    // Get all transport files with limited data to prevent memory issues
     const files = await sql`
-      SELECT 
+      SELECT
         id,
         file_name,
         file_type,
         processing_status,
-        processed_data
+        CASE
+          WHEN length(processed_data::text) > 5000000 THEN
+            jsonb_build_object(
+              'dataTooLarge', true,
+              'originalSize', length(processed_data::text),
+              'note', 'Data truncated due to size - use specific extraction APIs'
+            )
+          ELSE processed_data
+        END as processed_data
       FROM data_files
       WHERE (
         file_name ILIKE '%ups%' OR
@@ -27,6 +35,7 @@ export async function GET() {
       )
       AND processed_data IS NOT NULL
       ORDER BY id DESC
+      LIMIT 10
     `;
 
     console.log(`Found ${files.length} potential transport files for enhanced extraction`);
