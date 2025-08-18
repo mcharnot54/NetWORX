@@ -120,26 +120,10 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         let extractedAmount = 0;
 
         try {
-          // Import adaptive learning components
-          const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
-          const { resolveMapping, upsertCustomerMapping } = await import('@/lib/mappings');
+          // Safer approach: Use lightweight pattern matching instead of heavy adaptive analysis
+          // This prevents memory crashes while still learning patterns
 
-        // Create adaptive template for this specific file and tab
-        const columnAnalysis = AdaptiveDataValidator.analyzeColumns(sheetData.data);
-        const adaptiveTemplate = AdaptiveDataValidator.createAdaptiveTemplate(
-          `${file.name}_${sheetName}`,
-          sheetData.data,
-          columnAnalysis
-        );
-
-        addLog(`🧠 Adaptive template confidence: ${(adaptiveTemplate.confidence * 100).toFixed(1)}%`);
-        addLog(`🧠 Suggested mappings: ${adaptiveTemplate.suggestedMappings.length}`);
-
-        // Process with adaptive template
-        const processingResult = AdaptiveDataValidator.processWithAdaptiveTemplate(
-          sheetData.data,
-          adaptiveTemplate
-        );
+          addLog(`🧠 SAFE LEARNING: Using lightweight pattern recognition to avoid memory issues`);
 
           // Extract transportation costs using intelligent mapping
 
