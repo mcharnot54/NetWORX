@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { DataFileService } from '@/lib/database';
 import * as XLSX from 'xlsx';
 
 // Test the improved extraction logic from MultiTabExcelUploader on existing files
