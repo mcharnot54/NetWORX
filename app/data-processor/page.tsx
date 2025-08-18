@@ -1309,8 +1309,10 @@ export default function DataProcessor() {
 
                             try {
                               addToLog('Testing file content loading...');
-                              const response = await fetch(`/api/test-file-content?scenarioId=${selectedScenario.id}`);
-                              const result = await response.json();
+                              const result = await robustFetchJson(`/api/test-file-content?scenarioId=${selectedScenario.id}`, {
+                                timeout: 15000,
+                                retries: 2
+                              });
 
                               addToLog(`Files with content: ${result.summary.with_content}/${result.total_files}`);
                               addToLog(`Files with completed status: ${result.summary.completed_status}/${result.total_files}`);
