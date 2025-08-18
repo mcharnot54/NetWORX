@@ -1560,7 +1560,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           {/* Summary */}
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-blue-900">Total Transportation Baseline:</span>
+              <span className="font-semibold text-blue-900">Total Warehouse Baseline:</span>
               <span className="font-bold text-xl text-blue-900">
                 {formatCurrency(files.reduce((sum, f) => sum + f.totalExtracted, 0))}
               </span>
