@@ -66,8 +66,17 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     };
 
     if (fileType === 'UPS') {
-      // Look for charge-related columns
-      const chargeColumn = findColumnByPattern(['Net Charge', 'Charge', 'Total Charge', 'Net Cost', 'Cost']);
+      // For UPS files, prioritize exact 'Net Charge' column first
+      let chargeColumn = null;
+
+      // First, look for exact 'Net Charge' column
+      if (tab.columns.includes('Net Charge')) {
+        chargeColumn = 'Net Charge';
+      } else {
+        // Fallback to pattern matching if Net Charge not found
+        chargeColumn = findColumnByPattern(['Net Charge', 'Charge', 'Total Charge', 'Net Cost', 'Cost']);
+      }
+
       if (chargeColumn) {
         for (const row of tab.data) {
           if (row && row[chargeColumn]) {
