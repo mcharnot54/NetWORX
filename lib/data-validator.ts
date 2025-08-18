@@ -209,12 +209,31 @@ export class DataValidator {
       return AdaptiveDataValidator.processWithAdaptiveTemplate(rawData, template as AdaptiveTemplate);
     }
 
-    // Continue with traditional processing
+    // CRITICAL FIX: Always return success if we have valid Excel data
+    // Template validation should be advisory, not blocking
+    if (!rawData || rawData.length === 0) {
+      return {
+        success: false,
+        errors: ['No data to process'],
+        warnings: [],
+        validationResults: [],
+        processedData: [],
+        validRows: 0,
+        skippedRows: 0,
+        dataQuality: {
+          completeness: 0,
+          accuracy: 0,
+          consistency: 0
+        }
+      };
+    }
+
+    // Continue with traditional processing - but make it more lenient
     const errors: string[] = [];
     const warnings: string[] = [];
     const validationResults: ValidationResult[] = [];
     const processedData: any[] = [];
-    
+
     let validRows = 0;
     let skippedRows = 0;
 
