@@ -34,11 +34,22 @@ export async function GET() {
         const data = tab.sample_data || tab.data || [];
         const columns = tab.columns || [];
         
-        // Find rate column
-        const rateColumns = ['Gross Rate', 'gross_rate', 'Rate', 'Freight Cost', 'freight_cost'];
-        const rateColumn = columns.find((col: string) => 
-          rateColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+        // Find NET charge/rate column (NOT gross)
+        const netRateColumns = ['Net Charge', 'Net Rate', 'Net Cost', 'net_charge', 'net_rate'];
+        const fallbackColumns = ['Rate', 'Charge', 'Cost', 'Freight Cost', 'freight_cost'];
+
+        // Prioritize NET columns first
+        let rateColumn = columns.find((col: string) =>
+          netRateColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
         );
+
+        // If no NET column found, use fallback but exclude GROSS
+        if (!rateColumn) {
+          rateColumn = columns.find((col: string) =>
+            !col.toLowerCase().includes('gross') && // EXCLUDE gross columns
+            fallbackColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+          );
+        }
         
         // Analyze last few rows for totals
         const lastRows = data.slice(-5).map((row: any, index: number) => {
