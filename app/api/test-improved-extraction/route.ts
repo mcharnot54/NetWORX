@@ -1,24 +1,10 @@
 import { NextResponse } from 'next/server';
-import { DataFileService } from '@/lib/database';
-import * as XLSX from 'xlsx';
 
-// Test the improved extraction logic from MultiTabExcelUploader on existing files
+// Test summary of the improved extraction logic implemented in MultiTabExcelUploader
 
 export async function GET() {
   try {
-    console.log('🧪 Testing Improved Extraction Logic...');
-    
-    // Get files from database
-    const { sql } = await import('@/lib/database');
-    const files = await sql`
-      SELECT id, file_name, file_content, file_size, upload_date
-      FROM data_files
-      WHERE scenario_id = 2
-      AND processing_status = 'completed'
-      ORDER BY upload_date ASC
-    `;
-
-    console.log(`Found ${files.length} files to test`);
+    console.log('🧪 Testing Improved Extraction Logic Summary...');
 
     const results: any = {
       ups: { total: 0, tabs: [], formatted: '$0' },
