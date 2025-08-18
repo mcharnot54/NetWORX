@@ -553,12 +553,16 @@ export default function DataProcessor() {
         : { success: true, data: fullFileData.parsedData, summary: { dataQuality: { validRecords: fullFileData.parsedData.length, totalRecords: fullFileData.parsedData.length } } };
 
       // CRITICAL FIX: Separate Excel parsing success from template validation
-      const hasExcelData = file.parsedData && file.parsedData.length > 0;
+      const hasExcelData = fullFileData.parsedData && fullFileData.parsedData.length > 0;
       const templateValidationPassed = result.success;
 
-      // Always mark as validated if we have Excel data, regardless of template
-      updatedFiles[fileIndex].processingResult = result;
-      updatedFiles[fileIndex].validationStatus = hasExcelData ? 'validated' : 'error';
+      // Update the file data with loaded information
+      updatedFiles[fileIndex] = {
+        ...updatedFiles[fileIndex],
+        ...fullFileData,
+        processingResult: result,
+        validationStatus: hasExcelData ? 'validated' : 'error'
+      };
       setFiles(updatedFiles);
 
       // Update file in database if it was saved
@@ -575,9 +579,9 @@ export default function DataProcessor() {
             },
             processed_data: {
               // Always preserve the original parsed Excel data
-              parsedData: file.parsedData,
-              columnNames: file.columnNames,
-              file_content: file.fileContent,
+              parsedData: fullFileData.parsedData,
+              columnNames: fullFileData.columnNames,
+              file_content: fullFileData.fileContent,
               processingResult: result,
               excel_preserved: hasExcelData
             }
