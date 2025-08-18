@@ -595,7 +595,7 @@ export default function DataProcessor() {
 
       // Updated logging to reflect Excel-first approach
       if (hasExcelData) {
-        addToLog(`✓ Excel data processed for ${file.name} (${file.parsedData.length} rows)`);
+        addToLog(`✓ Excel data processed for ${file.name} (${fullFileData.parsedData.length} rows)`);
         if (templateValidationPassed) {
           addToLog(`✓ Template validation also passed`);
           addToLog(DataProcessingUtils.formatDataQuality(result.summary?.dataQuality || result.dataQuality));
