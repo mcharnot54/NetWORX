@@ -90,41 +90,42 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     return 'OTHER';
   };
 
-  // CSV processing function to handle CSV files as single-tab data
+  // CSV processing function using robust csv-parse library
   const processCsvFile = async (file: File): Promise<MultiTabFile> => {
     try {
       addLog(`📄 Processing CSV file: ${file.name}`);
 
-      const text = await file.text();
-      const lines = text.split('\n');
+      // Import the robust CSV processing library
+      const { processCsv } = await import('@/lib/csv');
 
-      if (lines.length === 0) {
-        throw new Error('Empty CSV file');
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const { report, rows } = await processCsv({
+        buffer,
+        hasHeader: true,
+        sampleLimit: 100,
+        hardRowLimit: 10000 // Reasonable limit for processing
+      });
+
+      addLog(`📊 CSV analyzed: Delimiter '${report.dialect.delimiter}', BOM: ${report.dialect.bom}`);
+      addLog(`📊 Headers detected: ${report.headers.length} columns`);
+
+      // Collect all rows for processing
+      const data: Record<string, any>[] = [];
+      let rowCount = 0;
+
+      for await (const record of rows) {
+        data.push(record);
+        rowCount++;
       }
 
-      // Parse CSV manually (simple comma-separated parsing)
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      const data = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim()) {
-          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-          const row: any = {};
-          headers.forEach((header, index) => {
-            row[header] = values[index] || '';
-          });
-          data.push(row);
-        }
-      }
-
-      addLog(`📊 CSV parsed: ${headers.length} columns, ${data.length} rows`);
+      addLog(`📊 CSV loaded: ${report.headers.length} columns, ${data.length} rows`);
 
       const fileType = detectFileType(file.name);
 
       // Create a single "tab" for the CSV data
       const sheetData = {
         data,
-        columnHeaders: headers,
+        columnHeaders: report.headers,
         rowCount: data.length,
         sheetName: file.name.replace('.csv', '')
       };
@@ -209,6 +210,76 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         targetColumn = 'Operating Costs (Multiple Rows)';
 
         addLog(`🎯 CSV WAREHOUSE BUDGET: Total operating costs $${extractedAmount.toLocaleString()}`);
+
+      } else if (fileType === 'PRODUCTION_TRACKER') {
+        addLog(`📊 PRODUCTION TRACKER PROCESSING: Extracting productivity metrics from CSV`);
+        productivityMetrics = {};
+
+        // Look for specific cells based on filename
+        if (file.name.toLowerCase().includes('dec24') || file.name.toLowerCase().includes('december') && file.name.toLowerCase().includes('2024')) {
+          addLog(`📅 Processing December 2024 productivity data from CSV`);
+
+          // For CSV, look for AR53, AR71, AR72 equivalent data
+          // This would need to be mapped to actual column names in the CSV
+          const unitsShippedCol = report.headers.find(h => h.toLowerCase().includes('units') && h.toLowerCase().includes('shipped'));
+          const productiveHoursCol = report.headers.find(h => h.toLowerCase().includes('productive') && h.toLowerCase().includes('hours'));
+          const totalHoursCol = report.headers.find(h => h.toLowerCase().includes('total') && h.toLowerCase().includes('hours'));
+
+          // Extract from last row with data (summary row)
+          const summaryRow = data[data.length - 1];
+
+          if (summaryRow && unitsShippedCol) {
+            productivityMetrics.year2024 = {
+              unitsShipped: parseFloat(String(summaryRow[unitsShippedCol]).replace(/[$,\s]/g, '')) || 0,
+              productiveHours: productiveHoursCol ? parseFloat(String(summaryRow[productiveHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0,
+              totalHours: totalHoursCol ? parseFloat(String(summaryRow[totalHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0
+            };
+
+            // Calculate UPH metrics
+            if (productivityMetrics.year2024.unitsShipped && productivityMetrics.year2024.productiveHours) {
+              productivityMetrics.year2024.productiveUPH =
+                productivityMetrics.year2024.unitsShipped / productivityMetrics.year2024.productiveHours;
+            }
+            if (productivityMetrics.year2024.unitsShipped && productivityMetrics.year2024.totalHours) {
+              productivityMetrics.year2024.totalUPH =
+                productivityMetrics.year2024.unitsShipped / productivityMetrics.year2024.totalHours;
+            }
+          }
+
+          extractedAmount = productivityMetrics.year2024?.unitsShipped || 0;
+
+        } else if (file.name.toLowerCase().includes('apr25') || file.name.toLowerCase().includes('april') && file.name.toLowerCase().includes('2025')) {
+          addLog(`📅 Processing April 2025 productivity data from CSV`);
+
+          // Similar processing for April 2025 data
+          const unitsShippedCol = report.headers.find(h => h.toLowerCase().includes('units') && h.toLowerCase().includes('shipped'));
+          const productiveHoursCol = report.headers.find(h => h.toLowerCase().includes('productive') && h.toLowerCase().includes('hours'));
+          const totalHoursCol = report.headers.find(h => h.toLowerCase().includes('total') && h.toLowerCase().includes('hours'));
+
+          const summaryRow = data[data.length - 1];
+
+          if (summaryRow && unitsShippedCol) {
+            productivityMetrics.year2025 = {
+              unitsShipped: parseFloat(String(summaryRow[unitsShippedCol]).replace(/[$,\s]/g, '')) || 0,
+              productiveHours: productiveHoursCol ? parseFloat(String(summaryRow[productiveHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0,
+              totalHours: totalHoursCol ? parseFloat(String(summaryRow[totalHoursCol]).replace(/[$,\s]/g, '')) || 0 : 0
+            };
+
+            // Calculate UPH metrics
+            if (productivityMetrics.year2025.unitsShipped && productivityMetrics.year2025.productiveHours) {
+              productivityMetrics.year2025.productiveUPH =
+                productivityMetrics.year2025.unitsShipped / productivityMetrics.year2025.productiveHours;
+            }
+            if (productivityMetrics.year2025.unitsShipped && productivityMetrics.year2025.totalHours) {
+              productivityMetrics.year2025.totalUPH =
+                productivityMetrics.year2025.unitsShipped / productivityMetrics.year2025.totalHours;
+            }
+          }
+
+          extractedAmount = productivityMetrics.year2025?.unitsShipped || 0;
+        }
+
+        targetColumn = 'Productivity Metrics (CSV Data)';
       }
 
       const tabs: ExcelTab[] = [{
@@ -233,7 +304,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         processingStatus: 'completed'
       };
 
-      addLog(`✓ ${file.name} CSV processed successfully`);
+      addLog(`✓ ${file.name} CSV processed successfully with robust parser`);
+      addLog(`  Dialect: ${report.dialect.delimiter}-delimited, Headers: ${report.headers.length}, Rows: ${data.length}`);
       addLog(`  Total extracted: $${extractedAmount.toLocaleString()}`);
 
       return multiTabFile;
