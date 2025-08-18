@@ -735,6 +735,65 @@ export default function TestBaseline() {
             </div>
           )}
 
+          {/* Precise UPS Calculation Results */}
+          {upsPreciseData && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">UPS Invoice Precise Calculation</h2>
+              {upsPreciseData.success ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-emerald-50 rounded-lg">
+                    <div className="text-2xl font-bold text-emerald-800 mb-2">
+                      {upsPreciseData.calculation?.formatted_total}
+                    </div>
+                    <div className="text-emerald-700">
+                      Total from single UPS file ({upsPreciseData.file_info?.total_rows} rows)
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>File ID:</strong> {upsPreciseData.file_info?.id}</div>
+                    <div><strong>Scenario:</strong> {upsPreciseData.file_info?.scenario_id}</div>
+                    <div><strong>Total Rows:</strong> {upsPreciseData.file_info?.total_rows}</div>
+                    <div><strong>Values Summed:</strong> {upsPreciseData.calculation?.values_summed}</div>
+                  </div>
+
+                  <div className={`p-3 rounded ${upsPreciseData.verification?.matches_expected ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                    <div className={`font-medium ${upsPreciseData.verification?.matches_expected ? 'text-green-800' : 'text-yellow-800'}`}>
+                      Data Verification:
+                    </div>
+                    <div className={`text-sm ${upsPreciseData.verification?.matches_expected ? 'text-green-700' : 'text-yellow-700'}`}>
+                      Expected: {upsPreciseData.verification?.expected_rows} rows |
+                      Actual: {upsPreciseData.verification?.actual_rows} rows |
+                      Match: {upsPreciseData.verification?.matches_expected ? 'YES ✓' : 'NO ⚠️'}
+                    </div>
+                  </div>
+
+                  {upsPreciseData.sample_values && upsPreciseData.sample_values.length > 0 && (
+                    <div>
+                      <strong>Sample Values (first 10):</strong>
+                      <div className="mt-2 bg-gray-50 rounded p-3 text-xs font-mono">
+                        {upsPreciseData.sample_values.map((sample: any, index: number) => (
+                          <div key={index} className="py-1">
+                            Row {sample.row}: {sample.raw_value} → ${sample.parsed_value.toLocaleString()}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-gray-600">
+                    Extraction method: {upsPreciseData.calculation?.extraction_method}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-red-50 rounded">
+                  <div className="text-red-800 font-medium">Calculation Failed</div>
+                  <div className="text-red-700 text-sm">{upsPreciseData.error}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
