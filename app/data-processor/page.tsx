@@ -668,9 +668,16 @@ export default function DataProcessor() {
     // Process each validated file
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
-      if (file.validationStatus !== 'validated' || !file.processingResult?.data) {
+
+      if (file.validationStatus !== 'validated') {
         addToLog(`Skipping ${file.name} - not validated`);
+        continue;
+      }
+
+      // Load full file data if needed
+      const fullFileData = await loadFullFileData(file);
+      if (!fullFileData.processingResult?.data) {
+        addToLog(`Skipping ${file.name} - no processing result data`);
         continue;
       }
 
