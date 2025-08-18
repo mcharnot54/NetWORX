@@ -116,7 +116,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       // For UPS files: AGGRESSIVELY find "Net Charge" column across ALL quarterly tabs
       console.log(`UPS ${tab.name}: Starting aggressive Net Charge search. Available columns:`, tab.columns);
 
-      // Step 1: Look for exact "Net Charge" matches (case insensitive)
+      // Step 1: Look for exact "Net Charge" matches (case insensitive) AND Column G
       const netChargePatterns = [
         'Net Charge',
         'net_charge',
@@ -124,6 +124,33 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         'NET_CHARGE',
         'net charge'
       ];
+
+      // ALSO check Column G specifically (user mentioned this)
+      const columnG = tab.columns.find(col =>
+        col === 'G' ||
+        col === '__EMPTY_6' ||
+        col === 'Column G' ||
+        col?.toLowerCase() === 'g'
+      );
+
+      if (columnG && !bestColumn) {
+        let testAmount = 0;
+        let validValues = 0;
+        for (const row of tab.data) {
+          if (row && row[columnG]) {
+            const numValue = parseFloat(String(row[columnG]).replace(/[$,\s]/g, ''));
+            if (!isNaN(numValue) && numValue > 0.001) {
+              testAmount += numValue;
+              validValues++;
+            }
+          }
+        }
+        if (validValues > 10 && testAmount > 1000) { // Need substantial data
+          bestAmount = testAmount;
+          bestColumn = columnG;
+          console.log(`UPS ${tab.name}: FOUND Column G '${columnG}' with ${validValues} values = $${testAmount.toLocaleString()}`);
+        }
+      }
 
       for (const pattern of netChargePatterns) {
         const foundColumn = tab.columns.find(col =>
@@ -257,16 +284,21 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         }
 
         if (rateColumn) {
-          console.log(`TL ${tab.name}: Using column H as requested by user: ${rateColumn}`);
+          console.log(`TL ${tab.name}: FORCED to use ONLY column H as requested: ${rateColumn}`);
         } else {
-          console.log(`TL ${tab.name}: Column H not found, available columns:`, tab.columns);
+          console.log(`TL ${tab.name}: ERROR - Column H not found! Available columns:`, tab.columns);
           console.log(`TL ${tab.name}: Total columns: ${tab.columns.length}`);
+          // DO NOT use any fallback for TOTAL 2024 - user wants Column H only!
+          bestColumn = '';
+          bestAmount = 0;
         }
       } else {
         // For other TL tabs: Use standard pattern matching for freight_cost, etc.
         rateColumn = findColumnByPattern(['Net Charge', 'Net Rate', 'Net Cost', 'freight_cost', 'Charge', 'Rate', 'Cost', 'Amount']);
       }
-      if (rateColumn) {
+
+      // CRITICAL: For TOTAL 2024, ONLY proceed if we found Column H - no other columns allowed!
+      if (rateColumn && (tab.name !== 'TOTAL 2024' || (tab.name === 'TOTAL 2024' && rateColumn))) {
         // Smart filtering: exclude total rows based on missing supporting data
         const filteredData = tab.data.filter(row => {
           if (!row) return false;
