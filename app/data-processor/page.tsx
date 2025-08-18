@@ -376,6 +376,8 @@ export default function DataProcessor() {
 
   const updateFileInDatabase = async (fileId: number, updateData: any) => {
     try {
+      console.log('Updating file in database:', { fileId, updateData });
+
       const response = await fetch('/api/files', {
         method: 'PUT',
         headers: {
@@ -385,10 +387,19 @@ export default function DataProcessor() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update file');
+        const errorText = await response.text();
+        console.error('Failed to update file - Response:', response.status, errorText);
+        throw new Error(`Failed to update file: HTTP ${response.status} - ${errorText}`);
       }
+
+      const result = await response.json();
+      console.log('File updated successfully:', result);
+      return result;
+
     } catch (error) {
       console.error('Error updating file in database:', error);
+      addToLog(`⚠ Warning: Could not update file status in database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Don't re-throw the error to prevent breaking the flow
     }
   };
 
