@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         WHERE p.status = 'active'
         ORDER BY s.created_at DESC
         LIMIT 5
-      `, 1500); // 1.5 second timeout for this query
+      `, 5000); // 5 second timeout for this query
       baselineCosts.scenarios_analyzed = scenarios.length;
     } catch (dbError) {
       console.log('Database tables not ready yet, returning empty baseline data');
