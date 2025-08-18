@@ -1369,7 +1369,7 @@ export default function DataProcessor() {
                           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
                           title="Test content API for first file"
                         >
-                          ���� Test File API
+                          🔧 Test File API
                         </button>
                       </div>
 
@@ -1392,14 +1392,15 @@ export default function DataProcessor() {
 
                               for (const file of files) {
                                 if (file.id) {
-                                  const response = await fetch(`/api/files/${file.id}`, {
-                                    method: 'DELETE'
-                                  });
-
-                                  if (response.ok) {
+                                  try {
+                                    await robustFetchJson(`/api/files/${file.id}`, {
+                                      method: 'DELETE',
+                                      timeout: 10000,
+                                      retries: 1
+                                    });
                                     addToLog(`✓ Deleted ${file.name}`);
-                                  } else {
-                                    addToLog(`⚠ Failed to delete ${file.name}`);
+                                  } catch (deleteError) {
+                                    addToLog(`⚠ Failed to delete ${file.name}: ${deleteError}`);
                                   }
                                 }
                               }
