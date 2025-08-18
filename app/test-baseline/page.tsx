@@ -22,6 +22,8 @@ export default function TestBaseline() {
   const [upsPreciseData, setUpsPreciseData] = useState<any>(null);
   const [loadingTransportBaseline, setLoadingTransportBaseline] = useState(false);
   const [transportBaselineData, setTransportBaselineData] = useState<any>(null);
+  const [loadingCorrectedBaseline, setLoadingCorrectedBaseline] = useState(false);
+  const [correctedBaselineData, setCorrectedBaselineData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   const testFileData = async () => {
