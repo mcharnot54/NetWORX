@@ -122,20 +122,32 @@ export default function IngestPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4 p-6 border rounded-lg bg-gray-50">
         <div>
+          <label className="block text-sm font-medium mb-2">Customer ID</label>
+          <input
+            type="text"
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+            placeholder="e.g., cust_001, acme_corp"
+            className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          <p className="text-xs text-gray-600 mt-1">Used to remember your mapping preferences</p>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium mb-2">Upload File</label>
-          <input 
-            type="file" 
+          <input
+            type="file"
             accept=".xlsx,.xls,.csv"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)} 
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Data Domain</label>
-          <select 
-            value={domain} 
-            onChange={(e) => setDomain(e.target.value)} 
+          <select
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
             className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="TRANSPORT">Transport & Logistics</option>
