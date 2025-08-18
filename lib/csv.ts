@@ -194,7 +194,7 @@ export async function processCsv(
   const report: CsvReport = {
     rowCount: 0,        // filled by the consumer after iteration, or leave 0 as preview mode
     badRows,
-    headers: [],
+    headers,            // Will be populated by the generator
     sampleRows,
     dialect: {
       delimiter,
