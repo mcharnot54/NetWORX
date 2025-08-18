@@ -9,13 +9,14 @@ export async function GET() {
     console.log('🧪 Testing Improved Extraction Logic...');
     
     // Get files from database
-    const files = await db.file.findMany({
-      where: {
-        scenario_id: 2,
-        processing_status: 'completed'
-      },
-      orderBy: { upload_date: 'asc' }
-    });
+    const { sql } = await import('@/lib/database');
+    const files = await sql`
+      SELECT id, file_name, file_content, file_size, upload_date
+      FROM files
+      WHERE scenario_id = 2
+      AND processing_status = 'completed'
+      ORDER BY upload_date ASC
+    `;
 
     console.log(`Found ${files.length} files to test`);
 
