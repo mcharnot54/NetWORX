@@ -185,35 +185,60 @@ function extractFromNetCharge(data: any[]): { total: number, valuesFound: number
 function extractFromColumnV(data: any[]): { total: number, valuesFound: number } {
   let total = 0;
   let valuesFound = 0;
+  let columnsFound = new Set<string>();
+
+  // First, log the available columns in the first few rows
+  if (data.length > 0) {
+    console.log('R&L Column V - Available columns in first row:', Object.keys(data[0]));
+  }
 
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
     for (const [key, value] of Object.entries(row)) {
-      // More comprehensive column V detection for R&L data
-      if (key === 'V' || key === '__EMPTY_21' || key === '__EMPTY_20' ||
-          key.toLowerCase().includes('net') ||
-          key.toLowerCase().includes('charge') ||
-          key.toLowerCase().includes('cost') ||
-          key.toLowerCase().includes('amount') ||
-          key.toLowerCase().includes('total') ||
-          key.toLowerCase().includes('freight') ||
-          key.toLowerCase().includes('revenue') ||
-          // R&L specific patterns
-          key.toLowerCase().includes('customer charge') ||
-          key.toLowerCase().includes('line haul') ||
-          key.toLowerCase().includes('invoice')) {
+      // Primary target: Exact column V
+      if (key === 'V') {
+        const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
+        if (!isNaN(numValue) && numValue > 50) {
+          total += numValue;
+          valuesFound++;
+          columnsFound.add(key);
+        }
+      }
+      // Secondary: Common Excel column V patterns
+      else if (key === '__EMPTY_21' || key === '__EMPTY_20') {
+        const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
+        if (!isNaN(numValue) && numValue > 50) {
+          total += numValue;
+          valuesFound++;
+          columnsFound.add(key);
+        }
+      }
+      // Fallback: Column headers that might contain cost data
+      else if (key.toLowerCase().includes('net') ||
+               key.toLowerCase().includes('charge') ||
+               key.toLowerCase().includes('cost') ||
+               key.toLowerCase().includes('amount') ||
+               key.toLowerCase().includes('total') ||
+               key.toLowerCase().includes('freight') ||
+               key.toLowerCase().includes('revenue') ||
+               // R&L specific patterns
+               key.toLowerCase().includes('customer charge') ||
+               key.toLowerCase().includes('line haul') ||
+               key.toLowerCase().includes('invoice')) {
 
         const numValue = parseFloat(String(value).replace(/[$,\s%]/g, ''));
         if (!isNaN(numValue) && numValue > 50) { // Lower threshold for LTL
           total += numValue;
           valuesFound++;
+          columnsFound.add(key);
         }
       }
     }
   }
 
   console.log(`R&L Column V extraction: $${total} from ${valuesFound} values`);
+  console.log(`R&L Columns used:`, Array.from(columnsFound));
   return { total, valuesFound };
 }
 
