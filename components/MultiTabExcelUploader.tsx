@@ -101,6 +101,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         }
       }
       
+      addLog(`🚨 TL TOTAL 2024: Column H extracted $${total.toLocaleString()} from ${count} rows`);
       console.log(`TL TOTAL 2024: Column H extracted $${total.toLocaleString()} from ${count} rows`);
       return { column: targetColumn, amount: total };
     }
