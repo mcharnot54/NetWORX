@@ -1087,6 +1087,102 @@ export default function TestBaseline() {
             </div>
           )}
 
+          {/* Inline R&L + TL Fix Results */}
+          {inlineFixData && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">🔧 R&L + TL Extraction Fix Results</h2>
+              {inlineFixData.success ? (
+                <div className="space-y-6">
+                  {/* Summary */}
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-800 mb-2">
+                      ${(inlineFixData.total_rl_tl || 0).toLocaleString()}
+                    </div>
+                    <div className="text-blue-700">Combined R&L + TL Baseline</div>
+                  </div>
+
+                  {/* Individual Results */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* R&L Results */}
+                    <div className={`p-4 rounded-lg ${inlineFixData.rl_extraction.amount > 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                      <div className="font-semibold text-gray-800 mb-2">🚚 R&L LTL Results</div>
+                      <div className={`text-lg font-bold ${inlineFixData.rl_extraction.amount > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        ${inlineFixData.rl_extraction.amount?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        File ID: {inlineFixData.rl_extraction.file_id || 'Not found'}<br/>
+                        Rows: {inlineFixData.rl_extraction.rows_processed || 0} |
+                        Values: {inlineFixData.rl_extraction.values_found || 0}<br/>
+                        Status: {inlineFixData.rl_extraction.issue || 'Unknown'}
+                      </div>
+                    </div>
+
+                    {/* TL Results */}
+                    <div className={`p-4 rounded-lg ${inlineFixData.tl_extraction.amount > 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                      <div className="font-semibold text-gray-800 mb-2">🚛 TL Results</div>
+                      <div className={`text-lg font-bold ${inlineFixData.tl_extraction.amount > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        ${inlineFixData.tl_extraction.amount?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        File ID: {inlineFixData.tl_extraction.file_id || 'Not found'}<br/>
+                        Rows: {inlineFixData.tl_extraction.rows_processed || 0} |
+                        Values: {inlineFixData.tl_extraction.values_found || 0}<br/>
+                        Status: {inlineFixData.tl_extraction.issue || 'Unknown'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Debug Information */}
+                  {inlineFixData.debug_info && inlineFixData.debug_info.length > 0 && (
+                    <div>
+                      <strong>Debug Information:</strong>
+                      <div className="mt-2 space-y-3">
+                        {inlineFixData.debug_info.map((debug: any, index: number) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded">
+                            <div className="font-medium">📄 {debug.file_name}</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              File ID: {debug.file_id} | Arrays Found: {debug.arrays_found}
+                            </div>
+                            {debug.array_details && debug.array_details.length > 0 && (
+                              <div className="mt-2 text-xs">
+                                <strong>Data Arrays:</strong>
+                                {debug.array_details.map((arr: any, idx: number) => (
+                                  <div key={idx} className="ml-2 py-1">
+                                    • {arr.path}: {arr.length} rows
+                                    {arr.sample_keys.length > 0 && (
+                                      <span className="text-gray-500"> | Columns: {arr.sample_keys.slice(0, 5).join(', ')}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Needed */}
+                  {(inlineFixData.rl_extraction.amount === 0 || inlineFixData.tl_extraction.amount === 0) && (
+                    <div className="p-3 bg-yellow-50 rounded border border-yellow-200">
+                      <div className="text-yellow-800 font-medium">⚠️ Action Needed:</div>
+                      <div className="text-yellow-700 text-sm mt-1">
+                        {inlineFixData.rl_extraction.amount === 0 && 'R&L file data not accessible. '}
+                        {inlineFixData.tl_extraction.amount === 0 && 'TL file data structure needs investigation. '}
+                        Check file processing status and data structure.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 bg-red-50 rounded">
+                  <div className="text-red-800 font-medium">Fix Failed</div>
+                  <div className="text-red-700 text-sm">{inlineFixData.error}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
