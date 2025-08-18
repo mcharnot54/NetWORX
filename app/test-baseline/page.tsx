@@ -18,6 +18,8 @@ export default function TestBaseline() {
   const [upsDiagnosticData, setUpsDiagnosticData] = useState<any>(null);
   const [loadingDeduplication, setLoadingDeduplication] = useState(false);
   const [deduplicationData, setDeduplicationData] = useState<any>(null);
+  const [loadingUpsPrecise, setLoadingUpsPrecise] = useState(false);
+  const [upsPreciseData, setUpsPreciseData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   const testFileData = async () => {
