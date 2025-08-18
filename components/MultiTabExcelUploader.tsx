@@ -53,15 +53,48 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     let bestColumn = '';
     let bestAmount = 0;
 
-    // Helper function to find column by pattern
+    // Helper function to find column by pattern, avoiding gross charges
     const findColumnByPattern = (patterns: string[]): string | null => {
       for (const pattern of patterns) {
         for (const col of tab.columns) {
           if (col && col.toLowerCase().includes(pattern.toLowerCase())) {
+            // Skip any columns that contain "gross" when looking for charges
+            if (pattern.toLowerCase().includes('charge') && col.toLowerCase().includes('gross')) {
+              continue;
+            }
             return col;
           }
         }
       }
+      return null;
+    };
+
+    // Helper function to find net charge columns specifically
+    const findNetChargeColumn = (): string | null => {
+      // First priority: exact matches for net charge
+      const netChargePatterns = ['Net Charge', 'net_charge', 'net charge'];
+      for (const pattern of netChargePatterns) {
+        for (const col of tab.columns) {
+          if (col && col.toLowerCase() === pattern.toLowerCase()) {
+            return col;
+          }
+        }
+      }
+
+      // Second priority: columns containing 'net' and 'charge'
+      for (const col of tab.columns) {
+        if (col && col.toLowerCase().includes('net') && col.toLowerCase().includes('charge')) {
+          return col;
+        }
+      }
+
+      // Third priority: just 'charge' but not 'gross'
+      for (const col of tab.columns) {
+        if (col && col.toLowerCase().includes('charge') && !col.toLowerCase().includes('gross')) {
+          return col;
+        }
+      }
+
       return null;
     };
 
