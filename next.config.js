@@ -8,20 +8,41 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
     // Optimize development server performance
     optimizePackageImports: ['lucide-react'],
+    // Fix dev server stability
+    turbo: {
+      loaders: {
+        '.xlsx': ['raw-loader'],
+        '.xls': ['raw-loader'],
+      },
+    },
   },
 
-  // Improve development server stability
+  // Improve development server stability - Increase buffers to prevent crashes
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 25 * 1000,
+    maxInactiveAge: 60 * 1000, // Increased from 25s to 60s
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 2,
+    pagesBufferLength: 5, // Increased from 2 to 5
   },
 
-  // Fix cross-origin warnings in development
-  allowedDevOrigins: [
-    '2b0e10ddb207455f9e730942e3cdf7bc-1deef392babe403b940b6173f.fly.dev'
-  ],
+  // Fix cross-origin and networking issues
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          },
+        ],
+      },
+    ];
+  },
 
   // Asset optimization
   images: {
