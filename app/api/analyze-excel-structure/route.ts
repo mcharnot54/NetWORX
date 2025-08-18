@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DataFileService } from '@/lib/database';
-import * as XLSX from 'xlsx';
 
 export const dynamic = 'force-dynamic';
 
