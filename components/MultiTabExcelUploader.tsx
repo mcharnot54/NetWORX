@@ -99,6 +99,10 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       const { processCsv } = await import('@/lib/csv');
 
       const buffer = Buffer.from(await file.arrayBuffer());
+      // First, let's peek at the raw file content for debugging
+      const textPreview = buffer.toString('utf8', 0, Math.min(1000, buffer.length));
+      addLog(`🔍 Raw CSV preview (first 1000 chars): "${textPreview.substring(0, 200)}..."`);
+
       const { report, rows } = await processCsv({
         buffer,
         hasHeader: true,
@@ -108,6 +112,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       addLog(`📊 CSV analyzed: Delimiter '${report.dialect.delimiter}', BOM: ${report.dialect.bom}`);
       addLog(`📊 Headers detected: ${report.headers.length} columns`);
+      addLog(`📊 Sample rows collected: ${report.sampleRows.length}`);
+
+      // Debug: Show first few sample rows
+      if (report.sampleRows.length > 0) {
+        addLog(`🔍 First sample row keys: ${Object.keys(report.sampleRows[0]).join(', ')}`);
+        addLog(`🔍 First sample row values: ${Object.values(report.sampleRows[0]).slice(0, 5).join(', ')}`);
+      }
 
       // Collect all rows for processing
       const data: Record<string, any>[] = [];
