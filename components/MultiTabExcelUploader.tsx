@@ -357,6 +357,143 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`🔄 R&L ${sheetName}: Skipping non-Detail tab`);
             }
 
+          // PRODUCTION TRACKER FILES: Extract productivity metrics from specific cells
+          } else if (fileType === 'PRODUCTION_TRACKER') {
+            addLog(`📊 PRODUCTION TRACKER PROCESSING: Extracting productivity metrics from specific cells`);
+
+            productivityMetrics = {};
+
+            // Helper function to extract value from specific cell reference
+            const extractFromCell = (cellRef: string): number => {
+              // Convert Excel cell reference (e.g., AR53) to array indices
+              const getColumnIndex = (col: string): number => {
+                let result = 0;
+                for (let i = 0; i < col.length; i++) {
+                  result = result * 26 + (col.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+                }
+                return result - 1; // Convert to 0-based index
+              };
+
+              const match = cellRef.match(/^([A-Z]+)(\d+)$/);
+              if (!match) return 0;
+
+              const columnLetters = match[1];
+              const rowNumber = parseInt(match[2]) - 1; // Convert to 0-based index
+              const columnIndex = getColumnIndex(columnLetters);
+
+              // Get value from data array
+              if (rowNumber < sheetData.data.length) {
+                const row = sheetData.data[rowNumber];
+                const headers = sheetData.columnHeaders;
+
+                if (columnIndex < headers.length) {
+                  const columnKey = headers[columnIndex];
+                  if (row && row[columnKey]) {
+                    const value = parseFloat(String(row[columnKey]).replace(/[$,\s]/g, ''));
+                    return !isNaN(value) ? value : 0;
+                  }
+                }
+              }
+              return 0;
+            };
+
+            try {
+              // Process based on sheet name
+              if (sheetName.toLowerCase().includes('december') && sheetName.toLowerCase().includes('2024')) {
+                addLog(`📅 Processing December 2024 productivity data`);
+
+                productivityMetrics.year2024 = {
+                  unitsShipped: extractFromCell('AR53'),
+                  productiveHours: extractFromCell('AR71'),
+                  totalHours: extractFromCell('AR72')
+                };
+
+                // Calculate UPH metrics
+                if (productivityMetrics.year2024.unitsShipped && productivityMetrics.year2024.productiveHours) {
+                  productivityMetrics.year2024.productiveUPH =
+                    productivityMetrics.year2024.unitsShipped / productivityMetrics.year2024.productiveHours;
+                }
+                if (productivityMetrics.year2024.unitsShipped && productivityMetrics.year2024.totalHours) {
+                  productivityMetrics.year2024.totalUPH =
+                    productivityMetrics.year2024.unitsShipped / productivityMetrics.year2024.totalHours;
+                }
+
+                addLog(`📦 2024 Units Shipped: ${productivityMetrics.year2024.unitsShipped?.toLocaleString() || 0}`);
+                addLog(`⏱️ 2024 Productive Hours: ${productivityMetrics.year2024.productiveHours?.toLocaleString() || 0}`);
+                addLog(`🕐 2024 Total Hours: ${productivityMetrics.year2024.totalHours?.toLocaleString() || 0}`);
+                addLog(`📈 2024 Productive UPH: ${productivityMetrics.year2024.productiveUPH?.toFixed(2) || 0}`);
+                addLog(`📊 2024 Total UPH: ${productivityMetrics.year2024.totalUPH?.toFixed(2) || 0}`);
+
+              } else if (sheetName.toLowerCase().includes('april') && sheetName.toLowerCase().includes('2025')) {
+                addLog(`📅 Processing April 2025 productivity data`);
+
+                productivityMetrics.year2025 = {
+                  unitsShipped: extractFromCell('AU53'),
+                  productiveHours: extractFromCell('AU71'),
+                  totalHours: extractFromCell('AU72')
+                };
+
+                // Calculate UPH metrics
+                if (productivityMetrics.year2025.unitsShipped && productivityMetrics.year2025.productiveHours) {
+                  productivityMetrics.year2025.productiveUPH =
+                    productivityMetrics.year2025.unitsShipped / productivityMetrics.year2025.productiveHours;
+                }
+                if (productivityMetrics.year2025.unitsShipped && productivityMetrics.year2025.totalHours) {
+                  productivityMetrics.year2025.totalUPH =
+                    productivityMetrics.year2025.unitsShipped / productivityMetrics.year2025.totalHours;
+                }
+
+                addLog(`📦 2025 YTD Units Shipped: ${productivityMetrics.year2025.unitsShipped?.toLocaleString() || 0}`);
+                addLog(`⏱️ 2025 YTD Productive Hours: ${productivityMetrics.year2025.productiveHours?.toLocaleString() || 0}`);
+                addLog(`🕐 2025 YTD Total Hours: ${productivityMetrics.year2025.totalHours?.toLocaleString() || 0}`);
+                addLog(`📈 2025 YTD Productive UPH: ${productivityMetrics.year2025.productiveUPH?.toFixed(2) || 0}`);
+                addLog(`📊 2025 YTD Total UPH: ${productivityMetrics.year2025.totalUPH?.toFixed(2) || 0}`);
+
+                // If we have both years, calculate productivity changes
+                if (productivityMetrics.year2024) {
+                  productivityMetrics.productivityChange = {};
+
+                  if (productivityMetrics.year2024.unitsShipped && productivityMetrics.year2025.unitsShipped) {
+                    productivityMetrics.productivityChange.unitsShippedChange =
+                      ((productivityMetrics.year2025.unitsShipped - productivityMetrics.year2024.unitsShipped) /
+                       productivityMetrics.year2024.unitsShipped) * 100;
+                  }
+
+                  if (productivityMetrics.year2024.productiveUPH && productivityMetrics.year2025.productiveUPH) {
+                    productivityMetrics.productivityChange.productiveUPHChange =
+                      ((productivityMetrics.year2025.productiveUPH - productivityMetrics.year2024.productiveUPH) /
+                       productivityMetrics.year2024.productiveUPH) * 100;
+                  }
+
+                  if (productivityMetrics.year2024.totalUPH && productivityMetrics.year2025.totalUPH) {
+                    productivityMetrics.productivityChange.totalUPHChange =
+                      ((productivityMetrics.year2025.totalUPH - productivityMetrics.year2024.totalUPH) /
+                       productivityMetrics.year2024.totalUPH) * 100;
+                  }
+
+                  // Calculate hours efficiency change (productive/total ratio)
+                  const efficiency2024 = (productivityMetrics.year2024.productiveHours || 0) / (productivityMetrics.year2024.totalHours || 1);
+                  const efficiency2025 = (productivityMetrics.year2025.productiveHours || 0) / (productivityMetrics.year2025.totalHours || 1);
+                  productivityMetrics.productivityChange.hoursEfficiencyChange = ((efficiency2025 - efficiency2024) / efficiency2024) * 100;
+
+                  addLog(`📊 PRODUCTIVITY ANALYSIS:`);
+                  addLog(`  Units Change: ${productivityMetrics.productivityChange.unitsShippedChange?.toFixed(1) || 0}%`);
+                  addLog(`  Productive UPH Change: ${productivityMetrics.productivityChange.productiveUPHChange?.toFixed(1) || 0}%`);
+                  addLog(`  Total UPH Change: ${productivityMetrics.productivityChange.totalUPHChange?.toFixed(1) || 0}%`);
+                  addLog(`  Hours Efficiency Change: ${productivityMetrics.productivityChange.hoursEfficiencyChange?.toFixed(1) || 0}%`);
+                }
+              }
+
+              // Set extracted amount to units shipped for display purposes
+              extractedAmount = (productivityMetrics.year2024?.unitsShipped || 0) + (productivityMetrics.year2025?.unitsShipped || 0);
+              targetColumn = 'Productivity Metrics (Multiple Cells)';
+
+              addLog(`🎯 PRODUCTION TRACKER ${sheetName}: Extracted productivity data`);
+
+            } catch (productivityError) {
+              addLog(`⚠️ Productivity extraction error: ${productivityError instanceof Error ? productivityError.message : 'Unknown error'}`);
+            }
+
           // WAREHOUSE BUDGET FILES: Extract operating costs from specific rows and columns
           } else if (fileType === 'WAREHOUSE_BUDGET') {
             addLog(`🏭 WAREHOUSE BUDGET PROCESSING: Extracting operating costs from specific rows`);
