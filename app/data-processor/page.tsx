@@ -601,7 +601,8 @@ export default function DataProcessor() {
       }
 
     } catch (error) {
-      addToLog(`✗ Validation error for ${file.name}: ${error}`);
+      console.error('Validation error details:', error);
+      addToLog(`✗ Validation error for ${file.name}: ${error instanceof Error ? error.message : String(error)}`);
       updatedFiles[fileIndex].validationStatus = 'error';
       setFiles(updatedFiles);
     }
@@ -652,7 +653,7 @@ export default function DataProcessor() {
           fileContent
         };
       } else {
-        addToLog(`⚠ No file content returned for ${fileData.name}`);
+        addToLog(`��� No file content returned for ${fileData.name}`);
       }
     } catch (error) {
       console.warn(`Could not load full data for ${fileData.name}:`, error);
