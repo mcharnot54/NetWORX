@@ -1156,6 +1156,31 @@ export default function DataProcessor() {
                         </div>
                       </div>
 
+                      {/* Debug: Test File Count */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            if (!selectedScenario) return;
+
+                            try {
+                              addToLog('Testing file count...');
+                              const response = await fetch(`/api/files/count?scenarioId=${selectedScenario.id}`);
+                              const result = await response.json();
+
+                              addToLog(`Total files: ${result.total_files}`);
+                              addToLog(`Completed files: ${result.completed_files}`);
+                              addToLog(`Files with content: ${result.files_with_content}`);
+                            } catch (error) {
+                              addToLog(`Error testing file count: ${error}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                          title="Test file count to check database connectivity"
+                        >
+                          📊 Test File Count
+                        </button>
+                      </div>
+
                       {/* Debug: Test File Content Loading */}
                       <div className="group relative">
                         <button
@@ -1172,14 +1197,14 @@ export default function DataProcessor() {
 
                               if (result.files) {
                                 result.files.forEach((file: any) => {
-                                  addToLog(`${file.name}: status=${file.processing_status}, content=${file.has_file_content ? 'YES' : 'NO'} (${file.file_content_length} chars)`);
+                                  addToLog(`${file.name}: status=${file.processing_status}, content=${file.file_content_available ? 'YES' : 'NO'}`);
                                 });
                               }
                             } catch (error) {
                               addToLog(`Error testing file content: ${error}`);
                             }
                           }}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                           title="Test if file content is properly loaded"
                         >
                           🔍 Test File Content
