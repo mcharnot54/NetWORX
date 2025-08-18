@@ -343,6 +343,43 @@ export default function TestBaseline() {
     }
   };
 
+  const calculateCorrectedBaseline = async () => {
+    if (loadingCorrectedBaseline) return;
+
+    setLoadingCorrectedBaseline(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch('/api/baseline-with-corrected-transport', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setCorrectedBaselineData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Corrected baseline calculation timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to calculate corrected baseline';
+        setError(errorMessage);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoadingCorrectedBaseline(false);
+    }
+  };
+
   const testTransportValidation = async () => {
     if (loadingValidation) return;
 
