@@ -71,6 +71,22 @@ interface InventoryMetrics {
   };
 }
 
+interface SalesData {
+  totalUnits?: number;               // Column AI - total unit count (~15M)
+  salesPlan?: number;                // Column T - sales plan data
+  tab?: string;                      // Should be "May24-April25"
+  planYear?: string;                 // Current volume plan year
+}
+
+interface NetworkFootprintData {
+  totalOnHandValue?: number;         // Column S - Current On Hand Value
+  totalOnHandQuantity?: number;      // Column Q - On Hand Quantity
+  averageCost?: number;              // Column M - Average Cost
+  skuCount?: number;                 // Number of SKUs processed
+  tab?: string;                      // Should be "Data Dump"
+  matchedDimensions?: number;        // Count of items matching Sales Column T
+}
+
 interface MultiTabFile {
   file: File;
   fileName: string;
@@ -179,7 +195,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         // Show rows around our target areas
         const targetRows = [20, 29, 52, 62, 67, 70, 71, 77, 87, 164, 176, 193];
-        addLog(`🔍 DEBUGGING - Target rows data:`);
+        addLog(`���� DEBUGGING - Target rows data:`);
         for (const rowIdx of targetRows) {
           if (rowIdx < data.length) {
             const row = data[rowIdx];
@@ -495,7 +511,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         extractedAmount = inventoryMetrics.totalInventoryDollars || 0;
         targetColumn = 'Inventory Metrics (Total Value)';
 
-        addLog(`��� INVENTORY TRACKER: Total inventory value $${extractedAmount.toLocaleString()}`);
+        addLog(`🎯 INVENTORY TRACKER: Total inventory value $${extractedAmount.toLocaleString()}`);
         if (inventoryMetrics.daysSupply) {
           addLog(`📈 Days Supply: ${inventoryMetrics.daysSupply.toFixed(1)} days`);
         }
@@ -1157,7 +1173,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
               // Other expense (Row 194, columns Y:AJ) - check for 3PL costs
               operatingCosts.otherExpense = extractFromRowColumns(194);
-              addLog(`���� Other expense (Row 194, cols Y:AJ): $${operatingCosts.otherExpense?.toLocaleString() || 0}`);
+              addLog(`📊 Other expense (Row 194, cols Y:AJ): $${operatingCosts.otherExpense?.toLocaleString() || 0}`);
 
               // Lease/Rent (Row 177, columns Y:AJ)
               operatingCosts.leaseRent = extractFromRowColumns(177);
