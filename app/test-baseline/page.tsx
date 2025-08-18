@@ -287,6 +287,13 @@ export default function TestBaseline() {
             >
               {loadingBaseline ? 'Loading Costs...' : 'Refresh Baseline Costs'}
             </button>
+            <button
+              onClick={searchRlFile}
+              disabled={loadingRlSearch}
+              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50"
+            >
+              {loadingRlSearch ? 'Searching...' : 'Search R&L File'}
+            </button>
           </div>
 
           {error && (
