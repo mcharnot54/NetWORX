@@ -112,6 +112,19 @@ const nextConfig = {
       // Faster module resolution
       config.resolve.unsafeCache = true;
       config.resolve.symlinks = false;
+      config.resolve.cacheWithContext = false;
+
+      // Disable expensive features
+      config.stats = 'errors-only';
+      config.infrastructureLogging = { level: 'error' };
+
+      // Aggressive caching
+      if (config.cache) {
+        config.cache.type = 'filesystem';
+        config.cache.buildDependencies = {
+          config: [__filename]
+        };
+      }
 
       // Let Next.js handle devtool automatically to avoid performance regressions
       // config.devtool = 'eval-cheap-source-map'; // Removed - causing performance issues
