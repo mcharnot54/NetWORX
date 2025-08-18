@@ -457,22 +457,10 @@ export class DataFileService {
   }
 
   static async getDataFiles(scenarioId: number, limit: number = 50): Promise<DataFile[]> {
-    // Limit the number of files returned and exclude large processed_data when listing
+    // Return all data for now - the UI needs file_content to reconstruct files
+    // We can optimize this later by adding a separate method for listing vs full data
     return await sql`
-      SELECT
-        id, scenario_id, file_name, file_type, file_size, data_type,
-        processing_status, upload_date, original_columns, mapped_columns,
-        validation_result,
-        -- Only include small portions of processed_data for listing
-        CASE
-          WHEN processed_data IS NOT NULL THEN
-            jsonb_build_object(
-              'file_content', processed_data->'file_content',
-              'excel_preserved', processed_data->'excel_preserved',
-              'reprocessed', processed_data->'reprocessed'
-            )
-          ELSE NULL
-        END as processed_data
+      SELECT *
       FROM data_files
       WHERE scenario_id = ${scenarioId}
       ORDER BY upload_date DESC
