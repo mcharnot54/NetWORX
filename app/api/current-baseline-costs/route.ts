@@ -344,7 +344,7 @@ function extractTransportationCosts(data: any[], baselineCosts: any, fileName: s
   console.log(`Added $${totalFreightCost} to baseline from ${fileName} (total transport costs now: $${baselineCosts.transport_costs.freight_costs})`);
 }
 
-// Extract from TL "Gross Rate" column (TL costs - Inbound, Outbound, Transfers)
+// Extract from TL "NET Charge/Rate" column (TL costs - Inbound, Outbound, Transfers) - NO GROSS RATES
 function extractFromColumnH(data: any[], fileName: string): number {
   let total = 0;
   let valuesFound = 0;
@@ -352,16 +352,29 @@ function extractFromColumnH(data: any[], fileName: string): number {
   for (const row of data) {
     if (typeof row !== 'object' || !row) continue;
 
-    // Look for "Gross Rate" column in TL files
+    // Look for NET charge/rate columns in TL files - EXCLUDE gross columns
     for (const [key, value] of Object.entries(row)) {
-      if (key === 'Gross Rate' || key === 'H' || key === '__EMPTY_7' ||
-          key.toLowerCase().includes('gross') ||
-          key.toLowerCase().includes('rate') ||
-          key.toLowerCase().includes('total') ||
-          key.toLowerCase().includes('cost')) {
+      // PRIORITIZE NET columns
+      if (key.toLowerCase().includes('net') &&
+          (key.toLowerCase().includes('charge') ||
+           key.toLowerCase().includes('rate') ||
+           key.toLowerCase().includes('cost'))) {
 
         const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-        if (!isNaN(numValue) && numValue > 100) { // TL costs should be substantial
+        if (!isNaN(numValue) && numValue > 100) {
+          total += numValue;
+          valuesFound++;
+        }
+      }
+      // FALLBACK: other columns but EXCLUDE gross
+      else if (!key.toLowerCase().includes('gross') &&
+               (key === 'H' || key === '__EMPTY_7' ||
+                key.toLowerCase().includes('rate') ||
+                key.toLowerCase().includes('charge') ||
+                key.toLowerCase().includes('cost'))) {
+
+        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 100) {
           total += numValue;
           valuesFound++;
         }
@@ -369,7 +382,7 @@ function extractFromColumnH(data: any[], fileName: string): number {
     }
   }
 
-  console.log(`Extracted $${total} from TL costs in ${fileName} (${valuesFound} values from ${data.length} rows)`);
+  console.log(`Extracted $${total} from TL NET charges in ${fileName} (${valuesFound} values from ${data.length} rows) - EXCLUDED gross rates per user requirement`);
   return total;
 }
 
