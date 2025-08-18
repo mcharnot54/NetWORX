@@ -99,18 +99,41 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       const text = await file.text();
       addLog(`🔍 Raw CSV preview (first 200 chars): "${text.substring(0, 200)}..."`);
 
-      // Simple CSV parsing
+      // Proper CSV parsing that handles quoted fields with commas
       const lines = text.split(/\r?\n/);
       addLog(`📊 CSV has ${lines.length} total lines`);
 
       const data: Record<string, any>[] = [];
 
+      const parseCSVLine = (line: string): string[] => {
+        const values: string[] = [];
+        let currentValue = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(currentValue.trim());
+            currentValue = '';
+          } else {
+            currentValue += char;
+          }
+        }
+
+        // Add the last value
+        values.push(currentValue.trim());
+        return values;
+      };
+
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Split by comma (basic parsing)
-        const values = line.split(',').map(v => v.trim().replace(/^"(.*)"$/, '$1'));
+        // Parse CSV line respecting quotes
+        const values = parseCSVLine(line);
 
         // Create row object with column indices as keys
         const row: Record<string, any> = {};
