@@ -39,6 +39,11 @@ export default function RootLayout({
           async
           suppressHydrationWarning
         />
+        <script
+          src="/disable-hot-reload.js"
+          async
+          suppressHydrationWarning
+        />
       </head>
       <body>
         <DevErrorBoundary>
