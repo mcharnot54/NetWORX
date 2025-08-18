@@ -192,12 +192,26 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               let count = 0;
               let skippedCount = 0;
 
-              for (const row of sheetData.data) {
-                if (row && row[grossRateColumn]) {
-                  const numValue = parseFloat(String(row[grossRateColumn]).replace(/[$,\s]/g, ''));
+              // First filter: exclude rows with total keywords anywhere in the row
+              const filteredData = sheetData.data.filter(row => {
+                if (!row) return false;
 
+                // Check for total keywords in any cell
+                const rowValues = Object.values(row).map(val => String(val).toLowerCase());
+                const hasTotal = rowValues.some(val =>
+                  val.includes('total') ||
+                  val.includes('sum') ||
+                  val.includes('grand') ||
+                  val.includes('subtotal')
+                );
+
+                if (hasTotal) return false;
+
+                // Smart check: if row has monetary value but no supporting data, exclude it
+                if (row[grossRateColumn]) {
+                  const numValue = parseFloat(String(row[grossRateColumn]).replace(/[$,\s]/g, ''));
                   if (!isNaN(numValue) && numValue > 0) {
-                    // Check for supporting data to avoid totals-only rows
+                    // Check for supporting data columns
                     const supportingDataColumns = Object.keys(row).filter(key =>
                       key.toLowerCase().includes('origin') ||
                       key.toLowerCase().includes('destination') ||
@@ -214,6 +228,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                       key.toLowerCase().includes('carrier')
                     );
 
+                    // Count supporting data with actual values
                     const supportingDataCount = supportingDataColumns.filter(col => {
                       const value = row[col];
                       return value && String(value).trim() !== '' &&
@@ -221,17 +236,26 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                              String(value).toLowerCase() !== 'n/a';
                     }).length;
 
-                    // Skip rows with large numbers but no supporting data (total rows)
-                    if (supportingDataCount === 0 && numValue > 10000) {
-                      addLog(`   Skipping large value $${numValue.toLocaleString()} - no supporting data (likely total row)`);
-                      skippedCount++;
-                    } else {
-                      extractedAmount += numValue;
-                      count++;
-                    }
+                    // If no supporting data, it's likely a total row
+                    if (supportingDataCount === 0) return false;
+                  }
+                }
+
+                return true;
+              });
+
+              // Now process the filtered data
+              for (const row of filteredData) {
+                if (row && row[grossRateColumn]) {
+                  const numValue = parseFloat(String(row[grossRateColumn]).replace(/[$,\s]/g, ''));
+                  if (!isNaN(numValue) && numValue > 1) { // Use > 1 instead of > 0 for more precision
+                    extractedAmount += numValue;
+                    count++;
                   }
                 }
               }
+
+              skippedCount = sheetData.data.length - filteredData.length;
 
               targetColumn = grossRateColumn;
               addLog(`🎯 TL ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows, ${skippedCount} skipped)`);
