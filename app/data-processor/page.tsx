@@ -1334,14 +1334,60 @@ export default function DataProcessor() {
                         </button>
                       </div>
 
-                      {/* Debug: Test File Upload Process */}
+                      {/* Debug: Clear All Files */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            if (!selectedScenario) return;
+
+                            const confirmed = confirm(
+                              `Clear all ${files.length} files from scenario "${selectedScenario.name}"?\n\n` +
+                              'This will permanently delete all uploaded files so you can re-upload them with content.\n\n' +
+                              'Click OK to proceed or Cancel to keep the files.'
+                            );
+
+                            if (!confirmed) return;
+
+                            try {
+                              addToLog('Clearing all files...');
+
+                              for (const file of files) {
+                                if (file.id) {
+                                  const response = await fetch(`/api/files/${file.id}`, {
+                                    method: 'DELETE'
+                                  });
+
+                                  if (response.ok) {
+                                    addToLog(`✓ Deleted ${file.name}`);
+                                  } else {
+                                    addToLog(`⚠ Failed to delete ${file.name}`);
+                                  }
+                                }
+                              }
+
+                              // Clear the files from UI
+                              setFiles([]);
+                              addToLog('✓ All files cleared. You can now re-upload your files.');
+                              addToLog('Files uploaded now will have content stored properly.');
+
+                            } catch (error) {
+                              addToLog(`Error clearing files: ${error}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                          title="Clear all files so you can re-upload them with content"
+                        >
+                          🗑️ Clear All Files
+                        </button>
+                      </div>
+
+                      {/* Debug: Diagnose Issue */}
                       <div className="group relative">
                         <button
                           onClick={() => {
                             addToLog('=== FILE UPLOAD DIAGNOSIS ===');
                             addToLog('The issue is that files were uploaded without content being saved.');
-                            addToLog('Solution: Please re-upload the files using the file upload area.');
-                            addToLog('OR use the "Fix Missing Content" feature if available.');
+                            addToLog('Solution: Click "Clear All Files" then re-upload the files.');
                             addToLog('Current files in database have NO content stored.');
                             addToLog('Once files are re-uploaded with content, validation will work.');
                             addToLog('================================');
