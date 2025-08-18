@@ -382,6 +382,43 @@ export default function TestBaseline() {
     }
   };
 
+  const diagnoseTlStructure = async () => {
+    if (loadingTlDiagnostic) return;
+
+    setLoadingTlDiagnostic(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('/api/diagnose-tl-structure', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setTlDiagnosticData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('TL diagnostic timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to diagnose TL structure';
+        setError(errorMessage);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoadingTlDiagnostic(false);
+    }
+  };
+
   const testTransportValidation = async () => {
     if (loadingValidation) return;
 
