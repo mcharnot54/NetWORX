@@ -339,58 +339,62 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         };
 
         if (file.name.toLowerCase().includes('dec24') || file.name.toLowerCase().includes('december') && file.name.toLowerCase().includes('2024')) {
-          addLog(`📅 Processing December 2024 productivity data - extracting from AR53, AR71, AR72`);
+          addLog(`📅 Processing December 2024 productivity data - extracting from AR73, AR97, AR102`);
 
           // Extract from specific cells in December 2024 tab
-          const unitsShipped = extractFromSpecificCell(53, 'AR'); // AR53
-          const productiveHours = extractFromSpecificCell(71, 'AR'); // AR71
-          const totalHours = extractFromSpecificCell(72, 'AR'); // AR72
+          const unitsShipped = extractFromSpecificCell(73, 'AR'); // AR73
+          const payrollHours = extractFromSpecificCell(97, 'AR'); // AR97 (Payroll Hours)
+          const totalHours = extractFromSpecificCell(102, 'AR'); // AR102
 
           productivityMetrics.year2024 = {
             unitsShipped,
-            productiveHours,
+            payrollHours,
             totalHours
           };
 
-          // Calculate UPH metrics
-          if (unitsShipped && productiveHours) {
-            productivityMetrics.year2024.productiveUPH = unitsShipped / productiveHours;
+          // Calculate UPH metrics (Units Per Hour)
+          if (unitsShipped && payrollHours) {
+            productivityMetrics.year2024.payrollUPH = unitsShipped / payrollHours;
+            addLog(`📈 2024 Payroll UPH: ${(unitsShipped / payrollHours).toFixed(2)} units/hour`);
           }
           if (unitsShipped && totalHours) {
             productivityMetrics.year2024.totalUPH = unitsShipped / totalHours;
+            addLog(`📊 2024 Total UPH: ${(unitsShipped / totalHours).toFixed(2)} units/hour`);
           }
 
-          addLog(`📦 2024 Units Shipped (AR53): ${unitsShipped}`);
-          addLog(`⏱️ 2024 Productive Hours (AR71): ${productiveHours}`);
-          addLog(`🕐 2024 Total Hours (AR72): ${totalHours}`);
+          addLog(`📦 2024 Units Shipped (AR73): ${unitsShipped?.toLocaleString()}`);
+          addLog(`⏱️ 2024 Payroll Hours (AR97): ${payrollHours?.toLocaleString()}`);
+          addLog(`🕐 2024 Total Hours (AR102): ${totalHours?.toLocaleString()}`);
 
           extractedAmount = unitsShipped;
 
         } else if (file.name.toLowerCase().includes('apr25') || file.name.toLowerCase().includes('april') && file.name.toLowerCase().includes('2025')) {
-          addLog(`📅 Processing April 2025 productivity data - extracting from AU53, AU71, AU72`);
+          addLog(`📅 Processing April 2025 productivity data - extracting from AR73, AR97, AR102`);
 
-          // Extract from specific cells in April 2025 tab
-          const unitsShipped = extractFromSpecificCell(53, 'AU'); // AU53
-          const productiveHours = extractFromSpecificCell(71, 'AU'); // AU71
-          const totalHours = extractFromSpecificCell(72, 'AU'); // AU72
+          // Extract from specific cells in April 2025 tab (same columns)
+          const unitsShipped = extractFromSpecificCell(73, 'AR'); // AR73
+          const payrollHours = extractFromSpecificCell(97, 'AR'); // AR97 (Payroll Hours)
+          const totalHours = extractFromSpecificCell(102, 'AR'); // AR102
 
           productivityMetrics.year2025 = {
             unitsShipped,
-            productiveHours,
+            payrollHours,
             totalHours
           };
 
-          // Calculate UPH metrics
-          if (unitsShipped && productiveHours) {
-            productivityMetrics.year2025.productiveUPH = unitsShipped / productiveHours;
+          // Calculate UPH metrics (Units Per Hour)
+          if (unitsShipped && payrollHours) {
+            productivityMetrics.year2025.payrollUPH = unitsShipped / payrollHours;
+            addLog(`📈 2025 YTD Payroll UPH: ${(unitsShipped / payrollHours).toFixed(2)} units/hour`);
           }
           if (unitsShipped && totalHours) {
             productivityMetrics.year2025.totalUPH = unitsShipped / totalHours;
+            addLog(`📊 2025 YTD Total UPH: ${(unitsShipped / totalHours).toFixed(2)} units/hour`);
           }
 
-          addLog(`📦 2025 YTD Units Shipped (AU53): ${unitsShipped}`);
-          addLog(`⏱️ 2025 YTD Productive Hours (AU71): ${productiveHours}`);
-          addLog(`🕐 2025 YTD Total Hours (AU72): ${totalHours}`);
+          addLog(`📦 2025 YTD Units Shipped (AR73): ${unitsShipped?.toLocaleString()}`);
+          addLog(`⏱️ 2025 YTD Payroll Hours (AR97): ${payrollHours?.toLocaleString()}`);
+          addLog(`🕐 2025 YTD Total Hours (AR102): ${totalHours?.toLocaleString()}`);
 
           extractedAmount = unitsShipped;
         }
