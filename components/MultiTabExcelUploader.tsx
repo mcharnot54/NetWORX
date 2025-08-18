@@ -706,6 +706,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             rowsProcessed: sheetData.data.length,
             columnHeaders: sheetData.columnHeaders,
             operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined,
+            productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined,
             learningMetrics: {
               patternDetected: `${fileType}_${sheetName}_${usingAdaptiveLearning ? 'adaptive' : 'simple'}`,
               adaptiveConfidence: usingAdaptiveLearning && sheetData.adaptiveTemplate ? sheetData.adaptiveTemplate.confidence : undefined,
@@ -751,7 +752,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       };
 
       // Add completion log with learning status
-      addLog(`✓ ${file.name} processed successfully`);
+      addLog(`��� ${file.name} processed successfully`);
       addLog(`  Total extracted: $${totalExtracted.toLocaleString()} from ${tabs.length} tabs`);
       addLog(`  File type detected: ${result.detectedFileType}`);
       addLog(`  🧠 Learning mode: ${usingAdaptiveLearning ? 'ADAPTIVE LEARNING ACTIVE' : 'Simple fallback mode'}`);
