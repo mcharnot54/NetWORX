@@ -339,16 +339,11 @@ export default function DataProcessor() {
         return null; // User cancelled
       }
 
-      // Handle other errors
-      if (!response.ok) {
-        console.error('File save request failed:', response.status, response.statusText);
-        throw new Error(`Failed to save file: HTTP ${response.status} - ${response.statusText}`);
-      }
-
-      // Only try to parse response if request was successful
+      // robustFetch handles errors internally, so if we get here, it succeeded
       let responseData;
       try {
         responseData = await response.json();
+        addToLog(`✓ File saved successfully: ${fileData.name}`);
       } catch (parseError) {
         console.error('Failed to parse success response:', parseError);
         throw new Error(`Server returned invalid response format`);
