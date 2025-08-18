@@ -89,39 +89,45 @@ export async function GET(request: NextRequest) {
 
           if (allDataArrays.length === 0) continue;
 
-          // Extract costs based on file name and content
-          console.log(`Processing file: ${file.file_name} with ${data.length} rows`);
-
+          // Extract costs from all data arrays found in the file
           const fileNameLower = file.file_name.toLowerCase();
+          let totalRowsProcessed = 0;
 
-          // Target specific transportation files first
-          if (fileNameLower.includes('2024 totals with inbound and outbound tl') ||
-              fileNameLower.includes('r&l curriculum associates') ||
-              fileNameLower.includes('ups invoice by state summary') ||
-              fileNameLower.includes('tl') ||
-              fileNameLower.includes('transport') ||
-              fileNameLower.includes('freight') ||
-              fileNameLower.includes('shipping')) {
-            // Extract transportation costs using specific column logic
-            extractTransportationCosts(data, baselineCosts, file.file_name);
-          } else if (fileNameLower.includes('warehouse budget') ||
-                     fileNameLower.includes('operating expenses') ||
-                     fileNameLower.includes('general operating')) {
-            // Extract warehouse costs
-            extractWarehouseCosts(data, baselineCosts, file.file_name);
-          } else if (fileNameLower.includes('network') ||
-                     fileNameLower.includes('capacity')) {
-            // Extract operational costs from network files
-            extractOperationalCosts(data, baselineCosts, file.file_name);
-          } else if (fileNameLower.includes('growth') ||
-                     fileNameLower.includes('forecast') ||
-                     fileNameLower.includes('5 year')) {
-            // Extract growth-related costs
-            extractGrowthCosts(data, baselineCosts, file.file_name);
-          } else {
-            // General cost extraction for any file
-            extractGeneralCosts(data, baselineCosts, file.file_name);
+          for (const dataArray of allDataArrays) {
+            totalRowsProcessed += dataArray.data.length;
+            console.log(`Processing ${dataArray.source} from ${file.file_name} with ${dataArray.data.length} rows`);
+
+            // Target specific transportation files first
+            if (fileNameLower.includes('2024 totals with inbound and outbound tl') ||
+                fileNameLower.includes('r&l curriculum associates') ||
+                fileNameLower.includes('ups invoice by state summary') ||
+                fileNameLower.includes('tl') ||
+                fileNameLower.includes('transport') ||
+                fileNameLower.includes('freight') ||
+                fileNameLower.includes('shipping')) {
+              // Extract transportation costs using specific column logic
+              extractTransportationCosts(dataArray.data, baselineCosts, file.file_name);
+            } else if (fileNameLower.includes('warehouse budget') ||
+                       fileNameLower.includes('operating expenses') ||
+                       fileNameLower.includes('general operating')) {
+              // Extract warehouse costs
+              extractWarehouseCosts(dataArray.data, baselineCosts, file.file_name);
+            } else if (fileNameLower.includes('network') ||
+                       fileNameLower.includes('capacity')) {
+              // Extract operational costs from network files
+              extractOperationalCosts(dataArray.data, baselineCosts, file.file_name);
+            } else if (fileNameLower.includes('growth') ||
+                       fileNameLower.includes('forecast') ||
+                       fileNameLower.includes('5 year')) {
+              // Extract growth-related costs
+              extractGrowthCosts(dataArray.data, baselineCosts, file.file_name);
+            } else {
+              // General cost extraction for any file
+              extractGeneralCosts(dataArray.data, baselineCosts, file.file_name);
+            }
           }
+
+          console.log(`Total rows processed for ${file.file_name}: ${totalRowsProcessed}`);
         }
 
         // Check scenario results as fallback - handle missing table gracefully
