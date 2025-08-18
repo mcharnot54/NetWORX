@@ -147,6 +147,27 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       addLog(`📊 CSV loaded: ${report.headers.length} columns, ${data.length} rows`);
 
+      // DEBUG: Show sample of actual data structure
+      if (data.length > 0) {
+        addLog(`🔍 DEBUGGING - First 5 rows of actual data:`);
+        for (let i = 0; i < Math.min(5, data.length); i++) {
+          const row = data[i];
+          const values = Object.values(row);
+          addLog(`  Row ${i}: [${values.map((v, idx) => `${idx}:"${v}"`).join(', ')}]`);
+        }
+
+        // Show rows around our target areas
+        const targetRows = [20, 29, 52, 62, 67, 70, 71, 77, 87, 164, 176, 193];
+        addLog(`🔍 DEBUGGING - Target rows data:`);
+        for (const rowIdx of targetRows) {
+          if (rowIdx < data.length) {
+            const row = data[rowIdx];
+            const values = Object.values(row);
+            addLog(`  Row ${rowIdx + 1}: [${values.map((v, idx) => `${idx}:"${v}"`).join(', ')}]`);
+          }
+        }
+      }
+
       const fileType = detectFileType(file.name);
 
       // Create a single "tab" for the CSV data
@@ -744,7 +765,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 addLog(`⏱️ 2024 Productive Hours: ${productivityMetrics.year2024.productiveHours?.toLocaleString() || 0}`);
                 addLog(`🕐 2024 Total Hours: ${productivityMetrics.year2024.totalHours?.toLocaleString() || 0}`);
                 addLog(`📈 2024 Productive UPH: ${productivityMetrics.year2024.productiveUPH?.toFixed(2) || 0}`);
-                addLog(`�� 2024 Total UPH: ${productivityMetrics.year2024.totalUPH?.toFixed(2) || 0}`);
+                addLog(`📊 2024 Total UPH: ${productivityMetrics.year2024.totalUPH?.toFixed(2) || 0}`);
 
               } else if (sheetName.toLowerCase().includes('april') && sheetName.toLowerCase().includes('2025')) {
                 addLog(`📅 Processing April 2025 productivity data`);
