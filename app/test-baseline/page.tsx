@@ -725,6 +725,35 @@ export default function TestBaseline() {
             >
               🧪 TEST FILE UPDATE
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/debug-database');
+                  const result = await response.json();
+
+                  const tablesStatus = Object.entries(result.tables_exist)
+                    .filter(([key]) => !key.includes('columns'))
+                    .map(([table, exists]) => `${table}: ${exists ? '✅' : '❌'}`)
+                    .join('\n');
+
+                  alert(
+                    `🔍 DATABASE DEBUG REPORT:\n\n` +
+                    `Connection: ${result.database_connection ? '✅' : '❌'}\n\n` +
+                    `Tables:\n${tablesStatus}\n\n` +
+                    `Data Counts:\n` +
+                    `- Projects: ${result.project_count}\n` +
+                    `- Scenarios: ${result.scenario_count}\n` +
+                    `- Files: ${result.file_count}\n\n` +
+                    `${result.error_details ? `Error: ${result.error_details.message}` : 'All systems operational'}`
+                  );
+                } catch (error) {
+                  alert('❌ Failed to debug database: ' + error);
+                }
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 font-bold"
+            >
+              🔍 DEBUG DATABASE
+            </button>
           </div>
 
           {error && (
