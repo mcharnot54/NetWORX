@@ -457,14 +457,34 @@ export class DataFileService {
   }
 
   static async getDataFiles(scenarioId: number, limit: number = 50): Promise<DataFile[]> {
-    // Return all data for now - the UI needs file_content to reconstruct files
-    // We can optimize this later by adding a separate method for listing vs full data
+    // Use a smaller limit and exclude very large processed_data to avoid response size issues
     return await sql`
-      SELECT *
+      SELECT
+        id, scenario_id, file_name, file_type, file_size, data_type,
+        processing_status, upload_date, original_columns, mapped_columns,
+        validation_result,
+        -- Include file_content but limit size to prevent response overload
+        CASE
+          WHEN processed_data IS NOT NULL THEN
+            jsonb_build_object(
+              'file_content',
+              CASE
+                WHEN LENGTH(processed_data->>'file_content') > 1000000 THEN
+                  SUBSTRING(processed_data->>'file_content', 1, 1000000) || '...[truncated]'
+                ELSE processed_data->>'file_content'
+              END,
+              'parsedData', processed_data->'parsedData',
+              'columnNames', processed_data->'columnNames',
+              'processingResult', processed_data->'processingResult',
+              'excel_preserved', processed_data->'excel_preserved',
+              'reprocessed', processed_data->'reprocessed'
+            )
+          ELSE NULL
+        END as processed_data
       FROM data_files
       WHERE scenario_id = ${scenarioId}
       ORDER BY upload_date DESC
-      LIMIT ${limit}
+      LIMIT ${LEAST(limit, 10)}
     ` as DataFile[];
   }
 
