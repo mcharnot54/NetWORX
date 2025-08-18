@@ -919,14 +919,20 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       for (let i = 0; i < uploadedFiles.length; i++) {
         const file = uploadedFiles[i];
 
-        if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls') ||
+            file.type.includes('csv') || file.name.endsWith('.csv')) {
           try {
             // Add small delay to improve UI responsiveness
             if (i > 0) {
               await new Promise(resolve => setTimeout(resolve, 100));
             }
 
-            const processed = await processExcelFile(file);
+            let processed;
+            if (file.name.endsWith('.csv') || file.type.includes('csv')) {
+              processed = await processCsvFile(file);
+            } else {
+              processed = await processExcelFile(file);
+            }
             processedFiles.push(processed);
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -942,7 +948,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             });
           }
         } else {
-          addLog(`⚠ Skipping ${file.name} - not an Excel file`);
+          addLog(`⚠ Skipping ${file.name} - not an Excel or CSV file`);
         }
       }
 
