@@ -23,12 +23,13 @@ interface TabAnalysis {
   }>;
 }
 
-function identifyCostColumns(headers: string[], data: any[]): TabAnalysis['costColumns'] {
+async function identifyCostColumns(headers: string[], data: any[]): Promise<TabAnalysis['costColumns']> {
+  const XLSX = await import('xlsx');
   const costColumns: TabAnalysis['costColumns'] = [];
-  
+
   headers.forEach((header, index) => {
     if (!header) return;
-    
+
     const headerLower = header.toLowerCase();
     const columnLetter = XLSX.utils.encode_col(index);
     
