@@ -1142,6 +1142,36 @@ export default function DataProcessor() {
                           <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
                         </div>
                       </div>
+
+                      {/* Debug: Test File Content Loading */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            if (!selectedScenario) return;
+
+                            try {
+                              addToLog('Testing file content loading...');
+                              const response = await fetch(`/api/test-file-content?scenarioId=${selectedScenario.id}`);
+                              const result = await response.json();
+
+                              addToLog(`Files with content: ${result.summary.with_content}/${result.total_files}`);
+                              addToLog(`Files with completed status: ${result.summary.completed_status}/${result.total_files}`);
+
+                              if (result.files) {
+                                result.files.forEach((file: any) => {
+                                  addToLog(`${file.name}: status=${file.processing_status}, content=${file.has_file_content ? 'YES' : 'NO'} (${file.file_content_length} chars)`);
+                                });
+                              }
+                            } catch (error) {
+                              addToLog(`Error testing file content: ${error}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                          title="Test if file content is properly loaded"
+                        >
+                          🔍 Test File Content
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
