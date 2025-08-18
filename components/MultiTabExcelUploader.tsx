@@ -506,28 +506,35 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               rowData[index + 1] = row; // Excel rows are 1-indexed
             });
 
-            // Helper function to extract value from specific row and column range
-            const extractFromRowColumns = (rowNum: number, columnRange?: string[]): number => {
+            // Helper function to extract value from specific row and column range Y:AJ
+            const extractFromRowColumns = (rowNum: number): number => {
               const row = rowData[rowNum];
               if (!row) return 0;
 
+              // Always use columns Y:AJ for all operating cost rows as specified
+              const targetColumns = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ'];
+
+              // Map Excel column letters to array indices for the data
+              const getColumnIndex = (col: string): number => {
+                let result = 0;
+                for (let i = 0; i < col.length; i++) {
+                  result = result * 26 + (col.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+                }
+                return result - 1; // Convert to 0-based index
+              };
+
               let total = 0;
-              if (columnRange) {
-                // Extract from specific column range (e.g., Y:AJ for regular wages)
-                for (const col of columnRange) {
-                  if (row[col]) {
-                    const value = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
-                    if (!isNaN(value) && value > 0) {
+              for (const col of targetColumns) {
+                const columnIndex = getColumnIndex(col);
+                const headers = sheetData.columnHeaders;
+
+                if (columnIndex < headers.length) {
+                  const columnKey = headers[columnIndex];
+                  if (row && row[columnKey]) {
+                    const value = parseFloat(String(row[columnKey]).replace(/[$,\s]/g, ''));
+                    if (!isNaN(value) && value !== 0) { // Include negative values but exclude zero
                       total += value;
                     }
-                  }
-                }
-              } else {
-                // Extract from any numeric column in the row
-                for (const [key, value] of Object.entries(row)) {
-                  const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
-                  if (!isNaN(numValue) && numValue > 0 && numValue < 100000000) { // Reasonable upper bound
-                    total = Math.max(total, numValue); // Take largest value in row
                   }
                 }
               }
@@ -537,41 +544,40 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             // Extract specific operating cost components
             try {
               // Regular wages (Row 30, columns Y:AJ) - planned labor cost for 2025
-              const wageColumns = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ'];
-              operatingCosts.regularWages = extractFromRowColumns(30, wageColumns);
-              addLog(`💰 Regular wages (Row 30): $${operatingCosts.regularWages?.toLocaleString() || 0}`);
+              operatingCosts.regularWages = extractFromRowColumns(30);
+              addLog(`💰 Regular wages (Row 30, cols Y:AJ): $${operatingCosts.regularWages?.toLocaleString() || 0}`);
 
-              // Employee benefits (Row 63)
+              // Employee benefits (Row 63, columns Y:AJ)
               operatingCosts.employeeBenefits = extractFromRowColumns(63);
-              addLog(`🏥 Employee benefits (Row 63): $${operatingCosts.employeeBenefits?.toLocaleString() || 0}`);
+              addLog(`🏥 Employee benefits (Row 63, cols Y:AJ): $${operatingCosts.employeeBenefits?.toLocaleString() || 0}`);
 
-              // Temp employee costs (Row 68)
+              // Temp employee costs (Row 68, columns Y:AJ)
               operatingCosts.tempEmployeeCosts = extractFromRowColumns(68);
-              addLog(`👥 Temp employee costs (Row 68): $${operatingCosts.tempEmployeeCosts?.toLocaleString() || 0}`);
+              addLog(`👥 Temp employee costs (Row 68, cols Y:AJ): $${operatingCosts.tempEmployeeCosts?.toLocaleString() || 0}`);
 
-              // General supplies (Row 78)
+              // General supplies (Row 78, columns Y:AJ)
               operatingCosts.generalSupplies = extractFromRowColumns(78);
-              addLog(`📦 General supplies (Row 78): $${operatingCosts.generalSupplies?.toLocaleString() || 0}`);
+              addLog(`📦 General supplies (Row 78, cols Y:AJ): $${operatingCosts.generalSupplies?.toLocaleString() || 0}`);
 
-              // Office (Row 88)
+              // Office (Row 88, columns Y:AJ)
               operatingCosts.office = extractFromRowColumns(88);
-              addLog(`🏢 Office costs (Row 88): $${operatingCosts.office?.toLocaleString() || 0}`);
+              addLog(`🏢 Office costs (Row 88, cols Y:AJ): $${operatingCosts.office?.toLocaleString() || 0}`);
 
-              // Telecom (Row 165)
+              // Telecom (Row 165, columns Y:AJ)
               operatingCosts.telecom = extractFromRowColumns(165);
-              addLog(`📞 Telecom (Row 165): $${operatingCosts.telecom?.toLocaleString() || 0}`);
+              addLog(`📞 Telecom (Row 165, cols Y:AJ): $${operatingCosts.telecom?.toLocaleString() || 0}`);
 
-              // Other expense (Row 194) - check for 3PL costs
+              // Other expense (Row 194, columns Y:AJ) - check for 3PL costs
               operatingCosts.otherExpense = extractFromRowColumns(194);
-              addLog(`📊 Other expense (Row 194): $${operatingCosts.otherExpense?.toLocaleString() || 0}`);
+              addLog(`📊 Other expense (Row 194, cols Y:AJ): $${operatingCosts.otherExpense?.toLocaleString() || 0}`);
 
-              // Lease/Rent (Row 177)
+              // Lease/Rent (Row 177, columns Y:AJ)
               operatingCosts.leaseRent = extractFromRowColumns(177);
-              addLog(`🏠 Lease/Rent (Row 177): $${operatingCosts.leaseRent?.toLocaleString() || 0}`);
+              addLog(`🏠 Lease/Rent (Row 177, cols Y:AJ): $${operatingCosts.leaseRent?.toLocaleString() || 0}`);
 
-              // Headcount (Row 21) - FTEs
+              // Headcount (Row 21, columns Y:AJ) - FTEs
               operatingCosts.headcount = extractFromRowColumns(21);
-              addLog(`👨‍💼 Headcount FTEs (Row 21): ${operatingCosts.headcount?.toLocaleString() || 0}`);
+              addLog(`👨‍💼 Headcount FTEs (Row 21, cols Y:AJ): ${operatingCosts.headcount?.toLocaleString() || 0}`);
 
               // Calculate total operating costs
               operatingCosts.total = (operatingCosts.regularWages || 0) +
@@ -752,7 +758,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       };
 
       // Add completion log with learning status
-      addLog(`��� ${file.name} processed successfully`);
+      addLog(`✓ ${file.name} processed successfully`);
       addLog(`  Total extracted: $${totalExtracted.toLocaleString()} from ${tabs.length} tabs`);
       addLog(`  File type detected: ${result.detectedFileType}`);
       addLog(`  🧠 Learning mode: ${usingAdaptiveLearning ? 'ADAPTIVE LEARNING ACTIVE' : 'Simple fallback mode'}`);
