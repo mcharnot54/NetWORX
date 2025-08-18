@@ -352,6 +352,55 @@ export default function TestBaseline() {
             </div>
           )}
 
+          {/* R&L File Search Results */}
+          {rlSearchData && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">R&L File Search Results</h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><strong>Total Files:</strong> {rlSearchData.total_files || 0}</div>
+                  <div><strong>R&L Files Found:</strong> {rlSearchData.rl_files_found?.length || 0}</div>
+                </div>
+
+                {rlSearchData.rl_files_found && rlSearchData.rl_files_found.length > 0 ? (
+                  <div>
+                    <strong>R&L Files Found:</strong>
+                    <ul className="mt-2 space-y-2">
+                      {rlSearchData.rl_files_found.map((file: any) => (
+                        <li key={file.id} className="p-2 bg-green-50 rounded">
+                          <div className="font-medium text-green-800">{file.file_name}</div>
+                          <div className="text-sm text-green-600">
+                            ID: {file.id} | Status: {file.processing_status} | Type: {file.data_type}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-red-50 rounded">
+                    <div className="text-red-800 font-medium">No R&L files found!</div>
+                    <div className="text-red-600 text-sm mt-1">
+                      The R&L Curriculum Associates file from 2024 is missing from the database.
+                    </div>
+                  </div>
+                )}
+
+                {rlSearchData.all_files && (
+                  <div>
+                    <strong>All Files ({rlSearchData.total_files}):</strong>
+                    <div className="max-h-40 overflow-y-auto mt-2 text-xs">
+                      {rlSearchData.all_files.map((fileName: string, index: number) => (
+                        <div key={index} className="py-1 border-b border-gray-100">
+                          {fileName}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
