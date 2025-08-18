@@ -265,6 +265,43 @@ export default function TestBaseline() {
     }
   };
 
+  const calculateUpsPrecise = async () => {
+    if (loadingUpsPrecise) return;
+
+    setLoadingUpsPrecise(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch('/api/calculate-ups-precise', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setUpsPreciseData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('UPS calculation timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to calculate UPS total';
+        setError(errorMessage);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoadingUpsPrecise(false);
+    }
+  };
+
   const testTransportValidation = async () => {
     if (loadingValidation) return;
 
