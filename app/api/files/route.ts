@@ -13,11 +13,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'scenarioId is required' }, { status: 400 });
     }
 
+    console.log('Fetching files for scenario:', scenarioId);
+
+    // Test database connection first
+    try {
+      const { sql } = await import('@/lib/database');
+      await sql`SELECT 1`;
+    } catch (dbError) {
+      console.error('Database connection failed in GET /api/files:', dbError);
+      return NextResponse.json({
+        error: 'Database connection failed',
+        details: dbError instanceof Error ? dbError.message : String(dbError)
+      }, { status: 503 });
+    }
+
+    // Check if the data_files table exists
+    try {
+      const { sql } = await import('@/lib/database');
+      await sql`SELECT 1 FROM data_files LIMIT 1`;
+    } catch (tableError) {
+      console.error('data_files table check failed:', tableError);
+      // Return empty files array if table doesn't exist yet
+      return NextResponse.json({
+        files: [],
+        warning: 'data_files table not ready yet',
+        message: 'Database needs initialization'
+      });
+    }
+
     const files = await DataFileService.getDataFiles(parseInt(scenarioId));
+    console.log(`Found ${files.length} files for scenario ${scenarioId}`);
     return NextResponse.json({ files });
+
   } catch (error) {
     console.error('Error fetching files:', error);
-    return NextResponse.json({ error: 'Failed to fetch files' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({
+      error: 'Failed to fetch files',
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
 
