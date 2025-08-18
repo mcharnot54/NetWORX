@@ -53,13 +53,27 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     let bestColumn = '';
     let bestAmount = 0;
 
-    // Helper function to find column by pattern, avoiding gross charges
+    // Helper function to find column by pattern, PRIORITIZING NET and EXCLUDING GROSS
     const findColumnByPattern = (patterns: string[]): string | null => {
+      // First pass: Look for NET columns specifically
+      for (const col of tab.columns) {
+        if (col && col.toLowerCase().includes('net')) {
+          for (const pattern of patterns) {
+            if (col.toLowerCase().includes(pattern.toLowerCase())) {
+              console.log(`Found NET column: ${col} (prioritized over gross)`);
+              return col;
+            }
+          }
+        }
+      }
+
+      // Second pass: Look for other patterns but EXCLUDE gross columns
       for (const pattern of patterns) {
         for (const col of tab.columns) {
           if (col && col.toLowerCase().includes(pattern.toLowerCase())) {
-            // Skip any columns that contain "gross" when looking for charges
-            if (pattern.toLowerCase().includes('charge') && col.toLowerCase().includes('gross')) {
+            // EXPLICITLY EXCLUDE any columns containing "gross"
+            if (col.toLowerCase().includes('gross')) {
+              console.log(`Skipping GROSS column: ${col} - user wants NET charges only`);
               continue;
             }
             return col;
