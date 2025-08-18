@@ -162,8 +162,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       console.log(`UPS ${tab.name}: Available columns:`, tab.columns.filter(c => c && c.toLowerCase().includes('charge')));
       console.log(`UPS ${tab.name}: Selected '${bestColumn}' with total $${bestAmount.toLocaleString()}`);
     } else if (fileType === 'TL') {
-      // Look for rate-related columns
-      const rateColumn = findColumnByPattern(['Gross Rate', 'Rate', 'Cost', 'Charge', 'Total', 'Amount']);
+      // Look for NET rate/charge columns (NOT gross charges)
+      const rateColumn = findColumnByPattern(['Net Charge', 'Net Rate', 'Net Cost', 'Net Amount', 'Charge', 'Rate', 'Cost', 'Amount']);
       if (rateColumn) {
         // Smart filtering: exclude total rows based on missing supporting data
         const filteredData = tab.data.filter(row => {
