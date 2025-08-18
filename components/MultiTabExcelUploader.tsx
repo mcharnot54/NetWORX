@@ -99,13 +99,15 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'INVENTORY_TRACKER' | 'OTHER' => {
+  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'INVENTORY_TRACKER' | 'SALES_DATA' | 'NETWORK_FOOTPRINT' | 'OTHER' => {
     const lower = fileName.toLowerCase();
     if (lower.includes('ups') && lower.includes('individual')) return 'UPS';
     if (lower.includes('2024') && lower.includes('tl')) return 'TL';
     if (lower.includes('r&l') && lower.includes('curriculum')) return 'RL';
     if (lower.includes('warehouse') && (lower.includes('budget') || lower.includes('operating'))) return 'WAREHOUSE_BUDGET';
     if (lower.includes('warehouse') && lower.includes('production') && lower.includes('tracker')) return 'PRODUCTION_TRACKER';
+    if (lower.includes('historical') && lower.includes('sales')) return 'SALES_DATA';
+    if (lower.includes('network') && (lower.includes('footprint') || lower.includes('capacity'))) return 'NETWORK_FOOTPRINT';
     if (lower.includes('inventory') || lower.includes('stock') || (lower.includes('warehouse') && lower.includes('inventory'))) return 'INVENTORY_TRACKER';
     return 'OTHER';
   };
@@ -493,7 +495,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         extractedAmount = inventoryMetrics.totalInventoryDollars || 0;
         targetColumn = 'Inventory Metrics (Total Value)';
 
-        addLog(`🎯 INVENTORY TRACKER: Total inventory value $${extractedAmount.toLocaleString()}`);
+        addLog(`��� INVENTORY TRACKER: Total inventory value $${extractedAmount.toLocaleString()}`);
         if (inventoryMetrics.daysSupply) {
           addLog(`📈 Days Supply: ${inventoryMetrics.daysSupply.toFixed(1)} days`);
         }
@@ -1155,7 +1157,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
               // Other expense (Row 194, columns Y:AJ) - check for 3PL costs
               operatingCosts.otherExpense = extractFromRowColumns(194);
-              addLog(`📊 Other expense (Row 194, cols Y:AJ): $${operatingCosts.otherExpense?.toLocaleString() || 0}`);
+              addLog(`���� Other expense (Row 194, cols Y:AJ): $${operatingCosts.otherExpense?.toLocaleString() || 0}`);
 
               // Lease/Rent (Row 177, columns Y:AJ)
               operatingCosts.leaseRent = extractFromRowColumns(177);
