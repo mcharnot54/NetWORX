@@ -308,16 +308,16 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         }
       }
 
-      // If column V didn't work, try other cost-related columns in priority order
-      if (!bestColumn) {
-        console.log(`R&L ${tab.name}: Column V not usable, trying fallback columns...`);
+      // THIRD PRIORITY: If still no NET charges found, try other columns but EXCLUDE gross completely
+      if (!bestColumn || bestAmount === 0) {
+        console.log(`R&L ${tab.name}: No NET charges found, trying other cost columns (EXCLUDING GROSS)...`);
 
-        // Priority order for R&L cost columns
+        // Priority order for R&L cost columns - NET prioritized, GROSS EXCLUDED
         const priorityColumns = [
           'Net Charge',
           'net_charge',
           'NetCharge',
-          'Charge',
+          'Charge',  // Only if not gross
           'charge',
           'Net Amount',
           'Amount',
@@ -326,7 +326,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           'Freight'
         ];
 
-        // First, try exact matches for priority columns
+        // First, try exact matches for priority columns (exclude gross)
         for (const priorityCol of priorityColumns) {
           if (tab.columns.includes(priorityCol)) {
             let testAmount = 0;
@@ -351,24 +351,29 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
         }
 
-        // If still no match, do pattern matching on all columns
-        if (!bestColumn) {
+        // LAST RESORT: pattern matching but EXPLICITLY EXCLUDE gross columns
+        if (!bestColumn || bestAmount === 0) {
           for (const col of tab.columns) {
-            if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+            if (!col ||
+                col.toLowerCase().includes('empty') ||
+                col.toLowerCase().includes('null') ||
+                col.toLowerCase().includes('address') ||
+                col.toLowerCase().includes('consignee') ||
+                col.toLowerCase().includes('shipper') ||
+                col.toLowerCase().includes('gross')) { // EXCLUDE GROSS COLUMNS
+              continue;
+            }
 
-            // Prioritize cost-related column names but exclude address fields
-            const isLikelyCostColumn = (col.toLowerCase().includes('net') ||
+            // Only consider cost-related columns
+            const isLikelyCostColumn = col.toLowerCase().includes('net') ||
                                      col.toLowerCase().includes('charge') ||
                                      col.toLowerCase().includes('cost') ||
                                      col.toLowerCase().includes('amount') ||
                                      col.toLowerCase().includes('total') ||
                                      col.toLowerCase().includes('freight') ||
-                                     col.toLowerCase().includes('revenue')) &&
-                                     !col.toLowerCase().includes('address') &&
-                                     !col.toLowerCase().includes('consignee') &&
-                                     !col.toLowerCase().includes('shipper');
+                                     col.toLowerCase().includes('revenue');
 
-            if (!isLikelyCostColumn) continue; // Skip non-cost columns
+            if (!isLikelyCostColumn) continue;
 
             let testAmount = 0;
             let validValues = 0;
@@ -390,7 +395,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
 
           if (bestColumn) {
-            console.log(`R&L ${tab.name}: Using pattern-matched column '${bestColumn}' with $${bestAmount.toLocaleString()}`);
+            console.log(`R&L ${tab.name}: Using pattern-matched column '${bestColumn}' with $${bestAmount.toLocaleString()} (GROSS EXCLUDED)`);
           }
         }
       }
