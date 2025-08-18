@@ -86,7 +86,8 @@ export async function GET() {
           hasData: !!file.processed_data?.data,
           dataType: typeof file.processed_data?.data,
           dataKeys: file.processed_data?.data ? Object.keys(file.processed_data.data) : 'no keys',
-          dataLength: Array.isArray(file.processed_data?.data) ? file.processed_data.data.length : 'not array'
+          dataLength: Array.isArray(file.processed_data?.data) ? file.processed_data.data.length : 'not array',
+          processedDataKeys: file.processed_data ? Object.keys(file.processed_data) : 'no processed_data'
         });
 
         // For R&L files, specifically target the Detail tab first
