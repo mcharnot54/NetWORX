@@ -1327,17 +1327,73 @@ export default function DataProcessor() {
                         </button>
                       </div>
 
+                      {/* Debug: Ultra-Simple Ping */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            const startTime = Date.now();
+                            addToLog('⚡ Ultra-simple ping test...');
+
+                            try {
+                              // Use native fetch with very short timeout
+                              const controller = new AbortController();
+                              const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+                              const response = await fetch('/api/ping', {
+                                signal: controller.signal
+                              });
+
+                              clearTimeout(timeoutId);
+                              const duration = Date.now() - startTime;
+
+                              if (response.ok) {
+                                const data = await response.json();
+                                addToLog(`✅ Server is UP and responsive! (${duration}ms)`);
+                                addToLog(`Server message: ${data.message}`);
+
+                                if (duration < 1000) {
+                                  addToLog('🚀 Excellent response time - server is healthy!');
+                                } else if (duration < 3000) {
+                                  addToLog('✅ Good response time - server is working well');
+                                } else if (duration < 8000) {
+                                  addToLog('⚠ Slow but acceptable - server may still be warming up');
+                                } else {
+                                  addToLog('🐌 Very slow - server needs more time to warm up');
+                                }
+                              } else {
+                                addToLog(`⚠ Server responded but with error ${response.status} (${duration}ms)`);
+                              }
+
+                            } catch (error) {
+                              const duration = Date.now() - startTime;
+                              addToLog(`❌ Server ping FAILED after ${duration}ms`);
+                              addToLog(`Error: ${error}`);
+
+                              if (error.toString().includes('aborted')) {
+                                addToLog('💡 Server is still starting up - wait 30+ seconds and try again');
+                              } else {
+                                addToLog('💡 Check if server is running or restart may be needed');
+                              }
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                          title="Ultra-simple ping test to check if server is responsive"
+                        >
+                          ⚡ Ultra Ping
+                        </button>
+                      </div>
+
                       {/* Debug: Simple Ping Test */}
                       <div className="group relative">
                         <button
                           onClick={async () => {
                             const startTime = Date.now();
-                            addToLog('Simple ping test...');
+                            addToLog('Health check test...');
 
                             try {
                               // Use native fetch with a short timeout
                               const controller = new AbortController();
-                              const timeoutId = setTimeout(() => controller.abort(), 8000);
+                              const timeoutId = setTimeout(() => controller.abort(), 15000);
 
                               const response = await fetch('/api/health', {
                                 signal: controller.signal
@@ -1347,26 +1403,26 @@ export default function DataProcessor() {
                               const duration = Date.now() - startTime;
 
                               if (response.ok) {
-                                addToLog(`✓ Simple ping OK (${duration}ms)`);
+                                addToLog(`✓ Health check OK (${duration}ms)`);
                                 if (duration > 5000) {
-                                  addToLog(`⚠ Server is slow (${Math.round(duration/1000)}s) - consider warming up`);
+                                  addToLog(`⚠ Server is slow (${Math.round(duration/1000)}s) - may need more warming`);
                                 }
                               } else {
-                                addToLog(`⚠ Simple ping returned ${response.status} (${duration}ms)`);
+                                addToLog(`⚠ Health check returned ${response.status} (${duration}ms)`);
                               }
 
                             } catch (error) {
                               const duration = Date.now() - startTime;
-                              addToLog(`✗ Simple ping failed after ${duration}ms: ${error}`);
+                              addToLog(`✗ Health check failed after ${duration}ms: ${error}`);
                               if (error.toString().includes('aborted')) {
-                                addToLog('💡 Server is very slow - try "Warm Up Server" first');
+                                addToLog('💡 Try "⚡ Ultra Ping" first to check basic connectivity');
                               }
                             }
                           }}
                           className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
-                          title="Simple ping test with native fetch"
+                          title="Health check test with timeout"
                         >
-                          🏓 Simple Ping
+                          🏓 Health Check
                         </button>
                       </div>
 
