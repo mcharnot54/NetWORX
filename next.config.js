@@ -110,8 +110,8 @@ const nextConfig = {
       config.resolve.unsafeCache = true;
       config.resolve.symlinks = false;
 
-      // Disable source maps in development for faster builds
-      config.devtool = false;
+      // Use faster source map option instead of disabling completely
+      config.devtool = 'eval-cheap-source-map';
 
       // Client-side optimizations
       if (!isServer) {
