@@ -170,7 +170,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       if (result.warnings && result.warnings.length > 0) {
         const warnings = result.warnings.join('; ');
-        addLog(`⚠ Warnings: ${warnings}`);
+        addLog(`��� Warnings: ${warnings}`);
       }
 
       // Log validation warnings
@@ -511,33 +511,31 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               const row = rowData[rowNum];
               if (!row) return 0;
 
-              // Always use columns Y:AJ for all operating cost rows as specified
-              const targetColumns = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ'];
-
-              // Map Excel column letters to array indices for the data
-              const getColumnIndex = (col: string): number => {
-                let result = 0;
-                for (let i = 0; i < col.length; i++) {
-                  result = result * 26 + (col.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
-                }
-                return result - 1; // Convert to 0-based index
-              };
+              // Excel columns Y:AJ correspond to indices 24-35 (Y=24, Z=25, AA=26, etc.)
+              const columnIndices = [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]; // Y through AJ
 
               let total = 0;
-              for (const col of targetColumns) {
-                const columnIndex = getColumnIndex(col);
+              let valuesFound = [];
+
+              for (const columnIndex of columnIndices) {
                 const headers = sheetData.columnHeaders;
 
                 if (columnIndex < headers.length) {
                   const columnKey = headers[columnIndex];
-                  if (row && row[columnKey]) {
+                  if (row && row[columnKey] !== undefined && row[columnKey] !== null) {
                     const value = parseFloat(String(row[columnKey]).replace(/[$,\s]/g, ''));
                     if (!isNaN(value) && value !== 0) { // Include negative values but exclude zero
                       total += value;
+                      valuesFound.push(`${columnKey}:${value}`);
                     }
                   }
                 }
               }
+
+              if (valuesFound.length > 0) {
+                addLog(`    📊 Row ${rowNum} found values: ${valuesFound.join(', ')}`);
+              }
+
               return total;
             };
 
