@@ -102,6 +102,43 @@ export default function TestBaseline() {
     }
   };
 
+  const searchRlFile = async () => {
+    if (loadingRlSearch) return;
+
+    setLoadingRlSearch(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch('/api/search-rl-file', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setRlSearchData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('R&L search timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to search for R&L file';
+        setError(errorMessage);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoadingRlSearch(false);
+    }
+  };
+
   const testTransportValidation = async () => {
     if (loadingValidation) return;
 
