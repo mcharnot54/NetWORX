@@ -94,22 +94,34 @@ const nextConfig = {
       });
     }
 
-    // Simplified development config to prevent fetch failures
-    if (!isServer && process.env.NODE_ENV === 'development') {
-      // Minimal optimization to prevent issues
+    // Aggressive optimizations for slow development environment
+    if (process.env.NODE_ENV === 'development') {
+      // Disable expensive optimizations
       config.optimization = {
         ...config.optimization,
-        // Disable complex optimizations that cause issues
         minimize: false,
-        splitChunks: false, // Disable chunk splitting that causes RSC issues
+        splitChunks: false,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        mergeDuplicateChunks: false,
       };
 
-      // Disable hot reloading features that cause fetch failures
-      config.devServer = {
-        ...config.devServer,
-        hot: false, // Disable hot reload
-        liveReload: false, // Disable live reload
-      };
+      // Faster module resolution
+      config.resolve.unsafeCache = true;
+      config.resolve.symlinks = false;
+
+      // Disable source maps in development for faster builds
+      config.devtool = false;
+
+      // Client-side optimizations
+      if (!isServer) {
+        // Disable hot reloading features that cause fetch failures
+        config.devServer = {
+          ...config.devServer,
+          hot: false,
+          liveReload: false,
+        };
+      }
     }
 
     return config;
