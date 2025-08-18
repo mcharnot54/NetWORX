@@ -519,6 +519,87 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         }
       }
 
+      // Process sales data files (CSV not typically used for complex Excel files, but adding for completeness)
+      let salesData: SalesData | undefined;
+      if (fileType === 'SALES_DATA') {
+        addLog(`📈 SALES DATA PROCESSING: Analyzing sales data from CSV`);
+        salesData = {};
+
+        // For CSV files, we'll scan for the key columns since we can't filter by tab
+        const extractFromColumn = (columnLetter: string): number => {
+          // Convert Excel column letter to approximate index (T=19, AI=34)
+          let colIndex = 0;
+          if (columnLetter === 'T') colIndex = 19;
+          if (columnLetter === 'AI') colIndex = 34;
+
+          let total = 0;
+          for (const row of data) {
+            const rowValues = Object.values(row);
+            if (rowValues[colIndex]) {
+              const numValue = parseFloat(String(rowValues[colIndex]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue > 0) {
+                total += numValue;
+              }
+            }
+          }
+          return total;
+        };
+
+        salesData.salesPlan = extractFromColumn('T');
+        salesData.totalUnits = extractFromColumn('AI');
+        salesData.tab = 'CSV Data';
+        salesData.planYear = 'May24-April25';
+
+        extractedAmount = salesData.totalUnits || 0;
+        targetColumn = 'Sales Data (Units)';
+
+        addLog(`🎯 SALES DATA: Total units ${extractedAmount.toLocaleString()}`);
+        addLog(`📊 Sales Plan: ${salesData.salesPlan?.toLocaleString() || 0}`);
+      }
+
+      // Process network footprint files
+      let networkFootprintData: NetworkFootprintData | undefined;
+      if (fileType === 'NETWORK_FOOTPRINT') {
+        addLog(`🌐 NETWORK FOOTPRINT PROCESSING: Analyzing network data from CSV`);
+        networkFootprintData = {};
+
+        // Extract from specific columns (A, M, Q, S)
+        const extractFromNetworkColumn = (columnLetter: string): number => {
+          let colIndex = 0;
+          if (columnLetter === 'A') colIndex = 0;
+          if (columnLetter === 'M') colIndex = 12;
+          if (columnLetter === 'Q') colIndex = 16;
+          if (columnLetter === 'S') colIndex = 18;
+
+          let total = 0;
+          let count = 0;
+          for (const row of data) {
+            const rowValues = Object.values(row);
+            if (rowValues[colIndex]) {
+              const numValue = parseFloat(String(rowValues[colIndex]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue > 0) {
+                total += numValue;
+                count++;
+              }
+            }
+          }
+          return columnLetter === 'M' ? (count > 0 ? total / count : 0) : total; // M is average cost
+        };
+
+        networkFootprintData.averageCost = extractFromNetworkColumn('M');
+        networkFootprintData.totalOnHandQuantity = extractFromNetworkColumn('Q');
+        networkFootprintData.totalOnHandValue = extractFromNetworkColumn('S');
+        networkFootprintData.tab = 'CSV Data';
+        networkFootprintData.skuCount = data.length - 1; // Minus header row
+
+        extractedAmount = networkFootprintData.totalOnHandValue || 0;
+        targetColumn = 'Network Data (On Hand Value)';
+
+        addLog(`🎯 NETWORK FOOTPRINT: Total on hand value $${extractedAmount.toLocaleString()}`);
+        addLog(`📦 On hand quantity: ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
+        addLog(`💰 Average cost: $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
+      }
+
       const tabs: ExcelTab[] = [{
         name: sheetData.sheetName,
         rows: sheetData.rowCount,
@@ -529,7 +610,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         extractedAmount,
         operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined,
         productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined,
-        inventoryMetrics: fileType === 'INVENTORY_TRACKER' ? inventoryMetrics : undefined
+        inventoryMetrics: fileType === 'INVENTORY_TRACKER' ? inventoryMetrics : undefined,
+        salesData: fileType === 'SALES_DATA' ? salesData : undefined,
+        networkFootprintData: fileType === 'NETWORK_FOOTPRINT' ? networkFootprintData : undefined
       }];
 
       const multiTabFile: MultiTabFile = {
