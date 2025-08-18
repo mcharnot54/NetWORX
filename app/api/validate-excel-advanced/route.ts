@@ -76,6 +76,25 @@ export async function POST(request: NextRequest) {
         })) : null,
         transportationTotals
       },
+      conversion: result.conversionResults ? {
+        conversionsApplied: Object.values(result.conversionResults).flatMap((conv: any) => conv.conversionsApplied),
+        columnMappings: Object.fromEntries(
+          Object.entries(result.conversionResults).map(([sheet, conv]: [string, any]) => [
+            sheet, conv.mappedColumns
+          ])
+        ),
+        dataQualityMetrics: Object.fromEntries(
+          Object.entries(result.conversionResults).map(([sheet, conv]: [string, any]) => [
+            sheet, conv.dataQuality
+          ])
+        ),
+        standardizationSummary: {
+          totalSheets: Object.keys(result.conversionResults).length,
+          totalConversions: Object.values(result.conversionResults).flatMap((conv: any) => conv.conversionsApplied).length,
+          averageCompleteness: Object.values(result.conversionResults).reduce((sum: number, conv: any) =>
+            sum + conv.dataQuality.completenessScore, 0) / Object.keys(result.conversionResults).length
+        }
+      } : null,
       sample: {
         columnHeaders: result.cleanedData.columnHeaders.slice(0, 10),
         sampleRows: result.cleanedData.data.slice(0, 3).map(row => {
