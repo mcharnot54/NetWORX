@@ -124,34 +124,65 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No data rows found" }, { status: 400 });
   }
 
-  // Enhanced column classification
-  const columnAnalysis = classifyColumns(rawHeaders, rows.slice(0, 100));
+  // Get customer ID (you can modify this based on your auth system)
+  const customerId = form.get("customerId") as string || "default_customer";
 
-  // Map headers using both similarity and classification
+  // STEP 1: Resolve existing mappings from database first
+  const { resolveBulkMappings } = await import('@/lib/mappings');
+  const dbMappings = await resolveBulkMappings(customerId, rawHeaders);
+
+  // STEP 2: Enhanced column classification for unmapped headers
+  const unmappedHeaders = rawHeaders.filter(h => !dbMappings[h]?.canonical);
+  const columnAnalysis = unmappedHeaders.length > 0
+    ? classifyColumns(unmappedHeaders, rows.slice(0, 100))
+    : { columns: [], bestTransportColumn: null };
+
+  // STEP 3: Combine DB mappings with ML classification
   const headerMap: Record<string, string> = {};
   const mappingResults = rawHeaders.map(h => {
+    // Check DB mapping first
+    const dbMapping = dbMappings[h];
+    if (dbMapping?.canonical) {
+      headerMap[h] = dbMapping.canonical;
+      return {
+        rawHeader: h,
+        mappedTo: dbMapping.canonical,
+        score: dbMapping.confidence || 1.0,
+        candidates: [],
+        classificationMethod: `db_${dbMapping.source}`,
+        transportAnalysis: null,
+        dbSource: dbMapping.source,
+        dbHits: dbMapping.confidence
+      };
+    }
+
+    // Fallback to ML classification
     const suggestion = suggestMapping(h);
     const columnInfo = columnAnalysis.columns.find(c => c.header === h);
-    
+
     // Use classification if confidence is higher
     let finalMapping = suggestion.mappedTo;
     let finalScore = suggestion.score;
-    
+    let method = 'similarity';
+
     if (columnInfo && columnInfo.classification.p > finalScore + 0.1) {
       finalMapping = columnInfo.classification.guess;
       finalScore = columnInfo.classification.p;
+      method = columnInfo.classification.method;
     }
-    
+
     if (finalMapping) {
       headerMap[h] = finalMapping;
     }
-    
+
     return {
       ...suggestion,
       mappedTo: finalMapping,
       score: finalScore,
-      classificationMethod: columnInfo?.classification.method,
-      transportAnalysis: columnInfo?.transportAnalysis
+      classificationMethod: method,
+      transportAnalysis: columnInfo?.transportAnalysis,
+      dbSource: null,
+      dbHits: null
     };
   });
 
