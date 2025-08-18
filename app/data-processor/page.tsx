@@ -195,10 +195,23 @@ export default function DataProcessor() {
 
         const reconstructedFiles: FileData[] = await Promise.all(
           savedFiles.map(async (savedFile: any) => {
-            const fileContent = savedFile.processed_data?.file_content;
+            let fileContent: string | undefined;
             let file: File | undefined;
             let parsedData: any[] | undefined;
             let columnNames: string[] | undefined;
+
+            // Load file content separately if available
+            if (savedFile.processed_data?.file_content_available) {
+              try {
+                const contentResponse = await fetch(`/api/files/${savedFile.id}/content`);
+                if (contentResponse.ok) {
+                  const contentData = await contentResponse.json();
+                  fileContent = contentData.file_content;
+                }
+              } catch (error) {
+                console.warn(`Could not load file content for ${savedFile.file_name}:`, error);
+              }
+            }
 
             if (fileContent) {
               try {
