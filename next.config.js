@@ -7,8 +7,11 @@ const nextConfig = {
   experimental: {
     missingSuspenseWithCSRBailout: false,
     // Disable turbo mode that's causing RSC payload issues
-    // turbo: false, // Commented out to disable turbo completely
+    turbo: false, // Explicitly disable turbo for slow environments
     optimizePackageImports: ['lucide-react'],
+    // Disable expensive features
+    optimizeCss: false,
+    serverComponentsExternalPackages: [],
   },
 
   // Disable fast refresh to prevent WebSocket issues
