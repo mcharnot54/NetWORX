@@ -158,12 +158,10 @@ export async function processCsv(
         if (!headerReady) {
           if (hasHeader) {
             // csv-parse already used first row as header names
-            // But we need to capture them (parser.info.fields provides it)
-            const info = (parser as any).info;
-            if (info && Array.isArray(info.columns)) {
-              headers.splice(0, headers.length, ...info.columns.map((c: any) => String(c)));
-            } else if (record && typeof record === "object") {
-              headers.splice(0, headers.length, ...Object.keys(record));
+            // Extract headers from the first record's keys
+            if (record && typeof record === "object") {
+              const recordKeys = Object.keys(record);
+              headers.splice(0, headers.length, ...recordKeys);
             }
           } else {
             // derive from current record's keys (or create generic)
