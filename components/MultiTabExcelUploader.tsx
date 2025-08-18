@@ -287,27 +287,55 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         addLog(`📊 PRODUCTION TRACKER PROCESSING: Using coordinate-based extraction for CSV`);
         productivityMetrics = {};
 
-        // Since CSV structure is compressed, scan for numeric data in target rows
-        const findLargestValueInRow = (rowIndex: number): number => {
-          if (rowIndex >= data.length) return 0;
+        // Extract from specific Excel cell coordinates
+        const extractFromSpecificCell = (excelRow: number, excelCol: string): number => {
+          const rowIndex = excelRow - 1; // Convert to 0-based
+
+          if (rowIndex >= data.length) {
+            addLog(`    ❌ Row ${excelRow} beyond data range (${data.length} rows)`);
+            return 0;
+          }
 
           const row = data[rowIndex];
           if (!row) return 0;
 
-          let largestValue = 0;
+          // Convert Excel column (AR, AU) to column index
+          // AR = column 44 (A=1, B=2, ..., AR=44)
+          // AU = column 47 (A=1, B=2, ..., AU=47)
+          let colIndex = 0;
+          if (excelCol === 'AR') colIndex = 43; // AR = 44th column (0-based = 43)
+          if (excelCol === 'AU') colIndex = 46; // AU = 47th column (0-based = 46)
+
           const rowValues = Object.values(row);
 
-          rowValues.forEach((cellValue, colIndex) => {
-            if (cellValue && cellValue !== '') {
-              const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && numValue > largestValue) {
-                largestValue = numValue;
-                addLog(`    Found value ${numValue} in row ${rowIndex + 1}, col ${colIndex}`);
+          // Try to find the value at the target column index
+          let cellValue = rowValues[colIndex];
+
+          // If not found at exact index, scan nearby columns for the data
+          if (!cellValue || cellValue === '') {
+            for (let offset = -5; offset <= 5; offset++) {
+              const testIndex = colIndex + offset;
+              if (testIndex >= 0 && testIndex < rowValues.length) {
+                const testValue = rowValues[testIndex];
+                if (testValue && testValue !== '') {
+                  const numValue = parseFloat(String(testValue).replace(/[$,\s"]/g, ''));
+                  if (!isNaN(numValue) && numValue > 0) {
+                    addLog(`    📍 Found ${excelCol}${excelRow} data at col ${testIndex}: ${numValue}`);
+                    return numValue;
+                  }
+                }
               }
             }
-          });
+          } else {
+            const numValue = parseFloat(String(cellValue).replace(/[$,\s"]/g, ''));
+            if (!isNaN(numValue)) {
+              addLog(`    📍 ${excelCol}${excelRow}: ${numValue}`);
+              return numValue;
+            }
+          }
 
-          return largestValue;
+          addLog(`    ❌ No data found at ${excelCol}${excelRow}`);
+          return 0;
         };
 
         if (file.name.toLowerCase().includes('dec24') || file.name.toLowerCase().includes('december') && file.name.toLowerCase().includes('2024')) {
