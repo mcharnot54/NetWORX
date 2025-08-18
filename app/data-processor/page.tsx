@@ -515,23 +515,42 @@ export default function DataProcessor() {
 
   const validateFileData = async (fileIndex: number) => {
     const file = files[fileIndex];
-    if (!file.parsedData || !file.detectedTemplate) {
-      addToLog(`Cannot validate ${file.name} - missing data or template`);
-      return;
-    }
 
-    addToLog(`Validating data in ${file.name}...`);
-    
+    addToLog(`Loading and validating data in ${file.name}...`);
+
     // Update status to processing
     const updatedFiles = [...files];
     updatedFiles[fileIndex].validationStatus = 'processing';
     setFiles(updatedFiles);
 
     try {
-      const result = DataValidator.processDataWithTemplate(
-        file.parsedData,
-        file.detectedTemplate
-      );
+      // First, load the full file data if needed
+      const fullFileData = await loadFullFileData(file);
+
+      if (!fullFileData.parsedData) {
+        addToLog(`Cannot validate ${file.name} - no parsed data available`);
+        updatedFiles[fileIndex].validationStatus = 'error';
+        setFiles(updatedFiles);
+        return;
+      }
+
+      // Auto-detect template if not already detected
+      if (!fullFileData.detectedTemplate) {
+        const detectedTemplate = DataValidator.detectDataTemplate(fullFileData.columnNames || []);
+        updatedFiles[fileIndex].detectedTemplate = detectedTemplate;
+        if (detectedTemplate) {
+          addToLog(`✓ Detected template: ${detectedTemplate.name} for ${file.name}`);
+        }
+      }
+
+      const templateToUse = updatedFiles[fileIndex].detectedTemplate;
+      if (!templateToUse) {
+        addToLog(`⚠ No template detected for ${file.name} - processing as generic data`);
+      }
+
+      const result = templateToUse
+        ? DataValidator.processDataWithTemplate(fullFileData.parsedData, templateToUse)
+        : { success: true, data: fullFileData.parsedData, summary: { dataQuality: { validRecords: fullFileData.parsedData.length, totalRecords: fullFileData.parsedData.length } } };
 
       // CRITICAL FIX: Separate Excel parsing success from template validation
       const hasExcelData = file.parsedData && file.parsedData.length > 0;
