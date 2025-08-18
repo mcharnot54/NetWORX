@@ -1381,6 +1381,33 @@ export default function DataProcessor() {
                         </button>
                       </div>
 
+                      {/* Debug: Emergency Server Status */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            addToLog('🚨 EMERGENCY SERVER STATUS CHECK');
+                            addToLog('Server was just restarted to fix performance issues');
+                            addToLog('');
+                            addToLog('⏰ EXPECTED BEHAVIOR:');
+                            addToLog('- First 30-60 seconds: Server starting up');
+                            addToLog('- Initial requests may fail or timeout');
+                            addToLog('- After startup: Should be much faster');
+                            addToLog('');
+                            addToLog('🔧 NEXT STEPS:');
+                            addToLog('1. Wait 60 seconds for server startup');
+                            addToLog('2. Try "🏓 Simple Ping" to test');
+                            addToLog('3. If ping works, try normal operations');
+                            addToLog('4. Server should now be much more responsive');
+                            addToLog('');
+                            addToLog('If problems persist, server may need more restarts');
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                          title="Show emergency server restart information"
+                        >
+                          🚨 Server Restart Info
+                        </button>
+                      </div>
+
                       {/* Debug: Test File Count */}
                       <div className="group relative">
                         <button
