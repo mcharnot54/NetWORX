@@ -1391,6 +1391,142 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               inventoryMetrics.totalInventoryDollars = 0;
             }
 
+          // SALES DATA FILES: Extract from May24-April25 tab only
+          } else if (fileType === 'SALES_DATA') {
+            // Only process if this is the May24-April25 tab
+            if (sheetName.toLowerCase().includes('may24') && sheetName.toLowerCase().includes('april25')) {
+              addLog(`📈 SALES DATA PROCESSING: Analyzing ${sheetName} tab for sales data`);
+
+              salesData = {};
+
+              try {
+                // Extract from Column T (Sales Plan) and Column AI (Unit Count)
+                const extractFromSalesColumn = (columnLetter: string): number => {
+                  // Find the actual column in the data
+                  let targetColumn = '';
+
+                  // Look for column by letter or pattern
+                  if (columnLetter === 'T') {
+                    targetColumn = sheetData.columnHeaders.find(col =>
+                      col === 'T' || col.toLowerCase().includes('sales plan')
+                    ) || sheetData.columnHeaders[19]; // T is 20th column (0-indexed = 19)
+                  } else if (columnLetter === 'AI') {
+                    targetColumn = sheetData.columnHeaders.find(col =>
+                      col === 'AI' || col.toLowerCase().includes('unit count') || col.toLowerCase().includes('units')
+                    ) || sheetData.columnHeaders[34]; // AI is 35th column (0-indexed = 34)
+                  }
+
+                  if (!targetColumn) return 0;
+
+                  let total = 0;
+                  let count = 0;
+                  for (const row of sheetData.data) {
+                    if (row && row[targetColumn]) {
+                      const numValue = parseFloat(String(row[targetColumn]).replace(/[$,\s]/g, ''));
+                      if (!isNaN(numValue) && numValue > 0) {
+                        total += numValue;
+                        count++;
+                      }
+                    }
+                  }
+
+                  addLog(`    📍 Column ${columnLetter} (${targetColumn}): ${total.toLocaleString()} from ${count} rows`);
+                  return total;
+                };
+
+                salesData.salesPlan = extractFromSalesColumn('T');
+                salesData.totalUnits = extractFromSalesColumn('AI');
+                salesData.tab = sheetName;
+                salesData.planYear = 'May24-April25';
+
+                extractedAmount = salesData.totalUnits || 0;
+                targetColumn = 'Sales Data (Column AI - Units)';
+
+                addLog(`🎯 SALES DATA ${sheetName}: Total units ${extractedAmount.toLocaleString()}`);
+                addLog(`📊 Sales Plan (Column T): ${salesData.salesPlan?.toLocaleString() || 0}`);
+
+              } catch (salesError) {
+                addLog(`⚠️ Sales data extraction error: ${salesError instanceof Error ? salesError.message : 'Unknown error'}`);
+                salesData.totalUnits = 0;
+              }
+            } else {
+              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing May24-April25 tab)`);
+            }
+
+          // NETWORK FOOTPRINT FILES: Extract from Data Dump tab only
+          } else if (fileType === 'NETWORK_FOOTPRINT') {
+            // Only process if this is the Data Dump tab
+            if (sheetName.toLowerCase().includes('data dump')) {
+              addLog(`🌐 NETWORK FOOTPRINT PROCESSING: Analyzing ${sheetName} tab for network data`);
+
+              networkFootprintData = {};
+
+              try {
+                // Extract from Columns A (match), M (avg cost), Q (quantity), S (value)
+                const extractFromNetworkColumn = (columnLetter: string): { total: number, count: number } => {
+                  let targetColumn = '';
+
+                  // Find the actual column in the data
+                  if (columnLetter === 'A') {
+                    targetColumn = sheetData.columnHeaders[0]; // Column A is first column
+                  } else if (columnLetter === 'M') {
+                    targetColumn = sheetData.columnHeaders.find(col =>
+                      col === 'M' || col.toLowerCase().includes('average cost') || col.toLowerCase().includes('avg cost')
+                    ) || sheetData.columnHeaders[12]; // M is 13th column (0-indexed = 12)
+                  } else if (columnLetter === 'Q') {
+                    targetColumn = sheetData.columnHeaders.find(col =>
+                      col === 'Q' || col.toLowerCase().includes('on hand quantity') || col.toLowerCase().includes('quantity')
+                    ) || sheetData.columnHeaders[16]; // Q is 17th column (0-indexed = 16)
+                  } else if (columnLetter === 'S') {
+                    targetColumn = sheetData.columnHeaders.find(col =>
+                      col === 'S' || col.toLowerCase().includes('on hand value') || col.toLowerCase().includes('current value')
+                    ) || sheetData.columnHeaders[18]; // S is 19th column (0-indexed = 18)
+                  }
+
+                  if (!targetColumn) return { total: 0, count: 0 };
+
+                  let total = 0;
+                  let count = 0;
+                  for (const row of sheetData.data) {
+                    if (row && row[targetColumn]) {
+                      const numValue = parseFloat(String(row[targetColumn]).replace(/[$,\s]/g, ''));
+                      if (!isNaN(numValue) && numValue > 0) {
+                        total += numValue;
+                        count++;
+                      }
+                    }
+                  }
+
+                  addLog(`    📍 Column ${columnLetter} (${targetColumn}): ${total.toLocaleString()} from ${count} rows`);
+                  return { total, count };
+                };
+
+                const avgCostData = extractFromNetworkColumn('M');
+                const quantityData = extractFromNetworkColumn('Q');
+                const valueData = extractFromNetworkColumn('S');
+
+                networkFootprintData.averageCost = avgCostData.count > 0 ? avgCostData.total / avgCostData.count : 0;
+                networkFootprintData.totalOnHandQuantity = quantityData.total;
+                networkFootprintData.totalOnHandValue = valueData.total;
+                networkFootprintData.tab = sheetName;
+                networkFootprintData.skuCount = Math.max(avgCostData.count, quantityData.count, valueData.count);
+
+                extractedAmount = networkFootprintData.totalOnHandValue || 0;
+                targetColumn = 'Network Data (Column S - On Hand Value)';
+
+                addLog(`🎯 NETWORK FOOTPRINT ${sheetName}: Total on hand value $${extractedAmount.toLocaleString()}`);
+                addLog(`📦 On hand quantity (Column Q): ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
+                addLog(`💰 Average cost (Column M): $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
+                addLog(`📊 SKU count: ${networkFootprintData.skuCount || 0}`);
+
+              } catch (networkError) {
+                addLog(`⚠️ Network footprint extraction error: ${networkError instanceof Error ? networkError.message : 'Unknown error'}`);
+                networkFootprintData.totalOnHandValue = 0;
+              }
+            } else {
+              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing Data Dump tab)`);
+            }
+
           } else {
             // FALLBACK: Generic cost column detection for other file types
             addLog(`🔍 GENERIC PROCESSING: Looking for cost columns`);
