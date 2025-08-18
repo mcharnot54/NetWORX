@@ -260,38 +260,49 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         addLog(`    🎯 EXTRACTION: $${extractedAmount.toLocaleString()} from '${targetColumn}'`);
         addLog(`    📊 PROCESSED: Successfully processed sheet data`);
 
-        // Store extraction data safely (skip if memory issues)
-        if (sheetData.data.length < 10000) { // Only store learning for smaller datasets to prevent crashes
-          try {
-            const learningResponse = await fetch('/api/learning/store-extraction', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                fileName: file.name,
-                sheetName,
-                fileType,
-                columnName: targetColumn,
-                extractedAmount,
-                confidence: 0.85,
-                method: 'safe_pattern_matching',
-                rowsProcessed: sheetData.data.length,
-                columnHeaders: sheetData.columnHeaders.slice(0, 20), // Limit headers to prevent large payloads
-                learningMetrics: {
-                  patternDetected: `${fileType}_${sheetName}_safe`,
-                  processingTime: Date.now()
-                }
-              })
-            });
-
-            if (learningResponse.ok) {
-              const result = await learningResponse.json();
-              addLog(`🎯 SAFE STORAGE: ${result.learningId}`);
+        // Store extraction data with full adaptive learning capabilities
+        try {
+          const learningPayload = {
+            fileName: file.name,
+            sheetName,
+            fileType,
+            columnName: targetColumn,
+            extractedAmount,
+            confidence: usingAdaptiveLearning && sheetData.adaptiveTemplate ? sheetData.adaptiveTemplate.confidence : 0.75,
+            method: usingAdaptiveLearning ? 'adaptive_learning' : 'pattern_matching',
+            rowsProcessed: sheetData.data.length,
+            columnHeaders: sheetData.columnHeaders,
+            learningMetrics: {
+              patternDetected: `${fileType}_${sheetName}_${usingAdaptiveLearning ? 'adaptive' : 'simple'}`,
+              adaptiveConfidence: usingAdaptiveLearning && sheetData.adaptiveTemplate ? sheetData.adaptiveTemplate.confidence : undefined,
+              fallbackUsed: !usingAdaptiveLearning,
+              processingTime: Date.now(),
+              adaptiveTemplate: usingAdaptiveLearning && sheetData.adaptiveTemplate ? {
+                id: sheetData.adaptiveTemplate.id,
+                confidence: sheetData.adaptiveTemplate.confidence,
+                mappingsCount: sheetData.adaptiveTemplate.suggestedMappings?.length || 0
+              } : undefined
             }
-          } catch (learningError) {
-            addLog(`⚠️ Learning storage skipped to prevent memory issues`);
+          };
+
+          const learningResponse = await fetch('/api/learning/store-extraction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(learningPayload)
+          });
+
+          if (learningResponse.ok) {
+            const learningResult = await learningResponse.json();
+            if (usingAdaptiveLearning) {
+              addLog(`🧠 ADAPTIVE LEARNING STORED: ${learningResult.learningId}`);
+            } else {
+              addLog(`📊 FALLBACK LEARNING STORED: ${learningResult.learningId}`);
+            }
+          } else {
+            addLog(`⚠️ Learning storage failed: ${learningResponse.statusText}`);
           }
-        } else {
-          addLog(`🛡️ MEMORY PROTECTION: Skipping learning storage for large dataset (${sheetData.data.length} rows)`);
+        } catch (learningError) {
+          addLog(`⚠️ Learning storage error: ${learningError instanceof Error ? learningError.message : 'Unknown error'}`);
         }
       }
 
