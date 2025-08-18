@@ -73,36 +73,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       }
 
       // Log validation warnings
-      if (result.validationResult.warnings.length > 0) {
-        result.validationResult.warnings.forEach(warning => {
-          addLog(`⚠ ${warning.message}`);
-        });
-      }
-
-      // Log recommendations
-      if (result.validationResult.recommendations.length > 0) {
-        result.validationResult.recommendations.forEach(rec => {
-          addLog(`💡 ${rec}`);
-        });
-      }
-
-      // Log conversion results
-      if (result.conversionResults) {
-        const allConversions = Object.values(result.conversionResults).flatMap((conv: any) => conv.conversionsApplied);
-        if (allConversions.length > 0) {
-          addLog(`🔄 Applied ${allConversions.length} data standardization conversions`);
-        }
-      }
-
       const tabs: ExcelTab[] = [];
-      let totalExtracted = 0;
+      const totalExtracted = result.totalExtracted;
 
-      // Process multi-tab data if available
-      const tabData = result.multiTabData || { [result.cleanedData.sheetName]: result.cleanedData };
+      addLog(`Found ${Object.keys(result.sheets).length} sheets: ${Object.keys(result.sheets).join(', ')}`);
 
-      addLog(`Found ${Object.keys(tabData).length} sheets: ${Object.keys(tabData).join(', ')}`);
-
-      for (const [sheetName, sheetData] of Object.entries(tabData)) {
+      for (const [sheetName, sheetData] of Object.entries(result.sheets)) {
         if (sheetData.data.length === 0) continue;
 
         // Use adaptive learning system for transportation cost extraction
