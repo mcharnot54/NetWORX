@@ -257,7 +257,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               for (const row of filteredData) {
                 if (row && row[grossRateColumn]) {
                   const numValue = parseFloat(String(row[grossRateColumn]).replace(/[$,\s]/g, ''));
-                  if (!isNaN(numValue) && numValue > 1) { // Use > 1 instead of > 0 for more precision
+                  if (!isNaN(numValue) && numValue > 500) { // TL costs should be substantial freight charges
                     extractedAmount += numValue;
                     count++;
 
@@ -356,7 +356,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
 
         } catch (safeError) {
-          addLog(`⚠��� Safe extraction error: ${safeError}. Using basic column detection.`);
+          addLog(`⚠️ Safe extraction error: ${safeError}. Using basic column detection.`);
 
           // Ultra-safe fallback - just find any numeric column
           for (const col of sheetData.columnHeaders) {
