@@ -713,6 +713,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         let extractedAmount = 0;
         let operatingCosts: OperatingCostData | undefined;
         let productivityMetrics: ProductivityMetrics | undefined;
+        let inventoryMetrics: InventoryMetrics | undefined;
 
         try {
           // Apply file-type specific extraction rules
@@ -877,7 +878,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 addLog(`🚨 R&L ${sheetName}: Column V not found! Available: ${sheetData.columnHeaders.join(', ')}`);
               }
             } else {
-              addLog(`🔄 R&L ${sheetName}: Skipping non-Detail tab`);
+              addLog(`�� R&L ${sheetName}: Skipping non-Detail tab`);
             }
 
           // PRODUCTION TRACKER FILES: Extract productivity metrics from specific cells
