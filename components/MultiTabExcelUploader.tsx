@@ -249,9 +249,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         console.log(`TL ${tab.name}: Extracted $${bestAmount.toLocaleString()} from ${bestColumn}`);
       }
     } else if (fileType === 'RL') {
-      // For R&L files, specifically look for column V first, then fallback to best cost column
+      // For R&L files, ABSOLUTE PRIORITY: Column V first, then NET charges, NEVER gross charges
 
-      // First priority: Look for exact column V - be more lenient with criteria
+      // HIGHEST PRIORITY: Look for exact column V
       const columnV = tab.columns.find(col => col === 'V');
       if (columnV) {
         let testAmount = 0;
@@ -267,16 +267,45 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
         }
 
-        // More lenient criteria for column V - prioritize it if it has ANY valid data
+        // Column V gets priority if it has ANY valid data
         if (validValues > 0 && testAmount > 0 && isFinite(testAmount)) {
           bestAmount = testAmount;
           bestColumn = columnV;
           console.log(`R&L ${tab.name}: Selected column V with ${validValues} values totaling $${testAmount.toLocaleString()}`);
-        } else {
-          console.log(`R&L ${tab.name}: Column V found but has no valid data (${validValues} values, $${testAmount})`);
         }
-      } else {
-        console.log(`R&L ${tab.name}: Column V not found in available columns:`, tab.columns);
+      }
+
+      // SECOND PRIORITY: If no column V or column V has no data, look for NET charges ONLY
+      if (!bestColumn || bestAmount === 0) {
+        console.log(`R&L ${tab.name}: Column V not usable, looking for NET charges (NO GROSS)...`);
+
+        // Look for NET charge columns specifically - EXCLUDE gross
+        const netChargeColumns = tab.columns.filter(col =>
+          col &&
+          col.toLowerCase().includes('net') &&
+          (col.toLowerCase().includes('charge') || col.toLowerCase().includes('cost') || col.toLowerCase().includes('amount'))
+        );
+
+        for (const netCol of netChargeColumns) {
+          let testAmount = 0;
+          let validValues = 0;
+
+          for (const row of tab.data) {
+            if (row && row[netCol]) {
+              const numValue = parseFloat(String(row[netCol]).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
+                testAmount += numValue;
+                validValues++;
+              }
+            }
+          }
+
+          if (validValues > 5 && testAmount > bestAmount && isFinite(testAmount)) {
+            bestAmount = testAmount;
+            bestColumn = netCol;
+            console.log(`R&L ${tab.name}: Selected NET column '${netCol}' with $${testAmount.toLocaleString()}`);
+          }
+        }
       }
 
       // If column V didn't work, try other cost-related columns in priority order
