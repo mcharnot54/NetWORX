@@ -160,7 +160,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       // Log recommendations
       if (result.validationResult.recommendations.length > 0) {
         result.validationResult.recommendations.forEach(rec => {
-          addLog(`💡 ${rec}`);
+          addLog(`���� ${rec}`);
         });
       }
 
@@ -416,13 +416,27 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             }`}
             onClick={() => !isProcessing && fileInputRef.current?.click()}
           >
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-2">
-              Drop Excel files here or <span className="text-blue-600">click to browse</span>
-            </p>
-            <p className="text-sm text-gray-500">
-              Supports .xlsx and .xls files with multiple tabs
-            </p>
+            {isProcessing ? (
+              <>
+                <RefreshCw className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-spin" />
+                <p className="text-gray-600 mb-2 font-medium">
+                  Processing files... Please wait
+                </p>
+                <p className="text-sm text-gray-500">
+                  This may take several seconds for large files
+                </p>
+              </>
+            ) : (
+              <>
+                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">
+                  Drop Excel files here or <span className="text-blue-600">click to browse</span>
+                </p>
+                <p className="text-sm text-gray-500">
+                  Supports .xlsx and .xls files with multiple tabs
+                </p>
+              </>
+            )}
             <input
               ref={fileInputRef}
               type="file"
