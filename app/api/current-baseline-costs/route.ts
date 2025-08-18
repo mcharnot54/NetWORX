@@ -441,8 +441,9 @@ function extractFromColumnV(data: any[], fileName: string): number {
     for (const row of data) {
       if (typeof row !== 'object' || !row) continue;
 
-      if (row[testCol]) {
-        const numValue = parseFloat(String(row[testCol]).replace(/[$,\s]/g, ''));
+      if (row && typeof row === 'object' && testCol in row) {
+        const cellValue = (row as Record<string, unknown>)[testCol as string];
+        const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
         if (!isNaN(numValue) && numValue > 50) { // LTL cost threshold
           testTotal += numValue;
           testCount++;
