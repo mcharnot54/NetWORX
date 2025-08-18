@@ -183,13 +183,46 @@ export async function POST(request: NextRequest) {
 
     let savedFile;
     try {
-      savedFile = await DataFileService.createDataFile(fileData);
-      console.log('File saved successfully:', savedFile.id);
+      if (existingFileId && replace_existing) {
+        // Replace existing file
+        const { sql } = await import('@/lib/database');
+        await sql`
+          UPDATE data_files
+          SET
+            file_type = ${truncatedFileType},
+            file_size = ${file_size},
+            data_type = ${validDataType},
+            processing_status = ${processing_status || 'pending'},
+            validation_result = ${fileData.validation_result},
+            processed_data = ${fileData.processed_data},
+            original_columns = ${original_columns},
+            mapped_columns = ${fileData.mapped_columns},
+            updated_at = NOW()
+          WHERE id = ${existingFileId}
+        `;
+
+        // Get the updated file
+        const updatedFiles = await sql`
+          SELECT * FROM data_files WHERE id = ${existingFileId}
+        `;
+
+        savedFile = updatedFiles[0];
+        console.log(`File replaced successfully: ID ${existingFileId}`);
+      } else {
+        // Create new file
+        savedFile = await DataFileService.createDataFile(fileData);
+        console.log('File saved successfully:', savedFile.id);
+      }
     } catch (dbError) {
-      console.error('Database error while saving file:', dbError);
+      console.error('Database error while saving/updating file:', dbError);
       throw new Error(`Database operation failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
     }
-    return NextResponse.json({ file: savedFile });
+
+    return NextResponse.json({
+      file: savedFile,
+      action: existingFileId ? 'replaced' : 'created',
+      duplicate_prevention_active: !force_upload
+    });
   } catch (error) {
     console.error('Error saving file:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
