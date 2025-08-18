@@ -71,6 +71,7 @@ export default function RootLayout({
                       </div>
                     </div>
                   </header>
+                  <SafeNavigation />
                   {children}
                   <ConnectionStatus />
                 </div>
