@@ -31,22 +31,22 @@ interface OperatingCostData {
 
 interface ProductivityMetrics {
   year2024?: {
-    unitsShipped?: number;    // Cell AR53
-    productiveHours?: number; // Cell AR71
-    totalHours?: number;      // Cell AR72
-    productiveUPH?: number;   // Calculated: unitsShipped / productiveHours
+    unitsShipped?: number;    // Cell AR73
+    payrollHours?: number;    // Cell AR97
+    totalHours?: number;      // Cell AR102
+    payrollUPH?: number;      // Calculated: unitsShipped / payrollHours
     totalUPH?: number;        // Calculated: unitsShipped / totalHours
   };
   year2025?: {
-    unitsShipped?: number;    // Cell AU53
-    productiveHours?: number; // Cell AU71
-    totalHours?: number;      // Cell AU72
-    productiveUPH?: number;   // Calculated: unitsShipped / productiveHours
+    unitsShipped?: number;    // Cell AR73
+    payrollHours?: number;    // Cell AR97
+    totalHours?: number;      // Cell AR102
+    payrollUPH?: number;      // Calculated: unitsShipped / payrollHours
     totalUPH?: number;        // Calculated: unitsShipped / totalHours
   };
   productivityChange?: {
     unitsShippedChange?: number;    // % change
-    productiveUPHChange?: number;   // % change
+    payrollUPHChange?: number;      // % change
     totalUPHChange?: number;        // % change
     hoursEfficiencyChange?: number; // % change in productive/total ratio
   };
