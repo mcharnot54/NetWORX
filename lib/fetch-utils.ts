@@ -189,28 +189,35 @@ const fetchWithTimeout = async (
       }
     }
 
-    // Handle AbortError completely - NEVER let them propagate
-    if (error && typeof error === 'object') {
-      const errorName = 'name' in error ? String(error.name || '') : '';
-      const errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
+    // Handle AbortError and timeout errors completely - NEVER let them propagate
+    let errorName = '';
+    let errorMessage = '';
 
-      // Catch ALL possible abort-related errors
-      if (errorName === 'AbortError' ||
-          errorName === 'AbortError' ||
-          errorMessage.includes('aborted') ||
-          errorMessage.includes('signal is aborted') ||
-          errorMessage.includes('cancelled') ||
-          errorMessage.includes('abort') ||
-          errorMessage.includes('The operation was aborted') ||
-          errorMessage.includes('signal is aborted without reason')) {
+    if (error && typeof error === 'object' && error !== null) {
+      errorName = 'name' in error ? String(error.name || '') : '';
+      errorMessage = 'message' in error && typeof error.message === 'string' ? error.message : '';
+    } else if (typeof error === 'string') {
+      // Handle string errors like "Request timeout"
+      errorMessage = error;
+    }
 
-        // Always return a 204 response for any abort-related error - NEVER throw
-        return new Response(null, {
-          status: 204,
-          statusText: 'Request Cancelled',
-          headers: { 'X-Cancelled': 'true', 'X-Abort-Reason': errorMessage || 'signal-aborted' }
-        });
-      }
+    // Catch ALL possible abort-related and timeout errors
+    if (errorName === 'AbortError' ||
+        errorMessage.includes('aborted') ||
+        errorMessage.includes('signal is aborted') ||
+        errorMessage.includes('cancelled') ||
+        errorMessage.includes('abort') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('Request timeout') ||
+        errorMessage.includes('The operation was aborted') ||
+        errorMessage.includes('signal is aborted without reason')) {
+
+      // Always return a 204 response for any abort-related or timeout error - NEVER throw
+      return new Response(null, {
+        status: 204,
+        statusText: 'Request Cancelled',
+        headers: { 'X-Cancelled': 'true', 'X-Abort-Reason': errorMessage || 'signal-aborted' }
+      });
     }
 
     if (error instanceof Error) {
