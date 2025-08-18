@@ -139,6 +139,14 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         });
       }
 
+      // Log conversion results
+      if (result.conversionResults) {
+        const allConversions = Object.values(result.conversionResults).flatMap((conv: any) => conv.conversionsApplied);
+        if (allConversions.length > 0) {
+          addLog(`🔄 Applied ${allConversions.length} data standardization conversions`);
+        }
+      }
+
       const tabs: ExcelTab[] = [];
       let totalExtracted = 0;
 
