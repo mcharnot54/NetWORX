@@ -457,25 +457,29 @@ export class DataFileService {
   }
 
   static async getDataFiles(scenarioId: number, limit: number = 50): Promise<DataFile[]> {
-    // Exclude file content to prevent response size issues - load it separately when needed
+    // Return only essential metadata to prevent response size issues
     return await sql`
       SELECT
         id, scenario_id, file_name, file_type, file_size, data_type,
         processing_status, upload_date, original_columns, mapped_columns,
         validation_result,
-        -- Exclude file_content to prevent large responses
+        -- Return minimal processed_data to avoid large responses
         CASE
           WHEN processed_data IS NOT NULL THEN
             jsonb_build_object(
-              'parsedData', processed_data->'parsedData',
               'columnNames', processed_data->'columnNames',
-              'processingResult', processed_data->'processingResult',
               'excel_preserved', processed_data->'excel_preserved',
               'reprocessed', processed_data->'reprocessed',
               'file_content_available',
               CASE
                 WHEN processed_data ? 'file_content' THEN true
                 ELSE false
+              END,
+              'row_count',
+              CASE
+                WHEN processed_data->'parsedData' IS NOT NULL THEN
+                  jsonb_array_length(processed_data->'parsedData')
+                ELSE 0
               END
             )
           ELSE NULL
@@ -483,7 +487,7 @@ export class DataFileService {
       FROM data_files
       WHERE scenario_id = ${scenarioId}
       ORDER BY upload_date DESC
-      LIMIT ${Math.min(limit, 20)}
+      LIMIT ${Math.min(limit, 10)}
     ` as DataFile[];
   }
 
