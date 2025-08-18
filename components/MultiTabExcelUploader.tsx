@@ -409,8 +409,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         
         <div className="space-y-4">
           <div 
-            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isProcessing
+                ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                : 'border-gray-300 hover:border-blue-400 cursor-pointer'
+            }`}
+            onClick={() => !isProcessing && fileInputRef.current?.click()}
           >
             <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-2">
