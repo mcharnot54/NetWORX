@@ -15,22 +15,19 @@ export async function GET() {
       files_analyzed: []
     };
 
-    // Get all potential transport files
+    // Get the exact transport files needed
     const transportFiles = await sql`
       SELECT id, file_name, scenario_id, processed_data,
-             CASE 
-               WHEN processed_data->'parsedData' IS NOT NULL 
+             CASE
+               WHEN processed_data->'parsedData' IS NOT NULL
                THEN jsonb_array_length(processed_data->'parsedData')
-               ELSE 0 
+               ELSE 0
              END as parsed_rows
       FROM data_files
       WHERE (
-        file_name ILIKE '%ups invoice by state summary 2024%' OR
-        file_name ILIKE '%r&l%' OR
-        file_name ILIKE '%curriculum associates%' OR
-        file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
-        file_name ILIKE '%ltl%' OR
-        file_name ILIKE '%freight%'
+        file_name = 'UPS Invoice by State Summary 2024.xlsx' OR
+        file_name = '2024 TOTALS WITH INBOUND AND OUTBOUND TL (2).xlsx' OR
+        file_name = 'R&L - CURRICULUM ASSOCIATES 1.1.2024-12.31.2024 .xlsx'
       )
       AND processed_data IS NOT NULL
       ORDER BY file_name, parsed_rows DESC
