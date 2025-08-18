@@ -191,6 +191,8 @@ export default function DataProcessor() {
       const { files: savedFiles } = responseData;
 
       if (savedFiles && savedFiles.length > 0) {
+        addToLog(`Found ${savedFiles.length} saved files`);
+
         const reconstructedFiles: FileData[] = await Promise.all(
           savedFiles.map(async (savedFile: any) => {
             const fileContent = savedFile.processed_data?.file_content;
@@ -207,13 +209,19 @@ export default function DataProcessor() {
                   savedFile.file_type
                 );
 
-                // Re-parse the file data
+                // Re-parse the file data (this might be slow but ensures fresh data)
                 const { data, columnHeaders } = await DataValidator.parseFile(file);
                 parsedData = data;
                 columnNames = columnHeaders;
+
+                console.log(`Reconstructed file: ${savedFile.file_name} with ${data.length} rows`);
               } catch (error) {
-                console.warn('Could not reconstruct file data:', error);
+                console.warn(`Could not reconstruct file data for ${savedFile.file_name}:`, error);
+                addToLog(`⚠ Warning: Could not reconstruct data for ${savedFile.file_name}`);
               }
+            } else {
+              console.warn(`No file content found for ${savedFile.file_name}`);
+              addToLog(`⚠ Warning: No file content found for ${savedFile.file_name}`);
             }
 
             return {
