@@ -239,16 +239,16 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           return total;
         };
 
-        // Extract operating costs from specific coordinates
-        operatingCosts.regularWages = extractFromRowRange(30, 24, 35); // Row 30, cols Y:AJ
-        operatingCosts.employeeBenefits = extractFromRowRange(63, 24, 35); // Row 63, cols Y:AJ
-        operatingCosts.tempEmployeeCosts = extractFromRowRange(68, 24, 35); // Row 68, cols Y:AJ
-        operatingCosts.generalSupplies = extractFromRowRange(78, 24, 35); // Row 78, cols Y:AJ
-        operatingCosts.office = extractFromRowRange(88, 24, 35); // Row 88, cols Y:AJ
-        operatingCosts.telecom = extractFromRowRange(165, 24, 35); // Row 165, cols Y:AJ
-        operatingCosts.otherExpense = extractFromRowRange(194, 24, 35); // Row 194, cols Y:AJ
-        operatingCosts.leaseRent = extractFromRowRange(177, 24, 35); // Row 177, cols Y:AJ
-        operatingCosts.headcount = extractFromRowRange(21, 24, 35); // Row 21, cols Y:AJ
+        // Extract operating costs from specific rows (scan all columns for data)
+        operatingCosts.regularWages = extractFromRowRange(30); // Row 30
+        operatingCosts.employeeBenefits = extractFromRowRange(63); // Row 63
+        operatingCosts.tempEmployeeCosts = extractFromRowRange(68); // Row 68
+        operatingCosts.generalSupplies = extractFromRowRange(78); // Row 78
+        operatingCosts.office = extractFromRowRange(88); // Row 88
+        operatingCosts.telecom = extractFromRowRange(165); // Row 165
+        operatingCosts.otherExpense = extractFromRowRange(194); // Row 194
+        operatingCosts.leaseRent = extractFromRowRange(177); // Row 177
+        operatingCosts.headcount = extractFromRowRange(21); // Row 21
 
         operatingCosts.total = (operatingCosts.regularWages || 0) +
                               (operatingCosts.employeeBenefits || 0) +
