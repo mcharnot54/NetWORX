@@ -90,8 +90,11 @@ export async function GET(request: NextRequest) {
           dataFiles = [];
         }
 
-        // Process each uploaded file to extract baseline costs
-        for (const file of dataFiles) {
+        // Process each uploaded file to extract baseline costs (limit processing time)
+        const maxFilesToProcess = 5; // Limit to prevent timeouts
+        const filesToProcess = dataFiles.slice(0, maxFilesToProcess);
+
+        for (const file of filesToProcess) {
           // Extract all possible data arrays from complex nested structures
           let allDataArrays = extractAllDataArrays(file.processed_data);
 
