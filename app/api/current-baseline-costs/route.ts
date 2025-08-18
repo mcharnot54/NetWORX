@@ -84,34 +84,10 @@ export async function GET(request: NextRequest) {
 
         // Process each uploaded file to extract baseline costs
         for (const file of dataFiles) {
-          // Check both data and parsedData locations
-          let data = null;
+          // Extract all possible data arrays from complex nested structures
+          let allDataArrays = extractAllDataArrays(file.processed_data);
 
-          if (file.processed_data?.data && Array.isArray(file.processed_data.data)) {
-            data = file.processed_data.data;
-          } else if (file.processed_data?.parsedData && Array.isArray(file.processed_data.parsedData)) {
-            data = file.processed_data.parsedData;
-          } else if (file.processed_data?.data && typeof file.processed_data.data === 'object') {
-            // Handle nested data structures in data
-            const keys = Object.keys(file.processed_data.data);
-            const arrayKey = keys.find(key => Array.isArray(file.processed_data.data[key]));
-            if (arrayKey) {
-              data = file.processed_data.data[arrayKey];
-            } else {
-              data = Object.entries(file.processed_data.data).map(([key, value]) => ({ [key]: value }));
-            }
-          } else if (file.processed_data?.parsedData && typeof file.processed_data.parsedData === 'object') {
-            // Handle nested data structures in parsedData
-            const keys = Object.keys(file.processed_data.parsedData);
-            const arrayKey = keys.find(key => Array.isArray(file.processed_data.parsedData[key]));
-            if (arrayKey) {
-              data = file.processed_data.parsedData[arrayKey];
-            } else {
-              data = Object.entries(file.processed_data.parsedData).map(([key, value]) => ({ [key]: value }));
-            }
-          }
-
-          if (!data || !Array.isArray(data) || data.length === 0) continue;
+          if (allDataArrays.length === 0) continue;
 
           // Extract costs based on file name and content
           console.log(`Processing file: ${file.file_name} with ${data.length} rows`);
