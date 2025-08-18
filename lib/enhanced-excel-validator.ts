@@ -605,10 +605,63 @@ export class EnhancedExcelValidator {
   }
 
   /**
-   * Clean network and transport data
+   * Clean network and transport data with smart total row filtering
    */
   private cleanNetworkTransportData(data: any[]): any[] {
-    return data.map(row => {
+    // First filter out total rows
+    const filteredData = data.filter(row => {
+      if (!row || typeof row !== 'object') return false;
+
+      // Check for total keywords
+      const rowValues = Object.values(row).map(val => String(val).toLowerCase());
+      const hasTotal = rowValues.some(val =>
+        val.includes('total') ||
+        val.includes('sum') ||
+        val.includes('grand') ||
+        val.includes('subtotal')
+      );
+
+      if (hasTotal) return false;
+
+      // Smart check: exclude rows with monetary values but no supporting data
+      const monetaryColumns = Object.keys(row).filter(col =>
+        col.toLowerCase().includes('rate') ||
+        col.toLowerCase().includes('cost') ||
+        col.toLowerCase().includes('charge') ||
+        col.toLowerCase().includes('freight')
+      );
+
+      for (const moneyCol of monetaryColumns) {
+        const numValue = parseFloat(String(row[moneyCol]).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 0) {
+          // Check for supporting data
+          const supportingDataColumns = Object.keys(row).filter(key =>
+            key.toLowerCase().includes('origin') ||
+            key.toLowerCase().includes('destination') ||
+            key.toLowerCase().includes('from') ||
+            key.toLowerCase().includes('to') ||
+            key.toLowerCase().includes('city') ||
+            key.toLowerCase().includes('state') ||
+            key.toLowerCase().includes('location')
+          );
+
+          const supportingDataCount = supportingDataColumns.filter(col => {
+            const value = row[col];
+            return value && String(value).trim() !== '' &&
+                   String(value).toLowerCase() !== 'null';
+          }).length;
+
+          // If large monetary value with no supporting data, exclude
+          if (supportingDataCount === 0 && numValue > 1000) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    return filteredData.map(row => {
       const cleanedRow = { ...row };
 
       // Clean city/location names
