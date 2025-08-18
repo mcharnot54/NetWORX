@@ -626,6 +626,12 @@ export default function TestBaseline() {
             >
               {loadingTlDiagnostic ? 'Analyzing...' : 'Diagnose TL File Structure'}
             </button>
+            <button
+              onClick={() => window.open('/api/fix-rl-tl-extraction', '_blank')}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-bold"
+            >
+              🔧 FIX R&L + TL Extraction
+            </button>
           </div>
 
           {error && (
