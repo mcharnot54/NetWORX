@@ -547,18 +547,18 @@ export class DataFileService {
   }
 
   static async getDataFile(id: number): Promise<DataFile | null> {
-    const [file] = await sql`
+    const result = await sql`
       SELECT * FROM data_files WHERE id = ${id}
     `;
-    return file as DataFile || null;
+    return result[0] as DataFile || null;
   }
 
   static async getDataFileWithFullData(id: number): Promise<DataFile | null> {
     // Get complete file data including all processed_data
-    const [file] = await sql`
+    const result = await sql`
       SELECT * FROM data_files WHERE id = ${id}
     `;
-    return file as DataFile || null;
+    return result[0] as DataFile || null;
   }
 
   static async getFilesForProcessing(scenarioId: number): Promise<DataFile[]> {
