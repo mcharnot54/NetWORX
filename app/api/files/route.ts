@@ -143,10 +143,10 @@ export async function POST(request: NextRequest) {
         const { sql } = await import('@/lib/database');
 
         const existingFiles = await sql`
-          SELECT id, file_name, scenario_id, processing_status, created_at
+          SELECT id, file_name, scenario_id, processing_status, upload_date
           FROM data_files
           WHERE file_name = ${truncatedFileName}
-          ORDER BY created_at DESC
+          ORDER BY upload_date DESC
         `;
 
         if (existingFiles.length > 0) {
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
                   id: sameScenarioFile.id,
                   scenario_id: sameScenarioFile.scenario_id,
                   status: sameScenarioFile.processing_status,
-                  created_at: sameScenarioFile.created_at
+                  upload_date: sameScenarioFile.upload_date
                 },
                 action_required: 'Add force_upload=true or replace_existing=true to proceed',
                 options: {
