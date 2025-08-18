@@ -314,6 +314,10 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       addLog(`✗ Processing failed: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
+      // Clear the input to allow re-selecting the same files next time
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
