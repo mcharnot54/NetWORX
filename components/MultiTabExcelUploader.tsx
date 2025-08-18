@@ -251,6 +251,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 return true;
               });
 
+              addLog(`🔍 TL ${sheetName}: After filtering, ${filteredData.length} rows remain (${sheetData.data.length - filteredData.length} filtered out)`);
+
               // Now process the filtered data
               for (const row of filteredData) {
                 if (row && row[grossRateColumn]) {
@@ -258,11 +260,24 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                   if (!isNaN(numValue) && numValue > 1) { // Use > 1 instead of > 0 for more precision
                     extractedAmount += numValue;
                     count++;
+
+                    // Debug logging for TOTAL 2024 to trace the calculation
+                    if (sheetName === 'TOTAL 2024' && (count <= 5 || count % 50 === 0)) {
+                      addLog(`   💰 Row ${count}: Adding $${numValue.toLocaleString()} (running total: $${extractedAmount.toLocaleString()})`);
+                    }
                   }
                 }
               }
 
               skippedCount = sheetData.data.length - filteredData.length;
+
+              // Final debug for TOTAL 2024
+              if (sheetName === 'TOTAL 2024') {
+                addLog(`🎯 TL ${sheetName} FINAL: $${extractedAmount.toLocaleString()} from ${count} rows (expected: $376,965)`);
+                if (extractedAmount > 500000) {
+                  addLog(`⚠️ TL ${sheetName} WARNING: Amount seems too high! Expected ~$377K, got $${(extractedAmount/1000).toFixed(0)}K`);
+                }
+              }
 
               targetColumn = grossRateColumn;
               addLog(`🎯 TL ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows, ${skippedCount} skipped)`);
@@ -341,7 +356,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
 
         } catch (safeError) {
-          addLog(`⚠️ Safe extraction error: ${safeError}. Using basic column detection.`);
+          addLog(`⚠��� Safe extraction error: ${safeError}. Using basic column detection.`);
 
           // Ultra-safe fallback - just find any numeric column
           for (const col of sheetData.columnHeaders) {
