@@ -304,6 +304,43 @@ export default function TestBaseline() {
     }
   };
 
+  const calculateTransportBaseline = async () => {
+    if (loadingTransportBaseline) return;
+
+    setLoadingTransportBaseline(true);
+    setError(null);
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    try {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('/api/calculate-transport-baseline', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setTransportBaselineData(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Transport baseline calculation timed out - please try again');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to calculate transport baseline';
+        setError(errorMessage);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoadingTransportBaseline(false);
+    }
+  };
+
   const testTransportValidation = async () => {
     if (loadingValidation) return;
 
