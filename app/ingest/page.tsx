@@ -186,6 +186,31 @@ export default function IngestPage() {
             </div>
           </div>
 
+          {/* Mapping Statistics */}
+          {result.report.mappingStats && (
+            <div className="bg-indigo-50 p-4 rounded-lg border">
+              <h3 className="font-semibold text-indigo-900 mb-2">🧠 Learning System Stats</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <div className="font-medium text-indigo-800">{result.report.mappingStats.dbMappedThisFile}</div>
+                  <div className="text-indigo-600">DB Mapped</div>
+                </div>
+                <div>
+                  <div className="font-medium text-indigo-800">{result.report.mappingStats.mlMappedThisFile}</div>
+                  <div className="text-indigo-600">ML Mapped</div>
+                </div>
+                <div>
+                  <div className="font-medium text-indigo-800">{result.report.mappingStats.customerMappings}</div>
+                  <div className="text-indigo-600">Your Mappings</div>
+                </div>
+                <div>
+                  <div className="font-medium text-indigo-800">{(result.report.mappingStats.averageConfidence * 100).toFixed(0)}%</div>
+                  <div className="text-indigo-600">Avg Confidence</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Transport Analysis */}
           {result.report.columnAnalysis?.bestTransportColumn && (
             <div className="bg-emerald-50 p-4 rounded-lg border">
