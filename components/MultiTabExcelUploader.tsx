@@ -208,21 +208,34 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           return !isNaN(numValue) ? numValue : 0;
         };
 
-        // Sum across columns Y:AJ (columns 24-35) for specific rows
-        const extractFromRowRange = (excelRowNum: number, startCol: number = 24, endCol: number = 35): number => {
+        // Since CSV columns are compressed, scan ALL available columns for numeric data
+        const extractFromRowRange = (excelRowNum: number): number => {
           const rowIndex = excelRowNum - 1; // Convert to 0-based
-          let total = 0;
-          let valuesFound = [];
 
-          for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
-            const value = getValueAtCoordinate(rowIndex, colIndex);
-            if (value !== 0) {
-              total += value;
-              valuesFound.push(`Col${colIndex}:${value}`);
-            }
+          if (rowIndex >= data.length) {
+            addLog(`    ❌ Row ${excelRowNum} (index ${rowIndex}) beyond data range (${data.length} rows)`);
+            return 0;
           }
 
-          addLog(`    📊 Row ${excelRowNum} (index ${rowIndex}) found ${valuesFound.length} values across cols ${startCol}-${endCol}: Total = ${total}`);
+          const row = data[rowIndex];
+          if (!row) return 0;
+
+          let total = 0;
+          let valuesFound = [];
+          const rowValues = Object.values(row);
+
+          // Scan ALL columns in this row for numeric values
+          rowValues.forEach((cellValue, colIndex) => {
+            if (cellValue && cellValue !== '') {
+              const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue !== 0) {
+                total += numValue;
+                valuesFound.push(`Col${colIndex}:${numValue}`);
+              }
+            }
+          });
+
+          addLog(`    📊 Row ${excelRowNum} (index ${rowIndex}) found ${valuesFound.length} values: ${valuesFound.join(', ')} | Total = ${total}`);
           return total;
         };
 
