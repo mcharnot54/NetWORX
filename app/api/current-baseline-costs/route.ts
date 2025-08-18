@@ -416,6 +416,35 @@ function extractFromColumnF(data: any[], fileName: string): number {
   return total;
 }
 
+// Extract from column G (UPS Individual Item Cost - Net Charges) - For all 4 tabs
+function extractFromColumnG(data: any[], fileName: string): number {
+  let total = 0;
+  let valuesFound = 0;
+
+  for (const row of data) {
+    if (typeof row !== 'object' || !row) continue;
+
+    // Look for column G - Net Charges column for UPS Individual Item Cost file
+    for (const [key, value] of Object.entries(row)) {
+      if (key === 'G' || key === '__EMPTY_6' ||
+          key.toLowerCase().includes('net charges') ||
+          key.toLowerCase().includes('net charge') ||
+          key.toLowerCase().includes('net cost') ||
+          (key.toLowerCase().includes('net') && key.toLowerCase().includes('charge'))) {
+
+        const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
+        if (!isNaN(numValue) && numValue > 0.01) { // Accept smaller values for individual item costs
+          total += numValue;
+          valuesFound++;
+        }
+      }
+    }
+  }
+
+  console.log(`Extracted $${total} from column G (UPS Net Charges) in ${fileName} (${valuesFound} values from ${data.length} rows)`);
+  return total;
+}
+
 // Fallback general freight cost extraction
 function extractGeneralFreightCosts(data: any[], fileName: string): number {
   let total = 0;
