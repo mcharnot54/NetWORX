@@ -50,12 +50,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   };
 
   const extractTransportationCosts = (tab: ExcelTab, fileType: 'UPS' | 'TL' | 'RL' | 'OTHER'): { column: string; amount: number } => {
-    console.log(`\n=== EXTRACTING from ${fileType} ${tab.name} ===`);
+    console.log(`\n=== MY FUNCTION: EXTRACTING from ${fileType} ${tab.name} ===`);
     console.log(`Available columns (${tab.columns.length}):`, tab.columns);
 
     // ADD EXTREMELY AGGRESSIVE DEBUGGING
-    addLog(`🔍 EXTRACTION DEBUG: ${fileType} ${tab.name} - ${tab.columns.length} columns`);
-    addLog(`🔍 Column names: ${tab.columns.join(', ')}`);
+    addLog(`🔥 MY EXTRACTION FUNCTION CALLED: ${fileType} ${tab.name} - ${tab.columns.length} columns`);
+    addLog(`🔥 Column names: ${tab.columns.join(', ')}`);
 
     // ================================
     // TL TOTAL 2024 - COLUMN H ONLY!
