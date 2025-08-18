@@ -17,8 +17,7 @@ export async function GET(request: NextRequest) {
       name: file.file_name,
       processing_status: file.processing_status,
       has_processed_data: !!file.processed_data,
-      has_file_content: !!(file.processed_data as any)?.file_content,
-      file_content_length: (file.processed_data as any)?.file_content?.length || 0,
+      file_content_available: !!(file.processed_data as any)?.file_content_available,
       data_size: JSON.stringify(file.processed_data || {}).length
     }));
 
