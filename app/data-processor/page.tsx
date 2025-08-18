@@ -552,9 +552,6 @@ export default function DataProcessor() {
       }
 
       // Updated logging to reflect Excel-first approach
-      const hasExcelData = file.parsedData && file.parsedData.length > 0;
-      const templateValidationPassed = result.success;
-
       if (hasExcelData) {
         addToLog(`✓ Excel data processed for ${file.name} (${file.parsedData.length} rows)`);
         if (templateValidationPassed) {
