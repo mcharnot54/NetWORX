@@ -457,34 +457,33 @@ export class DataFileService {
   }
 
   static async getDataFiles(scenarioId: number, limit: number = 50): Promise<DataFile[]> {
-    // Use a smaller limit and exclude very large processed_data to avoid response size issues
+    // Exclude file content to prevent response size issues - load it separately when needed
     return await sql`
       SELECT
         id, scenario_id, file_name, file_type, file_size, data_type,
         processing_status, upload_date, original_columns, mapped_columns,
         validation_result,
-        -- Include file_content but limit size to prevent response overload
+        -- Exclude file_content to prevent large responses
         CASE
           WHEN processed_data IS NOT NULL THEN
             jsonb_build_object(
-              'file_content',
-              CASE
-                WHEN LENGTH(processed_data->>'file_content') > 1000000 THEN
-                  SUBSTRING(processed_data->>'file_content', 1, 1000000) || '...[truncated]'
-                ELSE processed_data->>'file_content'
-              END,
               'parsedData', processed_data->'parsedData',
               'columnNames', processed_data->'columnNames',
               'processingResult', processed_data->'processingResult',
               'excel_preserved', processed_data->'excel_preserved',
-              'reprocessed', processed_data->'reprocessed'
+              'reprocessed', processed_data->'reprocessed',
+              'file_content_available',
+              CASE
+                WHEN processed_data ? 'file_content' THEN true
+                ELSE false
+              END
             )
           ELSE NULL
         END as processed_data
       FROM data_files
       WHERE scenario_id = ${scenarioId}
       ORDER BY upload_date DESC
-      LIMIT ${Math.min(limit, 10)}
+      LIMIT ${Math.min(limit, 20)}
     ` as DataFile[];
   }
 
