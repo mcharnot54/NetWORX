@@ -284,13 +284,6 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`🔢 TL ${sheetName}: Processed ${count} rows from ${filteredData.length} filtered rows (${sheetData.data.length} total)`);
             }
 
-            targetColumn = 'Gross Rate'; // Set target column for display
-            addLog(`🎯 TL ${sheetName}: Extracted $${extractedAmount.toLocaleString()} from '${targetColumn}' (${count} rows)`);
-
-            if (sheetName === 'TOTAL 2024') {
-              addLog(`📊 TL ${sheetName} CHECK: Expected $376,965, got $${extractedAmount.toLocaleString()}`);
-            }
-
           // R&L FILES: Extract from Column V for Detail tab
           } else if (fileType === 'RL') {
             addLog(`🚚 R&L PROCESSING: Looking for total cost column (Column V)`);
