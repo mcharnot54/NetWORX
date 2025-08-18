@@ -294,7 +294,7 @@ export default function DataProcessor() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(saveData),
-        timeout: 30000, // 30 second timeout for file uploads
+        timeout: 45000, // 45 second timeout for file uploads
         retries: 2
       });
 
