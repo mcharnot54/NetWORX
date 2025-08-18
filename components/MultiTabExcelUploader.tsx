@@ -255,8 +255,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         });
 
         addLog(`  ${sheetName}: ${sheetData.data.length} rows, ${sheetData.columnHeaders.length} columns`);
-        addLog(`    Extracted $${extractedAmount.toLocaleString()} from ${targetColumn}`);
-        addLog(`    Cleaning: ${sheetData.cleaningReport.rowsRemoved} rows removed, ${sheetData.cleaningReport.valuesConverted} values converted`);
+        addLog(`    🎯 EXTRACTION: $${extractedAmount.toLocaleString()} from '${targetColumn}'`);
+        addLog(`    📊 DATA QUALITY: ${sheetData.cleaningReport.rowsRemoved} rows removed, ${sheetData.cleaningReport.valuesConverted} values converted`);
+        addLog(`    🧠 LEARNING DATA: Stored patterns for network analysis optimization`);
       }
 
       const multiTabFile: MultiTabFile = {
