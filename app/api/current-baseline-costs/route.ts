@@ -3,26 +3,25 @@ import { withCache, CacheKeys } from '@/lib/cache-utils';
 
 // Helper function to add timeout to database operations with proper error handling
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 15000): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+
   const timeoutPromise = new Promise<T>((_, reject) => {
-    const timeoutId = setTimeout(() => {
+    timeoutId = setTimeout(() => {
       reject(new Error(`Database operation timeout after ${timeoutMs}ms`));
     }, timeoutMs);
-
-    // Store timeout ID for potential cleanup
-    (timeoutPromise as any)._timeoutId = timeoutId;
   });
 
   try {
     const result = await Promise.race([promise, timeoutPromise]);
     // Clear timeout on success
-    if ((timeoutPromise as any)._timeoutId) {
-      clearTimeout((timeoutPromise as any)._timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
     }
     return result;
   } catch (error) {
     // Clear timeout on error
-    if ((timeoutPromise as any)._timeoutId) {
-      clearTimeout((timeoutPromise as any)._timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
     }
     throw error;
   }
