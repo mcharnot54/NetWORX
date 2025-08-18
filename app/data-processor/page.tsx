@@ -122,8 +122,10 @@ export default function DataProcessor() {
 
   const checkDatabaseReadiness = async () => {
     try {
-      const response = await fetch('/api/test-db');
-      const result = await response.json();
+      const result = await robustFetchJson('/api/test-db', {
+        timeout: 8000,
+        retries: 1
+      });
       setDatabaseReady(result.success);
       if (!result.success) {
         addToLog('⚠ Database connection issue detected');
