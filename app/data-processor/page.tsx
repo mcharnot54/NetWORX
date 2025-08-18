@@ -12,6 +12,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { useData } from "@/context/DataContext";
 import { DataValidator } from "@/lib/data-validator";
 import { DataProcessingUtils, EnhancedDataProcessingUtils } from "@/lib/data-processing-utils";
+import { robustFetch, robustFetchJson } from "@/lib/fetch-utils";
 import { MissingDataAnalyzer } from "@/components/MissingDataAnalyzer";
 import { ProductionDataProcessorComponent } from "@/components/ProductionDataProcessor";
 import { EnhancedDataProcessor, type SmartProcessingResult } from "@/lib/enhanced-data-processor";
