@@ -534,10 +534,10 @@ export default function DataProcessor() {
 
       const result = templateToUse
         ? DataValidator.processDataWithTemplate(fullFileData.parsedData, templateToUse)
-        : { success: true, data: fullFileData.parsedData, summary: { dataQuality: { validRecords: fullFileData.parsedData.length, totalRecords: fullFileData.parsedData.length } } };
+        : { success: true, data: fullFileData.parsedData, summary: { dataQuality: { validRecords: (fullFileData.parsedData?.length || 0), totalRecords: (fullFileData.parsedData?.length || 0) } } };
 
       // CRITICAL FIX: Separate Excel parsing success from template validation
-      const hasExcelData = fullFileData.parsedData && fullFileData.parsedData.length > 0;
+      const hasExcelData = fullFileData.parsedData && Array.isArray(fullFileData.parsedData) && fullFileData.parsedData.length > 0;
       const templateValidationPassed = result.success;
 
       // Update the file data with loaded information
