@@ -1361,6 +1361,78 @@ export default function DataProcessor() {
                         </button>
                       </div>
 
+                      {/* Debug: Analyze Excel Structure */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            if (files.length === 0) {
+                              addToLog('No files available to analyze');
+                              return;
+                            }
+
+                            // Find UPS file
+                            const upsFile = files.find(f => f.name.toLowerCase().includes('ups'));
+                            if (!upsFile || !upsFile.id) {
+                              addToLog('UPS file not found or has no ID');
+                              return;
+                            }
+
+                            try {
+                              addToLog(`Analyzing Excel structure for ${upsFile.name}...`);
+                              const response = await robustFetchJson('/api/analyze-excel-structure', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ fileId: upsFile.id }),
+                                timeout: 15000,
+                                retries: 2
+                              });
+
+                              addToLog(`=== EXCEL ANALYSIS: ${response.fileName} ===`);
+                              addToLog(`Total tabs: ${response.totalTabs}`);
+
+                              response.analysis.forEach((tab: any) => {
+                                addToLog(`\n--- TAB: ${tab.tabName} ---`);
+                                addToLog(`Rows: ${tab.rowCount}, Columns: ${tab.columnCount}`);
+
+                                if (tab.costColumns.length > 0) {
+                                  addToLog('Potential cost columns:');
+                                  tab.costColumns.forEach((col: any) => {
+                                    addToLog(`  ${col.column} - ${col.confidence} confidence - ${col.reason}`);
+                                    if (col.sampleValues.length > 0) {
+                                      addToLog(`    Sample values: ${col.sampleValues.join(', ')}`);
+                                    }
+                                  });
+                                }
+
+                                if (tab.totalValues.length > 0) {
+                                  addToLog('Top value columns:');
+                                  tab.totalValues.slice(0, 3).forEach((total: any) => {
+                                    addToLog(`  ${total.column}: $${total.total.toLocaleString()} (${total.validValues} values)`);
+                                  });
+                                }
+                              });
+
+                              addToLog('\n=== RECOMMENDATIONS ===');
+                              response.recommendations.forEach((rec: any) => {
+                                addToLog(`${rec.tab}: ${rec.recommendedColumn}`);
+                                addToLog(`  Reason: ${rec.reason}`);
+                                if (rec.total > 0) {
+                                  addToLog(`  Total value: $${rec.total.toLocaleString()}`);
+                                }
+                              });
+                              addToLog('==============================');
+
+                            } catch (error) {
+                              addToLog(`Analysis failed: ${error}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                          title="Analyze Excel file structure and identify cost columns"
+                        >
+                          📊 Analyze UPS File
+                        </button>
+                      </div>
+
                       {/* Debug: Diagnose Issue */}
                       <div className="group relative">
                         <button
@@ -1445,7 +1517,7 @@ export default function DataProcessor() {
                     <strong className="text-blue-800">Business Financials:</strong>
                     <ul className="text-blue-600 mt-1 space-y-1">
                       <li>• Cost & Financial Data</li>
-                      <li>• Operating Expenses</li>
+                      <li>�� Operating Expenses</li>
                       <li>• Lease & Purchase Costs</li>
                       <li>• Carrier Costs</li>
                     </ul>
