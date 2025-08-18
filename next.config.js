@@ -110,8 +110,8 @@ const nextConfig = {
       config.resolve.unsafeCache = true;
       config.resolve.symlinks = false;
 
-      // Use faster source map option instead of disabling completely
-      config.devtool = 'eval-cheap-source-map';
+      // Let Next.js handle devtool automatically to avoid performance regressions
+      // config.devtool = 'eval-cheap-source-map'; // Removed - causing performance issues
 
       // Client-side optimizations
       if (!isServer) {
