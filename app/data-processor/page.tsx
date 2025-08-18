@@ -95,6 +95,16 @@ interface FileData {
 }
 
 export default function DataProcessor() {
+  // Timeout wrapper for critical operations
+  const withTimeout = (promise: Promise<any>, timeoutMs: number, operationName: string) => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`${operationName} timed out after ${timeoutMs}ms`)), timeoutMs)
+      )
+    ]);
+  };
+
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const { setProcessedData } = useData();
