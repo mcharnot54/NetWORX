@@ -361,7 +361,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       };
 
       addLog(`✓ ${file.name} CSV processed successfully with robust parser`);
-      addLog(`  Dialect: ${report.dialect.delimiter}-delimited, Headers: ${report.headers.length}, Rows: ${data.length}`);
+      addLog(`  Parsed: ${data.length} rows, Headers: ${sheetData.columnHeaders.length} columns`);
       addLog(`  Total extracted: $${extractedAmount.toLocaleString()}`);
 
       return multiTabFile;
