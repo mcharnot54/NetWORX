@@ -316,10 +316,11 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         processingStatus: 'completed'
       };
 
-      // Add completion log
+      // Add completion log with learning status
       addLog(`✓ ${file.name} processed successfully`);
       addLog(`  Total extracted: $${totalExtracted.toLocaleString()} from ${tabs.length} tabs`);
       addLog(`  File type detected: ${result.detectedFileType}`);
+      addLog(`  🧠 Learning mode: ${usingAdaptiveLearning ? 'ADAPTIVE LEARNING ACTIVE' : 'Simple fallback mode'}`);
 
       return multiTabFile;
 
