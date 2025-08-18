@@ -537,23 +537,24 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
             addLog(`🔍 DETECTED DATA RANGE: columns ${dataStartColumn} to ${dataEndColumn} (${sheetData.columnHeaders[dataStartColumn]} to ${sheetData.columnHeaders[dataEndColumn]})`);
 
-            // Helper function to extract value from specific row using detected column range
+            // Helper function to extract value from specific row - scan all columns for numeric data
             const extractFromRowColumns = (excelRowNum: number): number => {
               const arrayIndex = excelRowNum - 1; // Convert Excel row number to 0-based array index
               const row = rowData[arrayIndex];
               if (!row) {
-                addLog(`    ❌ Row ${excelRowNum} (index ${arrayIndex}) not found in data`);
+                addLog(`    ❌ Row ${excelRowNum} (index ${arrayIndex}) not found in data (only ${sheetData.data.length} rows available)`);
                 return 0;
               }
 
               let total = 0;
               let valuesFound = [];
 
-              for (let columnIndex = dataStartColumn; columnIndex <= dataEndColumn && columnIndex < sheetData.columnHeaders.length; columnIndex++) {
+              // Scan ALL columns for numeric data, not just the detected range
+              for (let columnIndex = 0; columnIndex < sheetData.columnHeaders.length; columnIndex++) {
                 const columnKey = sheetData.columnHeaders[columnIndex];
-                if (row && row[columnKey] !== undefined && row[columnKey] !== null) {
+                if (row && row[columnKey] !== undefined && row[columnKey] !== null && row[columnKey] !== '') {
                   const value = parseFloat(String(row[columnKey]).replace(/[$,\s]/g, ''));
-                  if (!isNaN(value) && value !== 0) { // Include negative values but exclude zero
+                  if (!isNaN(value) && value !== 0 && Math.abs(value) > 0.01) { // Include negative values, reasonable minimum
                     total += value;
                     valuesFound.push(`${columnKey}:${value}`);
                   }
@@ -561,9 +562,20 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               }
 
               if (valuesFound.length > 0) {
-                addLog(`    📊 Row ${excelRowNum} found values: ${valuesFound.join(', ')}`);
+                addLog(`    📊 Row ${excelRowNum} found ${valuesFound.length} values: ${valuesFound.slice(0, 5).join(', ')}${valuesFound.length > 5 ? '...' : ''} (Total: ${total})`);
               } else {
-                addLog(`    ❌ Row ${excelRowNum} no values found in detected range`);
+                addLog(`    ❌ Row ${excelRowNum} no numeric values found in any column`);
+                // Debug: show first few non-empty values for troubleshooting
+                const nonEmptyValues = [];
+                for (let columnIndex = 0; columnIndex < Math.min(10, sheetData.columnHeaders.length); columnIndex++) {
+                  const columnKey = sheetData.columnHeaders[columnIndex];
+                  if (row && row[columnKey] !== undefined && row[columnKey] !== null && row[columnKey] !== '') {
+                    nonEmptyValues.push(`${columnKey}:"${row[columnKey]}"`);
+                  }
+                }
+                if (nonEmptyValues.length > 0) {
+                  addLog(`    🔍 Row ${excelRowNum} sample non-empty values: ${nonEmptyValues.slice(0, 3).join(', ')}`);
+                }
               }
 
               return total;
