@@ -12,6 +12,7 @@ interface ExcelTab {
   targetColumn?: string; // For transportation files
   extractedAmount?: number;
   operatingCosts?: OperatingCostData; // For operating cost files
+  productivityMetrics?: ProductivityMetrics; // For production tracker files
 }
 
 interface OperatingCostData {
@@ -28,12 +29,35 @@ interface OperatingCostData {
   thirdPartyLogistics?: number; // If Other Expense > 15% of total
 }
 
+interface ProductivityMetrics {
+  year2024?: {
+    unitsShipped?: number;    // Cell AR53
+    productiveHours?: number; // Cell AR71
+    totalHours?: number;      // Cell AR72
+    productiveUPH?: number;   // Calculated: unitsShipped / productiveHours
+    totalUPH?: number;        // Calculated: unitsShipped / totalHours
+  };
+  year2025?: {
+    unitsShipped?: number;    // Cell AU53
+    productiveHours?: number; // Cell AU71
+    totalHours?: number;      // Cell AU72
+    productiveUPH?: number;   // Calculated: unitsShipped / productiveHours
+    totalUPH?: number;        // Calculated: unitsShipped / totalHours
+  };
+  productivityChange?: {
+    unitsShippedChange?: number;    // % change
+    productiveUPHChange?: number;   // % change
+    totalUPHChange?: number;        // % change
+    hoursEfficiencyChange?: number; // % change in productive/total ratio
+  };
+}
+
 interface MultiTabFile {
   file: File;
   fileName: string;
   fileSize: number;
   tabs: ExcelTab[];
-  fileType: 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'OTHER';
+  fileType: 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'OTHER';
   totalExtracted: number;
   processingStatus: 'pending' | 'processing' | 'completed' | 'error';
   errorMessage?: string;
@@ -56,12 +80,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'OTHER' => {
+  const detectFileType = (fileName: string): 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'OTHER' => {
     const lower = fileName.toLowerCase();
     if (lower.includes('ups') && lower.includes('individual')) return 'UPS';
     if (lower.includes('2024') && lower.includes('tl')) return 'TL';
     if (lower.includes('r&l') && lower.includes('curriculum')) return 'RL';
     if (lower.includes('warehouse') && (lower.includes('budget') || lower.includes('operating'))) return 'WAREHOUSE_BUDGET';
+    if (lower.includes('warehouse') && lower.includes('production') && lower.includes('tracker')) return 'PRODUCTION_TRACKER';
     return 'OTHER';
   };
 
