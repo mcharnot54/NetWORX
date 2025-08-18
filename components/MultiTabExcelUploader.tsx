@@ -225,38 +225,89 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         console.log(`R&L ${tab.name}: Column V not found in available columns:`, tab.columns);
       }
 
-      // If column V didn't work, try other cost-related columns
+      // If column V didn't work, try other cost-related columns in priority order
       if (!bestColumn) {
-        for (const col of tab.columns) {
-          if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+        console.log(`R&L ${tab.name}: Column V not usable, trying fallback columns...`);
 
-          // Prioritize cost-related column names
-          const isLikelyCostColumn = col.toLowerCase().includes('net') ||
-                                   col.toLowerCase().includes('charge') ||
-                                   col.toLowerCase().includes('cost') ||
-                                   col.toLowerCase().includes('amount') ||
-                                   col.toLowerCase().includes('total') ||
-                                   col.toLowerCase().includes('freight') ||
-                                   col.toLowerCase().includes('revenue');
+        // Priority order for R&L cost columns
+        const priorityColumns = [
+          'Net Charge',
+          'net_charge',
+          'NetCharge',
+          'Charge',
+          'charge',
+          'Net Amount',
+          'Amount',
+          'Cost',
+          'Total',
+          'Freight'
+        ];
 
-          let testAmount = 0;
-          let validValues = 0;
+        // First, try exact matches for priority columns
+        for (const priorityCol of priorityColumns) {
+          if (tab.columns.includes(priorityCol)) {
+            let testAmount = 0;
+            let validValues = 0;
 
-          for (const row of tab.data) {
-            if (row && row[col]) {
-              const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
-              if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
-                testAmount += numValue;
-                validValues++;
+            for (const row of tab.data) {
+              if (row && row[priorityCol]) {
+                const numValue = parseFloat(String(row[priorityCol]).replace(/[$,\s]/g, ''));
+                if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
+                  testAmount += numValue;
+                  validValues++;
+                }
               }
+            }
+
+            if (validValues > 5 && testAmount > 1000 && isFinite(testAmount)) {
+              bestAmount = testAmount;
+              bestColumn = priorityCol;
+              console.log(`R&L ${tab.name}: Using fallback column '${priorityCol}' with $${testAmount.toLocaleString()}`);
+              break;
+            }
+          }
+        }
+
+        // If still no match, do pattern matching on all columns
+        if (!bestColumn) {
+          for (const col of tab.columns) {
+            if (!col || col.toLowerCase().includes('empty') || col.toLowerCase().includes('null')) continue;
+
+            // Prioritize cost-related column names but exclude address fields
+            const isLikelyCostColumn = (col.toLowerCase().includes('net') ||
+                                     col.toLowerCase().includes('charge') ||
+                                     col.toLowerCase().includes('cost') ||
+                                     col.toLowerCase().includes('amount') ||
+                                     col.toLowerCase().includes('total') ||
+                                     col.toLowerCase().includes('freight') ||
+                                     col.toLowerCase().includes('revenue')) &&
+                                     !col.toLowerCase().includes('address') &&
+                                     !col.toLowerCase().includes('consignee') &&
+                                     !col.toLowerCase().includes('shipper');
+
+            if (!isLikelyCostColumn) continue; // Skip non-cost columns
+
+            let testAmount = 0;
+            let validValues = 0;
+
+            for (const row of tab.data) {
+              if (row && row[col]) {
+                const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+                if (!isNaN(numValue) && isFinite(numValue) && numValue > 0.01) {
+                  testAmount += numValue;
+                  validValues++;
+                }
+              }
+            }
+
+            if (validValues > 5 && testAmount > bestAmount && testAmount > 1000 && isFinite(testAmount)) {
+              bestAmount = testAmount;
+              bestColumn = col;
             }
           }
 
-          // Boost score for likely cost columns
-          const threshold = isLikelyCostColumn ? 5 : 10;
-          if (validValues > threshold && testAmount > bestAmount && isFinite(testAmount)) {
-            bestAmount = testAmount;
-            bestColumn = col;
+          if (bestColumn) {
+            console.log(`R&L ${tab.name}: Using pattern-matched column '${bestColumn}' with $${bestAmount.toLocaleString()}`);
           }
         }
       }
