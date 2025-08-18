@@ -52,11 +52,16 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   const extractTransportationCosts = (tab: ExcelTab, fileType: 'UPS' | 'TL' | 'RL' | 'OTHER'): { column: string; amount: number } => {
     console.log(`\n=== EXTRACTING from ${fileType} ${tab.name} ===`);
     console.log(`Available columns (${tab.columns.length}):`, tab.columns);
-    
+
+    // ADD EXTREMELY AGGRESSIVE DEBUGGING
+    addLog(`🔍 EXTRACTION DEBUG: ${fileType} ${tab.name} - ${tab.columns.length} columns`);
+    addLog(`🔍 Column names: ${tab.columns.join(', ')}`);
+
     // ================================
     // TL TOTAL 2024 - COLUMN H ONLY!
     // ================================
     if (fileType === 'TL' && tab.name === 'TOTAL 2024') {
+      addLog(`🚨 TL TOTAL 2024: FORCED to use ONLY Column H - NO OTHER COLUMNS ALLOWED!`);
       console.log(`TL TOTAL 2024: FORCED to use ONLY Column H - NO OTHER COLUMNS ALLOWED!`);
       
       // Find Column H with all possible representations
