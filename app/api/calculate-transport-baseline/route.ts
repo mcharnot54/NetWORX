@@ -1,10 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface TransportTotal {
+  amount: number;
+  rows: number;
+  file_id: number | null;
+  status: string;
+  values_found?: number;
+  data_source?: string;
+}
+
+interface TransportResults {
+  success: boolean;
+  transport_totals: {
+    ups_parcel: TransportTotal;
+    rl_ltl: TransportTotal;
+    tl_costs: TransportTotal;
+  };
+  total_transport_baseline: number;
+  files_analyzed: Array<{
+    id: number;
+    name: string;
+    rows: number;
+    data_source: string;
+    file_type: string;
+  }>;
+}
+
 export async function GET() {
   try {
     const { sql } = await import('@/lib/database');
-    
-    const results = {
+
+    const results: TransportResults = {
       success: true,
       transport_totals: {
         ups_parcel: { amount: 0, rows: 0, file_id: null, status: 'not_found' },
