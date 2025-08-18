@@ -817,6 +817,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         let operatingCosts: OperatingCostData | undefined;
         let productivityMetrics: ProductivityMetrics | undefined;
         let inventoryMetrics: InventoryMetrics | undefined;
+        let salesData: SalesData | undefined;
+        let networkFootprintData: NetworkFootprintData | undefined;
 
         try {
           // Apply file-type specific extraction rules
