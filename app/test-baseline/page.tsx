@@ -674,21 +674,28 @@ export default function TestBaseline() {
             </button>
             <button
               onClick={async () => {
-                if (confirm('This will reprocess the failed Excel files to extract actual data. Continue?')) {
+                if (confirm('This will reprocess ALL failed Excel files to extract actual data. Continue?')) {
                   try {
-                    const response = await fetch('/api/fix-excel-processing', { method: 'POST' });
+                    setError('Processing all Excel files... this may take a moment...');
+                    const response = await fetch('/api/fix-all-excel-files', { method: 'POST' });
                     const result = await response.json();
-                    alert(`Processing fix result: ${result.summary?.fixed || 0} files fixed, ${result.summary?.failed || 0} failed`);
-                    // Refresh the page data
-                    window.location.reload();
+
+                    if (result.success) {
+                      alert(`✅ EXCEL FIX COMPLETE!\n\nFixed: ${result.summary?.fixed || 0} files\nFailed: ${result.summary?.failed || 0} files\n\nPage will refresh to show updated data.`);
+                      window.location.reload();
+                    } else {
+                      alert('❌ Fix failed: ' + result.error);
+                    }
+                    setError(null);
                   } catch (error) {
-                    alert('Failed to fix Excel processing: ' + error);
+                    alert('❌ Failed to fix Excel files: ' + error);
+                    setError(null);
                   }
                 }
               }}
-              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 font-bold"
+              className="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 font-bold"
             >
-              🔥 FIX EXCEL PROCESSING
+              🔥 FIX ALL EXCEL FILES
             </button>
           </div>
 
