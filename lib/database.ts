@@ -484,7 +484,7 @@ export class DataFileService {
       FROM data_files
       WHERE scenario_id = ${scenarioId}
       ORDER BY upload_date DESC
-      LIMIT ${LEAST(limit, 10)}
+      LIMIT ${Math.min(limit, 10)}
     ` as DataFile[];
   }
 
