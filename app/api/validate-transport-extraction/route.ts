@@ -170,30 +170,42 @@ function extractAndValidateColumnV(data: any[]): any[] {
 
 function extractAndValidateColumnF(data: any[]): any[] {
   const results = [];
-  
-  for (let i = 0; i < Math.min(data.length, 10); i++) {
+  let totalValue = 0;
+
+  for (let i = 0; i < data.length; i++) { // Process ALL rows
     const row = data[i];
     if (typeof row !== 'object' || !row) continue;
-    
+
     for (const [key, value] of Object.entries(row)) {
       if (key === 'F' || key === '__EMPTY_5' ||
           key.toLowerCase().includes('net') ||
           key.toLowerCase().includes('charge') ||
           key.toLowerCase().includes('total')) {
-        
+
         const numValue = parseFloat(String(value).replace(/[$,\s]/g, ''));
         if (!isNaN(numValue) && numValue > 10) {
-          results.push({
-            row_index: i,
-            column_key: key,
-            raw_value: value,
-            parsed_value: numValue
-          });
+          totalValue += numValue;
+          if (results.length < 10) { // Only store first 10 for display
+            results.push({
+              row_index: i,
+              column_key: key,
+              raw_value: value,
+              parsed_value: numValue
+            });
+          }
         }
       }
     }
   }
-  
+
+  // Add summary
+  results.push({
+    row_index: -1,
+    column_key: 'TOTAL_SUMMARY',
+    raw_value: `Total from ${data.length} rows`,
+    parsed_value: totalValue
+  });
+
   return results;
 }
 
