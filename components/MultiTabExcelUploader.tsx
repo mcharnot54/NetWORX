@@ -1766,6 +1766,38 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                             )}
                           </div>
                         </div>
+
+                        {/* Show inventory metrics if available */}
+                        {tab.inventoryMetrics && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="text-sm text-gray-700">
+                              <div className="font-medium mb-2">📦 Inventory Analysis:</div>
+                              <div className="space-y-1">
+                                <div>• <strong>Total Inventory:</strong> {formatCurrency(tab.inventoryMetrics.totalInventoryDollars || 0)}</div>
+                                {tab.inventoryMetrics.daysSupply && (
+                                  <div>• <strong>Days Supply:</strong> {tab.inventoryMetrics.daysSupply.toFixed(1)} days</div>
+                                )}
+                                {tab.inventoryMetrics.inventoryTurnover && (
+                                  <div>• <strong>Annual Turnover:</strong> {tab.inventoryMetrics.inventoryTurnover.toFixed(2)}x</div>
+                                )}
+                                {tab.inventoryMetrics.categories && (
+                                  <div className="mt-2">
+                                    <div className="font-medium">Categories:</div>
+                                    {tab.inventoryMetrics.categories.rawMaterials && (
+                                      <div className="ml-2">- Raw Materials: {formatCurrency(tab.inventoryMetrics.categories.rawMaterials)}</div>
+                                    )}
+                                    {tab.inventoryMetrics.categories.workInProgress && (
+                                      <div className="ml-2">- Work in Progress: {formatCurrency(tab.inventoryMetrics.categories.workInProgress)}</div>
+                                    )}
+                                    {tab.inventoryMetrics.categories.finishedGoods && (
+                                      <div className="ml-2">- Finished Goods: {formatCurrency(tab.inventoryMetrics.categories.finishedGoods)}</div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
