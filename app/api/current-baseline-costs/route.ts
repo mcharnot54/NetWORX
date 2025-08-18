@@ -542,3 +542,66 @@ function parseNumericValue(value: any): number {
   }
   return 0;
 }
+
+// Helper function to extract all data arrays from complex nested structures
+function extractAllDataArrays(processedData: any): Array<{data: any[], source: string}> {
+  const dataArrays: Array<{data: any[], source: string}> = [];
+
+  if (!processedData || typeof processedData !== 'object') {
+    return dataArrays;
+  }
+
+  // Check direct array in parsedData
+  if (processedData.parsedData && Array.isArray(processedData.parsedData)) {
+    dataArrays.push({
+      data: processedData.parsedData,
+      source: 'parsedData'
+    });
+  }
+
+  // Check direct array in data
+  if (processedData.data && Array.isArray(processedData.data)) {
+    dataArrays.push({
+      data: processedData.data,
+      source: 'data'
+    });
+  }
+
+  // Check nested structures in data (like TL files with multiple sheets)
+  if (processedData.data && typeof processedData.data === 'object' && !Array.isArray(processedData.data)) {
+    extractNestedArrays(processedData.data, 'data', dataArrays);
+  }
+
+  // Check nested structures in parsedData
+  if (processedData.parsedData && typeof processedData.parsedData === 'object' && !Array.isArray(processedData.parsedData)) {
+    extractNestedArrays(processedData.parsedData, 'parsedData', dataArrays);
+  }
+
+  // Check for direct array in root
+  if (Array.isArray(processedData)) {
+    dataArrays.push({
+      data: processedData,
+      source: 'root'
+    });
+  }
+
+  return dataArrays;
+}
+
+// Recursive function to find arrays in nested objects
+function extractNestedArrays(obj: any, parentPath: string, dataArrays: Array<{data: any[], source: string}>, maxDepth: number = 3): void {
+  if (maxDepth <= 0 || !obj || typeof obj !== 'object') return;
+
+  for (const [key, value] of Object.entries(obj)) {
+    const currentPath = `${parentPath}.${key}`;
+
+    if (Array.isArray(value) && value.length > 0) {
+      dataArrays.push({
+        data: value,
+        source: currentPath
+      });
+    } else if (typeof value === 'object' && value !== null) {
+      extractNestedArrays(value, currentPath, dataArrays, maxDepth - 1);
+    }
+  }
+}
