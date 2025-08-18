@@ -520,23 +520,36 @@ export default function DataProcessor() {
         file.detectedTemplate
       );
 
-      // Update file with validation results
-    updatedFiles[fileIndex].processingResult = result;
-    updatedFiles[fileIndex].validationStatus = result.success ? 'validated' : 'error';
-    setFiles(updatedFiles);
+      // CRITICAL FIX: Separate Excel parsing success from template validation
+      const hasExcelData = file.parsedData && file.parsedData.length > 0;
+      const templateValidationPassed = result.success;
 
-    // Update file in database if it was saved
-    if (file.id) {
-      await updateFileInDatabase(file.id, {
-        processing_status: result.success ? 'completed' : 'failed',
-        validation_result: result,
-        processed_data: {
-          ...file.processingResult,
-          file_content: file.fileContent,
-          processingResult: result
-        }
-      });
-    }
+      // Always mark as validated if we have Excel data, regardless of template
+      updatedFiles[fileIndex].processingResult = result;
+      updatedFiles[fileIndex].validationStatus = hasExcelData ? 'validated' : 'error';
+      setFiles(updatedFiles);
+
+      // Update file in database if it was saved
+      if (file.id) {
+        await updateFileInDatabase(file.id, {
+          // Mark as completed if we have Excel data, regardless of template validation
+          processing_status: hasExcelData ? 'completed' : 'failed',
+          validation_result: {
+            ...result,
+            excel_parsing_success: hasExcelData,
+            template_validation_success: templateValidationPassed,
+            note: hasExcelData ? 'Excel data preserved successfully' : 'Excel parsing failed'
+          },
+          processed_data: {
+            // Always preserve the original parsed Excel data
+            parsedData: file.parsedData,
+            columnNames: file.columnNames,
+            file_content: file.fileContent,
+            processingResult: result,
+            excel_preserved: hasExcelData
+          }
+        });
+      }
 
       if (result.success) {
         addToLog(`✓ Validation successful for ${file.name}`);
