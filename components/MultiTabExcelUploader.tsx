@@ -186,11 +186,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           }
         }
 
-        totalExtracted += extractedAmount;
-
         tabs.push({
           name: sheetName,
-          rows: sheetData.data.length,
+          rows: sheetData.rowCount,
           columns: sheetData.columnHeaders,
           data: sheetData.data,
           sampleData: sheetData.data.slice(0, 5),
@@ -198,10 +196,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           extractedAmount
         });
 
-        addLog(`  ${sheetName}: ${sheetData.data.length} rows, ${sheetData.columnHeaders.length} columns`);
+        addLog(`  ${sheetName}: ${sheetData.rowCount} rows, ${sheetData.columnHeaders.length} columns`);
         addLog(`    🎯 EXTRACTION: $${extractedAmount.toLocaleString()} from '${targetColumn}'`);
-        addLog(`    📊 DATA QUALITY: ${sheetData.cleaningReport.rowsRemoved} rows removed, ${sheetData.cleaningReport.valuesConverted} values converted`);
-        addLog(`    🧠 LEARNING DATA: Stored patterns for network analysis optimization`);
+        addLog(`    📊 PROCESSED: Successfully processed sheet data`);
 
         // Store extraction data safely (skip if memory issues)
         if (sheetData.data.length < 10000) { // Only store learning for smaller datasets to prevent crashes
