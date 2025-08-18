@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(fileContent, 'base64');
     
     // Parse Excel file
+    const XLSX = await import('xlsx');
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     
     const analysis: TabAnalysis[] = [];
