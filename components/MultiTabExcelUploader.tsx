@@ -14,6 +14,8 @@ interface ExcelTab {
   operatingCosts?: OperatingCostData; // For operating cost files
   productivityMetrics?: ProductivityMetrics; // For production tracker files
   inventoryMetrics?: InventoryMetrics; // For inventory tracker files
+  salesData?: SalesData; // For sales data files
+  networkFootprintData?: NetworkFootprintData; // For network footprint files
 }
 
 interface OperatingCostData {
@@ -195,7 +197,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         // Show rows around our target areas
         const targetRows = [20, 29, 52, 62, 67, 70, 71, 77, 87, 164, 176, 193];
-        addLog(`���� DEBUGGING - Target rows data:`);
+        addLog(`🔍 DEBUGGING - Target rows data:`);
         for (const rowIdx of targetRows) {
           if (rowIdx < data.length) {
             const row = data[rowIdx];
