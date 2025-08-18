@@ -558,6 +558,21 @@ export class DataFileService {
     return file as DataFile || null;
   }
 
+  static async getFilesForProcessing(scenarioId: number): Promise<DataFile[]> {
+    // Get files with full data for processing - handle large data carefully
+    return await sql`
+      SELECT
+        id, scenario_id, file_name, file_type, file_size, data_type,
+        processing_status, upload_date, original_columns, mapped_columns,
+        validation_result, processed_data
+      FROM data_files
+      WHERE scenario_id = ${scenarioId}
+      AND processing_status = 'completed'
+      ORDER BY upload_date DESC
+      LIMIT 20
+    ` as DataFile[];
+  }
+
   static async deleteDataFile(id: number): Promise<void> {
     await sql`DELETE FROM data_files WHERE id = ${id}`;
   }
