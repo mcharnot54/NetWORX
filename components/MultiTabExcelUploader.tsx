@@ -335,7 +335,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           } else if (fileType === 'WAREHOUSE_BUDGET') {
             addLog(`🏭 WAREHOUSE BUDGET PROCESSING: Extracting operating costs from specific rows`);
 
-            const operatingCosts: OperatingCostData = {};
+            operatingCosts = {};
 
             // Convert data to row-indexed format for easier access
             const rowData: { [key: number]: any } = {};
@@ -744,7 +744,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             addLog(`✓ ${file.fileName} uploaded with preserved tab structure`);
           } else {
             const errorData = await uploadResponse.text();
-            addLog(`✗ Failed to upload ${file.fileName}: ${errorData}`);
+            addLog(`��� Failed to upload ${file.fileName}: ${errorData}`);
           }
         }
       }
