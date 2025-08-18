@@ -1196,6 +1196,95 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               operatingCosts.total = 0;
             }
 
+          // INVENTORY TRACKER FILES: Extract inventory metrics
+          } else if (fileType === 'INVENTORY_TRACKER') {
+            addLog(`📦 INVENTORY TRACKER PROCESSING: Analyzing inventory data from Excel`);
+
+            inventoryMetrics = {};
+
+            try {
+              // Search for inventory-related columns and values
+              const findInventoryData = (searchTerms: string[], minValue: number = 1000): number => {
+                for (const row of sheetData.data) {
+                  if (!row) continue;
+
+                  // Check all columns for search terms and values
+                  for (const [columnName, value] of Object.entries(row)) {
+                    const columnText = String(columnName).toLowerCase();
+                    const cellText = String(value || '').toLowerCase();
+
+                    // If column or cell contains our search terms
+                    if (searchTerms.some(term => columnText.includes(term) || cellText.includes(term))) {
+                      // Look for numeric values in this row
+                      for (const cellValue of Object.values(row)) {
+                        if (cellValue && typeof cellValue !== 'undefined') {
+                          const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
+                          if (!isNaN(numValue) && numValue >= minValue) {
+                            addLog(`    📍 Found inventory value: ${numValue.toLocaleString()} for ${searchTerms[0]}`);
+                            return numValue;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                return 0;
+              };
+
+              // Extract key inventory metrics
+              inventoryMetrics.totalInventoryDollars = findInventoryData(['total inventory', 'inventory total', 'total value', 'total stock', 'inventory dollars']);
+
+              // Try to find category breakdowns
+              inventoryMetrics.categories = {
+                rawMaterials: findInventoryData(['raw material', 'raw stock', 'materials'], 100),
+                workInProgress: findInventoryData(['work in progress', 'wip', 'in process'], 100),
+                finishedGoods: findInventoryData(['finished goods', 'finished product', 'final product'], 100),
+              };
+
+              // Calculate total from categories if main total not found
+              if (!inventoryMetrics.totalInventoryDollars && inventoryMetrics.categories) {
+                inventoryMetrics.categories.totalByCategory =
+                  (inventoryMetrics.categories.rawMaterials || 0) +
+                  (inventoryMetrics.categories.workInProgress || 0) +
+                  (inventoryMetrics.categories.finishedGoods || 0);
+
+                if (inventoryMetrics.categories.totalByCategory > 0) {
+                  inventoryMetrics.totalInventoryDollars = inventoryMetrics.categories.totalByCategory;
+                }
+              }
+
+              // Look for sales data to calculate days supply
+              inventoryMetrics.dailySales = findInventoryData(['daily sales', 'sales per day', 'average daily'], 10);
+
+              // Calculate days supply if we have both inventory and sales
+              if (inventoryMetrics.totalInventoryDollars && inventoryMetrics.dailySales) {
+                inventoryMetrics.daysSupply = inventoryMetrics.totalInventoryDollars / inventoryMetrics.dailySales;
+                inventoryMetrics.inventoryTurnover = 365 / inventoryMetrics.daysSupply; // Annual turnover
+                addLog(`📊 Days Supply: ${inventoryMetrics.daysSupply.toFixed(1)} days`);
+                addLog(`🔄 Inventory Turnover: ${inventoryMetrics.inventoryTurnover.toFixed(2)}x annually`);
+              }
+
+              // Set snapshot info
+              inventoryMetrics.snapshot = {
+                date: new Date().toISOString().split('T')[0],
+                location: 'Warehouse',
+                reportType: 'Baseline Inventory Analysis'
+              };
+
+              extractedAmount = inventoryMetrics.totalInventoryDollars || 0;
+              targetColumn = 'Inventory Metrics (Total Value)';
+
+              addLog(`🎯 INVENTORY TRACKER ${sheetName}: Total inventory value $${extractedAmount.toLocaleString()}`);
+              if (inventoryMetrics.daysSupply) {
+                addLog(`📈 Days Supply: ${inventoryMetrics.daysSupply.toFixed(1)} days`);
+                addLog(`🔄 Annual Turnover: ${inventoryMetrics.inventoryTurnover?.toFixed(2)}x`);
+              }
+
+            } catch (inventoryError) {
+              addLog(`⚠️ Inventory extraction error: ${inventoryError instanceof Error ? inventoryError.message : 'Unknown error'}`);
+              inventoryMetrics.totalInventoryDollars = 0;
+            }
+
           } else {
             // FALLBACK: Generic cost column detection for other file types
             addLog(`🔍 GENERIC PROCESSING: Looking for cost columns`);
