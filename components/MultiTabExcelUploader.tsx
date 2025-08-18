@@ -110,6 +110,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     // UPS FILES - AGGRESSIVE SEARCH
     // ================================
     if (fileType === 'UPS') {
+      addLog(`🔍 UPS ${tab.name}: Looking for charge columns...`);
       console.log(`UPS ${tab.name}: Looking for charge columns...`);
       
       let bestAmount = 0;
