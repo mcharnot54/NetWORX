@@ -118,7 +118,9 @@ export class EnhancedExcelValidator {
   /**
    * Find the actual header row by skipping logo/empty rows at the top
    */
-  private findActualHeaderRow(worksheet: any): { data: any[], headerRowIndex: number } {
+  private async findActualHeaderRow(worksheet: any): Promise<{ data: any[], headerRowIndex: number }> {
+    // Dynamic import to avoid SSR issues
+    const XLSX = await import('xlsx');
     // Get raw data with row numbers preserved
     const allRowsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
 
