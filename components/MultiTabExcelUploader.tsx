@@ -182,20 +182,27 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           } else if (fileType === 'TL') {
             addLog(`🚛 TL PROCESSING: Using working API logic - find any cost column`);
 
-            // Find NET charge/rate column (prioritize NET, EXCLUDE GROSS per working API)
+            // Find rate column with correct priority: NET first, then Gross Rate as fallback
             const netColumns = ['Net Charge', 'Net Rate', 'Net Cost', 'net_charge', 'net_rate'];
-            const fallbackColumns = ['Rate', 'Freight Cost', 'freight_cost', 'Cost', 'Charge', 'Amount'];
+            const grossColumns = ['Gross Rate', 'Gross Charge', 'gross_rate', 'gross_charge'];
+            const otherColumns = ['Rate', 'Freight Cost', 'freight_cost', 'Cost', 'Charge', 'Amount'];
 
             // First priority: NET columns
             let rateColumn = sheetData.columnHeaders.find(col =>
               netColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
             );
 
-            // Fallback: other columns but EXCLUDE gross
+            // Second priority: Gross Rate (fallback when no NET found)
             if (!rateColumn) {
               rateColumn = sheetData.columnHeaders.find(col =>
-                !col.toLowerCase().includes('gross') && // EXCLUDE gross columns per user requirement
-                fallbackColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+                grossColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
+              );
+            }
+
+            // Third priority: Other cost columns
+            if (!rateColumn) {
+              rateColumn = sheetData.columnHeaders.find(col =>
+                otherColumns.some(pattern => col.toLowerCase().includes(pattern.toLowerCase()))
               );
             }
 
@@ -611,7 +618,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             addLog(`✓ ${file.fileName} uploaded with preserved tab structure`);
           } else {
             const errorData = await uploadResponse.text();
-            addLog(`��� Failed to upload ${file.fileName}: ${errorData}`);
+            addLog(`✗ Failed to upload ${file.fileName}: ${errorData}`);
           }
         }
       }
