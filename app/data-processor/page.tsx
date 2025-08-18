@@ -170,6 +170,41 @@ export default function DataProcessor() {
     }
   };
 
+  // Server warming function
+  const warmUpServer = async () => {
+    addToLog('🔥 Server warming started (initial requests may take 30+ seconds)...');
+    const startTime = Date.now();
+
+    try {
+      // Make multiple quick requests to warm up the server
+      for (let i = 0; i < 3; i++) {
+        addToLog(`🔥 Warming request ${i + 1}/3...`);
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
+
+          await fetch('/api/health', { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          const currentTime = Date.now() - startTime;
+          addToLog(`✓ Warming request ${i + 1} completed (${currentTime}ms total)`);
+        } catch (error) {
+          addToLog(`⚠ Warming request ${i + 1} failed: ${error}`);
+        }
+
+        // Small delay between requests
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const totalTime = Date.now() - startTime;
+      addToLog(`🔥 Server warming completed in ${Math.round(totalTime/1000)}s`);
+      addToLog('✓ Server should now be responsive for normal operations');
+
+    } catch (error) {
+      addToLog(`🔥 Server warming failed: ${error}`);
+    }
+  };
+
   // Load saved files when scenario changes
   useEffect(() => {
     if (selectedScenario?.id) {
@@ -618,7 +653,7 @@ export default function DataProcessor() {
           }
         } else {
           addToLog(`⚠ Template validation failed but Excel data preserved`);
-          addToLog(`ℹ File marked as completed - data available for baseline calculations`);
+          addToLog(`�� File marked as completed - data available for baseline calculations`);
         }
       } else {
         addToLog(`✗ Excel parsing failed for ${file.name}`);
