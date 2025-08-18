@@ -33,9 +33,20 @@ export async function POST(req: NextRequest) {
     // Store the extraction data for learning and optimization
     // This will feed into future network analysis and cost optimization
     
+    const isAdaptive = data.method === 'adaptive_learning';
+    const templateInfo = data.learningMetrics?.adaptiveTemplate;
+
     console.log(`📊 LEARNING STORAGE: ${data.fileType} ${data.sheetName} - $${data.extractedAmount.toLocaleString()} from ${data.columnName}`);
     console.log(`🧠 CONFIDENCE: ${(data.confidence * 100).toFixed(1)}% using method: ${data.method}`);
-    console.log(`🎯 FUTURE OPTIMIZATION: Data ready for network analysis with ${data.rowsProcessed} rows processed`);
+
+    if (isAdaptive && templateInfo) {
+      console.log(`🎯 ADAPTIVE LEARNING: Template ${templateInfo.id} with ${templateInfo.mappingsCount} mappings (${(templateInfo.confidence * 100).toFixed(1)}% confidence)`);
+      console.log(`🚀 ENHANCED OPTIMIZATION: Advanced adaptive learning active for superior network analysis`);
+    } else if (data.learningMetrics?.fallbackUsed) {
+      console.log(`⚠️ FALLBACK MODE: Simple pattern matching used - adaptive learning temporarily unavailable`);
+    } else {
+      console.log(`🎯 FUTURE OPTIMIZATION: Data ready for network analysis with ${data.rowsProcessed} rows processed`);
+    }
     
     // Store in database for future machine learning and pattern recognition
     // This data will be crucial for complex operational cost structures
