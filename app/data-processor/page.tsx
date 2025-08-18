@@ -628,6 +628,7 @@ export default function DataProcessor() {
 
     try {
       addToLog(`Loading content for ${fileData.name} (ID: ${fileData.id})...`);
+      addToLog(`Please wait, this may take up to 20 seconds...`);
 
       // Load file content using robust fetch
       const contentData = await robustFetchJson(`/api/files/${fileData.id}/content`, {
