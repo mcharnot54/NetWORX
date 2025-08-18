@@ -477,6 +477,8 @@ function getExtractionMethod(fileName: string): string {
     return 'column_V_LTL_costs';
   } else if (fileNameLower.includes('ups invoice by state summary')) {
     return 'column_F_parcel_costs';
+  } else if (fileNameLower.includes('ups individual item cost')) {
+    return 'column_G_net_charges_all_tabs';
   }
   return 'general_freight_extraction';
 }
