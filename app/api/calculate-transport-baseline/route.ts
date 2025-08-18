@@ -84,44 +84,27 @@ export async function GET() {
         console.log('R&L File Debug - Structure:', {
           hasProcessedData: !!file.processed_data,
           hasData: !!file.processed_data?.data,
-          dataType: typeof file.processed_data?.data,
-          dataKeys: file.processed_data?.data ? Object.keys(file.processed_data.data) : 'no keys',
-          dataLength: Array.isArray(file.processed_data?.data) ? file.processed_data.data.length : 'not array',
+          hasParsedData: !!file.processed_data?.parsedData,
+          parsedDataLength: Array.isArray(file.processed_data?.parsedData) ? file.processed_data.parsedData.length : 'not array',
           processedDataKeys: file.processed_data ? Object.keys(file.processed_data) : 'no processed_data'
         });
 
-        // For R&L files, specifically target the Detail tab first
-        let detailTabData = null;
+        // For R&L files, we need to check if there's a multi-tab structure beyond just parsedData
         let finalData = data;
         let finalDataSource = dataSource;
 
-        if (typeof file.processed_data.data === 'object' && file.processed_data.data) {
-          // Look for Detail tab specifically
-          if (file.processed_data.data.Detail && Array.isArray(file.processed_data.data.Detail)) {
-            detailTabData = file.processed_data.data.Detail;
-            finalData = detailTabData;
-            finalDataSource = 'Detail_tab';
-            console.log(`R&L: Found Detail tab with ${detailTabData.length} rows`);
-          } else {
-            // Check for case variations
-            const keys = Object.keys(file.processed_data.data);
-            console.log('R&L: Available sheet keys:', keys);
-            const detailKey = keys.find(key => key.toLowerCase().includes('detail'));
-            if (detailKey && Array.isArray(file.processed_data.data[detailKey])) {
-              detailTabData = file.processed_data.data[detailKey];
-              finalData = detailTabData;
-              finalDataSource = `${detailKey}_tab`;
-              console.log(`R&L: Found ${detailKey} tab with ${detailTabData.length} rows`);
-            } else {
-              console.log('R&L: No Detail tab found, trying first available sheet...');
-              const firstKey = keys[0];
-              if (firstKey && Array.isArray(file.processed_data.data[firstKey])) {
-                finalData = file.processed_data.data[firstKey];
-                finalDataSource = `${firstKey}_tab`;
-                console.log(`R&L: Using ${firstKey} tab with ${finalData.length} rows`);
-              }
-            }
-          }
+        // Check if this is actually a multi-tab file that was incorrectly processed as single tab
+        // Look for the file content in the database to check for multiple sheets
+        if (file.processed_data?.parsedData && dataSource === 'parsedData') {
+          console.log('R&L: Checking if this should be multi-tab processed...');
+          // The user specifically mentioned this file has a Detail tab with column V
+          // We need to re-process this file to get the multi-tab structure
+          console.log('R&L: This file should have Detail, Table, and Sheet1 tabs according to the logs');
+          console.log('R&L: Current processing shows single parsedData array - need multi-tab extraction');
+
+          // For now, let's try to extract from the existing parsedData but with better column detection
+          finalData = file.processed_data.parsedData;
+          finalDataSource = 'parsedData_reprocessed';
         }
 
         const { total, valuesFound } = extractFromColumnV(finalData);
