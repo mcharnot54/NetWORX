@@ -12,6 +12,8 @@ export default function TestBaseline() {
   const [loadingBaseline, setLoadingBaseline] = useState(false);
   const [loadingValidation, setLoadingValidation] = useState(false);
   const [loadingDebug, setLoadingDebug] = useState(false);
+  const [loadingRlSearch, setLoadingRlSearch] = useState(false);
+  const [rlSearchData, setRlSearchData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   const testFileData = async () => {
