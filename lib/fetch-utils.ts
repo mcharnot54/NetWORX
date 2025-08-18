@@ -417,8 +417,8 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
     }
 
     // Try to fetch a simple endpoint with minimal retries for connectivity check
-    await robustFetch('/api/health', {
-      timeout: 5000, // Slightly longer timeout for slow environment
+    await robustFetch('/api/simple-health', {
+      timeout: 3000, // Short timeout for quick failure detection
       retries: 0, // No retries for connectivity check to avoid cascading failures
       signal
     });
