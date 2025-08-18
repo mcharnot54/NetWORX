@@ -102,7 +102,7 @@ export class EnhancedExcelValidator {
     },
     {
       dataType: 'transport',
-      patterns: ['transport', 'tl', 'ltl', 'truckload', 'r&l', 'curriculum', 'inbound', 'outbound']
+      patterns: ['transport', 'tl', 'ltl', 'truckload', 'r&l', 'curriculum', 'inbound', 'outbound', 'total', 'ib', 'ob', 'ma', 'nh', 'littleton']
     },
     {
       dataType: 'capacity',
