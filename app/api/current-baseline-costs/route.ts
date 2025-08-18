@@ -307,9 +307,13 @@ function extractTransportationCosts(data: any[], baselineCosts: any, fileName: s
   } else if (fileNameLower.includes('r&l curriculum associates') && fileNameLower.includes('2024')) {
     // Extract LTL costs from column V
     totalFreightCost = extractFromColumnV(data, fileName);
-  } else if (fileNameLower.includes('ups invoice by state summary 2024')) {
-    // Extract parcel costs from column F
-    totalFreightCost = extractFromColumnF(data, fileName);
+  } else if (fileNameLower.includes('ups invoice by state summary 2024') || fileNameLower.includes('ups individual item cost')) {
+    // Extract parcel costs from column G (Net Charges) for new UPS file, column F for old UPS file
+    if (fileNameLower.includes('ups individual item cost')) {
+      totalFreightCost = extractFromColumnG(data, fileName);
+    } else {
+      totalFreightCost = extractFromColumnF(data, fileName);
+    }
   } else {
     // Fallback: general freight cost extraction
     totalFreightCost = extractGeneralFreightCosts(data, fileName);
