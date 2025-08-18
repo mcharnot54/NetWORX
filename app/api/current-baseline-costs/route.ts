@@ -53,18 +53,24 @@ export async function GET(request: NextRequest) {
     let scenarios = [];
 
     try {
-      // Get the most recent scenario ID for active projects with longer timeout
-      scenarios = await withTimeout(sql`
-        SELECT s.id, s.name, p.name as project_name
-        FROM scenarios s
-        JOIN projects p ON s.project_id = p.id
-        WHERE p.status = 'active'
-        ORDER BY s.created_at DESC
-        LIMIT 3
-      `, 10000); // 10 second timeout for this query
+      // Get scenarios with caching to reduce database load
+      scenarios = await withCache(
+        CacheKeys.SCENARIOS,
+        async () => {
+          return await withTimeout(sql`
+            SELECT s.id, s.name, p.name as project_name
+            FROM scenarios s
+            JOIN projects p ON s.project_id = p.id
+            WHERE p.status = 'active'
+            ORDER BY s.created_at DESC
+            LIMIT 3
+          `, 10000); // 10 second timeout for this query
+        },
+        2 * 60 * 1000 // Cache for 2 minutes
+      );
       baselineCosts.scenarios_analyzed = scenarios.length;
     } catch (dbError) {
-      console.log('Database tables not ready yet, returning empty baseline data:', dbError.message);
+      console.log('Database tables not ready yet, returning empty baseline data:', (dbError as any)?.message || 'Unknown error');
       scenarios = [];
     }
 
