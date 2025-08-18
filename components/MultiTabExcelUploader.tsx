@@ -274,33 +274,38 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
         addLog(`📊 PRODUCTION TRACKER PROCESSING: Using coordinate-based extraction for CSV`);
         productivityMetrics = {};
 
-        // Convert Excel cell references to array indices
-        // AR = column 43 (0-based), Row 53 = index 52
-        const getValueAtCoordinate = (rowIndex: number, colIndex: number): number => {
+        // Since CSV structure is compressed, scan for numeric data in target rows
+        const findLargestValueInRow = (rowIndex: number): number => {
           if (rowIndex >= data.length) return 0;
 
           const row = data[rowIndex];
           if (!row) return 0;
 
+          let largestValue = 0;
           const rowValues = Object.values(row);
-          if (colIndex >= rowValues.length) return 0;
 
-          const cellValue = rowValues[colIndex];
-          if (!cellValue || cellValue === '') return 0;
+          rowValues.forEach((cellValue, colIndex) => {
+            if (cellValue && cellValue !== '') {
+              const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
+              if (!isNaN(numValue) && numValue > largestValue) {
+                largestValue = numValue;
+                addLog(`    Found value ${numValue} in row ${rowIndex + 1}, col ${colIndex}`);
+              }
+            }
+          });
 
-          const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
-          return !isNaN(numValue) ? numValue : 0;
+          return largestValue;
         };
 
         if (file.name.toLowerCase().includes('dec24') || file.name.toLowerCase().includes('december') && file.name.toLowerCase().includes('2024')) {
-          addLog(`📅 Processing December 2024 productivity data from CSV coordinates`);
+          addLog(`📅 Processing December 2024 productivity data - scanning for largest values in target rows`);
 
-          // Excel AR53 = Column 43, Row 53 (index 52)
-          // Excel AR71 = Column 43, Row 71 (index 70)
-          // Excel AR72 = Column 43, Row 72 (index 71)
-          const unitsShipped = getValueAtCoordinate(52, 43); // AR53
-          const productiveHours = getValueAtCoordinate(70, 43); // AR71
-          const totalHours = getValueAtCoordinate(71, 43); // AR72
+          // Look for units shipped around row 53 (index 52)
+          const unitsShipped = findLargestValueInRow(52); // Row 53
+          // Look for productive hours around row 71 (index 70)
+          const productiveHours = findLargestValueInRow(70); // Row 71
+          // Look for total hours around row 72 (index 71)
+          const totalHours = findLargestValueInRow(71); // Row 72
 
           productivityMetrics.year2024 = {
             unitsShipped,
@@ -316,21 +321,21 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             productivityMetrics.year2024.totalUPH = unitsShipped / totalHours;
           }
 
-          addLog(`📦 2024 Units Shipped (AR53): ${unitsShipped}`);
-          addLog(`⏱️ 2024 Productive Hours (AR71): ${productiveHours}`);
-          addLog(`🕐 2024 Total Hours (AR72): ${totalHours}`);
+          addLog(`📦 2024 Units Shipped (Row 53): ${unitsShipped}`);
+          addLog(`⏱️ 2024 Productive Hours (Row 71): ${productiveHours}`);
+          addLog(`🕐 2024 Total Hours (Row 72): ${totalHours}`);
 
           extractedAmount = unitsShipped;
 
         } else if (file.name.toLowerCase().includes('apr25') || file.name.toLowerCase().includes('april') && file.name.toLowerCase().includes('2025')) {
-          addLog(`📅 Processing April 2025 productivity data from CSV coordinates`);
+          addLog(`📅 Processing April 2025 productivity data - scanning for largest values in target rows`);
 
-          // Excel AU53 = Column 46, Row 53 (index 52)
-          // Excel AU71 = Column 46, Row 71 (index 70)
-          // Excel AU72 = Column 46, Row 72 (index 71)
-          const unitsShipped = getValueAtCoordinate(52, 46); // AU53
-          const productiveHours = getValueAtCoordinate(70, 46); // AU71
-          const totalHours = getValueAtCoordinate(71, 46); // AU72
+          // Look for units shipped around row 53 (index 52)
+          const unitsShipped = findLargestValueInRow(52); // Row 53
+          // Look for productive hours around row 71 (index 70)
+          const productiveHours = findLargestValueInRow(70); // Row 71
+          // Look for total hours around row 72 (index 71)
+          const totalHours = findLargestValueInRow(71); // Row 72
 
           productivityMetrics.year2025 = {
             unitsShipped,
@@ -346,9 +351,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             productivityMetrics.year2025.totalUPH = unitsShipped / totalHours;
           }
 
-          addLog(`📦 2025 Units Shipped (AU53): ${unitsShipped}`);
-          addLog(`⏱️ 2025 Productive Hours (AU71): ${productiveHours}`);
-          addLog(`🕐 2025 Total Hours (AU72): ${totalHours}`);
+          addLog(`📦 2025 Units Shipped (Row 53): ${unitsShipped}`);
+          addLog(`⏱️ 2025 Productive Hours (Row 71): ${productiveHours}`);
+          addLog(`🕐 2025 Total Hours (Row 72): ${totalHours}`);
 
           extractedAmount = unitsShipped;
         }
