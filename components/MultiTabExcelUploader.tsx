@@ -76,7 +76,7 @@ interface MultiTabFile {
   fileName: string;
   fileSize: number;
   tabs: ExcelTab[];
-  fileType: 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'INVENTORY_TRACKER' | 'OTHER';
+  fileType: 'UPS' | 'TL' | 'RL' | 'WAREHOUSE_BUDGET' | 'PRODUCTION_TRACKER' | 'INVENTORY_TRACKER' | 'SALES_DATA' | 'NETWORK_FOOTPRINT' | 'OTHER';
   totalExtracted: number;
   processingStatus: 'pending' | 'processing' | 'completed' | 'error';
   errorMessage?: string;
