@@ -348,6 +348,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           extractedAmount
         });
 
+        // Add to total
+        totalExtracted += extractedAmount;
+
         addLog(`  ${sheetName}: ${sheetData.rowCount} rows, ${sheetData.columnHeaders.length} columns`);
         addLog(`    🎯 EXTRACTION: $${extractedAmount.toLocaleString()} from '${targetColumn}'`);
         addLog(`    📊 PROCESSED: Successfully processed sheet data`);
