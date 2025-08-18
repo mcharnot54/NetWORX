@@ -76,7 +76,8 @@ export async function GET(request: NextRequest) {
             WHERE (
               file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
               file_name ILIKE '%r&l curriculum associates%' OR
-              file_name ILIKE '%ups invoice by state summary 2024%'
+              file_name ILIKE '%ups invoice by state summary 2024%' OR
+              file_name ILIKE '%ups individual item cost%'
             )
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
