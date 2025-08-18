@@ -500,53 +500,51 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
             operatingCosts = {};
 
-            // Convert data to row-indexed format for easier access
+            // Convert data to row-indexed format for easier access (0-indexed to match array)
             const rowData: { [key: number]: any } = {};
             sheetData.data.forEach((row, index) => {
-              rowData[index + 1] = row; // Excel rows are 1-indexed
+              rowData[index] = row; // Keep 0-indexed to match data array
             });
 
-            // Helper function to extract value from specific row - auto-detect data columns
-            const extractFromRowColumns = (rowNum: number): number => {
-              const row = rowData[rowNum];
-              if (!row) return 0;
+            // First, detect data column range using row 20 (Excel row 21 - headcount)
+            let dataStartColumn = -1;
+            let dataEndColumn = -1;
 
-              // First, scan row 21 (headcount) to find where the actual data columns are
-              let dataStartColumn = -1;
-              let dataEndColumn = -1;
-
-              if (rowNum === 21 || dataStartColumn === -1) {
-                // Scan for consecutive numeric values to find data range
-                const testRow = rowData[21]; // Always use row 21 as reference for column detection
-                if (testRow) {
-                  let consecutiveCount = 0;
-                  for (let i = 0; i < sheetData.columnHeaders.length; i++) {
-                    const columnKey = sheetData.columnHeaders[i];
-                    if (testRow[columnKey] !== undefined && testRow[columnKey] !== null) {
-                      const value = parseFloat(String(testRow[columnKey]).replace(/[$,\s]/g, ''));
-                      if (!isNaN(value) && value > 0) {
-                        if (dataStartColumn === -1) dataStartColumn = i;
-                        dataEndColumn = i;
-                        consecutiveCount++;
-                      } else if (consecutiveCount > 6) {
-                        // Found good data range, stop looking
-                        break;
-                      } else if (dataStartColumn !== -1) {
-                        // Reset if we had started but hit a gap
-                        consecutiveCount = 0;
-                      }
-                    }
+            const headcountRow = rowData[20]; // Excel row 21 = array index 20
+            if (headcountRow) {
+              let consecutiveCount = 0;
+              for (let i = 0; i < sheetData.columnHeaders.length; i++) {
+                const columnKey = sheetData.columnHeaders[i];
+                if (headcountRow[columnKey] !== undefined && headcountRow[columnKey] !== null) {
+                  const value = parseFloat(String(headcountRow[columnKey]).replace(/[$,\s]/g, ''));
+                  if (!isNaN(value) && value > 0) {
+                    if (dataStartColumn === -1) dataStartColumn = i;
+                    dataEndColumn = i;
+                    consecutiveCount++;
+                  } else if (consecutiveCount > 6) {
+                    // Found good data range, stop looking
+                    break;
                   }
                 }
               }
+            }
 
-              // Fallback to Y:AJ indices if auto-detection fails
-              if (dataStartColumn === -1) {
-                dataStartColumn = 24; // Y column
-                dataEndColumn = 35;   // AJ column
+            // Fallback to Y:AJ indices if auto-detection fails
+            if (dataStartColumn === -1) {
+              dataStartColumn = 24; // Y column
+              dataEndColumn = 35;   // AJ column
+            }
+
+            addLog(`🔍 DETECTED DATA RANGE: columns ${dataStartColumn} to ${dataEndColumn} (${sheetData.columnHeaders[dataStartColumn]} to ${sheetData.columnHeaders[dataEndColumn]})`);
+
+            // Helper function to extract value from specific row using detected column range
+            const extractFromRowColumns = (excelRowNum: number): number => {
+              const arrayIndex = excelRowNum - 1; // Convert Excel row number to 0-based array index
+              const row = rowData[arrayIndex];
+              if (!row) {
+                addLog(`    ❌ Row ${excelRowNum} (index ${arrayIndex}) not found in data`);
+                return 0;
               }
-
-              addLog(`    🔍 Row ${rowNum} scanning columns ${dataStartColumn} to ${dataEndColumn}`);
 
               let total = 0;
               let valuesFound = [];
@@ -563,9 +561,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               }
 
               if (valuesFound.length > 0) {
-                addLog(`    📊 Row ${rowNum} found values: ${valuesFound.join(', ')}`);
+                addLog(`    📊 Row ${excelRowNum} found values: ${valuesFound.join(', ')}`);
               } else {
-                addLog(`    ❌ Row ${rowNum} no values found in detected range`);
+                addLog(`    ❌ Row ${excelRowNum} no values found in detected range`);
               }
 
               return total;
