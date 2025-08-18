@@ -95,57 +95,33 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     try {
       addLog(`📄 Processing CSV file: ${file.name}`);
 
-      // Import the robust CSV processing library
-      const { processCsv } = await import('@/lib/csv');
+      // Read file as text and do simple CSV parsing to avoid import issues
+      const text = await file.text();
+      addLog(`🔍 Raw CSV preview (first 200 chars): "${text.substring(0, 200)}..."`);
 
-      const buffer = Buffer.from(await file.arrayBuffer());
-      // First, let's peek at the raw file content for debugging
-      const textPreview = buffer.toString('utf8', 0, Math.min(1000, buffer.length));
-      addLog(`🔍 Raw CSV preview (first 1000 chars): "${textPreview.substring(0, 200)}..."`);
+      // Simple CSV parsing
+      const lines = text.split(/\r?\n/);
+      addLog(`📊 CSV has ${lines.length} total lines`);
 
-      const { report, rows } = await processCsv({
-        buffer,
-        hasHeader: true,
-        sampleLimit: 100,
-        hardRowLimit: 10000 // Reasonable limit for processing
-      });
-
-      addLog(`📊 CSV analyzed: Delimiter '${report.dialect.delimiter}', BOM: ${report.dialect.bom}`);
-      addLog(`📊 Headers detected: ${report.headers.length} columns`);
-      addLog(`📊 Sample rows collected: ${report.sampleRows.length}`);
-
-      // Debug: Show first few sample rows
-      if (report.sampleRows.length > 0) {
-        addLog(`🔍 First sample row keys: ${Object.keys(report.sampleRows[0]).join(', ')}`);
-        addLog(`🔍 First sample row values: ${Object.values(report.sampleRows[0]).slice(0, 5).join(', ')}`);
-      }
-
-      // Collect all rows for processing
       const data: Record<string, any>[] = [];
-      let rowCount = 0;
 
-      for await (const record of rows) {
-        data.push(record);
-        rowCount++;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
 
-        // If headers are still empty, try to extract from first record
-        if (report.headers.length === 0 && rowCount === 1 && record && typeof record === 'object') {
-          report.headers.push(...Object.keys(record));
-          addLog(`🔧 Headers extracted from first row: ${report.headers.join(', ')}`);
-        }
+        // Split by comma (basic parsing)
+        const values = line.split(',').map(v => v.trim().replace(/^"(.*)"$/, '$1'));
+
+        // Create row object with column indices as keys
+        const row: Record<string, any> = {};
+        values.forEach((value, index) => {
+          row[`col_${index}`] = value;
+        });
+
+        data.push(row);
       }
 
-      // Final fallback: if still no headers, create generic ones
-      if (report.headers.length === 0 && data.length > 0) {
-        const firstRow = data[0];
-        if (firstRow && typeof firstRow === 'object') {
-          const keys = Object.keys(firstRow);
-          report.headers.push(...keys);
-          addLog(`🔧 Generated headers from first data row: ${report.headers.join(', ')}`);
-        }
-      }
-
-      addLog(`📊 CSV loaded: ${report.headers.length} columns, ${data.length} rows`);
+      addLog(`📊 CSV parsed: ${data.length} rows`);
 
       // DEBUG: Show sample of actual data structure
       if (data.length > 0) {
