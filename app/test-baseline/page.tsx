@@ -840,6 +840,115 @@ export default function TestBaseline() {
             </div>
           )}
 
+          {/* Transport Baseline Complete Calculation */}
+          {transportBaselineData && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold mb-4">🚛 Complete Transport Baseline Calculation</h2>
+              {transportBaselineData.success ? (
+                <div className="space-y-6">
+                  {/* Total Summary */}
+                  <div className="p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
+                    <div className="text-3xl font-bold text-blue-800 mb-2">
+                      ${transportBaselineData.total_transport_baseline?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-blue-700 font-medium">
+                      Total 2024 Transportation Baseline for 2025 Planning
+                    </div>
+                  </div>
+
+                  {/* Breakdown by Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* UPS Parcel */}
+                    <div className={`p-4 rounded-lg ${transportBaselineData.transport_totals.ups_parcel.status === 'calculated' ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                      <div className="font-semibold text-gray-800 mb-2">📦 UPS Parcel</div>
+                      <div className={`text-lg font-bold ${transportBaselineData.transport_totals.ups_parcel.status === 'calculated' ? 'text-green-700' : 'text-gray-500'}`}>
+                        ${transportBaselineData.transport_totals.ups_parcel.amount?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {transportBaselineData.transport_totals.ups_parcel.status === 'calculated' ? (
+                          <>
+                            {transportBaselineData.transport_totals.ups_parcel.rows} rows, {transportBaselineData.transport_totals.ups_parcel.values_found} values
+                            <br />File ID: {transportBaselineData.transport_totals.ups_parcel.file_id}
+                          </>
+                        ) : (
+                          'Not found'
+                        )}
+                      </div>
+                    </div>
+
+                    {/* R&L LTL */}
+                    <div className={`p-4 rounded-lg ${transportBaselineData.transport_totals.rl_ltl.status === 'calculated' ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                      <div className="font-semibold text-gray-800 mb-2">🚚 R&L LTL</div>
+                      <div className={`text-lg font-bold ${transportBaselineData.transport_totals.rl_ltl.status === 'calculated' ? 'text-green-700' : 'text-gray-500'}`}>
+                        ${transportBaselineData.transport_totals.rl_ltl.amount?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {transportBaselineData.transport_totals.rl_ltl.status === 'calculated' ? (
+                          <>
+                            {transportBaselineData.transport_totals.rl_ltl.rows} rows, {transportBaselineData.transport_totals.rl_ltl.values_found} values
+                            <br />File ID: {transportBaselineData.transport_totals.rl_ltl.file_id}
+                          </>
+                        ) : (
+                          'Not found - R&L file may be missing'
+                        )}
+                      </div>
+                    </div>
+
+                    {/* TL Costs */}
+                    <div className={`p-4 rounded-lg ${transportBaselineData.transport_totals.tl_costs.status === 'calculated' ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                      <div className="font-semibold text-gray-800 mb-2">🚛 TL (Truckload)</div>
+                      <div className={`text-lg font-bold ${transportBaselineData.transport_totals.tl_costs.status === 'calculated' ? 'text-green-700' : 'text-gray-500'}`}>
+                        ${transportBaselineData.transport_totals.tl_costs.amount?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {transportBaselineData.transport_totals.tl_costs.status === 'calculated' ? (
+                          <>
+                            {transportBaselineData.transport_totals.tl_costs.rows} rows, {transportBaselineData.transport_totals.tl_costs.values_found} values
+                            <br />File ID: {transportBaselineData.transport_totals.tl_costs.file_id}
+                          </>
+                        ) : (
+                          'Check data structure - may be nested'
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Files Analyzed */}
+                  {transportBaselineData.files_analyzed && transportBaselineData.files_analyzed.length > 0 && (
+                    <div>
+                      <strong>Files Analyzed ({transportBaselineData.files_analyzed.length}):</strong>
+                      <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                        {transportBaselineData.files_analyzed.map((file: any, index: number) => (
+                          <div key={index} className="p-2 bg-gray-50 rounded text-sm">
+                            <div className="font-medium">📄 {file.name}</div>
+                            <div className="text-gray-600 text-xs">
+                              ID: {file.id} | Type: {file.file_type} | Rows: {file.rows} | Source: {file.data_source}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Data Quality Summary */}
+                  <div className="p-3 bg-gray-50 rounded">
+                    <strong>Data Quality Summary:</strong>
+                    <div className="text-sm text-gray-700 mt-1">
+                      UPS: {transportBaselineData.transport_totals.ups_parcel.status === 'calculated' ? '✅ Complete' : '❌ Missing'} |
+                      R&L: {transportBaselineData.transport_totals.rl_ltl.status === 'calculated' ? '✅ Complete' : '❌ Missing'} |
+                      TL: {transportBaselineData.transport_totals.tl_costs.status === 'calculated' ? '✅ Complete' : '❌ Missing'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-red-50 rounded">
+                  <div className="text-red-800 font-medium">Calculation Failed</div>
+                  <div className="text-red-700 text-sm">{transportBaselineData.error}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Data */}
             <div className="card">
