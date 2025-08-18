@@ -1453,15 +1453,55 @@ export default function DataProcessor() {
                         </button>
                       </div>
 
+                      {/* Debug: Test File Storage Process */}
+                      <div className="group relative">
+                        <button
+                          onClick={async () => {
+                            addToLog('=== TESTING FILE STORAGE PROCESS ===');
+
+                            if (files.length === 0) {
+                              addToLog('No files to test. Please upload files first.');
+                              return;
+                            }
+
+                            for (const file of files) {
+                              if (!file.id) {
+                                addToLog(`${file.name}: No ID - not saved to database`);
+                                continue;
+                              }
+
+                              try {
+                                const contentData = await robustFetchJson(`/api/files/${file.id}/content`, {
+                                  timeout: 10000,
+                                  retries: 1
+                                });
+
+                                const hasContent = contentData.file_content && contentData.file_content.length > 0;
+                                addToLog(`${file.name} (ID: ${file.id}): ${hasContent ? 'HAS CONTENT' : 'NO CONTENT'} (${contentData.content_length || 0} chars)`);
+
+                              } catch (error) {
+                                addToLog(`${file.name}: Error loading content - ${error}`);
+                              }
+                            }
+
+                            addToLog('=== END FILE STORAGE TEST ===');
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                          title="Test current file storage status"
+                        >
+                          🔍 Test File Storage
+                        </button>
+                      </div>
+
                       {/* Debug: Diagnose Issue */}
                       <div className="group relative">
                         <button
                           onClick={() => {
                             addToLog('=== FILE UPLOAD DIAGNOSIS ===');
-                            addToLog('The issue is that files were uploaded without content being saved.');
-                            addToLog('Solution: Click "Clear All Files" then re-upload the files.');
-                            addToLog('Current files in database have NO content stored.');
-                            addToLog('Once files are re-uploaded with content, validation will work.');
+                            addToLog('Files are being saved to database but content is missing.');
+                            addToLog('Solution: Clear files and re-upload with improved upload process.');
+                            addToLog('New upload process uses robustFetch for better reliability.');
+                            addToLog('Use "Test File Storage" to check current file status.');
                             addToLog('================================');
                           }}
                           className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
