@@ -87,6 +87,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check for duplicate files before saving
+    try {
+      const { sql } = await import('@/lib/database');
+
+      const existingFiles = await sql`
+        SELECT id, file_name, scenario_id, processing_status, created_at
+        FROM data_files
+        WHERE file_name = ${truncatedFileName}
+        ORDER BY created_at DESC
+      `;
+
+      if (existingFiles.length > 0) {
+        // Check if exact duplicate exists in same scenario
+        const sameScenarioFile = existingFiles.find((f: any) => f.scenario_id === scenario_id);
+
+        if (sameScenarioFile) {
+          return NextResponse.json({
+            error: 'Duplicate file exists',
+            details: `File "${truncatedFileName}" already exists in scenario ${scenario_id}`,
+            existing_file: {
+              id: sameScenarioFile.id,
+              scenario_id: sameScenarioFile.scenario_id,
+              status: sameScenarioFile.processing_status,
+              created_at: sameScenarioFile.created_at
+            },
+            action_required: 'Use different filename or delete existing file first'
+          }, { status: 409 }); // 409 Conflict
+        }
+
+        // Warn about duplicates in other scenarios but allow upload
+        console.warn(`File "${truncatedFileName}" exists in other scenarios:`,
+          existingFiles.map((f: any) => `ID:${f.id} Scenario:${f.scenario_id}`));
+      }
+    } catch (duplicateCheckError) {
+      console.error('Error checking for duplicates:', duplicateCheckError);
+      // Continue with upload if duplicate check fails
+    }
+
     // Extract metadata if processed_data is available
     let metadata = {};
     if (processed_data && Array.isArray(processed_data.data)) {
