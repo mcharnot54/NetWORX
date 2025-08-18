@@ -141,8 +141,11 @@ export default function DataProcessor() {
     addToLog('Setting up database tables...');
 
     try {
-      const response = await fetch('/api/setup-db', { method: 'POST' });
-      const result = await response.json();
+      const result = await robustFetchJson('/api/setup-db', {
+        method: 'POST',
+        timeout: 20000,
+        retries: 1
+      });
 
       if (result.success) {
         setDatabaseReady(true);
