@@ -1363,7 +1363,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           targetColumn,
           extractedAmount,
           operatingCosts: fileType === 'WAREHOUSE_BUDGET' ? operatingCosts : undefined,
-          productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined
+          productivityMetrics: fileType === 'PRODUCTION_TRACKER' ? productivityMetrics : undefined,
+          inventoryMetrics: fileType === 'INVENTORY_TRACKER' ? inventoryMetrics : undefined
         });
 
         // Add to total
