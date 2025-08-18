@@ -1180,7 +1180,28 @@ export default function DataProcessor() {
                       </div>
                     ))}
                   </div>
-                  
+
+                  {/* Validate All Files Button */}
+                  {files.length > 0 && files.some(f => f.validationStatus === 'pending' || f.validationStatus === 'error') && (
+                    <div className="mt-6 flex justify-center">
+                      <div className="group relative">
+                        <button
+                          onClick={validateAllFiles}
+                          className="flex items-center gap-3 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          title="Validate all uploaded files"
+                        >
+                          <Zap size={20} />
+                          Validate All Files
+                        </button>
+                        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-64 bg-gray-900 text-white p-3 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          <div className="font-semibold mb-1">Batch Validation:</div>
+                          <div>Validates all uploaded files, loads their content, and marks them ready for processing</div>
+                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {files.some(f => f.validationStatus === 'validated') && (
                     <div className="mt-6 flex justify-center">
                       <div className="group relative">
