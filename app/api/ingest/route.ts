@@ -213,11 +213,19 @@ export async function POST(req: NextRequest) {
   // Validate using enhanced validation
   const validationResult = validateAndTransformData(canonicalRows, rowSchema);
 
+  // Get mapping statistics
+  const { getMappingStats } = await import('@/lib/mappings');
+  const mappingStats = await getMappingStats(customerId);
+
   // Build enhanced report
   const unmapped = rawHeaders.filter(h => !(h in headerMap));
+  const dbMapped = mappingResults.filter(r => r.dbSource).length;
+  const mlMapped = mappingResults.filter(r => !r.dbSource && r.mappedTo).length;
+
   const report = {
     file: name,
     domain,
+    customerId,
     totalRows: rows.length,
     mappedFields: Object.values(headerMap),
     unmappedHeaders: unmapped,
@@ -228,9 +236,16 @@ export async function POST(req: NextRequest) {
     sampleErrors: validationResult.errors.slice(0, 20),
     columnAnalysis: {
       totalColumns: rawHeaders.length,
-      classifiedColumns: columnAnalysis.columns.filter(c => c.classification.guess).length,
+      classifiedColumns: columnAnalysis.columns.filter(c => c.classification?.guess).length,
       bestTransportColumn: columnAnalysis.bestTransportColumn,
-      transportColumns: columnAnalysis.columns.filter(c => c.transportAnalysis.isTransportColumn)
+      transportColumns: columnAnalysis.columns.filter(c => c.transportAnalysis?.isTransportColumn) || []
+    },
+    mappingStats: {
+      ...mappingStats,
+      dbMappedThisFile: dbMapped,
+      mlMappedThisFile: mlMapped,
+      unmappedThisFile: unmapped.length,
+      totalMappedThisFile: dbMapped + mlMapped
     }
   };
 
