@@ -656,6 +656,19 @@ export default function DataProcessor() {
     return fileData;
   };
 
+  const validateAllFiles = async () => {
+    addToLog('Starting validation of all files...');
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.validationStatus === 'pending' || file.validationStatus === 'error') {
+        await validateFileData(i);
+      }
+    }
+
+    addToLog('✓ All file validation completed');
+  };
+
   const processAllFiles = async () => {
     if (files.length === 0) {
       addToLog("No files to process");
