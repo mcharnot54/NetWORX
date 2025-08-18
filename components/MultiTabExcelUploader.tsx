@@ -13,6 +13,7 @@ interface ExcelTab {
   extractedAmount?: number;
   operatingCosts?: OperatingCostData; // For operating cost files
   productivityMetrics?: ProductivityMetrics; // For production tracker files
+  inventoryMetrics?: InventoryMetrics; // For inventory tracker files
 }
 
 interface OperatingCostData {
