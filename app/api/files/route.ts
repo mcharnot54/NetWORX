@@ -89,42 +89,58 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check for duplicate files before saving
-    try {
-      const { sql } = await import('@/lib/database');
+    // Check for duplicate files before saving (unless force_upload is true)
+    let existingFileId = null;
+    if (!force_upload) {
+      try {
+        const { sql } = await import('@/lib/database');
 
-      const existingFiles = await sql`
-        SELECT id, file_name, scenario_id, processing_status, created_at
-        FROM data_files
-        WHERE file_name = ${truncatedFileName}
-        ORDER BY created_at DESC
-      `;
+        const existingFiles = await sql`
+          SELECT id, file_name, scenario_id, processing_status, created_at
+          FROM data_files
+          WHERE file_name = ${truncatedFileName}
+          ORDER BY created_at DESC
+        `;
 
-      if (existingFiles.length > 0) {
-        // Check if exact duplicate exists in same scenario
-        const sameScenarioFile = existingFiles.find((f: any) => f.scenario_id === scenario_id);
+        if (existingFiles.length > 0) {
+          // Check if exact duplicate exists in same scenario
+          const sameScenarioFile = existingFiles.find((f: any) => f.scenario_id === scenario_id);
 
-        if (sameScenarioFile) {
-          return NextResponse.json({
-            error: 'Duplicate file exists',
-            details: `File "${truncatedFileName}" already exists in scenario ${scenario_id}`,
-            existing_file: {
-              id: sameScenarioFile.id,
-              scenario_id: sameScenarioFile.scenario_id,
-              status: sameScenarioFile.processing_status,
-              created_at: sameScenarioFile.created_at
-            },
-            action_required: 'Use different filename or delete existing file first'
-          }, { status: 409 }); // 409 Conflict
+          if (sameScenarioFile) {
+            if (replace_existing) {
+              // Mark for replacement
+              existingFileId = sameScenarioFile.id;
+              console.log(`Will replace existing file ID: ${existingFileId}`);
+            } else {
+              return NextResponse.json({
+                error: 'Duplicate file exists',
+                details: `File "${truncatedFileName}" already exists in scenario ${scenario_id}`,
+                existing_file: {
+                  id: sameScenarioFile.id,
+                  scenario_id: sameScenarioFile.scenario_id,
+                  status: sameScenarioFile.processing_status,
+                  created_at: sameScenarioFile.created_at
+                },
+                action_required: 'Add force_upload=true or replace_existing=true to proceed',
+                options: {
+                  force_upload: 'Create duplicate file anyway',
+                  replace_existing: 'Replace the existing file'
+                }
+              }, { status: 409 }); // 409 Conflict
+            }
+          }
+
+          // Log duplicates in other scenarios
+          const otherScenarioFiles = existingFiles.filter((f: any) => f.scenario_id !== scenario_id);
+          if (otherScenarioFiles.length > 0) {
+            console.warn(`File "${truncatedFileName}" exists in other scenarios:`,
+              otherScenarioFiles.map((f: any) => `ID:${f.id} Scenario:${f.scenario_id}`));
+          }
         }
-
-        // Warn about duplicates in other scenarios but allow upload
-        console.warn(`File "${truncatedFileName}" exists in other scenarios:`,
-          existingFiles.map((f: any) => `ID:${f.id} Scenario:${f.scenario_id}`));
+      } catch (duplicateCheckError) {
+        console.error('Error checking for duplicates:', duplicateCheckError);
+        // Continue with upload if duplicate check fails
       }
-    } catch (duplicateCheckError) {
-      console.error('Error checking for duplicates:', duplicateCheckError);
-      // Continue with upload if duplicate check fails
     }
 
     // Extract metadata if processed_data is available
