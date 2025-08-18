@@ -245,19 +245,28 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   };
 
   const handleFileUpload = async (uploadedFiles: FileList | null) => {
-    if (!uploadedFiles || uploadedFiles.length === 0) return;
+    console.log('handleFileUpload called with:', uploadedFiles);
+
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      console.log('No files detected');
+      addLog('⚠ No files selected or detected');
+      return;
+    }
+
     if (isProcessing) {
       addLog('⚠ Processing already in progress. Please wait...');
       return;
     }
 
-    // Clear the input to allow re-selecting the same files
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    console.log(`Processing ${uploadedFiles.length} files:`, Array.from(uploadedFiles).map(f => f.name));
 
     setIsProcessing(true);
     addLog(`Starting processing of ${uploadedFiles.length} file(s)...`);
+
+    // Log each file being processed
+    Array.from(uploadedFiles).forEach((file, index) => {
+      addLog(`  File ${index + 1}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+    });
 
     try {
       const processedFiles: MultiTabFile[] = [];
