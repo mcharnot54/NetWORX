@@ -286,12 +286,14 @@ export default function DataProcessor() {
         mapped_columns: {}
       };
 
-      const response = await fetch('/api/files', {
+      const response = await robustFetch('/api/files', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(saveData),
+        timeout: 30000, // 30 second timeout for file uploads
+        retries: 2
       });
 
       // Handle duplicate file conflicts (409 status)
