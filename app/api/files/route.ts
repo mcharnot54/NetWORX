@@ -47,7 +47,9 @@ export async function POST(request: NextRequest) {
       processed_data,
       original_columns,
       mapped_columns,
-      file_content // Base64 encoded file content
+      file_content, // Base64 encoded file content
+      force_upload, // Option to bypass duplicate checking
+      replace_existing // Option to replace existing file instead of creating duplicate
     } = body;
 
     if (!scenario_id || !file_name || !file_type) {
