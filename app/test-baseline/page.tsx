@@ -26,6 +26,8 @@ export default function TestBaseline() {
   const [correctedBaselineData, setCorrectedBaselineData] = useState<any>(null);
   const [loadingTlDiagnostic, setLoadingTlDiagnostic] = useState(false);
   const [tlDiagnosticData, setTlDiagnosticData] = useState<any>(null);
+  const [loadingInlineFix, setLoadingInlineFix] = useState(false);
+  const [inlineFixData, setInlineFixData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   const testFileData = async () => {
