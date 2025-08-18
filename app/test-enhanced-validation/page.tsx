@@ -196,6 +196,71 @@ export default function TestEnhancedValidationPage() {
                   </div>
                 </div>
 
+                {/* Data Conversion Results */}
+                {result.conversion && (
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      Data Standardization Results
+                    </h4>
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="bg-white p-3 rounded">
+                          <div className="text-sm text-blue-600 font-medium">Sheets Processed</div>
+                          <div className="text-lg font-bold text-blue-800">
+                            {result.conversion.standardizationSummary.totalSheets}
+                          </div>
+                        </div>
+                        <div className="bg-white p-3 rounded">
+                          <div className="text-sm text-blue-600 font-medium">Conversions Applied</div>
+                          <div className="text-lg font-bold text-blue-800">
+                            {result.conversion.standardizationSummary.totalConversions}
+                          </div>
+                        </div>
+                        <div className="bg-white p-3 rounded">
+                          <div className="text-sm text-blue-600 font-medium">Avg Completeness</div>
+                          <div className="text-lg font-bold text-blue-800">
+                            {(result.conversion.standardizationSummary.averageCompleteness * 100).toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Conversions Applied */}
+                      {result.conversion.conversionsApplied.length > 0 && (
+                        <div className="mb-4">
+                          <h5 className="font-medium text-blue-900 mb-2">Conversions Applied:</h5>
+                          <div className="flex flex-wrap gap-2">
+                            {Array.from(new Set(result.conversion.conversionsApplied)).map((conversion: string, index: number) => (
+                              <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                {conversion.replace(/_/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Column Mappings */}
+                      <div>
+                        <h5 className="font-medium text-blue-900 mb-2">Column Mappings:</h5>
+                        <div className="space-y-2">
+                          {Object.entries(result.conversion.columnMappings).map(([sheet, mappings]: [string, any], index: number) => (
+                            <div key={index} className="bg-white p-2 rounded text-sm">
+                              <div className="font-medium text-blue-800">{sheet}:</div>
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {Object.entries(mappings).slice(0, 6).map(([original, standard]: [string, any], mapIndex: number) => (
+                                  <div key={mapIndex} className="text-xs">
+                                    <span className="text-gray-600">{original}</span> → <span className="text-blue-600">{standard}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Transportation Totals */}
                 {result.data?.transportationTotals && (
                   <div>
@@ -213,7 +278,7 @@ export default function TestEnhancedValidationPage() {
                       <div className="text-sm text-green-700 mb-3">
                         Method: {result.data.transportationTotals.extractionMethod}
                       </div>
-                      
+
                       {/* Tab breakdown */}
                       <div className="space-y-2">
                         {result.data.transportationTotals.tabBreakdown.map((tab: any, index: number) => (
