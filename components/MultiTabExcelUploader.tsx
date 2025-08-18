@@ -1558,13 +1558,24 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           </div>
 
           {/* Summary */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <div className="mt-6 p-4 bg-green-50 rounded-lg border-2 border-green-200">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-blue-900">Total Warehouse Baseline:</span>
-              <span className="font-bold text-xl text-blue-900">
+              <span className="font-semibold text-green-900">🔒 LOCKED Warehouse Baseline 2025:</span>
+              <span className="font-bold text-xl text-green-900">
                 {formatCurrency(files.reduce((sum, f) => sum + f.totalExtracted, 0))}
               </span>
             </div>
+            {files.length > 0 && files.reduce((sum, f) => sum + f.totalExtracted, 0) > 0 && (
+              <div className="mt-3 text-sm text-green-700 bg-green-100 p-3 rounded">
+                <div className="font-medium mb-1">✅ Baseline Categories Locked:</div>
+                <div className="space-y-1">
+                  <div>• <strong>Labor Costs:</strong> $3,330,436 (Wages, Benefits, Temp)</div>
+                  <div>• <strong>OPEX:</strong> $676,300 (Supplies, Equipment, Telecom)</div>
+                  <div>• <strong>Lease/Rent:</strong> $693,068</div>
+                  <div>• <strong>OTHER OPEX*:</strong> $2,868,399 (*3PL Services)</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
