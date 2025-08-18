@@ -86,7 +86,10 @@ export async function GET() {
           hasData: !!file.processed_data?.data,
           hasParsedData: !!file.processed_data?.parsedData,
           parsedDataLength: Array.isArray(file.processed_data?.parsedData) ? file.processed_data.parsedData.length : 'not array',
-          processedDataKeys: file.processed_data ? Object.keys(file.processed_data) : 'no processed_data'
+          processedDataKeys: file.processed_data ? Object.keys(file.processed_data) : 'no processed_data',
+          firstRowSample: Array.isArray(file.processed_data?.parsedData) && file.processed_data.parsedData.length > 0
+            ? Object.keys(file.processed_data.parsedData[0] || {})
+            : 'no sample available'
         });
 
         // For R&L files, we need to check if there's a multi-tab structure beyond just parsedData
