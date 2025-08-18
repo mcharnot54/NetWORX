@@ -116,6 +116,66 @@ export class EnhancedExcelValidator {
   }
 
   /**
+   * Find the actual header row by skipping logo/empty rows at the top
+   */
+  private findActualHeaderRow(worksheet: any): { data: any[], headerRowIndex: number } {
+    // Get raw data with row numbers preserved
+    const allRowsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+    let bestHeaderRowIndex = 0;
+    let bestScore = 0;
+
+    // Check first 10 rows to find the row with most meaningful column headers
+    for (let i = 0; i < Math.min(10, allRowsRaw.length); i++) {
+      const row = allRowsRaw[i] as any[];
+      if (!row || row.length === 0) continue;
+
+      let score = 0;
+
+      // Score based on meaningful column headers
+      for (let j = 0; j < row.length; j++) {
+        const cell = row[j];
+        if (cell && typeof cell === 'string' && cell.trim().length > 0) {
+          // Higher score for meaningful column names
+          if (cell.toLowerCase().includes('date') ||
+              cell.toLowerCase().includes('amount') ||
+              cell.toLowerCase().includes('cost') ||
+              cell.toLowerCase().includes('total') ||
+              cell.toLowerCase().includes('charge') ||
+              cell.toLowerCase().includes('net') ||
+              cell.toLowerCase().includes('freight') ||
+              cell.toLowerCase().includes('revenue') ||
+              /^[A-Z]$/.test(cell.trim()) || // Single letter columns like V
+              cell.length > 2) { // Any meaningful text
+            score += 2;
+          } else {
+            score += 1;
+          }
+        }
+      }
+
+      // Prefer rows with at least 3 meaningful columns
+      if (score > bestScore && score >= 3) {
+        bestScore = score;
+        bestHeaderRowIndex = i;
+      }
+    }
+
+    // Convert to object format starting from the detected header row
+    const dataStartingFromHeader = allRowsRaw.slice(bestHeaderRowIndex);
+    const objectData = XLSX.utils.sheet_to_json(worksheet, {
+      header: dataStartingFromHeader[0] as string[],
+      range: bestHeaderRowIndex,
+      defval: null
+    });
+
+    return {
+      data: objectData,
+      headerRowIndex: bestHeaderRowIndex
+    };
+  }
+
+  /**
    * Main file processing method with comprehensive validation and standardization
    */
   async processExcelFile(file: File, expectedDataType?: string): Promise<{
