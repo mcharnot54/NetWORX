@@ -4,7 +4,20 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const sql = neon(process.env.DATABASE_URL);
+// Configure Neon connection with optimized timeout settings for cloud environments
+const sql = neon(process.env.DATABASE_URL, {
+  // Connection timeout optimized for cloud environments
+  connectionTimeoutMillis: 20000, // 20 seconds
+  queryTimeoutMillis: 45000, // 45 seconds
+  idleTimeoutMillis: 30000, // 30 seconds idle timeout
+
+  // Database-level timeouts
+  arrayMode: false,
+  fullResults: false,
+  fetchOptions: {
+    cache: 'no-store', // Prevent stale connections
+  },
+});
 
 // Type definitions for database entities
 export interface Project {

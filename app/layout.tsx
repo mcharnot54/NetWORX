@@ -45,6 +45,11 @@ export default function RootLayout({
           async
           suppressHydrationWarning
         />
+        <script
+          src="/production-error-handler.js"
+          async
+          suppressHydrationWarning
+        />
       </head>
       <body>
         <DevErrorBoundary>

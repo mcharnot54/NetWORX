@@ -6,10 +6,9 @@ const nextConfig = {
   // Disable problematic features that cause fetch failures
   experimental: {
     missingSuspenseWithCSRBailout: false,
-    // Disable turbo mode that's causing RSC payload issues
-    turbo: false, // Explicitly disable turbo for slow environments
+    // Removed turbo config - let Next.js handle automatically to avoid config errors
     optimizePackageImports: ['lucide-react'],
-    // Disable expensive features
+    // Disable expensive features for cloud environments
     optimizeCss: false,
     serverComponentsExternalPackages: [],
   },

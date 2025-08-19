@@ -1,35 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withCache, CacheKeys } from '@/lib/cache-utils';
-
-// Helper function to add timeout to database operations with proper error handling
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 15000): Promise<T> {
-  let timeoutId: NodeJS.Timeout;
-
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error(`Database operation timeout after ${timeoutMs}ms`));
-    }, timeoutMs);
-  });
-
-  try {
-    const result = await Promise.race([promise, timeoutPromise]);
-    // Clear timeout on success
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    return result;
-  } catch (error) {
-    // Clear timeout on error
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    throw error;
-  }
-}
+import {
+  withMediumTimeout,
+  withSlowTimeout,
+  withDbTimeout,
+  createTimeoutResponse,
+  createSuccessResponse,
+  trackPerformance
+} from '@/lib/api-timeout-utils';
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    const { sql } = await import('@/lib/database');
+    const { result: sqlConnection, duration: connectDuration } = await trackPerformance(
+      () => import('@/lib/database'),
+      'database-connection'
+    );
+    const { sql } = sqlConnection;
 
     // Initialize baseline costs structure
     const baselineCosts = {
@@ -52,15 +40,17 @@ export async function GET(request: NextRequest) {
     let scenarios = [];
 
     try {
-      // Try to get scenarios with a simple direct query first to test DB connectivity
-      scenarios = await withTimeout(sql`
-        SELECT s.id, s.name, p.name as project_name
-        FROM scenarios s
-        JOIN projects p ON s.project_id = p.id
-        WHERE p.status = 'active'
-        ORDER BY s.created_at DESC
-        LIMIT 3
-      `, 8000); // Reduced timeout for faster failure detection
+      // Try to get scenarios with optimized timeout
+      scenarios = await withDbTimeout(async () => {
+        return await sql`
+          SELECT s.id, s.name, p.name as project_name
+          FROM scenarios s
+          JOIN projects p ON s.project_id = p.id
+          WHERE p.status = 'active'
+          ORDER BY s.created_at DESC
+          LIMIT 3
+        `;
+      }, 10); // 10 second timeout
 
       baselineCosts.scenarios_analyzed = scenarios.length;
     } catch (dbError) {
@@ -101,28 +91,30 @@ export async function GET(request: NextRequest) {
         // Get the specific transportation files directly (not filtered by scenario)
         let dataFiles = [];
         try {
-          dataFiles = await withTimeout(sql`
-            SELECT file_name, data_type, file_type, processing_status, id,
-                   -- Only get essential data to reduce query time
-                   CASE
-                     WHEN processed_data IS NOT NULL THEN
-                       jsonb_build_object(
-                         'parsedData', processed_data->'parsedData',
-                         'data', processed_data->'data'
-                       )
-                     ELSE NULL
-                   END as processed_data
-            FROM data_files
-            WHERE (
-              file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
-              file_name ILIKE '%r&l curriculum associates%' OR
-              file_name ILIKE '%ups invoice by state summary 2024%' OR
-              file_name ILIKE '%ups individual item cost%'
-            )
-            AND processing_status = 'completed'
-            AND processed_data IS NOT NULL
-            LIMIT 5
-          `, 12000); // 12 second timeout for data files
+          dataFiles = await withSlowTimeout(async () => {
+            return await sql`
+              SELECT file_name, data_type, file_type, processing_status, id,
+                     -- Only get essential data to reduce query time
+                     CASE
+                       WHEN processed_data IS NOT NULL THEN
+                         jsonb_build_object(
+                           'parsedData', processed_data->'parsedData',
+                           'data', processed_data->'data'
+                         )
+                       ELSE NULL
+                     END as processed_data
+              FROM data_files
+              WHERE (
+                file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
+                file_name ILIKE '%r&l curriculum associates%' OR
+                file_name ILIKE '%ups invoice by state summary 2024%' OR
+                file_name ILIKE '%ups individual item cost%'
+              )
+              AND processing_status = 'completed'
+              AND processed_data IS NOT NULL
+              LIMIT 3
+            `;
+          });
 
           console.log(`Found ${dataFiles.length} transportation files for baseline extraction`);
         } catch (dataFileError) {
@@ -191,18 +183,20 @@ export async function GET(request: NextRequest) {
         // Check scenario results as fallback - handle missing table gracefully
         let scenarioResults = [];
         try {
-          scenarioResults = await withTimeout(sql`
-            SELECT
-              transportation_costs,
-              warehouse_operating_costs,
-              variable_labor_costs,
-              facility_rent_costs,
-              total_costs
-            FROM scenario_results
-            WHERE scenario_id = ${scenario.id}
-            ORDER BY created_at DESC
-            LIMIT 1
-          `, 8000); // 8 second timeout for scenario results
+          scenarioResults = await withMediumTimeout(async () => {
+            return await sql`
+              SELECT
+                transportation_costs,
+                warehouse_operating_costs,
+                variable_labor_costs,
+                facility_rent_costs,
+                total_costs
+              FROM scenario_results
+              WHERE scenario_id = ${scenario.id}
+              ORDER BY created_at DESC
+              LIMIT 1
+            `;
+          });
         } catch (tableError) {
           console.debug(`scenario_results table not found for scenario ${scenario.id}`);
           scenarioResults = [];
@@ -252,24 +246,27 @@ export async function GET(request: NextRequest) {
       baselineCosts.transport_costs.freight_costs +
       baselineCosts.inventory_costs.total_inventory_costs;
 
-    const response = NextResponse.json({
-      success: true,
+    const processingTime = Date.now() - startTime;
+
+    return createSuccessResponse({
       baseline_costs: formatBaselineCosts(baselineCosts),
       metadata: {
         scenarios_analyzed: baselineCosts.scenarios_analyzed,
         data_sources: baselineCosts.data_sources,
         last_updated: new Date().toISOString(),
-        data_quality: baselineCosts.total_baseline > 0 ? 'Good' : 'No data found'
+        data_quality: baselineCosts.total_baseline > 0 ? 'Good' : 'No data found',
+        connection_time_ms: connectDuration
       }
-    });
-
-    // Prevent caching of large responses
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    return response;
+    }, processingTime);
 
   } catch (error) {
     console.error('Error extracting baseline costs:', error);
+
+    // Handle timeout errors specifically
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return createTimeoutResponse(error);
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const errorStack = error instanceof Error ? error.stack : undefined;
 
