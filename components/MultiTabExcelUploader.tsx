@@ -1659,7 +1659,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 networkFootprintData.totalOnHandValue = 0;
               }
             } else {
-              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing Data Dump and SOFTEON ITEM MASTER tabs)`);
+              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing Network Footprint tabs)`);
             }
 
           } else {
