@@ -1634,9 +1634,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
                 networkFootprintData.averageCost = avgCostData.count > 0 ? avgCostData.total / avgCostData.count : 0;
                 networkFootprintData.totalOnHandQuantity = quantityData.total;
-                networkFootprintData.totalOnHandValue = valueData.total;
+                networkFootprintData.totalOnHandValue = finalInventoryValue; // Use enhanced value
                 networkFootprintData.tab = sheetName;
-                networkFootprintData.skuCount = Math.max(avgCostData.count, quantityData.count, valueData.count);
+                networkFootprintData.skuCount = Math.max(avgCostData.count, quantityData.count, valueData.count, totalInventoryRows);
 
                 extractedAmount = networkFootprintData.totalOnHandValue || 0;
                 targetColumn = 'Network Data (Column S - On Hand Value)';
