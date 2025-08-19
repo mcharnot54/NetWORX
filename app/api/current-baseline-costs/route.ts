@@ -246,24 +246,27 @@ export async function GET(request: NextRequest) {
       baselineCosts.transport_costs.freight_costs +
       baselineCosts.inventory_costs.total_inventory_costs;
 
-    const response = NextResponse.json({
-      success: true,
+    const processingTime = Date.now() - startTime;
+
+    return createSuccessResponse({
       baseline_costs: formatBaselineCosts(baselineCosts),
       metadata: {
         scenarios_analyzed: baselineCosts.scenarios_analyzed,
         data_sources: baselineCosts.data_sources,
         last_updated: new Date().toISOString(),
-        data_quality: baselineCosts.total_baseline > 0 ? 'Good' : 'No data found'
+        data_quality: baselineCosts.total_baseline > 0 ? 'Good' : 'No data found',
+        connection_time_ms: connectDuration
       }
-    });
-
-    // Prevent caching of large responses
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    return response;
+    }, processingTime);
 
   } catch (error) {
     console.error('Error extracting baseline costs:', error);
+
+    // Handle timeout errors specifically
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return createTimeoutResponse(error);
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const errorStack = error instanceof Error ? error.stack : undefined;
 
