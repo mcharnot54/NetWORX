@@ -410,6 +410,17 @@ export const robustPost = async <T = any>(
 
 // Check if the current environment has connectivity issues
 export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> => {
+  // In production environments, skip connectivity checks to avoid fetch errors
+  if (typeof window !== 'undefined' &&
+      (window.location.hostname.includes('.fly.dev') ||
+       window.location.hostname.includes('.vercel.app') ||
+       window.location.hostname.includes('.netlify.app') ||
+       window.location.hostname !== 'localhost')) {
+    // For deployed environments, assume connectivity is fine
+    // and rely on browser's navigator.onLine status
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  }
+
   try {
     // Early abort check
     if (signal?.aborted) {
@@ -417,10 +428,16 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
     }
 
     // Try to fetch a simple endpoint with minimal retries for connectivity check
-    await robustFetch('/api/simple-health', {
+    // Use absolute URL construction to avoid relative URL issues
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const healthUrl = `${baseUrl}/api/simple-health`;
+
+    await robustFetch(healthUrl, {
       timeout: 3000, // Short timeout for quick failure detection
       retries: 0, // No retries for connectivity check to avoid cascading failures
-      signal
+      signal,
+      mode: 'cors', // Explicit CORS mode for production
+      credentials: 'same-origin' // Include credentials for same-origin requests
     });
     return true;
   } catch (error) {
@@ -444,6 +461,15 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
         // Always return false for any abort-related error
         return false;
       }
+
+      // Handle "Failed to fetch" errors in production environments
+      if (errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('TypeError: Failed to fetch') ||
+          errorName === 'TypeError') {
+        // In production, treat fetch failures as temporary connectivity issues
+        console.debug('Production fetch error detected, falling back to navigator.onLine');
+        return typeof navigator !== 'undefined' ? navigator.onLine : true;
+      }
     }
 
     // Don't log expected failures in cloud environments
@@ -455,7 +481,7 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
       console.debug('Connectivity check failed (non-critical):', errorMessage);
     }
 
-    // Return true to avoid blocking the application
+    // Return true to avoid blocking the application in production
     return true;
   }
 };
