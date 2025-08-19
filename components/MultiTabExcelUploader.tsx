@@ -1510,12 +1510,12 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                           totalPallets += 1 / casesPerPallet; // Fractional pallet per case
                         }
 
-                        // Accumulate dimensional data
-                        dimensionalMetrics.totalCubicFeet += caseCubicSize;
-                        dimensionalMetrics.totalWeight += caseWeight;
-                        dimensionalMetrics.avgCaseHeight += caseHeight;
-                        dimensionalMetrics.avgCaseWidth += caseWidth;
-                        dimensionalMetrics.avgCaseLength += caseLength;
+                        // Accumulate dimensional data using validated values
+                        dimensionalMetrics.totalCubicFeet += validCaseCubicSize;
+                        dimensionalMetrics.totalWeight += validCaseWeight;
+                        dimensionalMetrics.avgCaseHeight += validCaseHeight;
+                        dimensionalMetrics.avgCaseWidth += validCaseWidth;
+                        dimensionalMetrics.avgCaseLength += validCaseLength;
                       }
                     }
                   }
