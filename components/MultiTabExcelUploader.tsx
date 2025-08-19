@@ -597,7 +597,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         addLog(`🎯 NETWORK FOOTPRINT: Total on hand value $${extractedAmount.toLocaleString()}`);
         addLog(`📦 On hand quantity: ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
-        addLog(`���� Average cost: $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
+        addLog(`💰 Average cost: $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
       }
 
       const tabs: ExcelTab[] = [{
@@ -1607,7 +1607,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 networkFootprintData.totalOnHandValue = 0;
               }
             } else {
-              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing Data Dump tab)`);
+              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing Data Dump and SOFTEON ITEM MASTER tabs)`);
             }
 
           } else {
