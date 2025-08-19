@@ -1,31 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withCache, CacheKeys } from '@/lib/cache-utils';
-
-// Helper function to add timeout to database operations with proper error handling
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 15000): Promise<T> {
-  let timeoutId: NodeJS.Timeout;
-
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error(`Database operation timeout after ${timeoutMs}ms`));
-    }, timeoutMs);
-  });
-
-  try {
-    const result = await Promise.race([promise, timeoutPromise]);
-    // Clear timeout on success
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    return result;
-  } catch (error) {
-    // Clear timeout on error
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    throw error;
-  }
-}
+import {
+  withMediumTimeout,
+  withSlowTimeout,
+  withDbTimeout,
+  createTimeoutResponse,
+  createSuccessResponse,
+  trackPerformance
+} from '@/lib/api-timeout-utils';
 
 export async function GET(request: NextRequest) {
   try {
