@@ -124,7 +124,9 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
     if (lower.includes('r&l') && lower.includes('curriculum')) return 'RL';
     if (lower.includes('warehouse') && (lower.includes('budget') || lower.includes('operating'))) return 'WAREHOUSE_BUDGET';
     if (lower.includes('warehouse') && lower.includes('production') && lower.includes('tracker')) return 'PRODUCTION_TRACKER';
-    if (lower.includes('historical') && lower.includes('sales')) return 'SALES_DATA';
+    // ENHANCED: Better detection for Historical Sales Data
+    if ((lower.includes('historical') || lower.includes('historial')) &&
+        (lower.includes('sales') || lower.includes('continuum') || lower.includes('datasets'))) return 'SALES_DATA';
     if (lower.includes('network') && (lower.includes('footprint') || lower.includes('capacity'))) return 'NETWORK_FOOTPRINT';
     if (lower.includes('inventory') || lower.includes('stock') || (lower.includes('warehouse') && lower.includes('inventory'))) return 'INVENTORY_TRACKER';
     return 'OTHER';
@@ -1841,7 +1843,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 networkFootprintData.totalOnHandValue = 0;
               }
             } else {
-              addLog(`⏭�� SKIPPING TAB: ${sheetName} (only processing Network Footprint tabs)`);
+              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing Network Footprint tabs)`);
             }
 
           } else {
