@@ -7,19 +7,22 @@ const nextConfig = {
   experimental: {
     missingSuspenseWithCSRBailout: false,
     // Disable turbo mode that's causing RSC payload issues
-    // turbo: false, // Commented out to disable turbo completely
+    turbo: false, // Explicitly disable turbo for slow environments
     optimizePackageImports: ['lucide-react'],
+    // Disable expensive features
+    optimizeCss: false,
+    serverComponentsExternalPackages: [],
   },
 
   // Disable fast refresh to prevent WebSocket issues
   reactStrictMode: false,
 
-  // Improve development server stability - Increase buffers to prevent crashes
+  // Improve development server stability - Aggressive caching for slow environments
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 60 * 1000, // Increased from 25s to 60s
+    maxInactiveAge: 300 * 1000, // 5 minutes - much longer caching
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 5, // Increased from 2 to 5
+    pagesBufferLength: 10, // Increased to prevent recompilation
   },
 
   // Fix cross-origin and networking issues
@@ -94,22 +97,47 @@ const nextConfig = {
       });
     }
 
-    // Simplified development config to prevent fetch failures
-    if (!isServer && process.env.NODE_ENV === 'development') {
-      // Minimal optimization to prevent issues
+    // Aggressive optimizations for slow development environment
+    if (process.env.NODE_ENV === 'development') {
+      // Disable expensive optimizations
       config.optimization = {
         ...config.optimization,
-        // Disable complex optimizations that cause issues
         minimize: false,
-        splitChunks: false, // Disable chunk splitting that causes RSC issues
+        splitChunks: false,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        mergeDuplicateChunks: false,
       };
 
-      // Disable hot reloading features that cause fetch failures
-      config.devServer = {
-        ...config.devServer,
-        hot: false, // Disable hot reload
-        liveReload: false, // Disable live reload
-      };
+      // Faster module resolution
+      config.resolve.unsafeCache = true;
+      config.resolve.symlinks = false;
+      config.resolve.cacheWithContext = false;
+
+      // Disable expensive features
+      config.stats = 'errors-only';
+      config.infrastructureLogging = { level: 'error' };
+
+      // Aggressive caching
+      if (config.cache) {
+        config.cache.type = 'filesystem';
+        config.cache.buildDependencies = {
+          config: [__filename]
+        };
+      }
+
+      // Let Next.js handle devtool automatically to avoid performance regressions
+      // config.devtool = 'eval-cheap-source-map'; // Removed - causing performance issues
+
+      // Client-side optimizations
+      if (!isServer) {
+        // Disable hot reloading features that cause fetch failures
+        config.devServer = {
+          ...config.devServer,
+          hot: false,
+          liveReload: false,
+        };
+      }
     }
 
     return config;

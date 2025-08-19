@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withCache, CacheKeys } from '@/lib/cache-utils';
 
-// Helper function to add timeout to database operations - increased timeouts
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Database operation timeout')), timeoutMs)
-    )
-  ]);
+// Helper function to add timeout to database operations with proper error handling
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 15000): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Database operation timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    // Clear timeout on success
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    return result;
+  } catch (error) {
+    // Clear timeout on error
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    throw error;
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -35,19 +52,33 @@ export async function GET(request: NextRequest) {
     let scenarios = [];
 
     try {
-      // Get the most recent scenario ID for active projects
+      // Try to get scenarios with a simple direct query first to test DB connectivity
       scenarios = await withTimeout(sql`
         SELECT s.id, s.name, p.name as project_name
         FROM scenarios s
         JOIN projects p ON s.project_id = p.id
         WHERE p.status = 'active'
         ORDER BY s.created_at DESC
-        LIMIT 5
-      `, 5000); // 5 second timeout for this query
+        LIMIT 3
+      `, 8000); // Reduced timeout for faster failure detection
+
       baselineCosts.scenarios_analyzed = scenarios.length;
     } catch (dbError) {
-      console.log('Database tables not ready yet, returning empty baseline data');
+      const errorMessage = (dbError as any)?.message || 'Database connection issue';
+      console.log('Database not accessible, returning empty baseline data:', errorMessage);
       scenarios = [];
+
+      // Return early if database is not accessible
+      return NextResponse.json({
+        success: true,
+        baseline_costs: formatBaselineCosts(baselineCosts),
+        metadata: {
+          scenarios_analyzed: 0,
+          data_sources: [],
+          last_updated: new Date().toISOString(),
+          data_quality: 'Database not accessible - check connection'
+        }
+      });
     }
 
     // If no scenarios found, return early with empty but valid data
@@ -71,7 +102,16 @@ export async function GET(request: NextRequest) {
         let dataFiles = [];
         try {
           dataFiles = await withTimeout(sql`
-            SELECT file_name, data_type, file_type, processing_status, id, processed_data
+            SELECT file_name, data_type, file_type, processing_status, id,
+                   -- Only get essential data to reduce query time
+                   CASE
+                     WHEN processed_data IS NOT NULL THEN
+                       jsonb_build_object(
+                         'parsedData', processed_data->'parsedData',
+                         'data', processed_data->'data'
+                       )
+                     ELSE NULL
+                   END as processed_data
             FROM data_files
             WHERE (
               file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
@@ -81,8 +121,8 @@ export async function GET(request: NextRequest) {
             )
             AND processing_status = 'completed'
             AND processed_data IS NOT NULL
-            LIMIT 10
-          `, 6000); // 6 second timeout for data files
+            LIMIT 5
+          `, 12000); // 12 second timeout for data files
 
           console.log(`Found ${dataFiles.length} transportation files for baseline extraction`);
         } catch (dataFileError) {
@@ -91,7 +131,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Process each uploaded file to extract baseline costs (limit processing time)
-        const maxFilesToProcess = 5; // Limit to prevent timeouts
+        const maxFilesToProcess = 3; // Further limit to prevent timeouts
         const filesToProcess = dataFiles.slice(0, maxFilesToProcess);
 
         for (const file of filesToProcess) {
@@ -104,9 +144,16 @@ export async function GET(request: NextRequest) {
           const fileNameLower = file.file_name.toLowerCase();
           let totalRowsProcessed = 0;
 
-          for (const dataArray of allDataArrays) {
-            totalRowsProcessed += dataArray.data.length;
-            console.log(`Processing ${dataArray.source} from ${file.file_name} with ${dataArray.data.length} rows`);
+          // Limit processing to prevent timeouts - only process first 2 data arrays
+          const maxArraysToProcess = Math.min(allDataArrays.length, 2);
+          for (let i = 0; i < maxArraysToProcess; i++) {
+            const dataArray = allDataArrays[i];
+            // Limit rows processed per array to prevent timeouts
+            const maxRowsToProcess = Math.min(dataArray.data.length, 1000);
+            const limitedData = dataArray.data.slice(0, maxRowsToProcess);
+
+            totalRowsProcessed += limitedData.length;
+            console.log(`Processing ${dataArray.source} from ${file.file_name} with ${limitedData.length}/${dataArray.data.length} rows`);
 
             // Target specific transportation files first
             if (fileNameLower.includes('2024 totals with inbound and outbound tl') ||
@@ -117,24 +164,24 @@ export async function GET(request: NextRequest) {
                 fileNameLower.includes('freight') ||
                 fileNameLower.includes('shipping')) {
               // Extract transportation costs using specific column logic
-              extractTransportationCosts(dataArray.data, baselineCosts, file.file_name);
+              extractTransportationCosts(limitedData, baselineCosts, file.file_name);
             } else if (fileNameLower.includes('warehouse budget') ||
                        fileNameLower.includes('operating expenses') ||
                        fileNameLower.includes('general operating')) {
               // Extract warehouse costs
-              extractWarehouseCosts(dataArray.data, baselineCosts, file.file_name);
+              extractWarehouseCosts(limitedData, baselineCosts, file.file_name);
             } else if (fileNameLower.includes('network') ||
                        fileNameLower.includes('capacity')) {
               // Extract operational costs from network files
-              extractOperationalCosts(dataArray.data, baselineCosts, file.file_name);
+              extractOperationalCosts(limitedData, baselineCosts, file.file_name);
             } else if (fileNameLower.includes('growth') ||
                        fileNameLower.includes('forecast') ||
                        fileNameLower.includes('5 year')) {
               // Extract growth-related costs
-              extractGrowthCosts(dataArray.data, baselineCosts, file.file_name);
+              extractGrowthCosts(limitedData, baselineCosts, file.file_name);
             } else {
               // General cost extraction for any file
-              extractGeneralCosts(dataArray.data, baselineCosts, file.file_name);
+              extractGeneralCosts(limitedData, baselineCosts, file.file_name);
             }
           }
 
@@ -155,7 +202,7 @@ export async function GET(request: NextRequest) {
             WHERE scenario_id = ${scenario.id}
             ORDER BY created_at DESC
             LIMIT 1
-          `, 3000); // 3 second timeout for scenario results
+          `, 8000); // 8 second timeout for scenario results
         } catch (tableError) {
           console.debug(`scenario_results table not found for scenario ${scenario.id}`);
           scenarioResults = [];
@@ -402,14 +449,17 @@ function extractFromColumnV(data: any[], fileName: string): number {
 
   // Test each column for cost data
   for (const testCol of Array.from(allColumns)) {
+    // Ensure testCol is a string
+    const columnName = String(testCol);
     let testTotal = 0;
     let testCount = 0;
 
     for (const row of data) {
       if (typeof row !== 'object' || !row) continue;
 
-      if (row[testCol]) {
-        const numValue = parseFloat(String(row[testCol]).replace(/[$,\s]/g, ''));
+      if (row && typeof row === 'object' && columnName in row) {
+        const cellValue = (row as Record<string, unknown>)[columnName];
+        const numValue = parseFloat(String(cellValue).replace(/[$,\s]/g, ''));
         if (!isNaN(numValue) && numValue > 50) { // LTL cost threshold
           testTotal += numValue;
           testCount++;
@@ -419,7 +469,7 @@ function extractFromColumnV(data: any[], fileName: string): number {
 
     if (testTotal > bestTotal) {
       bestTotal = testTotal;
-      bestColumn = testCol;
+      bestColumn = columnName;
       valuesFound = testCount;
     }
   }

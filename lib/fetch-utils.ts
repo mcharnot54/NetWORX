@@ -15,13 +15,13 @@ interface RetryConfig {
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 2, // Reduce retries since server is slow
-  baseDelay: 5000, // Much longer base delay
-  maxDelay: 30000, // Much longer max delay
+  maxRetries: 1, // Further reduce retries for timeout issues
+  baseDelay: 8000, // Even longer base delay
+  maxDelay: 20000, // Reasonable max delay
   exponentialBackoff: true,
 };
 
-const DEFAULT_TIMEOUT = 35000; // 35 seconds - for extremely slow server environments
+const DEFAULT_TIMEOUT = 70000; // 70 seconds - for extremely slow server environments
 
 export class FetchError extends Error {
   public status?: number;
@@ -417,8 +417,8 @@ export const checkConnectivity = async (signal?: AbortSignal): Promise<boolean> 
     }
 
     // Try to fetch a simple endpoint with minimal retries for connectivity check
-    await robustFetch('/api/health', {
-      timeout: 3000, // Very short timeout for connectivity check
+    await robustFetch('/api/simple-health', {
+      timeout: 3000, // Short timeout for quick failure detection
       retries: 0, // No retries for connectivity check to avoid cascading failures
       signal
     });
