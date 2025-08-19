@@ -133,7 +133,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   // CSV processing function using robust csv-parse library
   const processCsvFile = async (file: File): Promise<MultiTabFile> => {
     try {
-      addLog(`�� Processing CSV file: ${file.name}`);
+      addLog(`📄 Processing CSV file: ${file.name}`);
 
       // Read file as text and do simple CSV parsing to avoid import issues
       const text = await file.text();
@@ -1593,6 +1593,44 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 const avgCostData = extractFromNetworkColumn('M');
                 const quantityData = extractFromNetworkColumn('Q');
                 const valueData = extractFromNetworkColumn('S');
+
+                // ENHANCEMENT: Check for additional inventory value columns
+                let additionalInventoryValue = 0;
+                let totalInventoryRows = 0;
+
+                // Scan all columns for potential inventory values
+                for (const columnName of sheetData.columnHeaders) {
+                  if (columnName && (
+                    columnName.toLowerCase().includes('inventory') ||
+                    columnName.toLowerCase().includes('stock value') ||
+                    columnName.toLowerCase().includes('extended cost') ||
+                    columnName.toLowerCase().includes('total cost') ||
+                    (columnName.toLowerCase().includes('value') && !columnName.toLowerCase().includes('unit'))
+                  )) {
+                    let columnTotal = 0;
+                    let columnCount = 0;
+
+                    for (const row of sheetData.data) {
+                      if (row && row[columnName]) {
+                        const numValue = parseFloat(String(row[columnName]).replace(/[$,\s]/g, ''));
+                        if (!isNaN(numValue) && numValue > 0) {
+                          columnTotal += numValue;
+                          columnCount++;
+                        }
+                      }
+                    }
+
+                    if (columnTotal > additionalInventoryValue) {
+                      additionalInventoryValue = columnTotal;
+                      totalInventoryRows = columnCount;
+                      addLog(`💰 ENHANCED: Found larger inventory value in column '${columnName}': $${columnTotal.toLocaleString()} from ${columnCount} rows`);
+                    }
+                  }
+                }
+
+                // Use the highest value found
+                const finalInventoryValue = Math.max(valueData.total, additionalInventoryValue);
+                addLog(`🎯 FINAL INVENTORY VALUE: $${finalInventoryValue.toLocaleString()} (original: $${valueData.total.toLocaleString()}, enhanced: $${additionalInventoryValue.toLocaleString()})`);
 
                 networkFootprintData.averageCost = avgCostData.count > 0 ? avgCostData.total / avgCostData.count : 0;
                 networkFootprintData.totalOnHandQuantity = quantityData.total;
