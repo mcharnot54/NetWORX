@@ -597,7 +597,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         addLog(`🎯 NETWORK FOOTPRINT: Total on hand value $${extractedAmount.toLocaleString()}`);
         addLog(`📦 On hand quantity: ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
-        addLog(`💰 Average cost: $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
+        addLog(`���� Average cost: $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
       }
 
       const tabs: ExcelTab[] = [{
@@ -1462,6 +1462,89 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               networkFootprintData = {};
 
               try {
+                // Check if this is SOFTEON ITEM MASTER tab for dimensional data
+                if (sheetName.toLowerCase().includes('softeon item master')) {
+                  addLog(`📏 PROCESSING SOFTEON ITEM MASTER: Extracting dimensional data for pallet calculations`);
+
+                  // Extract dimensional data from SOFTEON ITEM MASTER
+                  let totalCasesPerPallet = 0;
+                  let totalUnitsPerCase = 0;
+                  let totalUnits = 0;
+                  let totalPallets = 0;
+                  let skuCount = 0;
+                  let dimensionalMetrics = {
+                    totalCubicFeet: 0,
+                    totalWeight: 0,
+                    avgCaseHeight: 0,
+                    avgCaseWidth: 0,
+                    avgCaseLength: 0
+                  };
+
+                  for (const row of sheetData.data) {
+                    if (row && typeof row === 'object') {
+                      // Extract key dimensional fields
+                      const casesPerPallet = parseFloat(String(row['Cases / Pallet'] || row['Cases/Pallet'] || '').replace(/[^0-9.]/g, '')) || 0;
+                      const unitsPerCase = parseFloat(String(row['Units / Case'] || row['Units/Case'] || '').replace(/[^0-9.]/g, '')) || 0;
+                      const caseCubicSize = parseFloat(String(row['Case Cubic Size'] || '').replace(/[^0-9.]/g, '')) || 0;
+                      const caseWeight = parseFloat(String(row['Case Weight'] || '').replace(/[^0-9.]/g, '')) || 0;
+                      const caseHeight = parseFloat(String(row['Case Height'] || '').replace(/[^0-9.]/g, '')) || 0;
+                      const caseWidth = parseFloat(String(row['Case Width'] || '').replace(/[^0-9.]/g, '')) || 0;
+                      const caseLength = parseFloat(String(row['Case Length'] || '').replace(/[^0-9.]/g, '')) || 0;
+
+                      if (casesPerPallet > 0 && unitsPerCase > 0) {
+                        totalCasesPerPallet += casesPerPallet;
+                        totalUnitsPerCase += unitsPerCase;
+                        totalUnits += unitsPerCase; // Each row represents one case
+                        skuCount++;
+
+                        // Calculate pallet estimate for this SKU
+                        if (casesPerPallet > 0) {
+                          totalPallets += 1 / casesPerPallet; // Fractional pallet per case
+                        }
+
+                        // Accumulate dimensional data
+                        dimensionalMetrics.totalCubicFeet += caseCubicSize;
+                        dimensionalMetrics.totalWeight += caseWeight;
+                        dimensionalMetrics.avgCaseHeight += caseHeight;
+                        dimensionalMetrics.avgCaseWidth += caseWidth;
+                        dimensionalMetrics.avgCaseLength += caseLength;
+                      }
+                    }
+                  }
+
+                  // Calculate averages
+                  const avgCasesPerPallet = skuCount > 0 ? totalCasesPerPallet / skuCount : 0;
+                  const avgUnitsPerCase = skuCount > 0 ? totalUnitsPerCase / skuCount : 0;
+                  const estimatedPalletCount = Math.ceil(totalPallets);
+
+                  dimensionalMetrics.avgCaseHeight = skuCount > 0 ? dimensionalMetrics.avgCaseHeight / skuCount : 0;
+                  dimensionalMetrics.avgCaseWidth = skuCount > 0 ? dimensionalMetrics.avgCaseWidth / skuCount : 0;
+                  dimensionalMetrics.avgCaseLength = skuCount > 0 ? dimensionalMetrics.avgCaseLength / skuCount : 0;
+
+                  // Store dimensional data for capacity calculations
+                  networkFootprintData.dimensionalData = {
+                    avgCasesPerPallet,
+                    avgUnitsPerCase,
+                    totalUnits,
+                    estimatedPalletCount,
+                    skuCount,
+                    ...dimensionalMetrics
+                  };
+
+                  addLog(`📊 DIMENSIONAL ANALYSIS: Processed ${skuCount} SKUs`);
+                  addLog(`📦 Average Cases/Pallet: ${avgCasesPerPallet.toFixed(1)}`);
+                  addLog(`📦 Average Units/Case: ${avgUnitsPerCase.toFixed(1)}`);
+                  addLog(`🏗️ Estimated Pallet Count: ${estimatedPalletCount.toLocaleString()}`);
+                  addLog(`📏 Total Cubic Feet: ${dimensionalMetrics.totalCubicFeet.toFixed(0)}`);
+
+                  extractedAmount = 0; // No dollar value from dimensional data
+                  targetColumn = 'Dimensional Data (Pallet Calculations)';
+
+                } else {
+                  // Original Data Dump processing logic
+                  addLog(`📊 PROCESSING DATA DUMP: Extracting inventory values`);
+                }
+
                 // Extract from Columns A (match), M (avg cost), Q (quantity), S (value)
                 const extractFromNetworkColumn = (columnLetter: string): { total: number, count: number } => {
                   let targetColumn = '';
