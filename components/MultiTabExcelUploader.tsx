@@ -1747,21 +1747,40 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 targetColumn = 'Network Data (Column S - On Hand Value)';
 
                 addLog(`🎯 NETWORK FOOTPRINT ${sheetName}: Total on hand value $${extractedAmount.toLocaleString()}`);
-                addLog(`📦 On hand quantity (Column Q): ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
+                addLog(`��� On hand quantity (Column Q): ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
                 addLog(`💰 Average cost (Column M): $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
                 addLog(`📊 SKU count: ${networkFootprintData.skuCount || 0}`);
 
                 // FINAL PALLET CALCULATION: Use actual inventory quantities for 14-18K pallet estimate
-                if (networkFootprintData.dimensionalData && networkFootprintData.totalOnHandQuantity && sheetName.toLowerCase().includes('data dump')) {
-                  const { avgUnitsPerCase, avgCasesPerPallet } = networkFootprintData.dimensionalData;
-                  if (avgUnitsPerCase > 0 && avgCasesPerPallet > 0 && networkFootprintData.totalOnHandQuantity > 1000000) {
-                    // Only calculate if we have significant inventory quantities (over 1M units)
-                    const finalPalletCount = Math.ceil(networkFootprintData.totalOnHandQuantity / (avgUnitsPerCase * avgCasesPerPallet));
-                    networkFootprintData.dimensionalData.estimatedPalletCount = finalPalletCount;
-                    addLog(`🏗️ FINAL PALLET COUNT: ${finalPalletCount.toLocaleString()} pallets (using ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units ÷ ${avgUnitsPerCase.toFixed(1)} units/case ÷ ${avgCasesPerPallet.toFixed(1)} cases/pallet)`);
+                // Check if we have dimensional data from SOFTEON processing
+                const storedDimensionalData = networkFootprintData.dimensionalData;
+
+                if (networkFootprintData.totalOnHandQuantity && networkFootprintData.totalOnHandQuantity > 1000000) {
+                  addLog(`🏗️ PALLET CALCULATION: Found ${networkFootprintData.totalOnHandQuantity.toLocaleString()} units in ${sheetName}`);
+
+                  // Use stored dimensional data if available, otherwise use reasonable defaults
+                  let avgUnitsPerCase = 211.7; // Default from SOFTEON data
+                  let avgCasesPerPallet = 45.0; // Default from SOFTEON data
+
+                  if (storedDimensionalData && storedDimensionalData.avgUnitsPerCase > 0 && storedDimensionalData.avgCasesPerPallet > 0) {
+                    avgUnitsPerCase = storedDimensionalData.avgUnitsPerCase;
+                    avgCasesPerPallet = storedDimensionalData.avgCasesPerPallet;
+                    addLog(`📏 Using stored dimensional data: ${avgUnitsPerCase.toFixed(1)} units/case, ${avgCasesPerPallet.toFixed(1)} cases/pallet`);
                   } else {
-                    addLog(`⚠️ PALLET CALCULATION SKIPPED: Need inventory > 1M units and valid dimensional data (current: ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units)`);
+                    addLog(`📏 Using default dimensional ratios: ${avgUnitsPerCase} units/case, ${avgCasesPerPallet} cases/pallet`);
                   }
+
+                  const finalPalletCount = Math.ceil(networkFootprintData.totalOnHandQuantity / (avgUnitsPerCase * avgCasesPerPallet));
+
+                  // Store the result
+                  if (!networkFootprintData.dimensionalData) {
+                    networkFootprintData.dimensionalData = {};
+                  }
+                  networkFootprintData.dimensionalData.estimatedPalletCount = finalPalletCount;
+
+                  addLog(`🏗️ FINAL PALLET COUNT: ${finalPalletCount.toLocaleString()} pallets (using ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units ÷ ${avgUnitsPerCase.toFixed(1)} units/case ÷ ${avgCasesPerPallet.toFixed(1)} cases/pallet)`);
+                } else {
+                  addLog(`⚠️ PALLET CALCULATION SKIPPED: Need inventory > 1M units (current: ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0} units)`);
                 }
 
               } catch (networkError) {
