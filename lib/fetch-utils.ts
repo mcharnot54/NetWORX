@@ -15,13 +15,13 @@ interface RetryConfig {
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 2, // Balanced retries for reliability
-  baseDelay: 3000, // Reasonable base delay for cloud environments
-  maxDelay: 15000, // Shorter max delay to avoid cascading issues
-  exponentialBackoff: true,
+  maxRetries: 1, // Reduced retries to prevent cascading
+  baseDelay: 2000, // Shorter base delay
+  maxDelay: 10000, // Reduced max delay
+  exponentialBackoff: false, // Disable exponential backoff for predictability
 };
 
-const DEFAULT_TIMEOUT = 45000; // 45 seconds - balanced for cloud environments
+const DEFAULT_TIMEOUT = 60000; // 60 seconds - increased for slow environments
 
 export class FetchError extends Error {
   public status?: number;

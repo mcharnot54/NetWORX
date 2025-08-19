@@ -19,10 +19,27 @@ const nextConfig = {
   // Improve development server stability - Aggressive caching for slow environments
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 300 * 1000, // 5 minutes - much longer caching
+    maxInactiveAge: 600 * 1000, // 10 minutes - extended caching
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 10, // Increased to prevent recompilation
+    pagesBufferLength: 20, // Increased to prevent recompilation
   },
+
+  // Add request timeout handling
+  serverRuntimeConfig: {
+    requestTimeout: 60000, // 60 second timeout
+  },
+
+  // Optimize for slower environments
+  compress: false, // Disable compression to reduce CPU load
+
+  // Development server optimizations
+  ...(process.env.NODE_ENV === 'development' && {
+    devIndicators: {
+      buildActivity: false, // Disable build activity indicator
+    },
+    poweredByHeader: false,
+    generateEtags: false,
+  }),
 
   // Fix cross-origin and networking issues
   async headers() {
