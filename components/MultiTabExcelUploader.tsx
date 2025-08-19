@@ -660,7 +660,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       try {
         // Attempt to use the full enhanced Excel validator with adaptive learning
-        addLog(`🧠 Attempting adaptive learning processing for ${file.name}...`);
+        addLog(`���� Attempting adaptive learning processing for ${file.name}...`);
 
         // Import with static import to avoid dynamic chunk issues
         const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
@@ -1555,11 +1555,89 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                   addLog(`📊 PROCESSING DATA DUMP: Extracting inventory values`);
                 }
 
+                // ENHANCED: Scan ALL columns to find the ones with the most data (Column Q should have 13M, Column S should have $48M)
+                const findBestColumnForData = (dataType: 'quantity' | 'value'): { column: string, total: number, count: number } => {
+                  let bestColumn = '';
+                  let bestTotal = 0;
+                  let bestCount = 0;
+
+                  // Scan every column to find the one with the most relevant data
+                  for (const columnName of sheetData.columnHeaders) {
+                    if (!columnName) continue;
+
+                    let isRelevantColumn = false;
+                    if (dataType === 'quantity') {
+                      // For quantities (should sum to 13M+)
+                      isRelevantColumn = columnName.toLowerCase().includes('quantity') ||
+                                       columnName.toLowerCase().includes('units') ||
+                                       columnName.toLowerCase().includes('qty') ||
+                                       columnName.toLowerCase().includes('count') ||
+                                       columnName === 'Q' ||
+                                       columnName.includes('__EMPTY_15') ||
+                                       columnName.includes('__EMPTY_16'); // Try adjacent columns too
+                    } else {
+                      // For values (should sum to $48M+)
+                      isRelevantColumn = columnName.toLowerCase().includes('value') ||
+                                       columnName.toLowerCase().includes('amount') ||
+                                       columnName.toLowerCase().includes('cost') ||
+                                       columnName.toLowerCase().includes('total') ||
+                                       columnName.toLowerCase().includes('inventory') ||
+                                       columnName === 'S' ||
+                                       columnName.includes('Main Inventory Location') ||
+                                       columnName.includes('__EMPTY_17') ||
+                                       columnName.includes('__EMPTY_18') ||
+                                       columnName.includes('__EMPTY_19'); // Try adjacent columns
+                    }
+
+                    if (isRelevantColumn) {
+                      let columnTotal = 0;
+                      let columnCount = 0;
+
+                      for (const row of sheetData.data) {
+                        if (row && row[columnName]) {
+                          const numValue = parseFloat(String(row[columnName]).replace(/[$,\s]/g, ''));
+                          if (!isNaN(numValue) && numValue >= 0) {
+                            columnTotal += numValue;
+                            columnCount++;
+                          }
+                        }
+                      }
+
+                      // Keep the column with the highest total (most data)
+                      if (columnTotal > bestTotal) {
+                        bestColumn = columnName;
+                        bestTotal = columnTotal;
+                        bestCount = columnCount;
+                        addLog(`    🔄 BETTER ${dataType.toUpperCase()} COLUMN: '${columnName}' has ${columnTotal.toLocaleString()} from ${columnCount} rows`);
+                      }
+                    }
+                  }
+
+                  return { column: bestColumn, total: bestTotal, count: bestCount };
+                };
+
                 // Extract from Columns A (match), M (avg cost), Q (quantity), S (value)
                 const extractFromNetworkColumn = (columnLetter: string): { total: number, count: number } => {
                   let targetColumn = '';
 
-                  // Find the actual column in the data
+                  // Use enhanced detection for Q and S columns
+                  if (columnLetter === 'Q') {
+                    const bestQuantityColumn = findBestColumnForData('quantity');
+                    targetColumn = bestQuantityColumn.column;
+                    if (bestQuantityColumn.total > 0) {
+                      addLog(`    🎯 QUANTITY DETECTION: Using '${targetColumn}' with ${bestQuantityColumn.total.toLocaleString()} units from ${bestQuantityColumn.count} rows`);
+                      return { total: bestQuantityColumn.total, count: bestQuantityColumn.count };
+                    }
+                  } else if (columnLetter === 'S') {
+                    const bestValueColumn = findBestColumnForData('value');
+                    targetColumn = bestValueColumn.column;
+                    if (bestValueColumn.total > 0) {
+                      addLog(`    🎯 VALUE DETECTION: Using '${targetColumn}' with $${bestValueColumn.total.toLocaleString()} from ${bestValueColumn.count} rows`);
+                      return { total: bestValueColumn.total, count: bestValueColumn.count };
+                    }
+                  }
+
+                  // Fallback to original logic for other columns
                   if (columnLetter === 'A') {
                     targetColumn = sheetData.columnHeaders[0]; // Column A is first column
                   } else if (columnLetter === 'M') {
