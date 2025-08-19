@@ -91,28 +91,30 @@ export async function GET(request: NextRequest) {
         // Get the specific transportation files directly (not filtered by scenario)
         let dataFiles = [];
         try {
-          dataFiles = await withTimeout(sql`
-            SELECT file_name, data_type, file_type, processing_status, id,
-                   -- Only get essential data to reduce query time
-                   CASE
-                     WHEN processed_data IS NOT NULL THEN
-                       jsonb_build_object(
-                         'parsedData', processed_data->'parsedData',
-                         'data', processed_data->'data'
-                       )
-                     ELSE NULL
-                   END as processed_data
-            FROM data_files
-            WHERE (
-              file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
-              file_name ILIKE '%r&l curriculum associates%' OR
-              file_name ILIKE '%ups invoice by state summary 2024%' OR
-              file_name ILIKE '%ups individual item cost%'
-            )
-            AND processing_status = 'completed'
-            AND processed_data IS NOT NULL
-            LIMIT 5
-          `, 12000); // 12 second timeout for data files
+          dataFiles = await withSlowTimeout(async () => {
+            return await sql`
+              SELECT file_name, data_type, file_type, processing_status, id,
+                     -- Only get essential data to reduce query time
+                     CASE
+                       WHEN processed_data IS NOT NULL THEN
+                         jsonb_build_object(
+                           'parsedData', processed_data->'parsedData',
+                           'data', processed_data->'data'
+                         )
+                       ELSE NULL
+                     END as processed_data
+              FROM data_files
+              WHERE (
+                file_name ILIKE '%2024 totals with inbound and outbound tl%' OR
+                file_name ILIKE '%r&l curriculum associates%' OR
+                file_name ILIKE '%ups invoice by state summary 2024%' OR
+                file_name ILIKE '%ups individual item cost%'
+              )
+              AND processing_status = 'completed'
+              AND processed_data IS NOT NULL
+              LIMIT 3
+            `;
+          });
 
           console.log(`Found ${dataFiles.length} transportation files for baseline extraction`);
         } catch (dataFileError) {
