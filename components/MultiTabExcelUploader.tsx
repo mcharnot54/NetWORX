@@ -2150,6 +2150,64 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       const grandTotal = processedFiles.reduce((sum, f) => sum + f.totalExtracted, 0);
       addLog(`📊 Grand Total Extracted: $${grandTotal.toLocaleString()}`);
 
+      // INVENTORY TURNS & DSO CALCULATIONS: Combine Network Footprint + Historical Sales Data
+      const networkFile = processedFiles.find(f => f.fileType === 'NETWORK_FOOTPRINT');
+      const salesFile = processedFiles.find(f => f.fileType === 'SALES_DATA');
+
+      if (networkFile && salesFile && networkFile.totalExtracted > 0 && salesFile.totalExtracted > 0) {
+        addLog(`\n🧮 CALCULATING INVENTORY TURNS & DSO:`);
+
+        // Get inventory value from Network Footprint
+        const inventoryValue = networkFile.totalExtracted;
+
+        // Get total sales from Historical Sales Data
+        const totalSales = salesFile.totalExtracted;
+
+        // Calculate Cost of Goods Sold (assuming 70% of sales for estimation)
+        const cogsPct = 0.70; // 70% COGS ratio (typical for retail/distribution)
+        const cogs = totalSales * cogsPct;
+
+        // Calculate Inventory Turns = COGS / Average Inventory
+        const inventoryTurns = cogs / inventoryValue;
+
+        // Calculate Days Sales Outstanding (DSO) = (Inventory Value / COGS) * 365
+        const dso = (inventoryValue / cogs) * 365;
+
+        // Calculate Days in Inventory = 365 / Inventory Turns
+        const daysInInventory = 365 / inventoryTurns;
+
+        addLog(`📊 INVENTORY METRICS:`);
+        addLog(`   • Total Inventory Value: $${inventoryValue.toLocaleString()}`);
+        addLog(`   • Annual Sales: $${totalSales.toLocaleString()}`);
+        addLog(`   • Estimated COGS (${(cogsPct*100)}%): $${cogs.toLocaleString()}`);
+        addLog(`   • Inventory Turns: ${inventoryTurns.toFixed(2)}x per year`);
+        addLog(`   • Days Sales Outstanding (DSO): ${dso.toFixed(0)} days`);
+        addLog(`   • Days in Inventory: ${daysInInventory.toFixed(0)} days`);
+
+        // Performance benchmarks
+        if (inventoryTurns < 4) {
+          addLog(`⚠️  LOW INVENTORY TURNS: ${inventoryTurns.toFixed(2)}x is below typical 4-6x range`);
+        } else if (inventoryTurns > 12) {
+          addLog(`⚠️  HIGH INVENTORY TURNS: ${inventoryTurns.toFixed(2)}x may indicate stockouts risk`);
+        } else {
+          addLog(`✅ HEALTHY INVENTORY TURNS: ${inventoryTurns.toFixed(2)}x within good range`);
+        }
+
+        if (dso > 60) {
+          addLog(`⚠️  HIGH DSO: ${dso.toFixed(0)} days indicates slow inventory movement`);
+        } else {
+          addLog(`✅ GOOD DSO: ${dso.toFixed(0)} days indicates efficient inventory management`);
+        }
+
+      } else {
+        if (!networkFile || networkFile.totalExtracted === 0) {
+          addLog(`⚠️ Cannot calculate Inventory Turns: Network Footprint data missing or empty`);
+        }
+        if (!salesFile || salesFile.totalExtracted === 0) {
+          addLog(`⚠️ Cannot calculate DSO: Historical Sales Data missing or empty`);
+        }
+      }
+
       onFilesProcessed(processedFiles);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
