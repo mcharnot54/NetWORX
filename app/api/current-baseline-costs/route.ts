@@ -183,18 +183,20 @@ export async function GET(request: NextRequest) {
         // Check scenario results as fallback - handle missing table gracefully
         let scenarioResults = [];
         try {
-          scenarioResults = await withTimeout(sql`
-            SELECT
-              transportation_costs,
-              warehouse_operating_costs,
-              variable_labor_costs,
-              facility_rent_costs,
-              total_costs
-            FROM scenario_results
-            WHERE scenario_id = ${scenario.id}
-            ORDER BY created_at DESC
-            LIMIT 1
-          `, 8000); // 8 second timeout for scenario results
+          scenarioResults = await withMediumTimeout(async () => {
+            return await sql`
+              SELECT
+                transportation_costs,
+                warehouse_operating_costs,
+                variable_labor_costs,
+                facility_rent_costs,
+                total_costs
+              FROM scenario_results
+              WHERE scenario_id = ${scenario.id}
+              ORDER BY created_at DESC
+              LIMIT 1
+            `;
+          });
         } catch (tableError) {
           console.debug(`scenario_results table not found for scenario ${scenario.id}`);
           scenarioResults = [];
