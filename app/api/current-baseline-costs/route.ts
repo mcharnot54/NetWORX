@@ -10,8 +10,14 @@ import {
 } from '@/lib/api-timeout-utils';
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    const { sql } = await import('@/lib/database');
+    const { result: sqlConnection, duration: connectDuration } = await trackPerformance(
+      () => import('@/lib/database'),
+      'database-connection'
+    );
+    const { sql } = sqlConnection;
 
     // Initialize baseline costs structure
     const baselineCosts = {
