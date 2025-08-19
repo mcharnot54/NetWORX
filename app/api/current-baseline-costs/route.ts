@@ -40,15 +40,17 @@ export async function GET(request: NextRequest) {
     let scenarios = [];
 
     try {
-      // Try to get scenarios with a simple direct query first to test DB connectivity
-      scenarios = await withTimeout(sql`
-        SELECT s.id, s.name, p.name as project_name
-        FROM scenarios s
-        JOIN projects p ON s.project_id = p.id
-        WHERE p.status = 'active'
-        ORDER BY s.created_at DESC
-        LIMIT 3
-      `, 8000); // Reduced timeout for faster failure detection
+      // Try to get scenarios with optimized timeout
+      scenarios = await withDbTimeout(async () => {
+        return await sql`
+          SELECT s.id, s.name, p.name as project_name
+          FROM scenarios s
+          JOIN projects p ON s.project_id = p.id
+          WHERE p.status = 'active'
+          ORDER BY s.created_at DESC
+          LIMIT 3
+        `;
+      }, 10); // 10 second timeout
 
       baselineCosts.scenarios_analyzed = scenarios.length;
     } catch (dbError) {
