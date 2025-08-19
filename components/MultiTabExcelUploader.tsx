@@ -1657,6 +1657,16 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 addLog(`💰 Average cost (Column M): $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
                 addLog(`📊 SKU count: ${networkFootprintData.skuCount || 0}`);
 
+                // FINAL PALLET CALCULATION: Use actual inventory quantities for 14-18K pallet estimate
+                if (networkFootprintData.dimensionalData && networkFootprintData.totalOnHandQuantity) {
+                  const { avgUnitsPerCase, avgCasesPerPallet } = networkFootprintData.dimensionalData;
+                  if (avgUnitsPerCase > 0 && avgCasesPerPallet > 0) {
+                    const finalPalletCount = Math.ceil(networkFootprintData.totalOnHandQuantity / (avgUnitsPerCase * avgCasesPerPallet));
+                    networkFootprintData.dimensionalData.estimatedPalletCount = finalPalletCount;
+                    addLog(`🏗️ FINAL PALLET COUNT: ${finalPalletCount.toLocaleString()} pallets (using ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units ÷ ${avgUnitsPerCase.toFixed(1)} units/case ÷ ${avgCasesPerPallet.toFixed(1)} cases/pallet)`);
+                  }
+                }
+
               } catch (networkError) {
                 addLog(`⚠️ Network footprint extraction error: ${networkError instanceof Error ? networkError.message : 'Unknown error'}`);
                 networkFootprintData.totalOnHandValue = 0;
