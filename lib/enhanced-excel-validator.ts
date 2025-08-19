@@ -70,7 +70,7 @@ export class EnhancedExcelValidator {
 
   // Default configuration
   private static readonly DEFAULT_CONFIG: FileValidationConfig = {
-    maxFileSizeMB: 100,
+    maxFileSizeMB: 150, // Increased to handle 113MB Historical Sales Data file
     backupOriginal: true,
     csvEncoding: 'utf-8',
     supportedFormats: ['.xlsx', '.xls', '.csv'],
