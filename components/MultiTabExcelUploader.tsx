@@ -1455,8 +1455,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
           // NETWORK FOOTPRINT FILES: Extract from Data Dump tab only
           } else if (fileType === 'NETWORK_FOOTPRINT') {
-            // Only process if this is the Data Dump tab
-            if (sheetName.toLowerCase().includes('data dump')) {
+            // Process Data Dump tab for inventory values AND SOFTEON ITEM MASTER for dimensional data
+            if (sheetName.toLowerCase().includes('data dump') || sheetName.toLowerCase().includes('softeon item master')) {
               addLog(`🌐 NETWORK FOOTPRINT PROCESSING: Analyzing ${sheetName} tab for network data`);
 
               networkFootprintData = {};
