@@ -3,8 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const { sql } = await import('@/lib/database');
-    
+
     console.log('Initializing database schema...');
+
+    // Set a shorter statement timeout for quicker feedback
+    await sql`SET statement_timeout = '30s'`;
 
     // Create projects table if it doesn't exist
     await sql`
@@ -38,16 +41,50 @@ export async function POST(request: NextRequest) {
 
     // Check if project_id column exists in scenarios table
     const columnCheck = await sql`
-      SELECT column_name 
-      FROM information_schema.columns 
+      SELECT column_name
+      FROM information_schema.columns
       WHERE table_name = 'scenarios' AND column_name = 'project_id'
     `;
 
     if (columnCheck.length === 0) {
       console.log('Adding project_id column to scenarios table...');
       await sql`
-        ALTER TABLE scenarios 
+        ALTER TABLE scenarios
         ADD COLUMN project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE
+      `;
+    }
+
+    // Check and add missing columns for optimization tracking
+    const optimizationColumnCheck = await sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'scenarios'
+      AND column_name IN ('capacity_analysis_completed', 'transport_optimization_completed', 'warehouse_optimization_completed')
+    `;
+
+    const existingColumns = optimizationColumnCheck.map((row: any) => row.column_name);
+
+    if (!existingColumns.includes('capacity_analysis_completed')) {
+      console.log('Adding capacity_analysis_completed column to scenarios table...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN capacity_analysis_completed BOOLEAN DEFAULT false
+      `;
+    }
+
+    if (!existingColumns.includes('transport_optimization_completed')) {
+      console.log('Adding transport_optimization_completed column to scenarios table...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN transport_optimization_completed BOOLEAN DEFAULT false
+      `;
+    }
+
+    if (!existingColumns.includes('warehouse_optimization_completed')) {
+      console.log('Adding warehouse_optimization_completed column to scenarios table...');
+      await sql`
+        ALTER TABLE scenarios
+        ADD COLUMN warehouse_optimization_completed BOOLEAN DEFAULT false
       `;
     }
 
@@ -82,7 +119,10 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { sql } = await import('@/lib/database');
-    
+
+    // Set a shorter statement timeout for quicker feedback
+    await sql`SET statement_timeout = '30s'`;
+
     // Check current database schema
     const tables = await sql`
       SELECT table_name, column_name, data_type 

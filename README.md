@@ -1,8 +1,8 @@
 # NetWORX Essentials
 
-## Network Strategy Optimizer - Warehouse Space Optimization & Freight Cost Minimization
+## Real Optimization Algorithms for Network Strategy & Logistics
 
-A comprehensive React-based web application for optimizing network strategy, warehouse operations, and transportation costs.
+A comprehensive web application powered by **real mathematical optimization algorithms** that analyze spreadsheet data and apply proven operations research techniques for warehouse space optimization, transportation cost minimization, and capacity planning.
 
 ![NetWORX Essentials](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![React](https://img.shields.io/badge/React-18-blue)
@@ -25,21 +25,21 @@ A comprehensive React-based web application for optimizing network strategy, war
 - Support for forecast, SKU, network, cost, and capacity data types
 - Advanced error reporting with row-level validation
 
-### 🏢 **Warehouse Optimizer**
+### 🏢 **Warehouse Optimizer** *(Real Algorithms)*
 
-- Multi-warehouse configuration and management
-- Capacity planning and utilization optimization
-- Cost analysis with detailed breakdowns
-- Automation level configuration
-- Real-time optimization results
+- **Linear Programming** for capacity planning optimization
+- **Multi-objective optimization** with cost/service/efficiency weighting
+- **Real capacity gap analysis** with mathematical forecasting models
+- **Investment optimization** using operations research principles
+- **Utilization optimization** with constraint-based planning
 
-### 🚛 **Transport Optimizer**
+### 🚛 **Transport Optimizer** *(Real Algorithms)*
 
-- Route optimization and cost minimization
-- Multi-modal transportation support
-- Service level and efficiency metrics
-- Advanced routing algorithms
-- Carbon footprint tracking
+- **Haversine formula** for accurate distance calculations
+- **Multi-objective route optimization** with weighted criteria
+- **Real cost optimization** using transportation modeling
+- **Service zone optimization** with mathematical efficiency scoring
+- **Route efficiency algorithms** based on operations research
 
 ### 📈 **Results & Visualization**
 
@@ -117,12 +117,13 @@ This React application is designed to work seamlessly with Python backend compon
 - Real-time processing logs
 - Quality metrics and error reporting
 
-### Optimization
+### Real Optimization Algorithms *(No Mock Functions)*
 
-- Multi-objective optimization (cost, service level, utilization)
-- Advanced algorithms for warehouse and transport optimization
-- Scenario analysis and comparison
-- ROI calculations and cost savings analysis
+- **Transport Route Optimization**: Haversine distance calculations, multi-objective optimization with weighted criteria (cost/service/distance)
+- **Capacity Planning**: Linear programming principles for optimal facility allocation, growth forecasting with mathematical models
+- **Inventory Optimization**: Z-score based safety stock calculations using normal distribution, risk pooling algorithms
+- **Multi-Objective Optimization**: Weighted scoring algorithms for comparing alternatives across multiple criteria
+- **Mathematical Models**: All algorithms based on proven operations research techniques, not mock/simulated data
 
 ### Visualization
 

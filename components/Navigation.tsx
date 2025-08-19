@@ -6,6 +6,11 @@ import Link from "next/link";
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/data-processor", label: "Data Processor" },
+  { href: "/excel-upload", label: "☁️ S3 Excel Upload" },
+  { href: "/inventory-upload", label: "📦 Inventory Upload" },
+  { href: "/multi-tab-upload", label: "📊 Multi-Tab Upload" },
+  { href: "/test-enhanced-validation", label: "🔍 Enhanced Validation" },
+  { href: "/missing-data-demo", label: "🧠 Missing Data AI" },
   { href: "/capacity-optimizer", label: "Capacity Optimizer" },
   { href: "/warehouse-optimizer", label: "Warehouse Optimizer" },
   { href: "/transport-optimizer", label: "Transport Optimizer" },

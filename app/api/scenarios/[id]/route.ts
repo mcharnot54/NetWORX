@@ -50,7 +50,7 @@ export async function GET(
 ) {
   try {
     const id = parseInt(params.id);
-    
+
     const scenario = mockScenarios.find(s => s.id === id);
     if (!scenario) {
       return NextResponse.json(
@@ -67,6 +67,42 @@ export async function GET(
     console.error('Error fetching scenario:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch scenario' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = parseInt(params.id);
+    const updates = await request.json();
+
+    const scenarioIndex = mockScenarios.findIndex(s => s.id === id);
+    if (scenarioIndex === -1) {
+      return NextResponse.json(
+        { success: false, error: 'Scenario not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update the scenario with new data
+    mockScenarios[scenarioIndex] = {
+      ...mockScenarios[scenarioIndex],
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: mockScenarios[scenarioIndex]
+    });
+  } catch (error) {
+    console.error('Error updating scenario:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update scenario' },
       { status: 500 }
     );
   }

@@ -1,95 +1,179 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
+  // Disable standalone for now to simplify build
+  // ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
 
-  // Improve hot reloading in cloud environments
-  webpack: (config, { dev, isServer, webpack }) => {
-    if (dev && !isServer) {
-      // Check if we're in a cloud environment (Fly.io in this case)
-      const isCloudEnvironment = process.env.FLY_APP_NAME || process.env.VERCEL || process.env.NETLIFY;
+  // Disable problematic features that cause fetch failures
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+    // Removed turbo config - let Next.js handle automatically to avoid config errors
+    optimizePackageImports: ['lucide-react'],
+    // Disable expensive features for cloud environments
+    optimizeCss: false,
+    serverComponentsExternalPackages: [],
+  },
 
-      if (isCloudEnvironment) {
-        // More conservative settings for cloud environments
-        config.watchOptions = {
-          poll: 5000, // Much slower polling for cloud to reduce errors
-          aggregateTimeout: 2000,
-          ignored: /node_modules/,
-        };
-      } else {
-        // Local development settings
-        config.watchOptions = {
-          poll: 1000,
-          aggregateTimeout: 300,
-          ignored: /node_modules/,
-        };
-      }
+  // Disable features causing performance issues
+  reactStrictMode: false,
 
-      // Add HMR error handling
-      config.plugins = config.plugins || [];
+  // Improve development server stability - Aggressive caching for slow environments
+  onDemandEntries: {
+    // Period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 900 * 1000, // 15 minutes - extended caching
+    // Number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 30, // Increased to prevent recompilation
+  },
+
+  // Add request timeout handling
+  serverRuntimeConfig: {
+    requestTimeout: 120000, // 120 second timeout for development
+  },
+
+  // Optimize for slower environments
+  compress: false, // Disable compression to reduce CPU load
+
+  // Development server optimizations
+  ...(process.env.NODE_ENV === 'development' && {
+    devIndicators: {
+      buildActivity: false, // Disable build activity indicator
+    },
+    poweredByHeader: false,
+    generateEtags: false,
+  }),
+
+  // Fix cross-origin and networking issues
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Asset optimization
+  images: {
+    unoptimized: process.env.ELECTRON === 'true'
+  },
+
+  // Environment configuration
+  env: {
+    ELECTRON: process.env.ELECTRON || 'false'
+  },
+
+  // Webpack configuration
+  webpack: (config, { isServer }) => {
+    // Only apply Electron-specific config when building for Electron
+    if (process.env.ELECTRON === 'true' && !isServer) {
+      config.target = 'electron-renderer';
+    }
+
+    // Provide polyfills for Node.js globals in browser environment
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+      };
+
+      // Define global for browser environment
+      const webpack = require('webpack');
       config.plugins.push(
         new webpack.DefinePlugin({
-          __DEV_HMR_TIMEOUT__: JSON.stringify(isCloudEnvironment ? 15000 : 5000),
-          __IS_CLOUD_ENV__: JSON.stringify(!!isCloudEnvironment),
+          global: 'globalThis',
         })
       );
-
-      // Reduce HMR chunk size for better network handling
-      config.optimization = config.optimization || {};
-      config.optimization.splitChunks = {
-        ...config.optimization.splitChunks,
-        cacheGroups: {
-          default: {
-            minChunks: 2,
-            priority: -20,
-            reuseExistingChunk: true,
-          },
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            priority: -10,
-            chunks: 'all',
-            maxSize: isCloudEnvironment ? 200000 : 244000, // Smaller chunks for cloud
-          },
-        },
-      };
     }
-    return config;
-  },
 
-  // Improve error handling during development
-  onDemandEntries: {
-    maxInactiveAge: 60 * 1000, // Increased timeout
-    pagesBufferLength: 5,
-  },
+    // Handle Electron-specific modules only when needed
+    if (process.env.ELECTRON === 'true') {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'utf-8-validate': 'commonjs utf-8-validate',
+        'bufferutil': 'commonjs bufferutil',
+      });
+    }
 
-  // Better error boundaries and cloud support
-  experimental: {
-    serverComponentsExternalPackages: [],
-    // Improve Fast Refresh reliability
-    optimisticClientCache: false,
-  },
-
-  // Disable source maps in development to reduce memory usage
-  productionBrowserSourceMaps: false,
-
-  // Add better error handling for development
-  async headers() {
+    // Aggressive optimizations for slow development environment
     if (process.env.NODE_ENV === 'development') {
-      return [
-        {
-          source: '/_next/:path*',
-          headers: [
-            {
-              key: 'Cache-Control',
-              value: 'no-cache, no-store, must-revalidate',
-            },
-          ],
+      // Disable expensive optimizations
+      config.optimization = {
+        ...config.optimization,
+        minimize: false,
+        splitChunks: false,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        mergeDuplicateChunks: false,
+        providedExports: false,
+        usedExports: false,
+        sideEffects: false,
+      };
+
+      // Faster module resolution
+      config.resolve.unsafeCache = true;
+      config.resolve.symlinks = false;
+      config.resolve.cacheWithContext = false;
+
+      // Reduce module resolution overhead
+      config.resolve.modules = ['node_modules'];
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@': '.'
+      };
+
+      // Disable expensive features
+      config.stats = false; // Completely disable stats
+      config.infrastructureLogging = { level: 'error' };
+
+      // Disable module concatenation for faster builds
+      config.optimization.concatenateModules = false;
+
+      // Aggressive caching with optimization
+      config.cache = {
+        type: 'filesystem',
+        allowCollectingMemory: false,
+        buildDependencies: {
+          config: [__filename]
         },
-      ];
+        compression: false, // Disable compression for faster builds
+        maxMemoryGenerations: 1
+      };
+
+      // Let Next.js handle devtool automatically for optimal performance
+      // config.devtool = removed due to performance warnings
+
+      // Client-side optimizations
+      if (!isServer) {
+        // Disable hot reloading features that cause fetch failures
+        config.devServer = {
+          ...config.devServer,
+          hot: false,
+          liveReload: false,
+        };
+      }
     }
-    return [];
-  },
+
+    return config;
+  }
 };
 
 module.exports = nextConfig;

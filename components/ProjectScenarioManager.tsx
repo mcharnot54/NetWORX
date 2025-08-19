@@ -7,6 +7,7 @@ import {
   Target, Activity, Building
 } from 'lucide-react';
 import { robustFetchJson, robustPost, FetchError } from '@/lib/fetch-utils';
+import { SafeAbortController, runtimeErrorHandler, safeAsync } from '@/lib/runtime-error-handler';
 import ErrorBoundary, { FetchErrorFallback } from './ErrorBoundary';
 
 interface Project {
@@ -76,39 +77,57 @@ export default function ProjectScenarioManager({
   });
 
   useEffect(() => {
-    let abortController: AbortController | null = null;
+    let isCleanedUp = false;
+    const componentId = 'project-scenario-manager';
 
-    // Add a small delay to ensure the app is fully loaded
-    const timer = setTimeout(() => {
-      if (isMounted) {
-        abortController = new AbortController();
-        fetchProjects(abortController.signal);
-      }
-    }, 100);
+    const initializeFetch = async () => {
+      if (isCleanedUp) return;
+
+      await safeAsync(async () => {
+        const controller = new SafeAbortController('project-fetch');
+        try {
+          await fetchProjects(controller.signal);
+        } finally {
+          controller.cleanup();
+        }
+      }, 'initializeFetch');
+    };
+
+    initializeFetch();
+
+    // Register cleanup
+    runtimeErrorHandler.registerCleanup(componentId, () => {
+      isCleanedUp = true;
+    }, 5);
 
     return () => {
-      clearTimeout(timer);
-      if (abortController) {
-        abortController.abort();
-      }
+      isCleanedUp = true;
       setIsMounted(false);
+      runtimeErrorHandler.executeCleanup(componentId);
     };
   }, []);
 
   const fetchProjects = async (signal?: AbortSignal) => {
-    if (!isMounted) return;
-
     try {
       setLoading(true);
 
+      // Check if we're already aborted before starting
+      if (signal?.aborted) {
+        console.debug('Fetch cancelled before starting');
+        return;
+      }
+
       // Fetch projects from API with robust error handling
       const projectsResult = await robustFetchJson('/api/projects', {
-        timeout: 10000,
-        retries: 2,
+        timeout: 15000, // Increased timeout for cloud environments
+        retries: 1, // Reduced retries to prevent cascading errors
         signal, // Pass abort signal to fetch
       });
 
-      if (!isMounted || signal?.aborted) return; // Check again after async operation
+      // Check if request was aborted before proceeding
+      if (signal?.aborted) {
+        return;
+      }
 
       if (!projectsResult.success) {
         throw new Error(projectsResult.error || 'Failed to fetch projects');
@@ -120,10 +139,13 @@ export default function ProjectScenarioManager({
       const scenariosMap: { [key: number]: Scenario[] } = {};
 
       for (const project of projects) {
+        if (signal?.aborted) return; // Check for abort during loop
+
         try {
           const scenariosResult = await robustFetchJson(`/api/scenarios?project_id=${project.id}`, {
-            timeout: 8000,
-            retries: 2,
+            timeout: 12000, // Increased timeout
+            retries: 1, // Reduced retries to prevent cascade failures
+            signal,
           });
 
           if (scenariosResult.success && Array.isArray(scenariosResult.data)) {
@@ -152,7 +174,8 @@ export default function ProjectScenarioManager({
         }
       }
 
-      if (isMounted) {
+      // Only update state if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
         setProjects(projects);
         setScenarios(scenariosMap);
 
@@ -168,19 +191,26 @@ export default function ProjectScenarioManager({
         }
       }
     } catch (error) {
-      if (isMounted) {
-        console.error('Error fetching projects:', error);
-        // Fallback to empty state instead of crashing
+      // Only handle errors if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
+        console.debug('Error fetching projects:', error);
+
+        // Always fallback to empty state to prevent crashes
         setProjects([]);
         setScenarios({});
 
-        // Show user-friendly error message for fetch failures (but only if not cancelled)
-        if (error instanceof FetchError && !error.message.includes('cancelled')) {
-          alert(`Connection error: ${error.message}. Please check your internet connection and try again.`);
+        // Only log significant errors, not expected cancellations/aborts
+        if (error instanceof FetchError &&
+            !error.message.includes('cancelled') &&
+            !error.message.includes('aborted') &&
+            !error.message.includes('Request was cancelled') &&
+            !error.message.includes('Network connection temporarily unavailable')) {
+          console.warn('Unexpected project fetch error:', error.message);
         }
       }
     } finally {
-      if (isMounted) {
+      // Only update loading state if not aborted and component is still mounted
+      if (!signal?.aborted && isMounted) {
         setLoading(false);
       }
     }

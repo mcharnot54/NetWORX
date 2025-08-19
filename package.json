@@ -2,30 +2,112 @@
   "name": "networx-essentials",
   "version": "1.0.0",
   "description": "NetWORX Essentials - Network Strategy Optimizer",
+  "main": "electron/main.js",
+  "homepage": "./",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-test": "node scripts/test-electron.js",
+    "build-electron": "cross-env ELECTRON=true npm run build && electron-builder",
+    "dist": "electron-builder --publish=never",
+    "dist-full": "cross-env ELECTRON=true npm run build && electron-builder --publish=never"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.864.0",
+    "@aws-sdk/s3-request-presigner": "^3.864.0",
     "@neondatabase/serverless": "^1.0.1",
+    "@prisma/client": "^6.14.0",
+    "clsx": "^2.1.1",
+    "compromise": "^14.14.4",
+    "csv-parse": "^6.1.0",
+    "date-fns": "^4.1.0",
+    "electron-updater": "^6.6.2",
+    "fast-levenshtein": "^3.0.0",
+    "javascript-lp-solver": "^0.4.24",
     "lucide-react": "^0.294.0",
     "next": "^14.0.0",
+    "papaparse": "^5.5.3",
+    "pino": "^9.9.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "recharts": "^2.8.0",
+    "string-similarity": "^4.0.4",
     "uuid": "^11.1.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/papaparse": "^5.3.16",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@types/uuid": "^10.0.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.0.0",
-    "typescript": "^5.0.0"
-  }
+    "prisma": "^6.14.0",
+    "typescript": "^5.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.networx.essentials",
+    "productName": "NetWORX Essentials",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/assets/**/*",
+      "server.js",
+      "package.json",
+      "next.config.js",
+      "app/**/*",
+      "components/**/*",
+      "lib/**/*",
+      "types/**/*",
+      "context/**/*",
+      "public/**/*",
+      "!node_modules",
+      "!.next",
+      "!dist"
+    ],
+    "extraFiles": [
+      {
+        "from": "node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*",
+          "!**/electron{,/**}",
+          "!**/electron-builder{,/**}",
+          "!**/.cache{,/**}",
+          "!**/test{,/**}",
+          "!**/tests{,/**}"
+        ]
+      }
+    ],
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": false,
+    "win": {
+      "target": "nsis",
+      "icon": "electron/assets/icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "electron/assets/icon.png"
+    },
+    "linux": {
+      "target": "dir",
+      "icon": "electron/assets/icon.png"
+    }
+  },
+  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
 }

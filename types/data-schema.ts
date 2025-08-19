@@ -130,6 +130,19 @@ export interface ComprehensiveOperationalData {
     dataQuality?: DataQualityMetrics;
     validationResults?: ValidationResult[];
     lastProcessed?: string;
+    imputationInfo?: {
+      methodUsed: string[];
+      totalImputed: number;
+      averageConfidence: number;
+      qualityMetrics: any;
+      imputedFields: any[];
+    };
+    productionProcessing?: {
+      calculationResults: any;
+      qualityAssessment: any;
+      processingTime: number;
+    };
+    [key: string]: any; // Allow additional dynamic properties
   };
 }
 

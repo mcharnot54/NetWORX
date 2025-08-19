@@ -19,6 +19,15 @@ a {
   text-decoration: none;
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .main-container {
   min-height: 100vh;
   display: flex;
@@ -345,9 +354,19 @@ a {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid-cols-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 @media (max-width: 768px) {
   .grid-cols-2,
-  .grid-cols-3 {
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 
