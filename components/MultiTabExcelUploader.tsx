@@ -133,7 +133,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
   // CSV processing function using robust csv-parse library
   const processCsvFile = async (file: File): Promise<MultiTabFile> => {
     try {
-      addLog(`📄 Processing CSV file: ${file.name}`);
+      addLog(`�� Processing CSV file: ${file.name}`);
 
       // Read file as text and do simple CSV parsing to avoid import issues
       const text = await file.text();
@@ -1562,7 +1562,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                     ) || sheetData.columnHeaders[16]; // Q is 17th column (0-indexed = 16)
                   } else if (columnLetter === 'S') {
                     targetColumn = sheetData.columnHeaders.find(col =>
-                      col === 'S' || col.toLowerCase().includes('on hand value') || col.toLowerCase().includes('current value')
+                      col === 'S' ||
+                      col.toLowerCase().includes('on hand value') ||
+                      col.toLowerCase().includes('current value') ||
+                      col.toLowerCase().includes('inventory value') ||
+                      col.toLowerCase().includes('total value') ||
+                      col.toLowerCase().includes('extended value') ||
+                      col.toLowerCase().includes('main inventory location')
                     ) || sheetData.columnHeaders[18]; // S is 19th column (0-indexed = 18)
                   }
 
