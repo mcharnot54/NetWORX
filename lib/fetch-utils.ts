@@ -117,6 +117,13 @@ const fetchWithTimeout = async (
   const timeout = options.timeout || DEFAULT_TIMEOUT;
   const controller = new AbortController();
 
+  // Detect production environment
+  const isProduction = typeof window !== 'undefined' &&
+                      (window.location.hostname.includes('.fly.dev') ||
+                       window.location.hostname.includes('.vercel.app') ||
+                       window.location.hostname.includes('.netlify.app') ||
+                       window.location.hostname !== 'localhost');
+
   // Handle external signal if provided
   let externalAbortHandler: (() => void) | null = null;
   if (options.signal) {
