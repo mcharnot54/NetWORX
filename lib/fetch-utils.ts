@@ -167,10 +167,18 @@ const fetchWithTimeout = async (
   }, timeout);
 
   try {
-    const response = await fetch(url, {
+    // In production, add additional fetch options for better compatibility
+    const fetchOptions = {
       ...options,
       signal: controller.signal,
-    });
+      ...(isProduction && {
+        mode: 'cors' as RequestMode,
+        credentials: 'same-origin' as RequestCredentials,
+        cache: 'no-store' as RequestCache
+      })
+    };
+
+    const response = await fetch(url, fetchOptions);
 
     clearTimeout(timeoutId);
 
