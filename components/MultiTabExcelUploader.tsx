@@ -810,7 +810,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         // Use adaptive learning system for transportation cost extraction
         addLog(`🧠 LEARNING SYSTEM: Processing ${fileType} ${sheetName} - ${sheetData.columnHeaders.length} columns, ${sheetData.data.length} rows`);
-        addLog(`🧠 COLUMNS: ${sheetData.columnHeaders.join(', ')}`);
+        addLog(`�� COLUMNS: ${sheetData.columnHeaders.join(', ')}`);
 
         let targetColumn = '';
         let extractedAmount = 0;
@@ -1455,8 +1455,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
           // NETWORK FOOTPRINT FILES: Extract from Data Dump tab only
           } else if (fileType === 'NETWORK_FOOTPRINT') {
-            // Process Data Dump tab for inventory values AND SOFTEON ITEM MASTER for dimensional data
-            if (sheetName.toLowerCase().includes('data dump') || sheetName.toLowerCase().includes('softeon item master')) {
+            // Process ALL tabs in Network Footprint to find the missing $48M inventory value
+            if (true) { // Process all tabs instead of limiting to specific ones
               addLog(`🌐 NETWORK FOOTPRINT PROCESSING: Analyzing ${sheetName} tab for network data`);
 
               networkFootprintData = {};
