@@ -369,7 +369,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           } else {
             const numValue = parseFloat(String(cellValue).replace(/[$,\s"]/g, ''));
             if (!isNaN(numValue)) {
-              addLog(`    📍 ${excelCol}${excelRow}: ${numValue}`);
+              addLog(`    �� ${excelCol}${excelRow}: ${numValue}`);
               return numValue;
             }
           }
@@ -660,7 +660,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       try {
         // Attempt to use the full enhanced Excel validator with adaptive learning
-        addLog(`���� Attempting adaptive learning processing for ${file.name}...`);
+        addLog(`🧠 Attempting adaptive learning processing for ${file.name}...`);
 
         // Import with static import to avoid dynamic chunk issues
         const { AdaptiveDataValidator } = await import('@/lib/adaptive-data-validator');
@@ -1736,12 +1736,15 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 addLog(`📊 SKU count: ${networkFootprintData.skuCount || 0}`);
 
                 // FINAL PALLET CALCULATION: Use actual inventory quantities for 14-18K pallet estimate
-                if (networkFootprintData.dimensionalData && networkFootprintData.totalOnHandQuantity) {
+                if (networkFootprintData.dimensionalData && networkFootprintData.totalOnHandQuantity && sheetName.toLowerCase().includes('data dump')) {
                   const { avgUnitsPerCase, avgCasesPerPallet } = networkFootprintData.dimensionalData;
-                  if (avgUnitsPerCase > 0 && avgCasesPerPallet > 0) {
+                  if (avgUnitsPerCase > 0 && avgCasesPerPallet > 0 && networkFootprintData.totalOnHandQuantity > 1000000) {
+                    // Only calculate if we have significant inventory quantities (over 1M units)
                     const finalPalletCount = Math.ceil(networkFootprintData.totalOnHandQuantity / (avgUnitsPerCase * avgCasesPerPallet));
                     networkFootprintData.dimensionalData.estimatedPalletCount = finalPalletCount;
                     addLog(`🏗️ FINAL PALLET COUNT: ${finalPalletCount.toLocaleString()} pallets (using ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units ÷ ${avgUnitsPerCase.toFixed(1)} units/case ÷ ${avgCasesPerPallet.toFixed(1)} cases/pallet)`);
+                  } else {
+                    addLog(`⚠️ PALLET CALCULATION SKIPPED: Need inventory > 1M units and valid dimensional data (current: ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units)`);
                   }
                 }
 
