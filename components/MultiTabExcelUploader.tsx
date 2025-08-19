@@ -1636,17 +1636,70 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 const extractFromNetworkColumn = (columnLetter: string): { total: number, count: number } => {
                   let targetColumn = '';
 
-                  // Use enhanced detection for Q and S columns
+                  // Use enhanced detection for Q and S columns - ENSURE THEY'RE DIFFERENT
                   if (columnLetter === 'Q') {
                     const bestQuantityColumn = findBestColumnForData('quantity');
                     targetColumn = bestQuantityColumn.column;
                     if (bestQuantityColumn.total > 0) {
                       addLog(`    🎯 QUANTITY DETECTION: Using '${targetColumn}' with ${bestQuantityColumn.total.toLocaleString()} units from ${bestQuantityColumn.count} rows`);
+                      // Store the quantity column to avoid reusing for value
+                      sheetData.quantityColumn = targetColumn;
                       return { total: bestQuantityColumn.total, count: bestQuantityColumn.count };
                     }
                   } else if (columnLetter === 'S') {
                     const bestValueColumn = findBestColumnForData('value');
                     targetColumn = bestValueColumn.column;
+
+                    // CRITICAL FIX: Don't use the same column as quantity
+                    if (targetColumn === sheetData.quantityColumn) {
+                      addLog(`    ⚠️ VALUE COLUMN CONFLICT: '${targetColumn}' already used for quantity, finding alternative...`);
+
+                      // Find the next best value column that's different from quantity column
+                      let secondBestColumn = '';
+                      let secondBestTotal = 0;
+                      let secondBestCount = 0;
+
+                      for (const columnName of sheetData.columnHeaders) {
+                        if (!columnName || columnName === sheetData.quantityColumn) continue;
+
+                        const isValueColumn = columnName.toLowerCase().includes('value') ||
+                                            columnName.toLowerCase().includes('amount') ||
+                                            columnName.toLowerCase().includes('cost') ||
+                                            columnName.toLowerCase().includes('total') ||
+                                            columnName.toLowerCase().includes('inventory') ||
+                                            columnName.includes('Main Inventory Location') ||
+                                            (columnName.includes('__EMPTY_') &&
+                                             columnName !== sheetData.quantityColumn);
+
+                        if (isValueColumn) {
+                          let columnTotal = 0;
+                          let columnCount = 0;
+
+                          for (const row of sheetData.data) {
+                            if (row && row[columnName]) {
+                              const numValue = parseFloat(String(row[columnName]).replace(/[$,\s]/g, ''));
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                columnTotal += numValue;
+                                columnCount++;
+                              }
+                            }
+                          }
+
+                          if (columnTotal > secondBestTotal) {
+                            secondBestColumn = columnName;
+                            secondBestTotal = columnTotal;
+                            secondBestCount = columnCount;
+                          }
+                        }
+                      }
+
+                      if (secondBestColumn && secondBestTotal > 0) {
+                        targetColumn = secondBestColumn;
+                        addLog(`    🎯 VALUE DETECTION (CORRECTED): Using '${targetColumn}' with $${secondBestTotal.toLocaleString()} from ${secondBestCount} rows`);
+                        return { total: secondBestTotal, count: secondBestCount };
+                      }
+                    }
+
                     if (bestValueColumn.total > 0) {
                       addLog(`    🎯 VALUE DETECTION: Using '${targetColumn}' with $${bestValueColumn.total.toLocaleString()} from ${bestValueColumn.count} rows`);
                       return { total: bestValueColumn.total, count: bestValueColumn.count };
@@ -1747,7 +1800,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 targetColumn = 'Network Data (Column S - On Hand Value)';
 
                 addLog(`🎯 NETWORK FOOTPRINT ${sheetName}: Total on hand value $${extractedAmount.toLocaleString()}`);
-                addLog(`��� On hand quantity (Column Q): ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
+                addLog(`📦 On hand quantity (Column Q): ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0}`);
                 addLog(`💰 Average cost (Column M): $${networkFootprintData.averageCost?.toFixed(2) || 0}`);
                 addLog(`📊 SKU count: ${networkFootprintData.skuCount || 0}`);
 
@@ -1788,7 +1841,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 networkFootprintData.totalOnHandValue = 0;
               }
             } else {
-              addLog(`⏭️ SKIPPING TAB: ${sheetName} (only processing Network Footprint tabs)`);
+              addLog(`⏭�� SKIPPING TAB: ${sheetName} (only processing Network Footprint tabs)`);
             }
 
           } else {
