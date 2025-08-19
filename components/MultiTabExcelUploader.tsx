@@ -1076,7 +1076,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 addLog(`⏱️ 2025 YTD Productive Hours: ${productivityMetrics.year2025.productiveHours?.toLocaleString() || 0}`);
                 addLog(`🕐 2025 YTD Total Hours: ${productivityMetrics.year2025.totalHours?.toLocaleString() || 0}`);
                 addLog(`📈 2025 YTD Productive UPH: ${productivityMetrics.year2025.productiveUPH?.toFixed(2) || 0}`);
-                addLog(`📊 2025 YTD Total UPH: ${productivityMetrics.year2025.totalUPH?.toFixed(2) || 0}`);
+                addLog(`��� 2025 YTD Total UPH: ${productivityMetrics.year2025.totalUPH?.toFixed(2) || 0}`);
 
                 // If we have both years, calculate productivity changes
                 if (productivityMetrics.year2024) {
@@ -1457,7 +1457,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           } else if (fileType === 'NETWORK_FOOTPRINT') {
             // Process ALL tabs in Network Footprint to find the missing $48M inventory value
             if (true) { // Process all tabs instead of limiting to specific ones
-              addLog(`🌐 NETWORK FOOTPRINT PROCESSING: Analyzing ${sheetName} tab for network data`);
+              addLog(`��� NETWORK FOOTPRINT PROCESSING: Analyzing ${sheetName} tab for network data`);
 
               networkFootprintData = {};
 
@@ -1524,17 +1524,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                   const avgCasesPerPallet = skuCount > 0 ? totalCasesPerPallet / skuCount : 0;
                   const avgUnitsPerCase = skuCount > 0 ? totalUnitsPerCase / skuCount : 0;
 
-                  // FIXED: Calculate pallet count based on actual inventory quantities (should be 14-18K pallets)
-                  // Use the total units from Column Q (should be 13M+) and dimensional ratios
-                  const actualInventoryUnits = networkFootprintData.totalOnHandQuantity || 0;
-                  let estimatedPalletCount = 0;
-
-                  if (avgUnitsPerCase > 0 && avgCasesPerPallet > 0 && actualInventoryUnits > 0) {
-                    estimatedPalletCount = Math.ceil(actualInventoryUnits / (avgUnitsPerCase * avgCasesPerPallet));
-                  } else {
-                    // Fallback calculation if dimensional data is incomplete
-                    estimatedPalletCount = Math.ceil(totalPallets);
-                  }
+                  // Store ratios for later pallet calculation when we have inventory quantities
+                  const estimatedPalletCount = Math.ceil(totalPallets); // Placeholder for now
 
                   dimensionalMetrics.avgCaseHeight = skuCount > 0 ? dimensionalMetrics.avgCaseHeight / skuCount : 0;
                   dimensionalMetrics.avgCaseWidth = skuCount > 0 ? dimensionalMetrics.avgCaseWidth / skuCount : 0;
