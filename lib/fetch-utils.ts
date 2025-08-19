@@ -235,6 +235,19 @@ const fetchWithTimeout = async (
       });
     }
 
+    // Handle production-specific "Failed to fetch" errors
+    if (isProduction && (errorName === 'TypeError' || errorMessage.includes('Failed to fetch'))) {
+      console.debug('Production fetch error handled gracefully:', errorMessage);
+      return new Response(JSON.stringify({ error: 'Network unavailable' }), {
+        status: 503,
+        statusText: 'Service Temporarily Unavailable',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Production-Error': 'fetch-failed'
+        }
+      });
+    }
+
     if (error instanceof Error) {
       // Handle specific "Failed to fetch" errors in cloud environments
       if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
