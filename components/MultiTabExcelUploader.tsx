@@ -1523,7 +1523,18 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                   // Calculate averages
                   const avgCasesPerPallet = skuCount > 0 ? totalCasesPerPallet / skuCount : 0;
                   const avgUnitsPerCase = skuCount > 0 ? totalUnitsPerCase / skuCount : 0;
-                  const estimatedPalletCount = Math.ceil(totalPallets);
+
+                  // FIXED: Calculate pallet count based on actual inventory quantities (should be 14-18K pallets)
+                  // Use the total units from Column Q (should be 13M+) and dimensional ratios
+                  const actualInventoryUnits = networkFootprintData.totalOnHandQuantity || 0;
+                  let estimatedPalletCount = 0;
+
+                  if (avgUnitsPerCase > 0 && avgCasesPerPallet > 0 && actualInventoryUnits > 0) {
+                    estimatedPalletCount = Math.ceil(actualInventoryUnits / (avgUnitsPerCase * avgCasesPerPallet));
+                  } else {
+                    // Fallback calculation if dimensional data is incomplete
+                    estimatedPalletCount = Math.ceil(totalPallets);
+                  }
 
                   dimensionalMetrics.avgCaseHeight = skuCount > 0 ? dimensionalMetrics.avgCaseHeight / skuCount : 0;
                   dimensionalMetrics.avgCaseWidth = skuCount > 0 ? dimensionalMetrics.avgCaseWidth / skuCount : 0;
