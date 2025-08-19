@@ -1587,7 +1587,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                   for (const row of sheetData.data) {
                     if (row && row[targetColumn]) {
                       const numValue = parseFloat(String(row[targetColumn]).replace(/[$,\s]/g, ''));
-                      if (!isNaN(numValue) && numValue > 0) {
+                      // FIXED: Include ALL numeric values including zeros to capture full $48M and 13M units
+                      if (!isNaN(numValue) && numValue >= 0) {
                         total += numValue;
                         count++;
                       }
