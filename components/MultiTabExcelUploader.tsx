@@ -810,7 +810,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
         // Use adaptive learning system for transportation cost extraction
         addLog(`🧠 LEARNING SYSTEM: Processing ${fileType} ${sheetName} - ${sheetData.columnHeaders.length} columns, ${sheetData.data.length} rows`);
-        addLog(`�� COLUMNS: ${sheetData.columnHeaders.join(', ')}`);
+        addLog(`🧠 COLUMNS: ${sheetData.columnHeaders.join(', ')}`);
 
         let targetColumn = '';
         let extractedAmount = 0;
@@ -1490,6 +1490,14 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                       const caseHeight = parseFloat(String(row['Case Height'] || '').replace(/[^0-9.]/g, '')) || 0;
                       const caseWidth = parseFloat(String(row['Case Width'] || '').replace(/[^0-9.]/g, '')) || 0;
                       const caseLength = parseFloat(String(row['Case Length'] || '').replace(/[^0-9.]/g, '')) || 0;
+
+                      // Validate dimensional data to prevent extreme values
+                      const maxReasonableValue = 1000; // Max reasonable case dimension
+                      const validCaseCubicSize = caseCubicSize > 0 && caseCubicSize < maxReasonableValue ? caseCubicSize : 0;
+                      const validCaseWeight = caseWeight > 0 && caseWeight < maxReasonableValue ? caseWeight : 0;
+                      const validCaseHeight = caseHeight > 0 && caseHeight < maxReasonableValue ? caseHeight : 0;
+                      const validCaseWidth = caseWidth > 0 && caseWidth < maxReasonableValue ? caseWidth : 0;
+                      const validCaseLength = caseLength > 0 && caseLength < maxReasonableValue ? caseLength : 0;
 
                       if (casesPerPallet > 0 && unitsPerCase > 0) {
                         totalCasesPerPallet += casesPerPallet;
