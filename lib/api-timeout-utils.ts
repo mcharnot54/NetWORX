@@ -16,22 +16,22 @@ interface OperationConfig {
 // Timeout configurations optimized for cloud environments
 export const TIMEOUT_CONFIGS: OperationConfig = {
   fast: {
-    timeout: 5000,
-    retries: 1,
+    timeout: 10000, // Increased from 5s to 10s
+    retries: 0, // Reduced retries to prevent cascading
     errorMessage: 'Quick operation timed out'
   },
   medium: {
-    timeout: 15000,
-    retries: 2,
+    timeout: 30000, // Increased from 15s to 30s
+    retries: 1, // Reduced retries
     errorMessage: 'Operation timed out'
   },
   slow: {
-    timeout: 30000,
-    retries: 1,
+    timeout: 60000, // Increased from 30s to 60s
+    retries: 0, // No retries for slow operations
     errorMessage: 'Heavy operation timed out'
   },
   background: {
-    timeout: 60000,
+    timeout: 120000, // Increased to 2 minutes
     retries: 0,
     errorMessage: 'Background operation timed out'
   }
