@@ -826,6 +826,66 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           // Apply file-type specific extraction rules
           addLog(`🧠 PROCESSING: ${fileType} file, analyzing ${sheetName} tab`);
 
+          // SALES_DATA FILES: Extract sales data for Inventory Turns & DSO calculations
+          if (fileType === 'SALES_DATA') {
+            addLog(`📊 SALES DATA PROCESSING: Analyzing ${sheetName} for revenue and sales metrics`);
+
+            // Look for sales/revenue columns
+            let totalSales = 0;
+            let salesCount = 0;
+            let bestSalesColumn = '';
+
+            for (const columnName of sheetData.columnHeaders) {
+              if (columnName && (
+                columnName.toLowerCase().includes('sales') ||
+                columnName.toLowerCase().includes('revenue') ||
+                columnName.toLowerCase().includes('amount') ||
+                columnName.toLowerCase().includes('total') ||
+                columnName.toLowerCase().includes('dollars') ||
+                columnName.toLowerCase().includes('value') ||
+                columnName.toLowerCase().includes('net') ||
+                columnName.toLowerCase().includes('gross')
+              )) {
+                let columnTotal = 0;
+                let columnCount = 0;
+
+                for (const row of sheetData.data) {
+                  if (row && row[columnName]) {
+                    const numValue = parseFloat(String(row[columnName]).replace(/[$,\s]/g, ''));
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      columnTotal += numValue;
+                      columnCount++;
+                    }
+                  }
+                }
+
+                if (columnTotal > totalSales) {
+                  totalSales = columnTotal;
+                  salesCount = columnCount;
+                  bestSalesColumn = columnName;
+                  addLog(`    💰 SALES COLUMN: Found '${columnName}' with $${columnTotal.toLocaleString()} from ${columnCount} rows`);
+                }
+              }
+            }
+
+            if (totalSales > 0) {
+              extractedAmount = totalSales;
+              targetColumn = `Sales Data (${bestSalesColumn})`;
+
+              // Store sales data for calculations
+              salesData = {
+                totalSales,
+                salesPeriods: salesCount,
+                averageSalesPerPeriod: totalSales / salesCount,
+                tab: sheetName
+              };
+
+              addLog(`🎯 HISTORICAL SALES: Found $${totalSales.toLocaleString()} in sales data from ${salesCount} records`);
+              addLog(`📈 Average sales per period: $${(totalSales / salesCount).toLocaleString()}`);
+            } else {
+              addLog(`⚠️ No sales data found in ${sheetName} - checking for other data patterns`);
+            }
+          }
           // UPS FILES: Extract from Column G (Net Charge) for all four tabs
           if (fileType === 'UPS') {
             addLog(`���� UPS PROCESSING: Looking for Net Charge column (Column G)`);
