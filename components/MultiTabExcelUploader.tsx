@@ -369,7 +369,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           } else {
             const numValue = parseFloat(String(cellValue).replace(/[$,\s"]/g, ''));
             if (!isNaN(numValue)) {
-              addLog(`    �� ${excelCol}${excelRow}: ${numValue}`);
+              addLog(`    📍 ${excelCol}${excelRow}: ${numValue}`);
               return numValue;
             }
           }
@@ -1576,17 +1576,33 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                                        columnName.includes('__EMPTY_15') ||
                                        columnName.includes('__EMPTY_16'); // Try adjacent columns too
                     } else {
-                      // For values (should sum to $48M+)
+                      // For values (should sum to $48M+) - ENHANCED: Check more column patterns
                       isRelevantColumn = columnName.toLowerCase().includes('value') ||
                                        columnName.toLowerCase().includes('amount') ||
                                        columnName.toLowerCase().includes('cost') ||
                                        columnName.toLowerCase().includes('total') ||
                                        columnName.toLowerCase().includes('inventory') ||
+                                       columnName.toLowerCase().includes('price') ||
+                                       columnName.toLowerCase().includes('dollar') ||
+                                       columnName.toLowerCase().includes('money') ||
+                                       columnName.toLowerCase().includes('extended') ||
                                        columnName === 'S' ||
                                        columnName.includes('Main Inventory Location') ||
+                                       // Check ALL adjacent empty columns around the known good ones
                                        columnName.includes('__EMPTY_17') ||
                                        columnName.includes('__EMPTY_18') ||
-                                       columnName.includes('__EMPTY_19'); // Try adjacent columns
+                                       columnName.includes('__EMPTY_19') ||
+                                       columnName.includes('__EMPTY_20') ||
+                                       columnName.includes('__EMPTY_21') ||
+                                       columnName.includes('__EMPTY_22') ||
+                                       columnName.includes('__EMPTY_23') ||
+                                       columnName.includes('__EMPTY_24') ||
+                                       columnName.includes('__EMPTY_25') ||
+                                       // Also check before column 17
+                                       columnName.includes('__EMPTY_16') ||
+                                       columnName.includes('__EMPTY_15') ||
+                                       columnName.includes('__EMPTY_14') ||
+                                       columnName.includes('__EMPTY_13');
                     }
 
                     if (isRelevantColumn) {
