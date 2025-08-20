@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Set a shorter statement timeout for quicker feedback
     await sql`SET statement_timeout = '30s'`;
 
-    // Create projects table if it doesn't exist
+    // Create projects table with optimized constraints
     await sql`
       CREATE TABLE IF NOT EXISTS projects (
         id SERIAL PRIMARY KEY,
@@ -119,9 +119,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Database initialization failed:', error);
+
+    // Handle timeout errors specifically
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database initialization timeout',
+        message: 'The database initialization took too long. Please try again or check your database connection.',
+        timeout_duration_ms: Date.now() - startTime
+      }, { status: 408 });
+    }
+
     return NextResponse.json({
       success: false,
-      error: `Database initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `Database initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      duration_ms: Date.now() - startTime
     }, { status: 500 });
   }
 }
