@@ -23,15 +23,16 @@ const createDatabaseConnection = () => {
   // Configure Neon connection with optimized timeout settings for cloud environments
   return neon(process.env.DATABASE_URL, {
     // Connection timeout optimized for cloud environments
-    connectionTimeoutMillis: 20000, // 20 seconds
-    queryTimeoutMillis: 45000, // 45 seconds
-    idleTimeoutMillis: 30000, // 30 seconds idle timeout
+    connectionTimeoutMillis: 15000, // Reduced to 15 seconds for faster failure detection
+    queryTimeoutMillis: 30000, // Reduced to 30 seconds to prevent long waits
+    idleTimeoutMillis: 20000, // Reduced to 20 seconds to prevent stale connections
 
     // Database-level timeouts
     arrayMode: false,
     fullResults: false,
     fetchOptions: {
       cache: 'no-store', // Prevent stale connections
+      signal: AbortSignal.timeout(25000), // 25 second fetch timeout
     },
   });
 };
