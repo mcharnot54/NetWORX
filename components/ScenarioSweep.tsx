@@ -96,7 +96,7 @@ async function buildDemoPayload() {
     transportation: {
       fixed_cost_per_facility: 150000, cost_per_mile: 2.5, service_level_requirement: 0.95, max_distance_miles: 900,
       required_facilities: 1, max_facilities: 10, max_capacity_per_facility: 5_000_000, mandatory_facilities: [],
-      weights: { cost: 0.6, service_level: 0.3 },
+      weights: { cost: 0.6, service_level: 0.3 }, lease_years: 7,
     }
   } as any;
   const forecast = [ { year: 2026, annual_units: 12_000_000 }, { year: 2027, annual_units: 13_800_000 }, { year: 2028, annual_units: 15_180_000 } ];
