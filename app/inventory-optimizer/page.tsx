@@ -646,32 +646,7 @@ export default function InventoryOptimizer() {
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
                     Demand Variability (CV) Analysis
                   </h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ScatterChart data={serviceLevelData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="cv"
-                        name="CV"
-                        type="number"
-                        domain={[0, 1]}
-                      />
-                      <YAxis
-                        dataKey="lead_time"
-                        name="Lead Time"
-                        type="number"
-                      />
-                      <Tooltip
-                        formatter={(value, name) => [
-                          name === "cv" ? Number(value).toFixed(2) : `${value} days`,
-                          name === "cv"
-                            ? "Coefficient of Variation"
-                            : "Lead Time",
-                        ]}
-                        labelFormatter={(label) => `SKU: ${label}`}
-                      />
-                      <Scatter name="SKUs" dataKey="target" fill="#8b5cf6" />
-                    </ScatterChart>
-                  </ResponsiveContainer>
+                  <PlaceholderChart title="Service Level Analysis" />
                   <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
                     <div
                       style={{
