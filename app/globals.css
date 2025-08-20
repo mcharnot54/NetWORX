@@ -105,7 +105,7 @@ a {
   flex: 1;
   margin-left: 280px;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: calc(100vh - 120px);
+  min-height: calc(100vh - 140px);
 }
 
 /* Adjust main content when sidebar is collapsed */
