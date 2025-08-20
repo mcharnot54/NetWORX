@@ -649,5 +649,3 @@ export class AuditLogService {
     `;
   }
 }
-
-export { sql };
