@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
           facilities_used: transportMultiYear.perYear[0]?.transport.facility_allocation.map(f => f.facility) || [],
         });
 
-        console.log(`✅ ${nodes} nodes: $${Math.round(totalCost).toLocaleString()}, Service: ${(transportResult.network_metrics.service_level_achievement * 100).toFixed(1)}%`);
+        console.log(`✅ ${nodes} nodes: $${Math.round(totalNetworkCost).toLocaleString()}, Service: ${(transportMultiYear.totals.weighted_service_level * 100).toFixed(1)}%`);
 
       } catch (error) {
         console.error(`❌ Failed to optimize ${nodes} nodes:`, error);
@@ -227,40 +227,30 @@ export async function POST(req: NextRequest) {
           nodes,
           error: error instanceof Error ? error.message : 'Optimization failed',
           kpis: {
-            year1_total_cost: Infinity,
-            service_level: 0,
+            total_network_cost_all_years: Infinity,
+            weighted_service_level: 0,
             facilities_opened: 0,
           },
         });
       }
     }
 
-    // Find best scenario based on criterion
+    // Find best scenario based on total network cost with service as tie-breaker
     let bestIdx = 0;
     const validScenarios = scenarios.filter(s => !s.error);
-    
+
     if (validScenarios.length > 0) {
-      if (criterion === 'service_then_cost') {
-        let bestSvc = -1;
-        let bestCost = Infinity;
-        validScenarios.forEach((s, i) => {
-          const svc = s.kpis.service_level;
-          const cost = s.kpis.year1_total_cost;
-          if (svc > bestSvc || (svc === bestSvc && cost < bestCost)) {
-            bestSvc = svc;
-            bestCost = cost;
-            bestIdx = scenarios.indexOf(s);
-          }
-        });
-      } else {
-        let bestCost = Infinity;
-        validScenarios.forEach((s, i) => {
-          if (s.kpis.year1_total_cost < bestCost) {
-            bestCost = s.kpis.year1_total_cost;
-            bestIdx = scenarios.indexOf(s);
-          }
-        });
-      }
+      let bestCost = Infinity;
+      let bestSvc = -1;
+      validScenarios.forEach((s, i) => {
+        const cost = s.kpis.total_network_cost_all_years;
+        const svc = s.kpis.weighted_service_level;
+        if (cost < bestCost || (cost === bestCost && svc > bestSvc)) {
+          bestCost = cost;
+          bestSvc = svc;
+          bestIdx = scenarios.indexOf(s);
+        }
+      });
     }
 
     const response = {
