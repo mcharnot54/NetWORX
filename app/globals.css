@@ -113,15 +113,49 @@ a {
   margin-left: 80px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .main-content {
     margin-left: 0;
+    padding: 1.5rem;
   }
+
   .sidebar-navigation {
     transform: translateX(-100%);
+    position: fixed;
+    z-index: 50;
+    width: 280px !important;
+    min-width: 280px !important;
   }
+
   .sidebar-navigation.mobile-open {
     transform: translateX(0);
+  }
+
+  .content-area {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-area {
+    padding: 1rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .banner {
+    padding: 1rem;
+  }
+
+  .banner-title {
+    font-size: 2rem;
+  }
+
+  .banner-subtitle {
+    font-size: 0.9rem;
   }
 }
 
