@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if DATABASE_URL is set first
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({
+        status: 'disconnected',
+        error: 'Database not configured: DATABASE_URL environment variable is missing',
+        timestamp: new Date().toISOString(),
+        suggestion: 'Connect to Neon database to get a DATABASE_URL'
+      }, { status: 503 });
+    }
+
     // Simple database connectivity test
     const { sql } = await import('@/lib/database');
     
