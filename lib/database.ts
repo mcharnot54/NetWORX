@@ -1,8 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 
-if (!process.env.DATABASE_URL) {
-  console.warn("DATABASE_URL is not set - database operations will fail");
-  // Create a mock sql function that throws helpful errors
+// Create a mock sql function that throws helpful errors when DATABASE_URL is missing
+const createMockSql = () => {
   const mockSql = () => {
     throw new Error("Database not configured: DATABASE_URL environment variable is missing. Please connect to a database service.");
   };
@@ -12,12 +11,18 @@ if (!process.env.DATABASE_URL) {
       throw new Error("Database not configured: DATABASE_URL environment variable is missing");
     }
   });
+  return mockSql;
+};
 
-  // Export mock sql to prevent import errors
-  export { mockSql as sql };
+// Configure database connection
+let sql: any;
+
+if (!process.env.DATABASE_URL) {
+  console.warn("DATABASE_URL is not set - database operations will fail");
+  sql = createMockSql();
 } else {
   // Configure Neon connection with optimized timeout settings for cloud environments
-  const sql = neon(process.env.DATABASE_URL, {
+  sql = neon(process.env.DATABASE_URL, {
     // Connection timeout optimized for cloud environments
     connectionTimeoutMillis: 20000, // 20 seconds
     queryTimeoutMillis: 45000, // 45 seconds
@@ -30,8 +35,6 @@ if (!process.env.DATABASE_URL) {
       cache: 'no-store', // Prevent stale connections
     },
   });
-
-  export { sql };
 }
 
 // Type definitions for database entities
