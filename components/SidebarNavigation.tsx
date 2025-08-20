@@ -164,9 +164,9 @@ export default function SidebarNavigation({ className = "" }: SidebarNavigationP
       style={{
         width: isCollapsed ? "80px" : "280px",
         minWidth: isCollapsed ? "80px" : "280px",
-        height: "calc(100vh - 140px)", // Account for banner height plus spacing
+        height: "calc(100vh - 120px)", // Account for banner height
         position: "fixed",
-        top: "140px", // Position below banner with extra spacing
+        top: "120px", // Position below fixed banner
         left: "0",
         backgroundColor: "white",
         borderRight: "3px solid #3b82f6",
