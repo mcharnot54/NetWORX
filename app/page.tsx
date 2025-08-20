@@ -1,6 +1,7 @@
 "use client";
 
 import DatabaseStatus from "@/components/DatabaseStatus";
+import { TimeoutDiagnostic } from "@/components/TimeoutDiagnostic";
 import {
   Activity,
   Database,
