@@ -16,6 +16,9 @@ export type TransportParams = {
     cost: number;
     service_level: number;
   };
+
+  // NEW: minimum years a facility stays open (default 7)
+  lease_years?: number;
 };
 
 export type TransportResult = {
