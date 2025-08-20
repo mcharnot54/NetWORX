@@ -1,6 +1,7 @@
 "use client";
 
 import DatabaseStatus from "@/components/DatabaseStatus";
+import { TimeoutDiagnostic } from "@/components/TimeoutDiagnostic";
 import {
   Activity,
   Database,
@@ -752,7 +753,7 @@ export default function Dashboard() {
                 </div>
                 <div style={{ color: "#059669", fontSize: "0.75rem", lineHeight: "1.4" }}>
                   ✅ Adaptive learning system operational<br/>
-                  ✅ All file types processing correctly<br/>
+                  ��� All file types processing correctly<br/>
                   ✅ Column detection working (NET first, Gross fallback)<br/>
                   ✅ No JavaScript errors or fallback triggers
                 </div>
@@ -2412,6 +2413,11 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Timeout Health Monitor - Bottom of Page */}
+        <div style={{ marginTop: "2rem" }}>
+          <TimeoutDiagnostic />
         </div>
     </main>
   );
