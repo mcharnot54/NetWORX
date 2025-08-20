@@ -134,6 +134,10 @@ a {
   .content-area {
     padding: 1.5rem;
   }
+
+  .mobile-sidebar-toggle {
+    display: flex !important;
+  }
 }
 
 @media (max-width: 768px) {
