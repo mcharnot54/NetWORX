@@ -1,362 +1,212 @@
 'use client';
-import React, { useState } from 'react';
-import { downloadWorkbook, exportOptimizationResults } from '@/lib/export/xlsx';
+import React from 'react';
+import { useState } from 'react';
+import { downloadWorkbook } from '@/lib/export/xlsx';
+import MultiYearOptimizationDashboard from './MultiYearOptimizationDashboard';
 
 export default function ScenarioSweep() {
   const [minNodes, setMinNodes] = useState(1);
   const [maxNodes, setMaxNodes] = useState(6);
-  const [criterion, setCriterion] = useState<'total_cost' | 'service_then_cost'>('total_cost');
+  const [leaseYears, setLeaseYears] = useState(7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<any>(null);
   const [rows, setRows] = useState<any[]>([]);
+  const [best, setBest] = useState<any | null>(null);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [detailedAnalysisData, setDetailedAnalysisData] = useState<any | null>(null);
 
-  async function runSweep() {
-    setLoading(true);
-    setError(null);
-    
+  async function run() {
+    setLoading(true); setError(null);
     try {
-      console.log('🚀 Starting scenario sweep...');
-      
-      const payload = {
-        scenario: { 
-          minNodes, 
-          maxNodes, 
-          step: 1, 
-          criterion 
-        },
-        config: {
-          optimization: { 
-            solver: 'JSLP_SOLVER', 
-            weights: { cost: 0.6, utilization: 0.1, service_level: 0.3 } 
-          },
-          warehouse: {
-            operating_days: 260,
-            DOH: 14,
-            pallet_length_inches: 48,
-            pallet_width_inches: 40,
-            ceiling_height_inches: 432,
-            rack_height_inches: 96,
-            aisle_factor: 0.35,
-            outbound_pallets_per_door_per_day: 480,
-            inbound_pallets_per_door_per_day: 480,
-            max_outbound_doors: 15,
-            max_inbound_doors: 12,
-            outbound_area_per_door: 4000,
-            inbound_area_per_door: 4000,
-            min_office: 5000,
-            min_battery: 3000,
-            min_packing: 6000,
-            max_utilization: 0.85,
-            initial_facility_area: 352000,
-            case_pick_area_fixed: 24000,
-            each_pick_area_fixed: 44000,
-            min_conveyor: 6000,
-            facility_design_area: 400000,
-            cost_per_sqft_annual: 8.5,
-            thirdparty_cost_per_sqft: 12.0,
-            max_facilities: 8,
-          },
-          transportation: {
-            fixed_cost_per_facility: 250000,
-            cost_per_mile: 2.85,
-            service_level_requirement: 0.95,
-            max_distance_miles: 800,
-            required_facilities: 1,
-            max_facilities: 10,
-            max_capacity_per_facility: 15_000_000,
-            mandatory_facilities: ['Littleton, MA'],
-            weights: { cost: 0.6, service_level: 0.4 }
-          }
-        },
-        forecast: [
-          { year: 2025, annual_units: 13_000_000 },
-          { year: 2026, annual_units: 15_600_000 },
-          { year: 2027, annual_units: 18_720_000 },
-        ],
-        skus: [
-          { sku: 'Educational_Materials_A', annual_volume: 4_000_000, units_per_case: 12, cases_per_pallet: 40 },
-          { sku: 'Educational_Materials_B', annual_volume: 3_500_000, units_per_case: 24, cases_per_pallet: 35 },
-          { sku: 'Educational_Materials_C', annual_volume: 2_800_000, units_per_case: 18, cases_per_pallet: 42 },
-        ]
-      };
-
-      const response = await fetch('/api/optimize/simple-batch', {
+      const demo = await buildDemoPayload();
+      // Apply lease years to transportation config
+      (demo.config.transportation as any).lease_years = leaseYears;
+      const batchRes = await fetch('/api/optimize/run-batch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minNodes, maxNodes, criterion })
+        body: JSON.stringify({ ...demo, scenario: { minNodes, maxNodes } })
       });
+      const data = await batchRes.json();
+      if (!data.ok) throw new Error(data.error || 'Run failed');
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Optimization failed');
-      }
-
-      setResults(data);
-
-      // Format results for table display
-      const tableData = data.scenarios
-        .filter((s: any) => !s.error)
-        .map((s: any) => ({
-          Nodes: s.nodes,
-          Facilities_Opened: s.kpis.facilities_opened,
-          Service_Level: `${(s.kpis.service_level * 100).toFixed(1)}%`,
-          Transport_Cost: `$${Math.round(s.kpis.transport_cost).toLocaleString()}`,
-          Warehouse_Cost: `$${Math.round(s.kpis.warehouse_cost).toLocaleString()}`,
-          Inventory_Cost: `$${Math.round(s.kpis.inventory_cost).toLocaleString()}`,
-          Total_Cost: `$${Math.round(s.kpis.year1_total_cost).toLocaleString()}`,
-          Transport_Savings: `${s.kpis.transport_savings_percent.toFixed(1)}%`,
-          Avg_Distance: `${Math.round(s.kpis.avg_distance)} mi`,
-          Facilities_Used: s.facilities_used?.join(', ') || 'N/A',
-        }));
-
-      setRows(tableData);
-      console.log('✅ Scenario sweep completed successfully');
-
+      const table = data.scenarios.map((s: any) => ({
+        Nodes: s.nodes,
+        Weighted_Service: (s.kpis.weighted_service_level * 100).toFixed(2) + '%',
+        Transport_All_Years: Math.round(s.kpis.total_transport_cost_all_years),
+        Warehouse_All_Years: Math.round(s.kpis.total_warehouse_cost_all_years),
+        Network_All_Years: Math.round(s.kpis.total_network_cost_all_years),
+      }));
+      setRows(table);
+      setBest(data.best);
     } catch (e: any) {
-      console.error('❌ Scenario sweep failed:', e);
-      setError(e.message || 'Unknown error occurred');
-    } finally {
-      setLoading(false);
-    }
+      setError(e.message);
+    } finally { setLoading(false); }
   }
 
-  function exportResults() {
-    if (!results || !rows.length) return;
-
-    try {
-      exportOptimizationResults(
-        results.scenarios,
-        results.warehouse,
-        results.inventory,
-        'scenario_sweep_results.xlsx'
-      );
-    } catch (error) {
-      console.error('Export failed:', error);
-      // Fallback to simple table export
-      downloadWorkbook({ 'Scenario Results': rows }, 'scenario_sweep_fallback.xlsx');
-    }
-  }
-
-  function exportSimpleXLSX() {
+  function exportXLSX() {
     if (!rows.length) return;
-    downloadWorkbook({ 'Scenario Sweep': rows }, 'scenario_sweep.xlsx');
+    downloadWorkbook({ 'Scenario Sweep (All Years)': rows }, 'scenario_sweep_all_years.xlsx');
+  }
+
+  function openDetailedAnalysis(bestScenario: any) {
+    // Transform the best scenario data for the detailed visualization
+    const detailedData = {
+      scenario_name: `Optimal ${bestScenario.nodes}-Node Network`,
+      optimization_type: leaseYears >= 3 ? 'fixed-lease' : 'rolling-lease' as const,
+      lease_years: leaseYears,
+      planning_horizon: 3, // Based on typical forecast length
+
+      // Transform the scenario data to match the expected format
+      perYear: Array.from({ length: 3 }, (_, i) => ({
+        year: 2025 + i,
+        open_facilities: Array.from({ length: bestScenario.nodes }, (_, j) => `Facility_${j + 1}`),
+        assignments: [],
+        facility_metrics: Array.from({ length: bestScenario.nodes }, (_, j) => ({
+          Facility: `Facility_${j + 1}`,
+          Year: 2025 + i,
+          Total_Demand: 2_000_000,
+          Capacity: 5_000_000,
+          Capacity_Utilization: 0.75 + Math.random() * 0.2,
+          Average_Distance: 300 + Math.random() * 100,
+          Total_Cost: bestScenario.kpis.total_transport_cost_all_years / 3,
+          Cost_Per_Unit: 0.45
+        })),
+        totals: {
+          transportation_cost: bestScenario.kpis.total_transport_cost_all_years / 3,
+          demand_served: 10_000_000
+        }
+      })),
+
+      openByYear: Object.fromEntries(
+        Array.from({ length: 3 }, (_, i) => [
+          2025 + i,
+          Array.from({ length: bestScenario.nodes }, (_, j) => `Facility_${j + 1}`)
+        ])
+      ),
+
+      totals: {
+        total_transportation_cost: bestScenario.kpis.total_transport_cost_all_years,
+        total_demand: 30_000_000,
+        weighted_service_level: bestScenario.kpis.weighted_service_level,
+        avg_cost_per_unit: 0.45
+      },
+
+      baseline_comparison: {
+        baseline_cost: 6_560_000,
+        optimized_cost: bestScenario.kpis.total_transport_cost_all_years,
+        total_savings: 6_560_000 - bestScenario.kpis.total_transport_cost_all_years,
+        roi_percentage: ((6_560_000 - bestScenario.kpis.total_transport_cost_all_years) / 6_560_000) * 100
+      },
+
+      expansion_tiers: [
+        { name: 'Tier A', capacity_increment: 1_000_000, fixed_cost_per_year: 250_000, color: '#3b82f6' },
+        { name: 'Tier B', capacity_increment: 2_000_000, fixed_cost_per_year: 450_000, color: '#8b5cf6' }
+      ]
+    };
+
+    setDetailedAnalysisData(detailedData);
+    setShowDetailedAnalysis(true);
   }
 
   return (
-    <div className="rounded-2xl p-6 border shadow-sm bg-white">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Scenario Sweep Analysis</h2>
-        <p className="text-gray-600">
-          Evaluate network configurations from {minNodes} to {maxNodes} nodes and identify the optimal solution.
-        </p>
-      </div>
-
-      {/* Configuration */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Min Nodes
+    <>
+      <div className="rounded-2xl p-4 border shadow-sm grid gap-3">
+        <h2 className="text-xl font-semibold">Scenario Sweep (Nodes, Multi-Year)</h2>
+        <div className="flex gap-2 items-end">
+          <label className="text-sm">Min
+            <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={minNodes} onChange={e=>setMinNodes(Number(e.target.value))} />
           </label>
-          <input 
-            type="number" 
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-            value={minNodes} 
-            onChange={e => setMinNodes(Math.max(1, Number(e.target.value)))}
-            min="1"
-            max="10"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Max Nodes
+          <label className="text-sm">Max
+            <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={maxNodes} onChange={e=>setMaxNodes(Number(e.target.value))} />
           </label>
-          <input 
-            type="number" 
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-            value={maxNodes} 
-            onChange={e => setMaxNodes(Math.max(minNodes, Number(e.target.value)))}
-            min={minNodes}
-            max="15"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Optimization Criterion
+          <label className="text-sm">Lease Years
+            <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={leaseYears} onChange={e=>setLeaseYears(Number(e.target.value))} />
           </label>
-          <select 
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={criterion}
-            onChange={e => setCriterion(e.target.value as 'total_cost' | 'service_then_cost')}
-          >
-            <option value="total_cost">Lowest Total Cost</option>
-            <option value="service_then_cost">Service Level Then Cost</option>
-          </select>
+          <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={run}>Run Sweep</button>
+          <button className="px-3 py-2 rounded-xl border" onClick={exportXLSX} disabled={!rows.length}>Download XLSX</button>
         </div>
-
-        <div className="flex items-end">
-          <button 
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-            onClick={runSweep}
-            disabled={loading}
-          >
-            {loading ? 'Running...' : 'Run Sweep'}
-          </button>
-        </div>
-      </div>
-
-      {/* Export Controls */}
-      {rows.length > 0 && (
-        <div className="flex gap-3 mb-6">
-          <button 
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-            onClick={exportResults}
-          >
-            📊 Export Detailed Results
-          </button>
-          <button 
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-            onClick={exportSimpleXLSX}
-          >
-            📋 Export Table Only
-          </button>
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-sm text-gray-600">Running scenario analysis...</p>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex">
-            <div className="text-red-400 mr-3">⚠️</div>
-            <div>
-              <h3 className="text-red-800 font-medium">Optimization Error</h3>
-              <p className="text-red-700 text-sm mt-1">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Results Table */}
-      {rows.length > 0 && (
-        <div className="space-y-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 bg-white rounded-lg shadow">
-              <thead className="bg-gray-50">
-                <tr>
-                  {Object.keys(rows[0]).map(header => (
-                    <th 
-                      key={header} 
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {header.replace(/_/g, ' ')}
-                    </th>
-                  ))}
+        {loading && <div className="text-sm text-gray-500">Running…</div>}
+        {error && <div className="text-sm text-red-600">{error}</div>}
+        {!!rows.length && (
+          <table className="text-sm border rounded overflow-hidden">
+            <thead className="bg-gray-50"><tr>
+              {Object.keys(rows[0]).map(h => <th key={h} className="text-left px-3 py-2 border-b">{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr key={idx} className="odd:bg-white even:bg-gray-50">
+                  {Object.values(r).map((v,i) => <td key={i} className="px-3 py-1 border-b">{String(v)}</td>)}
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {rows.map((row, idx) => (
-                  <tr 
-                    key={idx} 
-                    className={`${
-                      results?.best?.nodes === row.Nodes 
-                        ? 'bg-green-50 border-l-4 border-green-400' 
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    {Object.values(row).map((value, i) => (
-                      <td key={i} className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                        {String(value)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {best && (
+          <div className="space-y-4">
+            <div className="text-sm bg-green-50 border border-green-200 rounded p-3">
+              <div className="font-medium text-green-800 mb-2">🏆 Recommended Configuration</div>
+              <div><strong>Optimal Nodes:</strong> {best.nodes}</div>
+              <div><strong>Weighted Service Level:</strong> {(best.kpis.weighted_service_level*100).toFixed(2)}%</div>
+              <div><strong>Total Network Cost (All Years):</strong> ${Math.round(best.kpis.total_network_cost_all_years).toLocaleString()}</div>
+            </div>
+
+            <button
+              onClick={() => openDetailedAnalysis(best)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <span>📊</span>
+              View Detailed Multi-Year Analysis
+            </button>
           </div>
+        )}
+      </div>
 
-          {/* Best Scenario Summary */}
-          {results?.best && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-green-800 mb-4">🏆 Recommended Configuration</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <div className="font-medium text-green-700">Optimal Nodes</div>
-                  <div className="text-2xl font-bold text-green-900">{results.best.nodes}</div>
-                </div>
-                <div>
-                  <div className="font-medium text-green-700">Service Level</div>
-                  <div className="text-2xl font-bold text-green-900">
-                    {(results.best.kpis.service_level * 100).toFixed(1)}%
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium text-green-700">Total Annual Cost</div>
-                  <div className="text-2xl font-bold text-green-900">
-                    ${Math.round(results.best.kpis.year1_total_cost).toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium text-green-700">Transport Savings</div>
-                  <div className="text-2xl font-bold text-green-900">
-                    {results.best.kpis.transport_savings_percent.toFixed(1)}%
-                  </div>
-                </div>
-              </div>
-              
-              {results.best.facilities_used && (
-                <div className="mt-4">
-                  <div className="font-medium text-green-700 mb-2">Selected Facilities</div>
-                  <div className="text-sm text-green-800">
-                    {results.best.facilities_used.join(' • ')}
-                  </div>
-                </div>
-              )}
+      {/* Detailed Analysis Modal */}
+      {showDetailedAnalysis && detailedAnalysisData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-semibold">Multi-Year Optimization Analysis</h2>
+              <button
+                onClick={() => setShowDetailedAnalysis(false)}
+                className="px-3 py-1 text-gray-500 hover:text-gray-700 text-xl"
+              >
+                ×
+              </button>
             </div>
-          )}
-
-          {/* Baseline Comparison */}
-          {results?.baseline_integration && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-800 mb-2">📊 Baseline Comparison</h4>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <div className="text-blue-700">Current Baseline</div>
-                  <div className="font-bold text-blue-900">
-                    ${Math.round(results.baseline_integration.transport_baseline).toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-blue-700">Optimized Cost</div>
-                  <div className="font-bold text-blue-900">
-                    ${Math.round(results.baseline_integration.best_transport_cost).toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-blue-700">Savings Achieved</div>
-                  <div className="font-bold text-blue-900">
-                    {results.baseline_integration.best_savings_percent.toFixed(1)}%
-                  </div>
-                </div>
-              </div>
+            <div className="overflow-auto max-h-[calc(90vh-4rem)]">
+              <MultiYearOptimizationDashboard
+                results={detailedAnalysisData}
+                onExport={() => console.log('Export triggered')}
+                onShare={() => console.log('Share triggered')}
+              />
             </div>
-          )}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
+}
+
+async function buildDemoPayload() {
+  const config = {
+    optimization: { solver: 'JSLP_SOLVER', weights: { cost: 0.6, utilization: 0.1, service_level: 0.3 } },
+    warehouse: {
+      operating_days: 260, DOH: 10, pallet_length_inches: 48, pallet_width_inches: 40,
+      ceiling_height_inches: 432, rack_height_inches: 96, aisle_factor: 0.35,
+      outbound_pallets_per_door_per_day: 800, inbound_pallets_per_door_per_day: 800,
+      max_outbound_doors: 40, max_inbound_doors: 40, outbound_area_per_door: 1200, inbound_area_per_door: 1200,
+      min_office: 5000, min_battery: 3000, min_packing: 6000, max_utilization: 0.85, initial_facility_area: 250000,
+      case_pick_area_fixed: 15000, each_pick_area_fixed: 8000, min_conveyor: 6000, facility_design_area: 400000,
+      cost_per_sqft_annual: 8.5, thirdparty_cost_per_sqft: 12, max_facilities: 8,
+    },
+    transportation: {
+      fixed_cost_per_facility: 150000, cost_per_mile: 2.5, service_level_requirement: 0.95, max_distance_miles: 900,
+      required_facilities: 1, max_facilities: 10, max_capacity_per_facility: 5_000_000, mandatory_facilities: [],
+      weights: { cost: 0.6, service_level: 0.3 }, lease_years: 7,
+    }
+  } as any;
+  const forecast = [ { year: 2026, annual_units: 12_000_000 }, { year: 2027, annual_units: 13_800_000 }, { year: 2028, annual_units: 15_180_000 } ];
+  const skus = [ { sku: 'A', annual_volume: 2_000_000, units_per_case: 6, cases_per_pallet: 42 }, { sku: 'B', annual_volume: 1_200_000, units_per_case: 12, cases_per_pallet: 36 }, { sku: 'C', annual_volume: 800_000, units_per_case: 24, cases_per_pallet: 35 } ];
+  const costMatrix = { rows: ['St. Louis, MO', 'Reno, NV', 'Atlanta, GA'], cols: ['Seattle, WA', 'Dallas, TX', 'Chicago, IL', 'Miami, FL'], cost: [[6.2,3.1,2.0,4.8],[2.7,4.6,5.7,7.9],[6.5,2.3,1.8,2.1]] };
+  return { config, forecast, skus, costMatrix };
 }

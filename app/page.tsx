@@ -280,7 +280,10 @@ export default function Dashboard() {
       const response = await fetch('/api/current-baseline-costs', {
         signal: controller.signal,
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
       });
 
       if (timeoutId) {

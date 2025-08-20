@@ -11,11 +11,15 @@ const navItems = [
   { href: "/multi-tab-upload", label: "📊 Multi-Tab Upload" },
   { href: "/test-enhanced-validation", label: "🔍 Enhanced Validation" },
   { href: "/missing-data-demo", label: "🧠 Missing Data AI" },
+  { href: "/optimizer/import", label: "🗂️ Data Import Wizard" },
+  { href: "/optimizer", label: "🚀 Network Optimizer" },
+  { href: "/optimizer/scenarios", label: "📊 Scenario Sweep" },
   { href: "/capacity-optimizer", label: "Capacity Optimizer" },
   { href: "/warehouse-optimizer", label: "Warehouse Optimizer" },
   { href: "/transport-optimizer", label: "Transport Optimizer" },
   { href: "/inventory-optimizer", label: "Inventory Optimizer" },
   { href: "/visualizer", label: "Results & Visualization" },
+  { href: "/timeout-debug", label: "⏱️ Timeout Debug" },
   { href: "/config", label: "Configuration" },
 ];
 

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCostMatrix, optimizeTransport } from '@/lib/advanced-transport-optimizer';
 import { DemandMap, CapacityMap, TransportParams } from '@/types/advanced-optimization';
 
 export async function POST(request: NextRequest) {
@@ -26,6 +25,9 @@ export async function POST(request: NextRequest) {
 
     // Get baseline transportation cost
     const actualTransportBaseline = 6560000; // $6.56M verified baseline
+
+    // Dynamically import heavy optimization modules
+    const { generateCostMatrix, optimizeTransport } = await import('@/lib/advanced-transport-optimizer');
 
     // Generate cost matrices for both scenarios
     console.log('📊 Generating cost matrix for Littleton + Chicago...');

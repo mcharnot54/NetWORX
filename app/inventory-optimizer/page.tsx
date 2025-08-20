@@ -24,6 +24,8 @@ import {
   ComposedChart,
   ReferenceLine,
 } from "recharts";
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 import {
   Package,
   Calculator,
@@ -598,29 +600,24 @@ export default function InventoryOptimizer() {
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
                     ABC Stratification Analysis
                   </h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={abcAnalysisData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="class" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <Bar
-                        yAxisId="left"
-                        dataKey="count"
-                        fill="#3b82f6"
-                        name="SKU Count"
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={abcAnalysisData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ class: cls, percentage }) => `${cls}: ${percentage}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
                         dataKey="percentage"
-                        stroke="#ef4444"
-                        strokeWidth={3}
-                        name="Value %"
-                      />
-                    </ComposedChart>
+                      >
+                        {abcAnalysisData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: any) => [`${value}%`, 'Value Share']}/>
+                    </PieChart>
                   </ResponsiveContainer>
                   <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
                     <div
@@ -657,30 +654,15 @@ export default function InventoryOptimizer() {
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
                     Demand Variability (CV) Analysis
                   </h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ScatterChart data={serviceLevelData}>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <ScatterChart
+                      data={serviceLevelData}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="cv"
-                        name="CV"
-                        type="number"
-                        domain={[0, 1]}
-                      />
-                      <YAxis
-                        dataKey="lead_time"
-                        name="Lead Time"
-                        type="number"
-                      />
-                      <Tooltip
-                        formatter={(value, name) => [
-                          name === "cv" ? Number(value).toFixed(2) : `${value} days`,
-                          name === "cv"
-                            ? "Coefficient of Variation"
-                            : "Lead Time",
-                        ]}
-                        labelFormatter={(label) => `SKU: ${label}`}
-                      />
-                      <Scatter name="SKUs" dataKey="target" fill="#8b5cf6" />
+                      <XAxis dataKey="cv" name="CV" domain={[0, 1]} />
+                      <YAxis dataKey="target" name="Service Level" domain={[80, 100]} />
+                      <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                      <Scatter name="SKUs" dataKey="target" fill="#0088FE" />
                     </ScatterChart>
                   </ResponsiveContainer>
                   <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
@@ -1535,51 +1517,20 @@ export default function InventoryOptimizer() {
                     <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
                       Risk Pooling Benefits
                     </h5>
-                    <ResponsiveContainer width="100%" height={250}>
+                    <ResponsiveContainer width="100%" height={200}>
                       <BarChart
                         data={[
-                          {
-                            locations: "1",
-                            safety_stock: 100,
-                            pooled_stock: 100,
-                          },
-                          {
-                            locations: "2",
-                            safety_stock: 200,
-                            pooled_stock: 141,
-                          },
-                          {
-                            locations: "4",
-                            safety_stock: 400,
-                            pooled_stock: 200,
-                          },
-                          {
-                            locations: "9",
-                            safety_stock: 900,
-                            pooled_stock: 300,
-                          },
-                          {
-                            locations: "16",
-                            safety_stock: 1600,
-                            pooled_stock: 400,
-                          },
+                          { scenario: 'Individual', safety: 145, cost: 285 },
+                          { scenario: 'Pooled', safety: 102, cost: 201 }
                         ]}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="locations" />
+                        <XAxis dataKey="scenario" />
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Bar
-                          dataKey="safety_stock"
-                          fill="#ef4444"
-                          name="Decentralized"
-                        />
-                        <Bar
-                          dataKey="pooled_stock"
-                          fill="#10b981"
-                          name="Risk Pooled"
-                        />
+                        <Bar dataKey="safety" fill="#0088FE" name="Safety Stock (units)" />
+                        <Bar dataKey="cost" fill="#00C49F" name="Inventory Cost ($K)" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

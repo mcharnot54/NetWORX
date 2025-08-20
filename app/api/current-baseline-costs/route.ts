@@ -136,13 +136,13 @@ export async function GET(request: NextRequest) {
           const fileNameLower = file.file_name.toLowerCase();
           let totalRowsProcessed = 0;
 
-          // Limit processing to prevent timeouts - only process first 2 data arrays
-          const maxArraysToProcess = Math.min(allDataArrays.length, 2);
-          for (let i = 0; i < maxArraysToProcess; i++) {
-            const dataArray = allDataArrays[i];
-            // Limit rows processed per array to prevent timeouts
-            const maxRowsToProcess = Math.min(dataArray.data.length, 1000);
-            const limitedData = dataArray.data.slice(0, maxRowsToProcess);
+          // Aggressive timeout prevention - further limit processing
+        const maxArraysToProcess = Math.min(allDataArrays.length, 1);
+        for (let i = 0; i < maxArraysToProcess; i++) {
+          const dataArray = allDataArrays[i];
+          // Strict row limit to prevent timeouts in slow environments
+          const maxRowsToProcess = Math.min(dataArray.data.length, 500);
+          const limitedData = dataArray.data.slice(0, maxRowsToProcess);
 
             totalRowsProcessed += limitedData.length;
             console.log(`Processing ${dataArray.source} from ${file.file_name} with ${limitedData.length}/${dataArray.data.length} rows`);

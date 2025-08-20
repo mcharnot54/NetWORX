@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { optimizeWarehouse } from '@/lib/advanced-warehouse-optimizer';
-import { optimizeTransport, generateCostMatrix } from '@/lib/advanced-transport-optimizer';
 import { 
   OptimizationConfig, 
   ForecastRow, 
@@ -17,6 +15,10 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Starting advanced optimization with MIP solvers...');
     console.log(`Scenario: ${scenario_id}, Type: ${optimization_type}`);
+
+    // Dynamically import heavy optimization modules to improve startup time
+    const { optimizeWarehouse } = await import('@/lib/advanced-warehouse-optimizer');
+    const { optimizeTransport, generateCostMatrix } = await import('@/lib/advanced-transport-optimizer');
 
     // Get actual baseline transportation data
     const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
@@ -76,10 +78,11 @@ export async function POST(request: NextRequest) {
         max_facilities: 5,                 // Allow multiple facilities for savings
         max_capacity_per_facility: 15_000_000, // Higher capacity for consolidation
         mandatory_facilities: ['Littleton, MA'], // Keep existing facility
-        weights: { 
+        weights: {
           cost: 0.6,                      // Prioritize cost optimization
           service_level: 0.4              // Maintain service levels
         },
+        lease_years: 7,                   // NEW: minimum years a facility stays open
         ...config_overrides?.transportation
       },
     };

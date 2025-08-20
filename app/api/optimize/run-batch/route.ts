@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { optimizeWarehouse } from '@/lib/advanced-warehouse-optimizer';
-import { optimizeTransport, generateCostMatrix } from '@/lib/advanced-transport-optimizer';
-import { optimizeInventory } from '@/lib/optimization/inventory';
-import { 
-  OptimizationConfig, 
-  ForecastRow, 
-  SKU, 
+import {
+  OptimizationConfig,
+  ForecastRow,
+  SKU,
   IntegratedRunResult,
   DemandMap,
-  CapacityMap 
+  CapacityMap,
+  CostMatrix
 } from '@/types/advanced-optimization';
+import { optimizeTransportMultiYear } from '@/lib/optimization/transportMultiYear';
+import { optimizeTransportMultiYearFixed } from '@/lib/optimization/transportMultiYearFixed';
 
 export async function POST(req: NextRequest) {
   try {
@@ -88,7 +88,8 @@ export async function POST(req: NextRequest) {
         max_facilities: 10,
         max_capacity_per_facility: 15_000_000,
         mandatory_facilities: ['Littleton, MA'],
-        weights: { cost: 0.6, service_level: 0.4 }
+        weights: { cost: 0.6, service_level: 0.4 },
+        lease_years: 7,
       },
       ...config
     };
@@ -117,6 +118,11 @@ export async function POST(req: NextRequest) {
       'Seattle, WA', 'Denver, CO', 'Phoenix, AZ', 'Houston, TX', 'Miami, FL',
       'Boston, MA', 'Philadelphia, PA', 'San Francisco, CA', 'Detroit, MI', 'Minneapolis, MN'
     ];
+
+    // Dynamically import heavy optimization modules to improve startup time
+    const { optimizeWarehouse } = await import('@/lib/advanced-warehouse-optimizer');
+    const { optimizeTransport, generateCostMatrix } = await import('@/lib/advanced-transport-optimizer');
+    const { optimizeInventory } = await import('@/lib/optimization/inventory');
 
     // Run warehouse optimization once (doesn't depend on node count)
     console.log('🏭 Running warehouse optimization...');
@@ -159,13 +165,13 @@ export async function POST(req: NextRequest) {
 
     const scenarios: any[] = [];
     
-    // Run transport optimization for each node count
+    // Run multi-year transport optimization for each node count
     for (let nodes = minNodes; nodes <= maxNodes; nodes += step) {
-      console.log(`🚛 Optimizing transport network: ${nodes} nodes...`);
-      
+      console.log(`🚛 Optimizing transport network: ${nodes} nodes (multi-year)...`);
+
       // Select top candidates based on node count
       const selectedCandidates = defaultCandidates.slice(0, Math.min(nodes + 2, defaultCandidates.length));
-      
+
       const capacity: CapacityMap = Object.fromEntries(
         selectedCandidates.map(facility => [
           facility,
@@ -174,46 +180,70 @@ export async function POST(req: NextRequest) {
       );
 
       try {
-        const transportResult = optimizeTransport(
-          defaultConfig.transportation,
-          costMatrix,
-          demand,
-          capacity,
-          { minFacilities: nodes, maxFacilities: nodes },
-          { current_cost: actualTransportBaseline, target_savings: 40 }
-        );
+        // Determine which optimizer to use based on lease years vs planning horizon
+        const years = defaultForecast.map(f => f.year);
+        const span = years.length;
+        const leaseYears = defaultConfig.transportation.lease_years ?? 7;
 
-        // Calculate combined metrics
-        const transportCost = transportResult.network_metrics.total_transportation_cost;
-        const warehouseCost = warehouseResult.optimization_summary.total_annual_cost;
-        const inventoryCost = inventoryResult.total_cost;
-        const totalCost = transportCost + warehouseCost + inventoryCost;
+        let transportMultiYear;
+        if (leaseYears >= span) {
+          // Use fixed-lease optimizer when lease term >= planning horizon
+          console.log(`📋 Using fixed-lease optimizer (${leaseYears}yr lease >= ${span}yr horizon)`);
+          transportMultiYear = optimizeTransportMultiYearFixed(
+            defaultConfig.transportation,
+            costMatrix,
+            defaultForecast,
+            {
+              baselineDemand: demand,
+              capacity,
+              bounds: { minFacilities: nodes, maxFacilities: nodes }
+            }
+          );
+        } else {
+          // Use standard year-by-year optimizer for shorter leases
+          console.log(`📋 Using year-by-year optimizer (${leaseYears}yr lease < ${span}yr horizon)`);
+          transportMultiYear = optimizeTransportMultiYear(
+            defaultConfig.transportation,
+            costMatrix,
+            defaultForecast,
+            {
+              baselineDemand: demand,
+              capacity,
+              bounds: { minFacilities: nodes, maxFacilities: nodes }
+            }
+          );
+        }
 
-        // Calculate savings
-        const transportSavings = actualTransportBaseline - transportCost;
-        const transportSavingsPercent = (transportSavings / actualTransportBaseline) * 100;
+        // Calculate combined metrics across all years
+        const warehouseCostAllYears = warehouseResult.results.reduce((sum, r) => sum + r.Total_Cost_Annual, 0);
+        const inventoryCostAllYears = inventoryResult.total_cost * defaultForecast.length; // Scale by years
+        const totalNetworkCost = transportMultiYear.totals.total_transportation_cost + warehouseCostAllYears + inventoryCostAllYears;
+
+        // Calculate savings based on baseline scaled to all years
+        const baselineAllYears = actualTransportBaseline * defaultForecast.length;
+        const transportSavings = baselineAllYears - transportMultiYear.totals.total_transportation_cost;
+        const transportSavingsPercent = (transportSavings / baselineAllYears) * 100;
 
         scenarios.push({
           nodes,
-          transport: transportResult,
+          transportMultiYear: transportMultiYear,
           warehouse: warehouseResult,
           inventory: inventoryResult,
           kpis: {
-            year1_total_cost: totalCost,
-            transport_cost: transportCost,
-            warehouse_cost: warehouseCost,
-            inventory_cost: inventoryCost,
-            service_level: transportResult.network_metrics.service_level_achievement,
-            facilities_opened: transportResult.optimization_summary.facilities_opened,
+            total_transport_cost_all_years: transportMultiYear.totals.total_transportation_cost,
+            total_warehouse_cost_all_years: warehouseCostAllYears,
+            total_inventory_cost_all_years: inventoryCostAllYears,
+            total_network_cost_all_years: totalNetworkCost,
+            weighted_service_level: transportMultiYear.totals.weighted_service_level,
+            facilities_opened: transportMultiYear.perYear[0]?.transport.optimization_summary.facilities_opened || 0,
             transport_savings: transportSavings,
             transport_savings_percent: transportSavingsPercent,
-            avg_distance: transportResult.network_metrics.weighted_avg_distance,
-            facility_utilization: transportResult.network_metrics.avg_facility_utilization,
+            avg_cost_per_unit: transportMultiYear.totals.avg_cost_per_unit,
           },
-          facilities_used: transportResult.open_facilities,
+          facilities_used: transportMultiYear.perYear[0]?.transport.facility_allocation.map(f => f.facility) || [],
         });
 
-        console.log(`✅ ${nodes} nodes: $${Math.round(totalCost).toLocaleString()}, Service: ${(transportResult.network_metrics.service_level_achievement * 100).toFixed(1)}%`);
+        console.log(`✅ ${nodes} nodes: $${Math.round(totalNetworkCost).toLocaleString()}, Service: ${(transportMultiYear.totals.weighted_service_level * 100).toFixed(1)}%`);
 
       } catch (error) {
         console.error(`❌ Failed to optimize ${nodes} nodes:`, error);
@@ -221,62 +251,52 @@ export async function POST(req: NextRequest) {
           nodes,
           error: error instanceof Error ? error.message : 'Optimization failed',
           kpis: {
-            year1_total_cost: Infinity,
-            service_level: 0,
+            total_network_cost_all_years: Infinity,
+            weighted_service_level: 0,
             facilities_opened: 0,
           },
         });
       }
     }
 
-    // Find best scenario based on criterion
+    // Find best scenario based on total network cost with service as tie-breaker
     let bestIdx = 0;
     const validScenarios = scenarios.filter(s => !s.error);
-    
+
     if (validScenarios.length > 0) {
-      if (criterion === 'service_then_cost') {
-        let bestSvc = -1;
-        let bestCost = Infinity;
-        validScenarios.forEach((s, i) => {
-          const svc = s.kpis.service_level;
-          const cost = s.kpis.year1_total_cost;
-          if (svc > bestSvc || (svc === bestSvc && cost < bestCost)) {
-            bestSvc = svc;
-            bestCost = cost;
-            bestIdx = scenarios.indexOf(s);
-          }
-        });
-      } else {
-        let bestCost = Infinity;
-        validScenarios.forEach((s, i) => {
-          if (s.kpis.year1_total_cost < bestCost) {
-            bestCost = s.kpis.year1_total_cost;
-            bestIdx = scenarios.indexOf(s);
-          }
-        });
-      }
+      let bestCost = Infinity;
+      let bestSvc = -1;
+      validScenarios.forEach((s, i) => {
+        const cost = s.kpis.total_network_cost_all_years;
+        const svc = s.kpis.weighted_service_level;
+        if (cost < bestCost || (cost === bestCost && svc > bestSvc)) {
+          bestCost = cost;
+          bestSvc = svc;
+          bestIdx = scenarios.indexOf(s);
+        }
+      });
     }
 
     const response = {
-      success: true,
+      ok: true,
       batch_summary: {
         scenarios_run: scenarios.length,
         successful_scenarios: validScenarios.length,
         failed_scenarios: scenarios.length - validScenarios.length,
         best_scenario_nodes: scenarios[bestIdx]?.nodes,
-        best_scenario_cost: scenarios[bestIdx]?.kpis?.year1_total_cost,
+        best_scenario_cost: scenarios[bestIdx]?.kpis?.total_network_cost_all_years,
         cost_range: validScenarios.length > 0 ? {
-          min: Math.min(...validScenarios.map(s => s.kpis.year1_total_cost)),
-          max: Math.max(...validScenarios.map(s => s.kpis.year1_total_cost)),
+          min: Math.min(...validScenarios.map(s => s.kpis.total_network_cost_all_years)),
+          max: Math.max(...validScenarios.map(s => s.kpis.total_network_cost_all_years)),
         } : null,
       },
-      warehouse: warehouseResult,
-      inventory: inventoryResult,
+      wh: warehouseResult,
       scenarios,
       best: scenarios[bestIdx],
       baseline_integration: {
         transport_baseline: actualTransportBaseline,
-        best_transport_cost: scenarios[bestIdx]?.kpis?.transport_cost,
+        transport_baseline_all_years: baselineAllYears,
+        best_transport_cost_all_years: scenarios[bestIdx]?.kpis?.total_transport_cost_all_years,
         best_savings_percent: scenarios[bestIdx]?.kpis?.transport_savings_percent,
       }
     };

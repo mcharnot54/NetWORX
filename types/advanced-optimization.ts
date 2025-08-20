@@ -48,6 +48,9 @@ export type TransportParams = {
   max_capacity_per_facility?: number;
   mandatory_facilities?: string[];  // facility names that must be open
   weights?: { cost?: number; service_level?: number };
+
+  // NEW: minimum years a facility stays open (default 7)
+  lease_years?: number;
 };
 
 export type OptimizationParams = {
