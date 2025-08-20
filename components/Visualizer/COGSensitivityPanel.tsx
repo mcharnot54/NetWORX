@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import DeckGL from "@deck.gl/react";
-import { Map } from "react-map-gl";
+import { Map } from "react-map-gl/maplibre";
 import { HeatmapLayer, ScatterplotLayer } from "@deck.gl/layers";
 // @ts-ignore
 import maplibregl from "maplibre-gl";
