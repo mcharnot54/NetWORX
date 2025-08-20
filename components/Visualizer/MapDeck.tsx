@@ -277,7 +277,7 @@ export default function MapDeck({
 
   return (
     <DeckGL initialViewState={initial} controller={true} layers={layers}>
-      <ReactMapGL
+      <Map
         reuseMaps
         attributionControl={true}
         mapStyle={BASE_STYLE}
