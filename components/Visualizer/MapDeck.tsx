@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import DeckGL from "@deck.gl/react";
-import { Map as ReactMapGL } from "react-map-gl";
+import { Map } from "react-map-gl";
 import {
   HeatmapLayer,
   ArcLayer,
