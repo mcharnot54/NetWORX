@@ -7,6 +7,8 @@
   position: relative !important;
   width: 100% !important;
   height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
 }
 
 .maplibregl-ctrl {
@@ -27,6 +29,16 @@
 /* Ensure map container doesn't overflow */
 .maplibregl-canvas-container {
   position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.maplibregl-canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
 }
 
 /* Fix any deck.gl overlay positioning */
@@ -36,5 +48,25 @@
   left: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   pointer-events: auto !important;
+}
+
+/* Force deck.gl wrapper to respect container bounds */
+#deckgl-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  position: relative !important;
+}
+
+/* Force deck.gl view containers to respect bounds */
+div[id^="view-"] {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  position: relative !important;
 }
