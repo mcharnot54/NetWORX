@@ -21,6 +21,7 @@ export default function VisualizerPage() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [year, setYear] = useState<number | null>(null);
   const [useSwipe, setUseSwipe] = useState(false);
+  const [useAdvancedMap, setUseAdvancedMap] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("lastRun");
