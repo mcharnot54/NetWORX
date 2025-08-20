@@ -108,56 +108,82 @@ export default function ScenarioSweep() {
   }
 
   return (
-    <div className="rounded-2xl p-4 border shadow-sm grid gap-3">
-      <h2 className="text-xl font-semibold">Scenario Sweep (Nodes, Multi-Year)</h2>
-      <div className="flex gap-2 items-end">
-        <label className="text-sm">Min
-          <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={minNodes} onChange={e=>setMinNodes(Number(e.target.value))} />
-        </label>
-        <label className="text-sm">Max
-          <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={maxNodes} onChange={e=>setMaxNodes(Number(e.target.value))} />
-        </label>
-        <label className="text-sm">Lease Years
-          <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={leaseYears} onChange={e=>setLeaseYears(Number(e.target.value))} />
-        </label>
-        <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={run}>Run Sweep</button>
-        <button className="px-3 py-2 rounded-xl border" onClick={exportXLSX} disabled={!rows.length}>Download XLSX</button>
-      </div>
-      {loading && <div className="text-sm text-gray-500">Running…</div>}
-      {error && <div className="text-sm text-red-600">{error}</div>}
-      {!!rows.length && (
-        <table className="text-sm border rounded overflow-hidden">
-          <thead className="bg-gray-50"><tr>
-            {Object.keys(rows[0]).map(h => <th key={h} className="text-left px-3 py-2 border-b">{h}</th>)}
-          </tr></thead>
-          <tbody>
-            {rows.map((r, idx) => (
-              <tr key={idx} className="odd:bg-white even:bg-gray-50">
-                {Object.values(r).map((v,i) => <td key={i} className="px-3 py-1 border-b">{String(v)}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {best && (
-        <div className="space-y-4">
-          <div className="text-sm bg-green-50 border border-green-200 rounded p-3">
-            <div className="font-medium text-green-800 mb-2">🏆 Recommended Configuration</div>
-            <div><strong>Optimal Nodes:</strong> {best.nodes}</div>
-            <div><strong>Weighted Service Level:</strong> {(best.kpis.weighted_service_level*100).toFixed(2)}%</div>
-            <div><strong>Total Network Cost (All Years):</strong> ${Math.round(best.kpis.total_network_cost_all_years).toLocaleString()}</div>
-          </div>
+    <>
+      <div className="rounded-2xl p-4 border shadow-sm grid gap-3">
+        <h2 className="text-xl font-semibold">Scenario Sweep (Nodes, Multi-Year)</h2>
+        <div className="flex gap-2 items-end">
+          <label className="text-sm">Min
+            <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={minNodes} onChange={e=>setMinNodes(Number(e.target.value))} />
+          </label>
+          <label className="text-sm">Max
+            <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={maxNodes} onChange={e=>setMaxNodes(Number(e.target.value))} />
+          </label>
+          <label className="text-sm">Lease Years
+            <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={leaseYears} onChange={e=>setLeaseYears(Number(e.target.value))} />
+          </label>
+          <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={run}>Run Sweep</button>
+          <button className="px-3 py-2 rounded-xl border" onClick={exportXLSX} disabled={!rows.length}>Download XLSX</button>
+        </div>
+        {loading && <div className="text-sm text-gray-500">Running…</div>}
+        {error && <div className="text-sm text-red-600">{error}</div>}
+        {!!rows.length && (
+          <table className="text-sm border rounded overflow-hidden">
+            <thead className="bg-gray-50"><tr>
+              {Object.keys(rows[0]).map(h => <th key={h} className="text-left px-3 py-2 border-b">{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr key={idx} className="odd:bg-white even:bg-gray-50">
+                  {Object.values(r).map((v,i) => <td key={i} className="px-3 py-1 border-b">{String(v)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {best && (
+          <div className="space-y-4">
+            <div className="text-sm bg-green-50 border border-green-200 rounded p-3">
+              <div className="font-medium text-green-800 mb-2">🏆 Recommended Configuration</div>
+              <div><strong>Optimal Nodes:</strong> {best.nodes}</div>
+              <div><strong>Weighted Service Level:</strong> {(best.kpis.weighted_service_level*100).toFixed(2)}%</div>
+              <div><strong>Total Network Cost (All Years):</strong> ${Math.round(best.kpis.total_network_cost_all_years).toLocaleString()}</div>
+            </div>
 
-          <button
-            onClick={() => openDetailedAnalysis(best)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <span>📊</span>
-            View Detailed Multi-Year Analysis
-          </button>
+            <button
+              onClick={() => openDetailedAnalysis(best)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <span>📊</span>
+              View Detailed Multi-Year Analysis
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Detailed Analysis Modal */}
+      {showDetailedAnalysis && detailedAnalysisData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-semibold">Multi-Year Optimization Analysis</h2>
+              <button
+                onClick={() => setShowDetailedAnalysis(false)}
+                className="px-3 py-1 text-gray-500 hover:text-gray-700 text-xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="overflow-auto max-h-[calc(90vh-4rem)]">
+              <MultiYearOptimizationDashboard
+                results={detailedAnalysisData}
+                onExport={() => console.log('Export triggered')}
+                onShare={() => console.log('Share triggered')}
+              />
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
