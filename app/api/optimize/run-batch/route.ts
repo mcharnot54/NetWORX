@@ -115,6 +115,11 @@ export async function POST(req: NextRequest) {
       'Boston, MA', 'Philadelphia, PA', 'San Francisco, CA', 'Detroit, MI', 'Minneapolis, MN'
     ];
 
+    // Dynamically import heavy optimization modules to improve startup time
+    const { optimizeWarehouse } = await import('@/lib/advanced-warehouse-optimizer');
+    const { optimizeTransport, generateCostMatrix } = await import('@/lib/advanced-transport-optimizer');
+    const { optimizeInventory } = await import('@/lib/optimization/inventory');
+
     // Run warehouse optimization once (doesn't depend on node count)
     console.log('🏭 Running warehouse optimization...');
     const warehouseResult = optimizeWarehouse(

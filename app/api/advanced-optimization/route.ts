@@ -16,6 +16,10 @@ export async function POST(request: NextRequest) {
     console.log('🚀 Starting advanced optimization with MIP solvers...');
     console.log(`Scenario: ${scenario_id}, Type: ${optimization_type}`);
 
+    // Dynamically import heavy optimization modules to improve startup time
+    const { optimizeWarehouse } = await import('@/lib/advanced-warehouse-optimizer');
+    const { optimizeTransport, generateCostMatrix } = await import('@/lib/advanced-transport-optimizer');
+
     // Get actual baseline transportation data
     const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
     const baselineData = await baselineResponse.json();

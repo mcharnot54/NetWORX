@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
     // Get baseline transportation cost
     const actualTransportBaseline = 6560000; // $6.56M verified baseline
 
+    // Dynamically import heavy optimization modules
+    const { generateCostMatrix, optimizeTransport } = await import('@/lib/advanced-transport-optimizer');
+
     // Generate cost matrices for both scenarios
     console.log('📊 Generating cost matrix for Littleton + Chicago...');
     const costMatrixChicago = await generateCostMatrix(
