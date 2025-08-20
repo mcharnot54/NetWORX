@@ -3,39 +3,27 @@
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useData } from "@/context/DataContext";
-// Temporarily commented out recharts imports due to dependency issue
-// import {
-//   BarChart,
-//   Bar,
-//   XAxis,
-//   YAxis,
-//   CartesianGrid,
-//   Tooltip,
-//   Legend,
-//   LineChart,
-//   Line,
-//   PieChart,
-//   Pie,
-//   Cell,
-//   ResponsiveContainer,
-//   AreaChart,
-//   Area,
-//   ScatterChart,
-//   Scatter,
-//   ComposedChart,
-//   ReferenceLine,
-// } from "recharts";
-
-// Temporary placeholder component
-function PlaceholderChart({ title }: { title: string }) {
-  return (
-    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-      <div className="text-gray-500 mb-2">📊</div>
-      <div className="text-gray-700 font-medium">{title}</div>
-      <div className="text-xs text-gray-400 mt-2">Chart temporarily unavailable</div>
-    </div>
-  );
-}
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  ScatterChart,
+  Scatter,
+  ComposedChart,
+  ReferenceLine,
+} from "recharts";
 import {
   Package,
   Calculator,
@@ -610,7 +598,25 @@ export default function InventoryOptimizer() {
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
                     ABC Stratification Analysis
                   </h4>
-                  <PlaceholderChart title="ABC Stratification Analysis" />
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={abcAnalysisData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ class: cls, percentage }) => `${cls}: ${percentage}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="percentage"
+                      >
+                        {abcAnalysisData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: any) => [`${value}%`, 'Value Share']}/>
+                    </PieChart>
+                  </ResponsiveContainer>
                   <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
                     <div
                       style={{
@@ -646,7 +652,17 @@ export default function InventoryOptimizer() {
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
                     Demand Variability (CV) Analysis
                   </h4>
-                  <PlaceholderChart title="Service Level Analysis" />
+                  <ResponsiveContainer width="100%" height={250}>
+                    <ScatterChart
+                      data={serviceLevelData}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="cv" name="CV" domain={[0, 1]} />
+                      <YAxis dataKey="target" name="Service Level" domain={[80, 100]} />
+                      <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                      <Scatter name="SKUs" dataKey="target" fill="#0088FE" />
+                    </ScatterChart>
+                  </ResponsiveContainer>
                   <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
                     <div
                       style={{
