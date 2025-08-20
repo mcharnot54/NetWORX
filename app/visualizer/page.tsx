@@ -37,32 +37,29 @@ export default function VisualizerPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="p-4 max-w-4xl mx-auto">
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📊</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">No Results Available</h2>
-            <p className="text-gray-600 mb-6">
-              Run an optimization to view professional network analysis, maps, and visualizations.
-            </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left max-w-md mx-auto">
-              <h3 className="font-semibold text-blue-900 mb-2">Expected Data Structure:</h3>
-              <ul className="text-sm text-blue-800 space-y-1 mb-4">
-                <li>• scenarios[] with transport.perYear data</li>
-                <li>• locations{} with lat/lng coordinates</li>
-                <li>• KPIs and facility assignments</li>
-              </ul>
-              <button
-                onClick={() => {
-                  loadSampleData();
-                  window.location.reload();
-                }}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
-              >
-                Load Sample Data for Testing
-              </button>
-            </div>
+      <div className="content-area">
+        <div className="text-center py-16">
+          <div className="text-8xl mb-6">📊</div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">No Results Available</h2>
+          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            Run an optimization to view professional network analysis, maps, and visualizations.
+          </p>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 text-left max-w-lg mx-auto shadow-sm">
+            <h3 className="font-semibold text-blue-900 mb-3 text-lg">Expected Data Structure:</h3>
+            <ul className="text-sm text-blue-800 space-y-2 mb-6">
+              <li className="flex items-center gap-2">• scenarios[] with transport.perYear data</li>
+              <li className="flex items-center gap-2">• locations{} with lat/lng coordinates</li>
+              <li className="flex items-center gap-2">• KPIs and facility assignments</li>
+            </ul>
+            <button
+              onClick={() => {
+                loadSampleData();
+                window.location.reload();
+              }}
+              className="button button-primary w-full justify-center"
+            >
+              Load Sample Data for Testing
+            </button>
           </div>
         </div>
       </div>
