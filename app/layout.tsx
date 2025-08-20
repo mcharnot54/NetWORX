@@ -80,6 +80,7 @@ export default function RootLayout({
                   </header>
                   <div className="layout-wrapper">
                     <SidebarNavigation />
+                    <MobileSidebarToggle />
                     <main className="main-content">
                       <SafeNavigation />
                       {children}
