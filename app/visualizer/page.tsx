@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import dynamic from "next/dynamic";
-import Navigation from "@/components/Navigation";
 import ResultsTimeline from "@/components/ResultsTimeline";
 import LaneWaterfall, { LaneDelta } from "@/components/Charts/LaneWaterfall";
 import { loadSampleData } from "@/lib/sample-data";
