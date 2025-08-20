@@ -1,28 +1,27 @@
 import { neon } from "@neondatabase/serverless";
 
-// Create a mock sql function that throws helpful errors when DATABASE_URL is missing
-const createMockSql = () => {
-  const mockSql = () => {
-    throw new Error("Database not configured: DATABASE_URL environment variable is missing. Please connect to a database service.");
-  };
-  // Add properties to make it behave like neon sql
-  Object.assign(mockSql, {
-    unsafe: () => {
-      throw new Error("Database not configured: DATABASE_URL environment variable is missing");
-    }
-  });
-  return mockSql;
-};
+// Create database connection based on environment
+const createDatabaseConnection = () => {
+  if (!process.env.DATABASE_URL) {
+    console.warn("DATABASE_URL is not set - database operations will fail");
+    
+    // Create a mock sql function that throws helpful errors
+    const mockSql = () => {
+      throw new Error("Database not configured: DATABASE_URL environment variable is missing. Please connect to a database service.");
+    };
+    
+    // Add properties to make it behave like neon sql
+    Object.assign(mockSql, {
+      unsafe: () => {
+        throw new Error("Database not configured: DATABASE_URL environment variable is missing");
+      }
+    });
+    
+    return mockSql;
+  }
 
-// Configure database connection
-let sql: any;
-
-if (!process.env.DATABASE_URL) {
-  console.warn("DATABASE_URL is not set - database operations will fail");
-  sql = createMockSql();
-} else {
   // Configure Neon connection with optimized timeout settings for cloud environments
-  sql = neon(process.env.DATABASE_URL, {
+  return neon(process.env.DATABASE_URL, {
     // Connection timeout optimized for cloud environments
     connectionTimeoutMillis: 20000, // 20 seconds
     queryTimeoutMillis: 45000, // 45 seconds
@@ -35,7 +34,10 @@ if (!process.env.DATABASE_URL) {
       cache: 'no-store', // Prevent stale connections
     },
   });
-}
+};
+
+// Initialize the sql connection
+const sql = createDatabaseConnection();
 
 // Type definitions for database entities
 export interface Project {
