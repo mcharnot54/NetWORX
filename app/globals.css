@@ -170,6 +170,10 @@ a {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
+.banner * {
+  color: white !important;
+}
+
 .banner-content {
   display: flex;
   justify-content: space-between;
@@ -193,6 +197,7 @@ a {
   font-weight: 800;
   margin-bottom: 0.5rem;
   letter-spacing: -0.025em;
+  color: white !important;
 }
 
 /* Ensure CONTINUUM uses Raleway font */
@@ -238,6 +243,7 @@ p {
   font-size: 1rem;
   opacity: 0.9;
   margin: 0;
+  color: white !important;
 }
 
 .powered-by-text {
@@ -247,6 +253,7 @@ p {
   letter-spacing: 0.02em;
   opacity: 0.9;
   white-space: nowrap;
+  color: white !important;
 }
 
 .continuum-logo {
