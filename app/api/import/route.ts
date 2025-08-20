@@ -26,9 +26,9 @@ export async function POST(req: NextRequest) {
 
     if (name.endsWith('.csv')) {
       const text = buf.toString('utf8');
-      // Use Papa Parse for better CSV handling
-      const parsed = Papa.parse(text, { header: false, skipEmptyLines: true });
-      aoa = parsed.data as any[][];
+      // lightweight CSV split (server-side) – UI parser still uses Papa for client uploads
+      const rows = text.split(/\r?\n/).map((r) => r.split(','));
+      aoa = rows;
     } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.xlsb')) {
       try {
         const wb = XLSX.read(buf, { type: 'buffer' });
@@ -54,9 +54,8 @@ export async function POST(req: NextRequest) {
     // Extract headers (first row) and clean them
     const headers = (aoa[0] || []).map((h: any) => String(h || '').trim());
     
-    // Return first 50 rows for preview to avoid huge payloads, but give a reasonable sample
-    const previewRows = Math.min(50, aoa.length);
-    const preview = aoa.slice(0, previewRows);
+    // Return first 200 rows for preview to avoid huge payloads
+    const preview = aoa.slice(0, 200);
     
     // Provide basic file statistics
     const stats = {
@@ -68,14 +67,7 @@ export async function POST(req: NextRequest) {
       sheetNames: sheetNames.length > 0 ? sheetNames : undefined
     };
 
-    return NextResponse.json({ 
-      ok: true, 
-      name: file.name, 
-      headers,
-      rows: preview, 
-      stats,
-      message: `Processed ${stats.totalRows} rows, showing first ${stats.previewRows} for preview`
-    });
+    return NextResponse.json({ ok: true, name: file.name, rows: preview, totalRows: aoa.length });
 
   } catch (err: any) {
     console.error('Import error:', err);
