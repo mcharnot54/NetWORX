@@ -10,9 +10,6 @@ import {
   GeoJsonLayer,
   TextLayer,
 } from "@deck.gl/layers";
-// Fallback when no Mapbox token is provided
-// @ts-ignore
-import maplibregl from "maplibre-gl";
 
 type LatLng = { lat: number; lng: number };
 type LocationsIndex = Record<string, LatLng>;
