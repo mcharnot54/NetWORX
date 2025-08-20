@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { emergencyTimeoutFix } from './timeout-emergency-fixer';
 
 export interface ApiError extends Error {
   status?: number;
@@ -17,11 +18,19 @@ export function withErrorHandler<T extends any[]>(
 ) {
   return async (req: NextRequest, ...args: T): Promise<NextResponse> => {
     const startTime = Date.now();
-    
+
     try {
-      // Add request timeout of 60 seconds
+      // Add request timeout of 60 seconds with emergency fix capability
       const timeoutPromise = new Promise<NextResponse>((_, reject) => {
-        setTimeout(() => {
+        setTimeout(async () => {
+          // Trigger emergency timeout fix for critical timeouts
+          console.warn(`Critical timeout detected for ${req.url} - triggering emergency fix`);
+          try {
+            await emergencyTimeoutFix();
+          } catch (fixError) {
+            console.error('Emergency timeout fix failed:', fixError);
+          }
+
           reject(createApiError('API request timeout after 60 seconds', 408, 'TIMEOUT'));
         }, 60000);
       });
@@ -31,10 +40,36 @@ export function withErrorHandler<T extends any[]>(
         timeoutPromise
       ]);
 
+      const duration = Date.now() - startTime;
+      if (duration > 10000) {
+        console.warn(`Slow API request: ${req.url} took ${duration}ms`);
+      }
+
       return result;
     } catch (error) {
       const responseTime = Date.now() - startTime;
       console.error(`API Error (${responseTime}ms):`, error);
+
+      // Handle timeout errors with emergency fix
+      if (error instanceof Error && error.message.includes('timeout')) {
+        // Trigger emergency fix for persistent timeout errors
+        if (responseTime > 30000) { // If request took more than 30 seconds
+          emergencyTimeoutFix().catch(fixError => {
+            console.error('Background emergency fix failed:', fixError);
+          });
+        }
+
+        return NextResponse.json({
+          success: false,
+          error: {
+            message: 'Request timeout - emergency recovery triggered',
+            code: 'TIMEOUT',
+            timestamp: new Date().toISOString(),
+            responseTime,
+            emergencyFixTriggered: responseTime > 30000
+          }
+        }, { status: 408 });
+      }
 
       // Handle different types of errors
       if (error instanceof Error) {
