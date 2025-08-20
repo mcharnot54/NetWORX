@@ -1,0 +1,22 @@
+/* MapLibre GL CSS */
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+/* Override some maplibre styles for better integration */
+.maplibregl-map {
+  border-radius: 0.5rem;
+}
+
+.maplibregl-ctrl {
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
+  margin-bottom: 0.5rem;
+}
+
+.maplibregl-ctrl-top-left,
+.maplibregl-ctrl-top-right {
+  margin-top: 0.5rem;
+}
