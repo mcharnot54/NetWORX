@@ -12,6 +12,7 @@ import LaneWaterfall, { LaneDelta } from "@/components/Charts/LaneWaterfall";
 import { loadSampleData } from "@/lib/sample-data";
 
 const MapDeck = dynamic(() => import("@/components/Visualizer/MapDeck"), { ssr: false });
+const SimpleMapDeck = dynamic(() => import("@/components/Visualizer/SimpleMapDeck"), { ssr: false });
 const SwipeCompare = dynamic(() => import("@/components/Visualizer/SwipeCompare"), { ssr: false });
 const COGSensitivityPanel = dynamic(() => import("@/components/Visualizer/COGSensitivityPanel"), { ssr: false });
 
