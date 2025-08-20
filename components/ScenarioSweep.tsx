@@ -6,6 +6,7 @@ import { downloadWorkbook } from '@/lib/export/xlsx';
 export default function ScenarioSweep() {
   const [minNodes, setMinNodes] = useState(1);
   const [maxNodes, setMaxNodes] = useState(6);
+  const [leaseYears, setLeaseYears] = useState(7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<any[]>([]);
@@ -15,6 +16,8 @@ export default function ScenarioSweep() {
     setLoading(true); setError(null);
     try {
       const demo = await buildDemoPayload();
+      // Apply lease years to transportation config
+      (demo.config.transportation as any).lease_years = leaseYears;
       const batchRes = await fetch('/api/optimize/run-batch', {
         method: 'POST',
         body: JSON.stringify({ ...demo, scenario: { minNodes, maxNodes } })
@@ -50,6 +53,9 @@ export default function ScenarioSweep() {
         </label>
         <label className="text-sm">Max
           <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={maxNodes} onChange={e=>setMaxNodes(Number(e.target.value))} />
+        </label>
+        <label className="text-sm">Lease Years
+          <input type="number" className="ml-2 border rounded px-2 py-1 w-20" value={leaseYears} onChange={e=>setLeaseYears(Number(e.target.value))} />
         </label>
         <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={run}>Run Sweep</button>
         <button className="px-3 py-2 rounded-xl border" onClick={exportXLSX} disabled={!rows.length}>Download XLSX</button>
