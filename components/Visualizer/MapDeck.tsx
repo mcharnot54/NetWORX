@@ -278,9 +278,6 @@ export default function MapDeck({
         reuseMaps
         attributionControl={true}
         mapStyle={BASE_STYLE}
-        {...(MAPBOX_TOKEN
-          ? { mapboxAccessToken: MAPBOX_TOKEN }
-          : { mapLib: maplibregl })}
       />
     </DeckGL>
   );
