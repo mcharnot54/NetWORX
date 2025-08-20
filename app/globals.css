@@ -93,7 +93,7 @@ a {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: 120px; /* Account for fixed banner height */
+  padding-top: 140px; /* Account for fixed banner height */
 }
 
 .layout-wrapper {
@@ -106,7 +106,7 @@ a {
   flex: 1;
   margin-left: 280px;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  height: calc(100vh - 120px);
+  height: calc(100vh - 140px);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -120,7 +120,7 @@ a {
   .main-content {
     margin-left: 0;
     padding: 1.5rem;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 140px);
     overflow-y: auto;
   }
 
