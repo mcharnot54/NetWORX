@@ -240,7 +240,7 @@ export default function VisualizerPage() {
                   locations={data.locations || {}}
                 />
               ) : (
-                <div className="h-[40vh] w-full">
+                <div className="h-[40vh] w-full relative overflow-hidden">
                   <MapDeck
                     scenario={scenario}
                     year={year}
@@ -250,7 +250,7 @@ export default function VisualizerPage() {
                 </div>
               )
             ) : (
-              <div className="h-[40vh] w-full">
+              <div className="h-[40vh] w-full relative overflow-hidden">
                 <SimpleMapDeck
                   scenario={scenario}
                   year={year}
