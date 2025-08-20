@@ -148,6 +148,16 @@ export default function SidebarNavigation({ className = "" }: SidebarNavigationP
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+
+    // Update layout wrapper class for main content adjustment
+    const layoutWrapper = document.querySelector('.layout-wrapper');
+    if (layoutWrapper) {
+      if (!isCollapsed) {
+        layoutWrapper.classList.add('sidebar-collapsed');
+      } else {
+        layoutWrapper.classList.remove('sidebar-collapsed');
+      }
+    }
   };
 
   const groupedItems = navItems.reduce((acc, item) => {
