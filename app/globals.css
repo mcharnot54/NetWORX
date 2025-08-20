@@ -93,6 +93,7 @@ a {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-top: 120px; /* Account for fixed banner height */
 }
 
 .layout-wrapper {
@@ -105,7 +106,9 @@ a {
   flex: 1;
   margin-left: 280px;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: calc(100vh - 140px);
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Adjust main content when sidebar is collapsed */
@@ -168,6 +171,12 @@ a {
   color: white;
   padding: 1.5rem 2rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
 }
 
 .banner * {
@@ -270,6 +279,7 @@ p {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  min-height: 100%;
 }
 
 /* Hide old navigation when using sidebar */
