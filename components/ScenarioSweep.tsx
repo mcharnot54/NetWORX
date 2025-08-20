@@ -2,6 +2,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { downloadWorkbook } from '@/lib/export/xlsx';
+import MultiYearOptimizationDashboard from './MultiYearOptimizationDashboard';
 
 export default function ScenarioSweep() {
   const [minNodes, setMinNodes] = useState(1);
