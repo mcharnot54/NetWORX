@@ -101,30 +101,140 @@ export default function ScenarioBuilder({ onRun }: { onRun: (payload: any) => Pr
   return (
     <div className="grid gap-4">
       <div className="rounded-2xl p-4 border shadow-sm">
-        <h2 className="text-xl font-semibold">Scenario Builder</h2>
-        <p className="text-sm text-gray-500">Baseline inputs + config. Edit or import your demand & matrix, then run.</p>
+        <h2 className="text-xl font-semibold">Enhanced Scenario Builder</h2>
+        <p className="text-sm text-gray-500">
+          Upload large files with automatic column mapping. Perfect for CSV/XLSX/XLSB files that need field mapping.
+        </p>
 
-        <div className="mt-3 grid md:grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium">Upload Destination Demand (CSV/XLSX)</label>
-            <input type="file" accept=".csv,.xlsx,.xls" onChange={onDemandUpload} className="block mt-1" />
-            {baselineDemand && <div className="text-xs text-green-700 mt-1">Loaded {Object.keys(baselineDemand).length} destinations.</div>}
-          </div>
-          <div>
-            <label className="text-sm font-medium">Upload Cost Matrix (CSV/XLSX)</label>
-            <input type="file" accept=".csv,.xlsx,.xls" onChange={onMatrixUpload} className="block mt-1" />
-            <div className="text-xs text-gray-600 mt-1">Supports wide (row=Origin, col=Destination) or long (Origin,Destination,Cost) formats.</div>
-          </div>
+        {/* Upload Mode Toggle */}
+        <div className="mt-3 flex gap-2 items-center">
+          <span className="text-sm font-medium">Upload Mode:</span>
+          <button
+            onClick={() => setUploadMode('server')}
+            className={clsx('px-3 py-1 text-xs rounded-lg',
+              uploadMode === 'server' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+            )}
+          >
+            Server (Big Files + Mapping)
+          </button>
+          <button
+            onClick={() => setUploadMode('client')}
+            className={clsx('px-3 py-1 text-xs rounded-lg',
+              uploadMode === 'client' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+            )}
+          >
+            Client (Auto-Parse)
+          </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2 items-center">
+        {uploadMode === 'server' ? (
+          <div className="mt-4 space-y-3">
+            <div className="grid md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Demand (Baseline)</label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.xlsb"
+                  onChange={(e) => onServerUpload(e, 'demand')}
+                  className="block mt-1 text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Demand (Per Year)</label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.xlsb"
+                  onChange={(e) => onServerUpload(e, 'demand-per-year')}
+                  className="block mt-1 text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Cost Matrix</label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.xlsb"
+                  onChange={(e) => onServerUpload(e, 'cost')}
+                  className="block mt-1 text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Facility Capacity</label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.xlsb"
+                  onChange={(e) => onServerUpload(e, 'capacity')}
+                  className="block mt-1 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* File Stats */}
+            {preview?.stats && (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                <strong>File Stats:</strong> {preview.stats.fileSizeFormatted}, {preview.stats.totalRows} rows, {preview.stats.totalColumns} columns
+                {preview.stats.sheetNames && ` (Sheets: ${preview.stats.sheetNames.join(', ')})`}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4 grid md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium">Upload Destination Demand (CSV/XLSX)</label>
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={onDemandUpload} className="block mt-1" />
+              {baselineDemand && <div className="text-xs text-green-700 mt-1">Loaded {Object.keys(baselineDemand).length} destinations.</div>}
+            </div>
+            <div>
+              <label className="text-sm font-medium">Upload Cost Matrix (CSV/XLSX)</label>
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={onMatrixUpload} className="block mt-1" />
+              <div className="text-xs text-gray-600 mt-1">Supports wide (row=Origin, col=Destination) or long (Origin,Destination,Cost) formats.</div>
+            </div>
+          </div>
+        )}
+
+        {/* Column Mapping Interface */}
+        {preview && mapKind && (
+          <div className="mt-4">
+            <ColumnMapper
+              headers={preview.headers}
+              kind={mapKind}
+              onApply={applyMapping}
+              initialData={preview.rows}
+            />
+          </div>
+        )}
+
+        {/* Status and Run Button */}
+        <div className="mt-4 flex flex-wrap gap-2 items-center justify-between">
+          <span className="text-xs text-gray-500 flex-grow">{status}</span>
           <button
-            className={clsx('px-4 py-2 rounded-xl shadow', 'bg-black text-white')}
-            onClick={() => onRun({ config, forecast, skus, costMatrix, demand: baselineDemand })}
+            className={clsx('px-4 py-2 rounded-xl shadow', 'bg-black text-white hover:bg-gray-800')}
+            onClick={() => onRun({
+              config,
+              forecast,
+              skus,
+              costMatrix,
+              demand: baselineDemand,
+              capacity: capacityMap
+            })}
           >
             Run Optimizer
           </button>
-          <span className="text-xs text-gray-500">{status}</span>
+        </div>
+
+        {/* Data Summary */}
+        <div className="mt-3 grid md:grid-cols-3 gap-2 text-xs">
+          <div className={clsx('p-2 rounded border', baselineDemand ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200')}>
+            <div className="font-medium">Demand Data</div>
+            <div>{baselineDemand ? `${Object.keys(baselineDemand).length} destinations` : 'Not loaded'}</div>
+          </div>
+          <div className={clsx('p-2 rounded border', costMatrix.rows.length > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200')}>
+            <div className="font-medium">Cost Matrix</div>
+            <div>{costMatrix.rows.length > 0 ? `${costMatrix.rows.length}×${costMatrix.cols.length}` : 'Default matrix'}</div>
+          </div>
+          <div className={clsx('p-2 rounded border', capacityMap ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200')}>
+            <div className="font-medium">Capacity Data</div>
+            <div>{capacityMap ? `${Object.keys(capacityMap).length} facilities` : 'Not loaded'}</div>
+          </div>
         </div>
       </div>
 
