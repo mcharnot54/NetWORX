@@ -12,10 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-const BASE_STYLE = MAPBOX_TOKEN
-  ? "mapbox://styles/mapbox/light-v11"
-  : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const BASE_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
 export default function COGSensitivityPanel({
   scenario,
