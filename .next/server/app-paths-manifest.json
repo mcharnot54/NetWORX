@@ -2,5 +2,6 @@
   "/page": "app/page.js",
   "/api/current-baseline-costs/route": "app/api/current-baseline-costs/route.js",
   "/api/init-db/route": "app/api/init-db/route.js",
-  "/api/health/route": "app/api/health/route.js"
+  "/api/health/route": "app/api/health/route.js",
+  "/visualizer/page": "app/visualizer/page.js"
 }
