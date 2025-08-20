@@ -1,4 +1,4 @@
-// File: C:\git\NetWORX\app\api\init-db\route.ts
+// File: /app/code/app/api/init-db/route.ts
 import * as entry from '../../../../../app/api/init-db/route.js'
 import type { NextRequest } from 'next/server.js'
 

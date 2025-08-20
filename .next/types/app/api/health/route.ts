@@ -1,4 +1,4 @@
-// File: C:\git\NetWORX\app\api\health\route.ts
+// File: /app/code/app/api/health/route.ts
 import * as entry from '../../../../../app/api/health/route.js'
 import type { NextRequest } from 'next/server.js'
 
