@@ -77,10 +77,21 @@ export default function ScenarioSweep() {
         </table>
       )}
       {best && (
-        <div className="text-sm">
-          <div><strong>Recommended Nodes:</strong> {best.nodes}</div>
-          <div><strong>Weighted Service Level:</strong> {(best.kpis.weighted_service_level*100).toFixed(2)}%</div>
-          <div><strong>Total Network Cost (All Years):</strong> ${Math.round(best.kpis.total_network_cost_all_years).toLocaleString()}</div>
+        <div className="space-y-4">
+          <div className="text-sm bg-green-50 border border-green-200 rounded p-3">
+            <div className="font-medium text-green-800 mb-2">🏆 Recommended Configuration</div>
+            <div><strong>Optimal Nodes:</strong> {best.nodes}</div>
+            <div><strong>Weighted Service Level:</strong> {(best.kpis.weighted_service_level*100).toFixed(2)}%</div>
+            <div><strong>Total Network Cost (All Years):</strong> ${Math.round(best.kpis.total_network_cost_all_years).toLocaleString()}</div>
+          </div>
+
+          <button
+            onClick={() => openDetailedAnalysis(best)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <span>📊</span>
+            View Detailed Multi-Year Analysis
+          </button>
         </div>
       )}
     </div>
