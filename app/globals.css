@@ -128,7 +128,7 @@ a {
 
 @media (max-width: 1024px) {
   .main-content {
-    margin-left: 0;
+    margin-left: 0 !important; /* Override collapsed state on mobile */
     padding: 1.5rem;
     height: calc(100vh - 140px);
     overflow-y: auto;
