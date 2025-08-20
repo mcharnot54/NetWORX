@@ -46,7 +46,7 @@ export default function MobileSidebarToggle() {
       onClick={toggleMobileMenu}
       style={{
         position: "fixed",
-        top: "130px",
+        top: "150px",
         left: "1rem",
         width: "48px",
         height: "48px",
