@@ -492,6 +492,9 @@ export default function Dashboard() {
           {/* Database Status Component */}
           <DatabaseStatus />
 
+          {/* Timeout Health Monitor */}
+          <TimeoutDiagnostic />
+
           {/* Locked Transportation Baseline for Curriculum Associates */}
           <div
             style={{
