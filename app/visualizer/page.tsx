@@ -292,20 +292,22 @@ export default function VisualizerPage() {
           </Card>
         </div>
 
-        {/* COG Sensitivity Analysis */}
-        <Card>
-          <CardHeader>
-            <CardTitle>COG Sensitivity Analysis (What-if new node)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <COGSensitivityPanel
-              scenario={scenario}
-              year={year}
-              locations={data.locations || {}}
-              defaultCostPerMile={data?.config?.transportation?.cost_per_mile ?? 2.5}
-            />
-          </CardContent>
-        </Card>
+        {/* COG Sensitivity Analysis - Only show if advanced features enabled */}
+        {useAdvancedMap && (
+          <Card>
+            <CardHeader>
+              <CardTitle>COG Sensitivity Analysis (What-if new node)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <COGSensitivityPanel
+                scenario={scenario}
+                year={year}
+                locations={data.locations || {}}
+                defaultCostPerMile={data?.config?.transportation?.cost_per_mile ?? 2.5}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Footer Info */}
         <div className="text-center text-sm text-gray-500 py-4">
