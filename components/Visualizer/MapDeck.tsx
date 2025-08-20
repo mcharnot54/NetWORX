@@ -4,12 +4,12 @@ import React, { useMemo } from "react";
 import DeckGL from "@deck.gl/react";
 import { Map } from "react-map-gl/maplibre";
 import {
-  HeatmapLayer,
   ArcLayer,
   ScatterplotLayer,
   GeoJsonLayer,
   TextLayer,
 } from "@deck.gl/layers";
+import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 
 type LatLng = { lat: number; lng: number };
 type LocationsIndex = Record<string, LatLng>;
