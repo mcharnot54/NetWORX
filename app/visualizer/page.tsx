@@ -231,16 +231,27 @@ export default function VisualizerPage() {
             <CardTitle>Network Map</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {useSwipe ? (
-              <SwipeCompare
-                baseline={scenarios[0]}
-                scenario={scenario}
-                year={year}
-                locations={data.locations || {}}
-              />
+            {useAdvancedMap ? (
+              useSwipe ? (
+                <SwipeCompare
+                  baseline={scenarios[0]}
+                  scenario={scenario}
+                  year={year}
+                  locations={data.locations || {}}
+                />
+              ) : (
+                <div className="h-[72vh] w-full">
+                  <MapDeck
+                    scenario={scenario}
+                    year={year}
+                    locations={data.locations || {}}
+                    baseline={scenarios[0]}
+                  />
+                </div>
+              )
             ) : (
               <div className="h-[72vh] w-full">
-                <MapDeck
+                <SimpleMapDeck
                   scenario={scenario}
                   year={year}
                   locations={data.locations || {}}
