@@ -121,6 +121,11 @@ a {
   margin-left: 80px;
 }
 
+/* Reliable approach using JavaScript-managed class */
+.layout-wrapper.sidebar-collapsed .main-content {
+  margin-left: 80px;
+}
+
 @media (max-width: 1024px) {
   .main-content {
     margin-left: 0;
