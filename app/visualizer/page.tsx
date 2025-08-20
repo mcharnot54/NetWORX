@@ -240,7 +240,7 @@ export default function VisualizerPage() {
                   locations={data.locations || {}}
                 />
               ) : (
-                <div className="h-[72vh] w-full">
+                <div className="h-[40vh] w-full">
                   <MapDeck
                     scenario={scenario}
                     year={year}
@@ -250,7 +250,7 @@ export default function VisualizerPage() {
                 </div>
               )
             ) : (
-              <div className="h-[72vh] w-full">
+              <div className="h-[40vh] w-full">
                 <SimpleMapDeck
                   scenario={scenario}
                   year={year}
