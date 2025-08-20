@@ -137,7 +137,7 @@ export default function COGSensitivityPanel({
           <CardContent className="p-0">
             <div className="h-[60vh] w-full">
               <DeckGL initialViewState={{ ...initial }} controller layers={layers}>
-                <ReactMapGL
+                <Map
                   reuseMaps
                   attributionControl
                   mapStyle={BASE_STYLE}
