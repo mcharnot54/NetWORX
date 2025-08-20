@@ -1,1 +1,18 @@
-node_modules
+# Secrets
+.env
+.env.*
+!.env.example
+.env.local
+
+# Build artifacts
+.next/
+node_modules/
+dist/
+build/
+
+# Logs / IDE
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
