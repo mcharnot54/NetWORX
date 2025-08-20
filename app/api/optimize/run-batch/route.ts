@@ -9,6 +9,7 @@ import {
   CostMatrix
 } from '@/types/advanced-optimization';
 import { optimizeTransportMultiYear } from '@/lib/optimization/transportMultiYear';
+import { optimizeTransportMultiYearFixed } from '@/lib/optimization/transportMultiYearFixed';
 
 export async function POST(req: NextRequest) {
   try {
