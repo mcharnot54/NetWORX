@@ -610,30 +610,7 @@ export default function InventoryOptimizer() {
                   <h4 style={{ marginBottom: "1rem", color: "#111827" }}>
                     ABC Stratification Analysis
                   </h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={abcAnalysisData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="class" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <Bar
-                        yAxisId="left"
-                        dataKey="count"
-                        fill="#3b82f6"
-                        name="SKU Count"
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey="percentage"
-                        stroke="#ef4444"
-                        strokeWidth={3}
-                        name="Value %"
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  <PlaceholderChart title="ABC Stratification Analysis" />
                   <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
                     <div
                       style={{
