@@ -479,9 +479,7 @@ export default function Dashboard() {
   };
 
   return (
-    <>
-      <Navigation />
-      <main className="content-area">
+    <main className="content-area">
         {/* Welcome Section */}
         <div className="card">
           <h2 className="card-title">Welcome to NetWORX Essentials</h2>
@@ -2415,7 +2413,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </main>
-    </>
+    </main>
   );
 }
