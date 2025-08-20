@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
         max_facilities: 10,
         max_capacity_per_facility: 15_000_000,
         mandatory_facilities: ['Littleton, MA'],
-        weights: { cost: 0.6, service_level: 0.4 }
+        weights: { cost: 0.6, service_level: 0.4 },
+        lease_years: 7,
       },
       ...config
     };
