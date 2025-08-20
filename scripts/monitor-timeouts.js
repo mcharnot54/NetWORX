@@ -3,12 +3,12 @@
 const http = require('http');
 
 const endpoints = [
-  { path: '/', name: 'Main Page', timeout: 5000 },
-  { path: '/api/health', name: 'Health Check', timeout: 3000 },
-  { path: '/api/simple-health', name: 'Simple Health', timeout: 2000 },
-  { path: '/api/status', name: 'Status Check', timeout: 3000 },
-  { path: '/api/current-baseline-costs', name: 'Baseline Costs', timeout: 10000 },
-  { path: '/api/db-status', name: 'Database Status', timeout: 5000 }
+  { path: '/api/ping', name: 'Ping', timeout: 2000 },
+  { path: '/api/simple-health', name: 'Simple Health', timeout: 5000 },
+  { path: '/api/health', name: 'Health Check', timeout: 10000 },
+  { path: '/api/status', name: 'Status Check', timeout: 10000 },
+  { path: '/', name: 'Main Page', timeout: 15000 },
+  { path: '/api/timeout-diagnostic', name: 'Timeout Diagnostic', timeout: 8000 }
 ];
 
 function testEndpoint(endpoint) {

@@ -13,25 +13,25 @@ interface OperationConfig {
   background: TimeoutConfig; // Background/async operations
 }
 
-// Timeout configurations optimized for cloud environments
+// Timeout configurations optimized for development and cloud environments
 export const TIMEOUT_CONFIGS: OperationConfig = {
   fast: {
-    timeout: 10000, // Increased from 5s to 10s
-    retries: 0, // Reduced retries to prevent cascading
+    timeout: 15000, // Increased to 15s for slow dev environments
+    retries: 0, // No retries to prevent cascading
     errorMessage: 'Quick operation timed out'
   },
   medium: {
-    timeout: 30000, // Increased from 15s to 30s
+    timeout: 45000, // Increased to 45s for file operations
     retries: 1, // Reduced retries
     errorMessage: 'Operation timed out'
   },
   slow: {
-    timeout: 60000, // Increased from 30s to 60s
+    timeout: 90000, // Increased to 90s for heavy operations
     retries: 0, // No retries for slow operations
     errorMessage: 'Heavy operation timed out'
   },
   background: {
-    timeout: 120000, // Increased to 2 minutes
+    timeout: 180000, // Increased to 3 minutes for background tasks
     retries: 0,
     errorMessage: 'Background operation timed out'
   }

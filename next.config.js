@@ -13,20 +13,20 @@ const nextConfig = {
     serverComponentsExternalPackages: [],
   },
 
-  // Disable fast refresh to prevent WebSocket issues
+  // Disable features causing performance issues
   reactStrictMode: false,
 
   // Improve development server stability - Aggressive caching for slow environments
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 600 * 1000, // 10 minutes - extended caching
+    maxInactiveAge: 900 * 1000, // 15 minutes - extended caching
     // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 20, // Increased to prevent recompilation
+    pagesBufferLength: 30, // Increased to prevent recompilation
   },
 
   // Add request timeout handling
   serverRuntimeConfig: {
-    requestTimeout: 60000, // 60 second timeout
+    requestTimeout: 120000, // 120 second timeout for development
   },
 
   // Optimize for slower environments
@@ -123,6 +123,9 @@ const nextConfig = {
         removeAvailableModules: false,
         removeEmptyChunks: false,
         mergeDuplicateChunks: false,
+        providedExports: false,
+        usedExports: false,
+        sideEffects: false,
       };
 
       // Faster module resolution
@@ -130,20 +133,33 @@ const nextConfig = {
       config.resolve.symlinks = false;
       config.resolve.cacheWithContext = false;
 
+      // Reduce module resolution overhead
+      config.resolve.modules = ['node_modules'];
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@': '.'
+      };
+
       // Disable expensive features
-      config.stats = 'errors-only';
+      config.stats = false; // Completely disable stats
       config.infrastructureLogging = { level: 'error' };
 
-      // Aggressive caching
-      if (config.cache) {
-        config.cache.type = 'filesystem';
-        config.cache.buildDependencies = {
-          config: [__filename]
-        };
-      }
+      // Disable module concatenation for faster builds
+      config.optimization.concatenateModules = false;
 
-      // Let Next.js handle devtool automatically to avoid performance regressions
-      // config.devtool = 'eval-cheap-source-map'; // Removed - causing performance issues
+      // Aggressive caching with optimization
+      config.cache = {
+        type: 'filesystem',
+        allowCollectingMemory: false,
+        buildDependencies: {
+          config: [__filename]
+        },
+        compression: false, // Disable compression for faster builds
+        maxMemoryGenerations: 1
+      };
+
+      // Let Next.js handle devtool automatically for optimal performance
+      // config.devtool = removed due to performance warnings
 
       // Client-side optimizations
       if (!isServer) {

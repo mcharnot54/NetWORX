@@ -27,7 +27,11 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": [
     "node_modules",
+    "dist",
+    ".next",
     "app/api/**/*.disabled/**",
+    "app/test-*/**",
+    "scripts/**",
     "app/api/debug-*/**",
     "app/api/test-*/**",
     "app/api/**/test-*/**",

@@ -1,0 +1,15 @@
+{
+  "/page": "app/page.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/api/scenarios/route": "app/api/scenarios/route.js",
+  "/capacity-optimizer/page": "app/capacity-optimizer/page.js",
+  "/data-processor/page": "app/data-processor/page.js",
+  "/api/projects/route": "app/api/projects/route.js",
+  "/api/scenarios/[id]/capacity-analysis/route": "app/api/scenarios/[id]/capacity-analysis/route.js",
+  "/api/scenarios/[id]/capacity-config/route": "app/api/scenarios/[id]/capacity-config/route.js",
+  "/warehouse-optimizer/page": "app/warehouse-optimizer/page.js",
+  "/api/scenarios/[id]/warehouses/route": "app/api/scenarios/[id]/warehouses/route.js",
+  "/api/scenarios/[id]/route": "app/api/scenarios/[id]/route.js",
+  "/transport-optimizer/page": "app/transport-optimizer/page.js",
+  "/api/scenarios/[id]/optimize/route": "app/api/scenarios/[id]/optimize/route.js"
+}

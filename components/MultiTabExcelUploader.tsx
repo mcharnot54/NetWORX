@@ -362,7 +362,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                 if (testValue && testValue !== '') {
                   const numValue = parseFloat(String(testValue).replace(/[$,\s"]/g, ''));
                   if (!isNaN(numValue) && numValue > 0) {
-                    addLog(`    📍 Found ${excelCol}${excelRow} data at col ${testIndex}: ${numValue}`);
+                    addLog(`    ���� Found ${excelCol}${excelRow} data at col ${testIndex}: ${numValue}`);
                     return numValue;
                   }
                 }
@@ -2260,9 +2260,13 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
             excel_preserved: true
           };
 
-          // Upload to database using multi-tab endpoint
+          // Upload to database using multi-tab endpoint with timeout handling
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
           const uploadResponse = await fetch('/api/files/multi-tab-upload', {
             method: 'POST',
+            signal: controller.signal,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               fileName: file.fileName,
@@ -2273,6 +2277,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               processedData: multiTabData
             })
           });
+
+          clearTimeout(timeoutId);
 
           if (uploadResponse.ok) {
             addLog(`✓ ${file.fileName} uploaded with preserved tab structure`);
