@@ -19,6 +19,7 @@ const navItems = [
   { href: "/transport-optimizer", label: "Transport Optimizer" },
   { href: "/inventory-optimizer", label: "Inventory Optimizer" },
   { href: "/visualizer", label: "Results & Visualization" },
+  { href: "/timeout-debug", label: "⏱️ Timeout Debug" },
   { href: "/config", label: "Configuration" },
 ];
 
