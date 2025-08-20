@@ -16,8 +16,10 @@ export async function POST(request: NextRequest) {
 
     console.log('Initializing database schema...');
 
-    // Set a shorter statement timeout for quicker feedback
-    await sql`SET statement_timeout = '30s'`;
+    // Set optimized timeouts for faster operations
+    await sql`SET statement_timeout = '15s'`;
+    await sql`SET lock_timeout = '10s'`;
+    await sql`SET idle_in_transaction_session_timeout = '30s'`;
 
     // Create projects table with optimized constraints
     await sql`
@@ -153,8 +155,9 @@ export async function GET(request: NextRequest) {
 
     const { sql } = await import('@/lib/database');
 
-    // Set a shorter statement timeout for quicker feedback
-    await sql`SET statement_timeout = '30s'`;
+    // Set optimized timeouts for faster response
+    await sql`SET statement_timeout = '10s'`;
+    await sql`SET lock_timeout = '5s'`;
 
     // Check current database schema
     const tables = await sql`
