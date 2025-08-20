@@ -202,22 +202,21 @@ export async function POST(req: NextRequest) {
 
         scenarios.push({
           nodes,
-          transport: transportResult,
+          transportMultiYear: transportMultiYear,
           warehouse: warehouseResult,
           inventory: inventoryResult,
           kpis: {
-            year1_total_cost: totalCost,
-            transport_cost: transportCost,
-            warehouse_cost: warehouseCost,
-            inventory_cost: inventoryCost,
-            service_level: transportResult.network_metrics.service_level_achievement,
-            facilities_opened: transportResult.optimization_summary.facilities_opened,
+            total_transport_cost_all_years: transportMultiYear.totals.total_transportation_cost,
+            total_warehouse_cost_all_years: warehouseCostAllYears,
+            total_inventory_cost_all_years: inventoryCostAllYears,
+            total_network_cost_all_years: totalNetworkCost,
+            weighted_service_level: transportMultiYear.totals.weighted_service_level,
+            facilities_opened: transportMultiYear.perYear[0]?.transport.optimization_summary.facilities_opened || 0,
             transport_savings: transportSavings,
             transport_savings_percent: transportSavingsPercent,
-            avg_distance: transportResult.network_metrics.weighted_avg_distance,
-            facility_utilization: transportResult.network_metrics.avg_facility_utilization,
+            avg_cost_per_unit: transportMultiYear.totals.avg_cost_per_unit,
           },
-          facilities_used: transportResult.open_facilities,
+          facilities_used: transportMultiYear.perYear[0]?.transport.facility_allocation.map(f => f.facility) || [],
         });
 
         console.log(`✅ ${nodes} nodes: $${Math.round(totalCost).toLocaleString()}, Service: ${(transportResult.network_metrics.service_level_achievement * 100).toFixed(1)}%`);
