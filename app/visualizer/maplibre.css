@@ -4,6 +4,9 @@
 /* Override some maplibre styles for better integration */
 .maplibregl-map {
   border-radius: 0.5rem;
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .maplibregl-ctrl {
@@ -19,4 +22,19 @@
 .maplibregl-ctrl-top-left,
 .maplibregl-ctrl-top-right {
   margin-top: 0.5rem;
+}
+
+/* Ensure map container doesn't overflow */
+.maplibregl-canvas-container {
+  position: relative !important;
+}
+
+/* Fix any deck.gl overlay positioning */
+.deck-canvas {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: auto !important;
 }
