@@ -12,6 +12,8 @@ export default function ScenarioSweep() {
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [best, setBest] = useState<any | null>(null);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [detailedAnalysisData, setDetailedAnalysisData] = useState<any | null>(null);
 
   async function run() {
     setLoading(true); setError(null);
