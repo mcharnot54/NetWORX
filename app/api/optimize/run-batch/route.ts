@@ -180,17 +180,39 @@ export async function POST(req: NextRequest) {
       );
 
       try {
-        // Use multi-year transport optimization
-        const transportMultiYear = optimizeTransportMultiYear(
-          defaultConfig.transportation,
-          costMatrix,
-          defaultForecast,
-          {
-            baselineDemand: demand,
-            capacity,
-            bounds: { minFacilities: nodes, maxFacilities: nodes }
-          }
-        );
+        // Determine which optimizer to use based on lease years vs planning horizon
+        const years = defaultForecast.map(f => f.year);
+        const span = years.length;
+        const leaseYears = defaultConfig.transportation.lease_years ?? 7;
+
+        let transportMultiYear;
+        if (leaseYears >= span) {
+          // Use fixed-lease optimizer when lease term >= planning horizon
+          console.log(`📋 Using fixed-lease optimizer (${leaseYears}yr lease >= ${span}yr horizon)`);
+          transportMultiYear = optimizeTransportMultiYearFixed(
+            defaultConfig.transportation,
+            costMatrix,
+            defaultForecast,
+            {
+              baselineDemand: demand,
+              capacity,
+              bounds: { minFacilities: nodes, maxFacilities: nodes }
+            }
+          );
+        } else {
+          // Use standard year-by-year optimizer for shorter leases
+          console.log(`📋 Using year-by-year optimizer (${leaseYears}yr lease < ${span}yr horizon)`);
+          transportMultiYear = optimizeTransportMultiYear(
+            defaultConfig.transportation,
+            costMatrix,
+            defaultForecast,
+            {
+              baselineDemand: demand,
+              capacity,
+              bounds: { minFacilities: nodes, maxFacilities: nodes }
+            }
+          );
+        }
 
         // Calculate combined metrics across all years
         const warehouseCostAllYears = warehouseResult.results.reduce((sum, r) => sum + r.Total_Cost_Annual, 0);
