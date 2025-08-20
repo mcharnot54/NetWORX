@@ -3,27 +3,39 @@
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useData } from "@/context/DataContext";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  ScatterChart,
-  Scatter,
-  ComposedChart,
-  ReferenceLine,
-} from "recharts";
+// Temporarily commented out recharts imports due to dependency issue
+// import {
+//   BarChart,
+//   Bar,
+//   XAxis,
+//   YAxis,
+//   CartesianGrid,
+//   Tooltip,
+//   Legend,
+//   LineChart,
+//   Line,
+//   PieChart,
+//   Pie,
+//   Cell,
+//   ResponsiveContainer,
+//   AreaChart,
+//   Area,
+//   ScatterChart,
+//   Scatter,
+//   ComposedChart,
+//   ReferenceLine,
+// } from "recharts";
+
+// Temporary placeholder component
+function PlaceholderChart({ title }: { title: string }) {
+  return (
+    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+      <div className="text-gray-500 mb-2">📊</div>
+      <div className="text-gray-700 font-medium">{title}</div>
+      <div className="text-xs text-gray-400 mt-2">Chart temporarily unavailable</div>
+    </div>
+  );
+}
 import {
   Package,
   Calculator,
