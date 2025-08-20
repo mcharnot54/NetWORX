@@ -112,7 +112,12 @@ a {
 }
 
 /* Adjust main content when sidebar is collapsed */
-.sidebar-navigation.collapsed + .main-content {
+.sidebar-navigation.collapsed ~ .main-content {
+  margin-left: 80px;
+}
+
+/* Alternative approach using layout wrapper state */
+.layout-wrapper:has(.sidebar-navigation.collapsed) .main-content {
   margin-left: 80px;
 }
 
