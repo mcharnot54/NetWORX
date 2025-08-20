@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import Navigation from "@/components/Navigation";
 import ResultsTimeline from "@/components/ResultsTimeline";
 import LaneWaterfall, { LaneDelta } from "@/components/Charts/LaneWaterfall";
+import { loadSampleData } from "@/lib/sample-data";
 
 const MapDeck = dynamic(() => import("@/components/Visualizer/MapDeck"), { ssr: false });
 const SwipeCompare = dynamic(() => import("@/components/Visualizer/SwipeCompare"), { ssr: false });
