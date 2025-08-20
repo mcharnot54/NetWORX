@@ -198,6 +198,7 @@ const defaultConfig: OptimizationConfig = {
     max_capacity_per_facility: 5_000_000,
     mandatory_facilities: [],
     weights: { cost: 0.6, service_level: 0.3 },
+    lease_years: 7,
   },
 };
 
