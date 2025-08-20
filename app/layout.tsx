@@ -6,6 +6,8 @@ import { DevErrorBoundary } from "@/components/DevErrorBoundary";
 import { SafeNavigation } from "@/components/SafeNavigation";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import GlobalErrorHandler from "@/components/GlobalErrorHandler";
+import SidebarNavigation from "@/components/SidebarNavigation";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 export const metadata: Metadata = {
   title: "NetWORX Essentials",
@@ -22,7 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
         <script
@@ -70,14 +72,20 @@ export default function RootLayout({
                         <span className="powered-by-text">powered by </span>
                         <img
                           src="https://cdn.builder.io/api/v1/image/assets%2F9ce0f418d64249b18f0cb96e0afc51db%2Fb2368c2083bd45189ccccb0c56de8b35?format=webp&width=800"
-                          alt="Continuum"
+                          alt="CONTINUUM"
                           className="continuum-logo"
                         />
                       </div>
                     </div>
                   </header>
-                  <SafeNavigation />
-                  {children}
+                  <div className="layout-wrapper">
+                    <SidebarNavigation />
+                    <MobileSidebarToggle />
+                    <main className="main-content">
+                      <SafeNavigation />
+                      {children}
+                    </main>
+                  </div>
                   <ConnectionStatus />
                 </div>
               </DataProvider>
