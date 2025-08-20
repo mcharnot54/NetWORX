@@ -254,25 +254,25 @@ export async function POST(req: NextRequest) {
     }
 
     const response = {
-      success: true,
+      ok: true,
       batch_summary: {
         scenarios_run: scenarios.length,
         successful_scenarios: validScenarios.length,
         failed_scenarios: scenarios.length - validScenarios.length,
         best_scenario_nodes: scenarios[bestIdx]?.nodes,
-        best_scenario_cost: scenarios[bestIdx]?.kpis?.year1_total_cost,
+        best_scenario_cost: scenarios[bestIdx]?.kpis?.total_network_cost_all_years,
         cost_range: validScenarios.length > 0 ? {
-          min: Math.min(...validScenarios.map(s => s.kpis.year1_total_cost)),
-          max: Math.max(...validScenarios.map(s => s.kpis.year1_total_cost)),
+          min: Math.min(...validScenarios.map(s => s.kpis.total_network_cost_all_years)),
+          max: Math.max(...validScenarios.map(s => s.kpis.total_network_cost_all_years)),
         } : null,
       },
-      warehouse: warehouseResult,
-      inventory: inventoryResult,
+      wh: warehouseResult,
       scenarios,
       best: scenarios[bestIdx],
       baseline_integration: {
         transport_baseline: actualTransportBaseline,
-        best_transport_cost: scenarios[bestIdx]?.kpis?.transport_cost,
+        transport_baseline_all_years: baselineAllYears,
+        best_transport_cost_all_years: scenarios[bestIdx]?.kpis?.total_transport_cost_all_years,
         best_savings_percent: scenarios[bestIdx]?.kpis?.transport_savings_percent,
       }
     };
