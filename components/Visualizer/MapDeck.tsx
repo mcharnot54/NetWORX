@@ -270,11 +270,19 @@ export default function MapDeck({
   }
 
   return (
-    <DeckGL initialViewState={initial} controller={true} layers={layers}>
+    <DeckGL
+      initialViewState={initial}
+      controller={true}
+      layers={layers}
+      width="100%"
+      height="100%"
+      style={{ width: '100%', height: '100%' }}
+    >
       <Map
         reuseMaps
         attributionControl={true}
         mapStyle={BASE_STYLE}
+        style={{ width: '100%', height: '100%' }}
       />
     </DeckGL>
   );
