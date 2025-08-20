@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCostMatrix, optimizeTransport } from '@/lib/advanced-transport-optimizer';
 import { DemandMap, CapacityMap, TransportParams } from '@/types/advanced-optimization';
 
 export async function POST(request: NextRequest) {

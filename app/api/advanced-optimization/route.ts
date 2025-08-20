@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { optimizeWarehouse } from '@/lib/advanced-warehouse-optimizer';
-import { optimizeTransport, generateCostMatrix } from '@/lib/advanced-transport-optimizer';
 import { 
   OptimizationConfig, 
   ForecastRow, 
