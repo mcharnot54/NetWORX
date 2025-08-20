@@ -35,6 +35,7 @@
     "pino": "^9.9.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-smooth": "^2.0.5",
     "recharts": "^2.8.0",
     "string-similarity": "^4.0.4",
     "uuid": "^11.1.0",
