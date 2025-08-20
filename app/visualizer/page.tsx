@@ -147,16 +147,28 @@ export default function VisualizerPage() {
               </div>
 
               <div className="flex flex-col space-y-2">
-                <Label>Map Mode</Label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={useSwipe}
-                    onChange={(e) => setUseSwipe(e.target.checked)}
-                    className="rounded"
-                  />
-                  Swipe compare (Baseline ↔ Selected)
-                </label>
+                <Label>Map Features</Label>
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={useAdvancedMap}
+                      onChange={(e) => setUseAdvancedMap(e.target.checked)}
+                      className="rounded"
+                    />
+                    Advanced features (heatmap, flows, COG)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={useSwipe}
+                      onChange={(e) => setUseSwipe(e.target.checked)}
+                      className="rounded"
+                      disabled={!useAdvancedMap}
+                    />
+                    Swipe compare (requires advanced features)
+                  </label>
+                </div>
               </div>
             </div>
           </CardContent>
