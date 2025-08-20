@@ -138,7 +138,6 @@ export default function COGSensitivityPanel({
                   reuseMaps
                   attributionControl
                   mapStyle={BASE_STYLE}
-                  {...(MAPBOX_TOKEN ? { mapboxAccessToken: MAPBOX_TOKEN } : { mapLib: maplibregl })}
                 />
               </DeckGL>
             </div>
