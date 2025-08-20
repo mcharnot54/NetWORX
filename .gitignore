@@ -9,3 +9,10 @@
 node_modules/
 dist/
 build/
+
+# Logs / IDE
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
