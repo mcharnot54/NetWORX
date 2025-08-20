@@ -163,13 +163,13 @@ export async function POST(req: NextRequest) {
 
     const scenarios: any[] = [];
     
-    // Run transport optimization for each node count
+    // Run multi-year transport optimization for each node count
     for (let nodes = minNodes; nodes <= maxNodes; nodes += step) {
-      console.log(`🚛 Optimizing transport network: ${nodes} nodes...`);
-      
+      console.log(`🚛 Optimizing transport network: ${nodes} nodes (multi-year)...`);
+
       // Select top candidates based on node count
       const selectedCandidates = defaultCandidates.slice(0, Math.min(nodes + 2, defaultCandidates.length));
-      
+
       const capacity: CapacityMap = Object.fromEntries(
         selectedCandidates.map(facility => [
           facility,
@@ -178,24 +178,27 @@ export async function POST(req: NextRequest) {
       );
 
       try {
-        const transportResult = optimizeTransport(
+        // Use multi-year transport optimization
+        const transportMultiYear = optimizeTransportMultiYear(
           defaultConfig.transportation,
           costMatrix,
-          demand,
-          capacity,
-          { minFacilities: nodes, maxFacilities: nodes },
-          { current_cost: actualTransportBaseline, target_savings: 40 }
+          defaultForecast,
+          {
+            baselineDemand: demand,
+            capacity,
+            bounds: { minFacilities: nodes, maxFacilities: nodes }
+          }
         );
 
-        // Calculate combined metrics
-        const transportCost = transportResult.network_metrics.total_transportation_cost;
-        const warehouseCost = warehouseResult.optimization_summary.total_annual_cost;
-        const inventoryCost = inventoryResult.total_cost;
-        const totalCost = transportCost + warehouseCost + inventoryCost;
+        // Calculate combined metrics across all years
+        const warehouseCostAllYears = warehouseResult.results.reduce((sum, r) => sum + r.Total_Cost_Annual, 0);
+        const inventoryCostAllYears = inventoryResult.total_cost * defaultForecast.length; // Scale by years
+        const totalNetworkCost = transportMultiYear.totals.total_transportation_cost + warehouseCostAllYears + inventoryCostAllYears;
 
-        // Calculate savings
-        const transportSavings = actualTransportBaseline - transportCost;
-        const transportSavingsPercent = (transportSavings / actualTransportBaseline) * 100;
+        // Calculate savings based on baseline scaled to all years
+        const baselineAllYears = actualTransportBaseline * defaultForecast.length;
+        const transportSavings = baselineAllYears - transportMultiYear.totals.total_transportation_cost;
+        const transportSavingsPercent = (transportSavings / baselineAllYears) * 100;
 
         scenarios.push({
           nodes,
