@@ -26,21 +26,23 @@ import {
   PieChart as PieChartIcon,
 } from 'lucide-react';
 
-// Temporary placeholder for charts while we fix recharts dependency
-function PlaceholderChart({ title, type }: { title: string; type: string }) {
-  return (
-    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-      <div className="text-gray-500 mb-2">
-        <BarChart3 className="w-8 h-8 mx-auto" />
-      </div>
-      <div className="text-gray-700 font-medium">{title}</div>
-      <div className="text-sm text-gray-500 mt-1">{type} Chart</div>
-      <div className="text-xs text-gray-400 mt-2">
-        Chart temporarily unavailable - fixing recharts dependency
-      </div>
-    </div>
-  );
-}
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 
 // Comprehensive KPI data structure
 interface ComprehensiveResults {
@@ -283,12 +285,50 @@ export default function VisualizerPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
-                <PlaceholderChart title="Cost Distribution" type="Pie" />
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Warehouse', value: results.warehouse_cost, fill: '#0088FE' },
+                        { name: 'Transport', value: results.transport_cost, fill: '#00C49F' },
+                        { name: 'Inventory', value: results.inventory_cost, fill: '#FFBB28' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                    </Pie>
+                    <Tooltip formatter={(value: any) => [`$${(value / 1000000).toFixed(1)}M`, 'Cost']}/>
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
               
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h3 className="text-lg font-semibold mb-4">Performance Trends</h3>
-                <PlaceholderChart title="Service Level Over Time" type="Line" />
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={[
+                      { month: 'Jan', service: 92.1, target: 94.2 },
+                      { month: 'Feb', service: 93.4, target: 94.2 },
+                      { month: 'Mar', service: 94.8, target: 94.2 },
+                      { month: 'Apr', service: 93.9, target: 94.2 },
+                      { month: 'May', service: 95.1, target: 94.2 },
+                      { month: 'Jun', service: 94.2, target: 94.2 }
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis domain={[90, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="service" stroke="#0088FE" name="Actual Service Level" />
+                    <Line type="monotone" dataKey="target" stroke="#FF8042" strokeDasharray="5 5" name="Target" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
@@ -298,12 +338,48 @@ export default function VisualizerPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white rounded-xl border shadow-sm p-6">
                   <h3 className="text-lg font-semibold mb-4">ROI Analysis</h3>
-                  <PlaceholderChart title="Return on Investment" type="Bar" />
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={[
+                        { year: 'Year 1', investment: -2.5, savings: 0.8, roi: -6.8 },
+                        { year: 'Year 2', investment: -0.5, savings: 2.3, roi: 7.2 },
+                        { year: 'Year 3', investment: 0, savings: 2.3, roi: 18.4 },
+                        { year: 'Year 4', investment: 0, savings: 2.3, roi: 18.4 },
+                        { year: 'Year 5', investment: 0, savings: 2.3, roi: 18.4 }
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="year" />
+                      <YAxis />
+                      <Tooltip formatter={(value: any) => [`${value > 0 ? '+' : ''}${value}%`, 'ROI']}/>
+                      <Legend />
+                      <Bar dataKey="roi" fill="#00C49F" name="ROI %" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
                 
                 <div className="bg-white rounded-xl border shadow-sm p-6">
                   <h3 className="text-lg font-semibold mb-4">Cost Efficiency</h3>
-                  <PlaceholderChart title="Cost per Unit Trends" type="Area" />
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart
+                      data={[
+                        { month: 'Jan', baseline: 0.68, optimized: 0.52 },
+                        { month: 'Feb', baseline: 0.67, optimized: 0.51 },
+                        { month: 'Mar', baseline: 0.69, optimized: 0.52 },
+                        { month: 'Apr', baseline: 0.68, optimized: 0.51 },
+                        { month: 'May', baseline: 0.66, optimized: 0.52 },
+                        { month: 'Jun', baseline: 0.67, optimized: 0.52 }
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis domain={[0.4, 0.8]} />
+                      <Tooltip formatter={(value: any) => [`$${value}`, 'Cost per Unit']}/>
+                      <Legend />
+                      <Area type="monotone" dataKey="baseline" stackId="1" stroke="#FF8042" fill="#FF8042" name="Baseline" />
+                      <Area type="monotone" dataKey="optimized" stackId="2" stroke="#00C49F" fill="#00C49F" name="Optimized" />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
               
@@ -335,7 +411,23 @@ export default function VisualizerPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h3 className="text-lg font-semibold mb-4">Capacity Utilization</h3>
-                <PlaceholderChart title="Facility Utilization" type="Bar" />
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={[
+                      { facility: 'Chicago', utilization: 85.2, capacity: 100 },
+                      { facility: 'St. Louis', utilization: 78.9, capacity: 100 },
+                      { facility: 'Memphis', utilization: 82.1, capacity: 100 },
+                      { facility: 'Atlanta', utilization: 79.4, capacity: 100 }
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="facility" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip formatter={(value: any) => [`${value}%`, 'Utilization']}/>
+                    <Legend />
+                    <Bar dataKey="utilization" fill="#0088FE" name="Utilization %" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
               
               <div className="bg-white rounded-xl border shadow-sm p-6">
@@ -366,7 +458,25 @@ export default function VisualizerPage() {
             <div className="space-y-6">
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h3 className="text-lg font-semibold mb-4">Network Coverage</h3>
-                <PlaceholderChart title="Geographic Distribution" type="Scatter" />
+                <ResponsiveContainer width="100%" height={400}>
+                  <AreaChart
+                    data={[
+                      { region: 'Northeast', coverage: 95, efficiency: 89 },
+                      { region: 'Southeast', coverage: 92, efficiency: 91 },
+                      { region: 'Midwest', coverage: 98, efficiency: 87 },
+                      { region: 'Southwest', coverage: 88, efficiency: 85 },
+                      { region: 'West', coverage: 85, efficiency: 88 }
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="region" />
+                    <YAxis domain={[80, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    <Area type="monotone" dataKey="coverage" stackId="1" stroke="#0088FE" fill="#0088FE" name="Coverage %" />
+                    <Area type="monotone" dataKey="efficiency" stackId="2" stroke="#00C49F" fill="#00C49F" name="Efficiency %" />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -421,25 +531,33 @@ export default function VisualizerPage() {
               
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h3 className="text-lg font-semibold mb-4">Error Rates</h3>
-                <PlaceholderChart title="Quality Trends" type="Line" />
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={[
+                      { month: 'Jan', damage: 0.4, error: 1.1, onTime: 95.2 },
+                      { month: 'Feb', damage: 0.3, error: 0.9, onTime: 95.8 },
+                      { month: 'Mar', damage: 0.2, error: 0.8, onTime: 96.1 },
+                      { month: 'Apr', damage: 0.3, error: 0.7, onTime: 96.3 },
+                      { month: 'May', damage: 0.3, error: 0.8, onTime: 96.1 },
+                      { month: 'Jun', damage: 0.3, error: 0.8, onTime: 96.1 }
+                    ]}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis yAxisId="left" domain={[0, 2]} />
+                    <YAxis yAxisId="right" orientation="right" domain={[94, 98]} />
+                    <Tooltip />
+                    <Legend />
+                    <Line yAxisId="left" type="monotone" dataKey="damage" stroke="#FF8042" name="Damage Rate %" />
+                    <Line yAxisId="left" type="monotone" dataKey="error" stroke="#FFBB28" name="Error Rate %" />
+                    <Line yAxisId="right" type="monotone" dataKey="onTime" stroke="#00C49F" name="On-Time Delivery %" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
         </div>
 
-        {/* Alert about missing charts */}
-        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-            <div>
-              <div className="font-medium text-yellow-800">Charts Temporarily Unavailable</div>
-              <div className="text-sm text-yellow-700 mt-1">
-                We're fixing a dependency issue with the chart library. The data and metrics above are still accurate.
-                Full interactive charts will be restored shortly.
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
