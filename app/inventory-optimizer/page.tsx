@@ -1499,53 +1499,7 @@ export default function InventoryOptimizer() {
                     <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
                       Risk Pooling Benefits
                     </h5>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart
-                        data={[
-                          {
-                            locations: "1",
-                            safety_stock: 100,
-                            pooled_stock: 100,
-                          },
-                          {
-                            locations: "2",
-                            safety_stock: 200,
-                            pooled_stock: 141,
-                          },
-                          {
-                            locations: "4",
-                            safety_stock: 400,
-                            pooled_stock: 200,
-                          },
-                          {
-                            locations: "9",
-                            safety_stock: 900,
-                            pooled_stock: 300,
-                          },
-                          {
-                            locations: "16",
-                            safety_stock: 1600,
-                            pooled_stock: 400,
-                          },
-                        ]}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="locations" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar
-                          dataKey="safety_stock"
-                          fill="#ef4444"
-                          name="Decentralized"
-                        />
-                        <Bar
-                          dataKey="pooled_stock"
-                          fill="#10b981"
-                          name="Risk Pooled"
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <PlaceholderChart title="Risk Pooling Analysis" />
                   </div>
 
                   <div>
