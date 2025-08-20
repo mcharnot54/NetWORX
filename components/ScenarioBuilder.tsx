@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { OptimizationConfig, ForecastRow, SKU, CostMatrix, DemandMap } from '@/types/advanced-optimization';
 import clsx from 'clsx';
 import { parseDemandFile, parseCostMatrixFile } from '@/lib/importers/parse';
+import ColumnMapper from '@/components/ColumnMapper';
+import { mapDemandAoA, mapCostAoA, mapCapacityAoA, DemandMapping, CostMapping, CapacityMapping } from '@/lib/importers/map';
 
 export default function ScenarioBuilder({ onRun }: { onRun: (payload: any) => Promise<void> }) {
   const [config, setConfig] = useState<OptimizationConfig>(defaultConfig);
@@ -11,8 +13,15 @@ export default function ScenarioBuilder({ onRun }: { onRun: (payload: any) => Pr
   const [skus, setSkus] = useState<SKU[]>(defaultSkus);
   const [costMatrix, setCostMatrix] = useState<CostMatrix>(defaultMatrix);
   const [baselineDemand, setBaselineDemand] = useState<DemandMap | undefined>(undefined);
+  const [capacityMap, setCapacityMap] = useState<Record<string, number> | undefined>(undefined);
   const [status, setStatus] = useState<string>('');
 
+  // Server upload state
+  const [preview, setPreview] = useState<{ rows: any[][]; headers: string[]; stats?: any } | null>(null);
+  const [mapKind, setMapKind] = useState<'demand' | 'demand-per-year' | 'cost' | 'capacity' | null>(null);
+  const [uploadMode, setUploadMode] = useState<'client' | 'server'>('server');
+
+  // Legacy client-side upload functions
   async function onDemandUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if (!f) return;
     try {
@@ -36,6 +45,57 @@ export default function ScenarioBuilder({ onRun }: { onRun: (payload: any) => Pr
       setCostMatrix(m);
       setStatus('Matrix loaded');
     } catch (err:any) { setStatus('Matrix parse error: ' + err.message); }
+  }
+
+  // Enhanced server-side upload with preview
+  async function serverPreview(file: File) {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/import', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Upload failed');
+
+    const rows: any[][] = data.rows || [];
+    const headers = data.headers || (rows[0] || []).map((h: any) => String(h));
+
+    setPreview({ rows, headers, stats: data.stats });
+    return { rows, headers, stats: data.stats };
+  }
+
+  async function onServerUpload(e: React.ChangeEvent<HTMLInputElement>, kind: 'demand' | 'demand-per-year' | 'cost' | 'capacity') {
+    const f = e.target.files?.[0]; if (!f) return;
+    setMapKind(kind);
+    setStatus('Uploading and processing file...');
+    try {
+      const result = await serverPreview(f);
+      setStatus(`File processed: ${result.stats?.totalRows || 'unknown'} rows. Map columns and apply.`);
+    }
+    catch (err: any) { setStatus('Upload error: ' + err.message); }
+  }
+
+  function applyMapping(mapping: DemandMapping | CostMapping | CapacityMapping) {
+    if (!preview) return;
+    try {
+      if (mapKind === 'demand' || mapKind === 'demand-per-year') {
+        const dem = mapDemandAoA(preview.rows, mapping as DemandMapping);
+        const base = dem.base ?? (dem.byYear ? dem.byYear[forecast[0]?.year] : undefined);
+        if (!base) throw new Error('No demand rows parsed.');
+        setBaselineDemand(base);
+        setStatus(`✅ Demand mapped: ${Object.keys(base).length} destinations, ${Object.values(base).reduce((s, v) => s + v, 0).toLocaleString()} total units.`);
+      } else if (mapKind === 'cost') {
+        const cm = mapCostAoA(preview.rows, mapping as CostMapping);
+        setCostMatrix(cm);
+        setStatus(`✅ Cost matrix mapped: ${cm.rows.length} origins × ${cm.cols.length} destinations.`);
+      } else if (mapKind === 'capacity') {
+        const cap = mapCapacityAoA(preview.rows, mapping as CapacityMapping);
+        setCapacityMap(cap);
+        setStatus(`✅ Capacity mapped: ${Object.keys(cap).length} facilities.`);
+      }
+      setPreview(null);
+      setMapKind(null);
+    } catch (err: any) {
+      setStatus('❌ Mapping error: ' + err.message);
+    }
   }
 
   return (
