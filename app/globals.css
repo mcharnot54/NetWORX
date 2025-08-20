@@ -120,6 +120,8 @@ a {
   .main-content {
     margin-left: 0;
     padding: 1.5rem;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
   }
 
   .sidebar-navigation {
