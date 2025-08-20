@@ -7,6 +7,7 @@ import { SafeNavigation } from "@/components/SafeNavigation";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import GlobalErrorHandler from "@/components/GlobalErrorHandler";
 import SidebarNavigation from "@/components/SidebarNavigation";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 export const metadata: Metadata = {
   title: "NetWORX Essentials",
