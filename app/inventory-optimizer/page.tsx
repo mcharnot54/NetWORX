@@ -1517,7 +1517,22 @@ export default function InventoryOptimizer() {
                     <h5 style={{ marginBottom: "1rem", color: "#374151" }}>
                       Risk Pooling Benefits
                     </h5>
-                    <PlaceholderChart title="Risk Pooling Analysis" />
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart
+                        data={[
+                          { scenario: 'Individual', safety: 145, cost: 285 },
+                          { scenario: 'Pooled', safety: 102, cost: 201 }
+                        ]}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="scenario" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="safety" fill="#0088FE" name="Safety Stock (units)" />
+                        <Bar dataKey="cost" fill="#00C49F" name="Inventory Cost ($K)" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
 
                   <div>
