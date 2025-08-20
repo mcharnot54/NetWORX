@@ -17,10 +17,7 @@ import maplibregl from "maplibre-gl";
 type LatLng = { lat: number; lng: number };
 type LocationsIndex = Record<string, LatLng>;
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-const BASE_STYLE = MAPBOX_TOKEN
-  ? "mapbox://styles/mapbox/light-v11"
-  : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const BASE_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
 export default function MapDeck({
   scenario,
