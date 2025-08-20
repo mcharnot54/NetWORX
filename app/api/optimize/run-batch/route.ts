@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  OptimizationConfig, 
-  ForecastRow, 
-  SKU, 
+import {
+  OptimizationConfig,
+  ForecastRow,
+  SKU,
   IntegratedRunResult,
   DemandMap,
-  CapacityMap 
+  CapacityMap,
+  CostMatrix
 } from '@/types/advanced-optimization';
+import { optimizeTransportMultiYear } from '@/lib/optimization/transportMultiYear';
 
 export async function POST(req: NextRequest) {
   try {
