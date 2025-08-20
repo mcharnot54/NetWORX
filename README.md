@@ -40,6 +40,10 @@ A comprehensive web application powered by **real mathematical optimization algo
 - **Real cost optimization** using transportation modeling
 - **Service zone optimization** with mathematical efficiency scoring
 - **Route efficiency algorithms** based on operations research
+- **Fixed-lease multi-year optimization** with facility lease constraints
+  - **Lease Years (default 7)**: When lease term ≥ planning horizon, optimizer chooses one facility set for all years and only adjusts assignments year-by-year
+  - **Conservative planning**: Matches typical lease covenants and provides stable network decisions
+  - **Automatic switching**: Uses fixed-lease optimizer when appropriate, year-by-year optimizer for shorter leases
 
 ### 📈 **Results & Visualization**
 
