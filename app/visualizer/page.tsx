@@ -95,16 +95,14 @@ export default function VisualizerPage() {
   const laneDeltas = lanesFromAssignments(baseYr, selYr);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="content-area">
+      <div className="space-y-8">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
             📊 Network Strategy Visualizer
           </h1>
-          <p className="text-gray-600">
+          <p className="text-lg text-gray-600 max-w-3xl">
             Professional-grade network analysis with interactive maps, COG sensitivity, and timeline visualization.
           </p>
         </div>
