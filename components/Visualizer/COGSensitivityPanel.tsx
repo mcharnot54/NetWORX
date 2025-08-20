@@ -4,8 +4,6 @@ import React, { useMemo, useState } from "react";
 import DeckGL from "@deck.gl/react";
 import { Map } from "react-map-gl/maplibre";
 import { HeatmapLayer, ScatterplotLayer } from "@deck.gl/layers";
-// @ts-ignore
-import maplibregl from "maplibre-gl";
 import { buildCOGSensitivity } from "@/lib/visualizer/sensitivity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
