@@ -433,7 +433,7 @@ async function generateYearlyAnalysis(transportResults: any, cities: string[], w
 
       // Calculate warehouse costs with volume growth (from capacity data if available)
       const volumeGrowthFactor = Math.pow(1 + volumeGrowthRate, year);
-      warehouseCost = Math.round(baselineWarehouseCost * volumeGrowthFactor);
+      warehouseCost = Math.round(finalBaselineWarehouseCost * volumeGrowthFactor);
       isOptimized = true;
     }
 
