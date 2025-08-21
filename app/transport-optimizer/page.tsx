@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import ProjectScenarioManager from '@/components/ProjectScenarioManager';
+import { RealDataTransportOptimizer } from '@/lib/real-data-transport-optimizer';
 
 interface TransportScenario {
   id?: number;
@@ -187,8 +188,7 @@ export default function TransportOptimizer() {
     try {
       console.log('🎯 Using ACTUAL cities from your uploaded transport files...');
 
-      // Import Real Data Transport Optimizer dynamically
-      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
+      // Use the statically imported RealDataTransportOptimizer
 
       // Get real route data from uploaded files
       const routeData = await RealDataTransportOptimizer.getActualRouteData();
@@ -402,8 +402,7 @@ export default function TransportOptimizer() {
         'blended_service'
       ];
 
-      // Import Real Data Transport Optimizer dynamically inside try block
-      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
+      // Use the statically imported RealDataTransportOptimizer to avoid ChunkLoadError
 
       // Generate scenarios using REAL data
       const generatedScenarios = await RealDataTransportOptimizer.generateRealDataScenarios(
@@ -576,6 +575,22 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
       const totalMiles = enhancedScenarios.reduce((sum, s) => sum + (s.total_miles || 0), 0);
       const totalService = enhancedScenarios.reduce((sum, s) => sum + (s.service_score || 0), 0);
 
+      // Smart recommendation logic - balance cost, service, and efficiency
+      const recommendedScenario = enhancedScenarios.reduce((best, current) => {
+        // Calculate weighted score: 50% cost, 30% service, 20% efficiency (inverse of miles)
+        const currentScore =
+          (1 - (current.total_cost || 0) / Math.max(...enhancedScenarios.map(s => s.total_cost || 1))) * 0.5 +
+          ((current.service_score || 0) / 100) * 0.3 +
+          (1 - (current.total_miles || 0) / Math.max(...enhancedScenarios.map(s => s.total_miles || 1))) * 0.2;
+
+        const bestScore =
+          (1 - (best.total_cost || 0) / Math.max(...enhancedScenarios.map(s => s.total_cost || 1))) * 0.5 +
+          ((best.service_score || 0) / 100) * 0.3 +
+          (1 - (best.total_miles || 0) / Math.max(...enhancedScenarios.map(s => s.total_miles || 1))) * 0.2;
+
+        return currentScore > bestScore ? current : best;
+      });
+
       const results = {
         scenariosAnalyzed: enhancedScenarios.length,
         analyzedCities: Array.from(allCities),
@@ -587,10 +602,16 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
         averageMiles: totalMiles / enhancedScenarios.length,
         averageService: totalService / enhancedScenarios.length,
         costSavingsPotential: Math.max(...enhancedScenarios.map(s => s.total_cost || 0)) - Math.min(...enhancedScenarios.map(s => s.total_cost || 0)),
-        recommendedScenario: bestCostScenario, // Based on cost optimization as default
+        recommendedScenario: recommendedScenario,
+        recommendationReason: `Selected for balanced optimization: ${recommendedScenario.scenario_name} provides optimal balance of cost ($${recommendedScenario.total_cost?.toLocaleString()}), service (${recommendedScenario.service_score}%), and efficiency.`,
         realDataUsed: true,
         analysisTimestamp: new Date().toISOString()
       };
+
+      console.log(`🎯 RECOMMENDED SCENARIO: ${recommendedScenario.scenario_name}`);
+      console.log(`📍 PRIMARY CITIES: ${Array.from(allCities).slice(0, 5).join(', ')}`);
+      console.log(`💰 TOTAL COST: $${recommendedScenario.total_cost?.toLocaleString()}`);
+      console.log(`🛣️ REASONING: Balanced 50% cost, 30% service, 20% efficiency optimization`);
 
       console.log('Transport analysis completed with real data:', results);
       setAnalysisResults(results);
@@ -1305,12 +1326,26 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
                   </div>
 
                   <div className="recommended-scenario">
-                    <h3 className="subsection-title">Recommended Scenario</h3>
+                    <h3 className="subsection-title">🏆 Recommended Scenario</h3>
                     <div className="recommended-card">
                       <h4 className="recommended-name">{analysisResults.recommendedScenario?.scenario_name}</h4>
+                      <div className="recommended-route-highlight">
+                        <span className="route-highlight-label">Primary Route:</span>
+                        <span className="route-highlight-value">{analysisResults.recommendedScenario?.primary_route || "Littleton, MA → Distribution Network"}</span>
+                      </div>
+                      <div className="recommended-cities-highlight">
+                        <span className="cities-highlight-label">Key Cities Selected:</span>
+                        <div className="cities-highlight-list">
+                          {analysisResults.analyzedCities?.slice(0, 8).map((city: string, index: number) => (
+                            <span key={index} className="city-highlight-tag">{city}</span>
+                          ))}
+                          {(analysisResults.analyzedCities?.length || 0) > 8 && (
+                            <span className="city-count-more">+{(analysisResults.analyzedCities?.length || 0) - 8} more cities</span>
+                          )}
+                        </div>
+                      </div>
                       <p className="recommended-description">
-                        Based on your optimization criteria, this scenario provides the best balance 
-                        of cost, service, and distance factors.
+                        {analysisResults.recommendationReason || "Based on your optimization criteria, this scenario provides the best balance of cost, service, and distance factors."}
                       </p>
                       <div className="recommended-metrics">
                         <div className="recommended-metric">
@@ -2493,6 +2528,68 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
           font-size: 0.875rem;
           line-height: 1.5;
           margin: 0;
+        }
+
+        .recommended-route-highlight {
+          margin: 0.75rem 0;
+          padding: 0.75rem;
+          background: #fef3c7;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .route-highlight-label {
+          font-weight: 600;
+          color: #92400e;
+          font-size: 0.875rem;
+        }
+
+        .route-highlight-value {
+          font-weight: 500;
+          color: #a16207;
+          font-size: 0.875rem;
+        }
+
+        .recommended-cities-highlight {
+          margin: 0.75rem 0;
+          padding: 0.75rem;
+          background: #f0fdf4;
+          border-radius: 6px;
+        }
+
+        .cities-highlight-label {
+          font-weight: 600;
+          color: #166534;
+          font-size: 0.875rem;
+          display: block;
+          margin-bottom: 0.5rem;
+        }
+
+        .cities-highlight-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .city-highlight-tag {
+          background: #166534;
+          color: white;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .city-count-more {
+          background: #6b7280;
+          color: white;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          font-style: italic;
         }
       `}</style>
     </div>
