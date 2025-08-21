@@ -1,6 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { optimizeTransportRoutes } from '@/lib/optimization-algorithms';
 
+// Helper functions for optimization algorithm
+function calculateDistanceFromCoords(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function getRegionalDiversityScore(city: any, existingCities: string[]): number {
+  // Score higher for cities in regions not yet represented
+  const stateRegions: { [key: string]: string } = {
+    'CA': 'West', 'OR': 'West', 'WA': 'West', 'NV': 'West', 'AZ': 'West',
+    'TX': 'South', 'FL': 'South', 'GA': 'South', 'NC': 'South', 'SC': 'South',
+    'IL': 'Midwest', 'OH': 'Midwest', 'MI': 'Midwest', 'IN': 'Midwest', 'WI': 'Midwest',
+    'NY': 'Northeast', 'PA': 'Northeast', 'MA': 'Northeast', 'CT': 'Northeast', 'NJ': 'Northeast'
+  };
+
+  const cityRegion = stateRegions[city.state_province] || 'Other';
+  const existingRegions = existingCities.map(cityName => {
+    const state = cityName.split(', ')[1];
+    return stateRegions[state] || 'Other';
+  });
+
+  // Higher score if this region is not yet represented
+  return existingRegions.includes(cityRegion) ? 30 : 100;
+}
+
+function getStrategicImportanceScore(city: any): number {
+  // Major transportation and logistics hubs get higher scores
+  const strategicHubs = [
+    'Chicago', 'Atlanta', 'Dallas', 'Memphis', 'Louisville', 'Indianapolis',
+    'Columbus', 'Kansas City', 'Denver', 'Los Angeles', 'Phoenix', 'Houston'
+  ];
+
+  return strategicHubs.includes(city.name) ? 100 : 50;
+}
+
 // Function to extract real transport routes from uploaded data
 async function extractRealTransportRoutes(cities: string[], optimizationParams: any) {
   try {
