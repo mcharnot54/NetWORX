@@ -85,9 +85,6 @@ export async function POST(request: NextRequest) {
         strategicCities.push(baseCity);
       }
 
-      // Select top strategic cities by population and geographic distribution
-      const topCities = getTopCitiesByPopulation(100); // Get top 100 cities
-
       // Get strategic regions dynamically from top population centers
       const topCities = getTopCitiesByPopulation(50); // Get top 50 cities
       const targetRegions = topCities
