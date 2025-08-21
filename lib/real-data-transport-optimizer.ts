@@ -320,32 +320,22 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Generate realistic distribution network for educational publisher like Curriculum Associates
+   * Generate realistic distribution network using comprehensive cities database
    */
   static generateRealisticDistributionNetwork(): string[] {
-    // Educational publishers typically ship to schools, districts, and distributors nationwide
-    return [
-      'Littleton, MA',        // Primary facility
-      'Chicago, IL',          // Midwest distribution
-      'Atlanta, GA',          // Southeast schools
-      'Dallas, TX',           // Texas education market
-      'Los Angeles, CA',      // West Coast schools
-      'Denver, CO',           // Mountain West
-      'Phoenix, AZ',          // Southwest schools
-      'Orlando, FL',          // Florida education market
-      'Charlotte, NC',        // Carolinas schools
-      'Columbus, OH',         // Ohio education hub
-      'Nashville, TN',        // Tennessee schools
-      'Kansas City, MO',      // Central Plains
-      'Minneapolis, MN',      // Upper Midwest
-      'Sacramento, CA',       // Northern California
-      'Virginia Beach, VA',   // Mid-Atlantic schools
-      'Buffalo, NY',          // Upstate New York
-      'Milwaukee, WI',        // Wisconsin schools
-      'Oklahoma City, OK',    // Oklahoma education
-      'Salt Lake City, UT',   // Utah schools
-      'Portland, OR'          // Pacific Northwest
-    ];
+    // Import the comprehensive cities database
+    const { getTopCitiesByPopulation, getAllUSCities } = require('./comprehensive-cities-database');
+
+    // Get top US cities by population for educational distribution
+    const topCities = getTopCitiesByPopulation(100)
+      .filter(city => city.country === 'US')
+      .map(city => `${city.name}, ${city.state_province}`)
+      .slice(0, 50); // Top 50 US cities for comprehensive network
+
+    // Ensure Littleton, MA is included as primary facility
+    const cities = ['Littleton, MA', ...topCities.filter(city => city !== 'Littleton, MA')];
+
+    return cities;
   }
 
   /**
@@ -696,7 +686,7 @@ export class RealDataTransportOptimizer {
   static getHubStrategy(scenarioType: string, destinationCount: number): string {
     const strategies: Record<string, string> = {
       'lowest_cost_city': `Littleton, MA → 1-2 Regional Hubs → ${destinationCount} destinations`,
-      'lowest_cost_zip': `Littleton, MA → 3-4 Micro-Hubs ��� ZIP-level distribution`,
+      'lowest_cost_zip': `Littleton, MA → 3-4 Micro-Hubs → ZIP-level distribution`,
       'lowest_miles_city': `Littleton, MA → Distance-optimized Hub → Direct routes`,
       'best_service_parcel': `Littleton, MA → Service Hub → Express delivery network`,
       'blended_service': `Littleton, MA → Balanced Hub Network → ${destinationCount} endpoints`
