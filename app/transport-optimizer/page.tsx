@@ -719,8 +719,8 @@ export default function TransportOptimizer() {
         <div className="transport-optimizer-container">
           <h1 className="page-title">Transport Optimizer</h1>
           <p className="page-description">
-            Generate and analyze multiple transport scenarios to determine optimal routing strategies 
-            based on cost, service, and distance optimization criteria.
+            Generate and analyze multiple transport scenarios using your actual transport data to determine optimal routing strategies.
+            Uses strategic city selection from comprehensive database and real baseline costs from uploaded transport files.
           </p>
 
           <div className="tab-navigation">
