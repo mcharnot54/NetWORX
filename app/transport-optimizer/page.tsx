@@ -385,8 +385,18 @@ export default function TransportOptimizer() {
         })
       });
 
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        return {
+          success: false,
+          error: `Failed to parse response: ${response.status} ${response.statusText}`
+        };
+      }
+
       if (response.ok) {
-        const result = await response.json();
         if (result.success && result.data) {
           // Start polling for this job
           console.log(`Optimization job queued: ${result.data.job_id}`);
@@ -403,11 +413,10 @@ export default function TransportOptimizer() {
         }
         return result;
       } else {
-        const errorText = await response.text();
-        console.error('Transport optimization API error:', response.status, errorText);
+        console.error('Transport optimization API error:', response.status, result);
         return {
           success: false,
-          error: `API error ${response.status}: ${errorText}`
+          error: `API error ${response.status}: ${result.error || result.message || 'Unknown error'}`
         };
       }
     } catch (error) {
