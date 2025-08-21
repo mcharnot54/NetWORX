@@ -549,6 +549,40 @@ export class RealDataTransportOptimizer {
   }
 
   /**
+   * Get hub strategy description
+   */
+  static getHubStrategy(scenarioType: string, destinationCount: number): string {
+    const strategies: Record<string, string> = {
+      'lowest_cost_city': `Littleton, MA → 1-2 Regional Hubs → ${destinationCount} destinations`,
+      'lowest_cost_zip': `Littleton, MA → 3-4 Micro-Hubs → ZIP-level distribution`,
+      'lowest_miles_city': `Littleton, MA → Distance-optimized Hub → Direct routes`,
+      'best_service_parcel': `Littleton, MA → Service Hub → Express delivery network`,
+      'blended_service': `Littleton, MA → Balanced Hub Network → ${destinationCount} endpoints`
+    };
+
+    return strategies[scenarioType] || `Hub optimization for ${destinationCount} destinations`;
+  }
+
+  /**
+   * Get recommended hub nodes based on optimization type
+   */
+  static getRecommendedHubNodes(scenarioType: string, actualCities: string[]): string[] {
+    // Strategic hub locations for different optimization scenarios
+    const hubStrategies: Record<string, string[]> = {
+      'lowest_cost_city': ['Chicago, IL', 'Atlanta, GA'], // Central and Southeast
+      'lowest_cost_zip': ['Chicago, IL', 'Dallas, TX', 'Atlanta, GA'], // Micro-hub network
+      'lowest_miles_city': ['Chicago, IL'], // Single central hub
+      'best_service_parcel': ['Memphis, TN', 'Louisville, KY'], // UPS/FedEx style hubs
+      'blended_service': ['Chicago, IL', 'Atlanta, GA'] // Balanced approach
+    };
+
+    const recommendedHubs = hubStrategies[scenarioType] || ['Chicago, IL'];
+
+    // Filter to only include hubs that make sense given actual destinations
+    return recommendedHubs.slice(0, Math.min(3, Math.ceil(actualCities.length / 10)));
+  }
+
+  /**
    * Estimate distance between cities (simple calculation)
    */
   static estimateDistance(origin: string, destination: string): number {
