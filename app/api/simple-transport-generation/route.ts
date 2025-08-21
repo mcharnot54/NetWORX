@@ -35,12 +35,100 @@ export async function POST(request: NextRequest) {
 
     console.log('Found scenario:', scenario.name);
 
-    // Use scenario cities or default cities
-    const cities = scenario.cities || ['Littleton, MA', 'Chicago, IL', 'Dallas, TX'];
-    console.log('Using cities:', cities);
+    // Get cities from REAL transport data instead of hardcoded values
+    let cities: string[] = [];
+    let baseCity = '';
 
-    // Create specific city-to-city scenarios starting with Littleton, MA
-    const baseCity = 'Littleton, MA';
+    try {
+      console.log('🚀 Fetching real transport data for scenario generation...');
+
+      // First, try to get real route data from transport files
+      const routeResponse = await fetch(`http://localhost:3000/api/extract-actual-routes`);
+      if (routeResponse.ok) {
+        const routeData = await routeResponse.json();
+        if (routeData.success && routeData.data.route_groups) {
+          const extractedCities: string[] = [];
+
+          // Extract origins and destinations from actual routes
+          routeData.data.route_groups.forEach((routeGroup: any) => {
+            const [origin, destination] = routeGroup.route_key.split(' → ');
+            if (origin && origin !== 'Unknown Origin' && origin !== 'Various Destinations') {
+              if (!extractedCities.includes(origin)) extractedCities.push(origin);
+            }
+            if (destination && destination !== 'Unknown Destination' && destination !== 'Various Destinations') {
+              if (!extractedCities.includes(destination)) extractedCities.push(destination);
+            }
+          });
+
+          if (extractedCities.length > 0) {
+            cities = extractedCities.slice(0, 10); // Limit to 10 cities for performance
+            console.log(`✅ Using ${cities.length} real cities from transport files:`, cities);
+
+            // Find the primary facility (most frequently appearing as origin)
+            const originCounts: Record<string, number> = {};
+            routeData.data.route_groups.forEach((routeGroup: any) => {
+              const [origin] = routeGroup.route_key.split(' → ');
+              if (origin && origin !== 'Unknown Origin') {
+                originCounts[origin] = (originCounts[origin] || 0) + routeGroup.total_cost;
+              }
+            });
+
+            // Use the highest cost origin as the base facility
+            baseCity = Object.entries(originCounts)
+              .sort(([, a], [, b]) => b - a)[0]?.[0] || cities[0];
+
+            console.log(`📍 Primary facility identified: ${baseCity}`);
+          }
+        }
+      }
+
+      // Fallback: Try to get cities from final transport extraction
+      if (cities.length === 0) {
+        const baselineResponse = await fetch(`http://localhost:3000/api/final-transport-extraction`);
+        if (baselineResponse.ok) {
+          const baselineData = await baselineResponse.json();
+          if (baselineData.success && baselineData.extraction_details) {
+            const extractedCities: string[] = [];
+
+            // Extract cities from extraction details if available
+            ['ups', 'tl', 'rl'].forEach(mode => {
+              const details = baselineData.extraction_details[mode];
+              if (details?.cities_identified) {
+                details.cities_identified.forEach((city: string) => {
+                  if (city && !extractedCities.includes(city)) {
+                    extractedCities.push(city);
+                  }
+                });
+              }
+            });
+
+            if (extractedCities.length > 0) {
+              cities = extractedCities.slice(0, 8);
+              baseCity = cities[0]; // Use first city as base
+              console.log(`✅ Using ${cities.length} cities from baseline extraction:`, cities);
+            }
+          }
+        }
+      }
+
+      // Final fallback: Use scenario cities if available
+      if (cities.length === 0 && scenario.cities && scenario.cities.length > 0) {
+        cities = scenario.cities;
+        baseCity = cities[0];
+        console.log('Using cities from scenario metadata:', cities);
+      }
+
+      // If still no cities, return error
+      if (cities.length === 0) {
+        throw new Error('No transport data available. Please upload transport files (UPS, TL, R&L) before generating scenarios.');
+      }
+
+    } catch (error) {
+      console.error('❌ Error fetching transport data:', error);
+      throw new Error(`Failed to fetch transport data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    console.log(`🎯 Using ${cities.length} cities with base facility: ${baseCity}`);
     const otherCities = cities.filter(city => city !== baseCity);
 
     // Define detailed scenario types based on specific city combinations
