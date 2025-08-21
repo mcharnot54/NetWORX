@@ -461,8 +461,8 @@ function generateFallbackYearlyAnalysis(cities: string[]) {
     6009305, 3868767, 4930096, 5278949, 6577972, 8880267, 10021347, 12249125
   ];
 
-  const baseline2025FreightCost = 5500000;
-  const baselineWarehouseCost = 850000;
+  // Use the real baseline costs calculated earlier
+  // baseline2025FreightCost and baselineWarehouseCost are already defined above
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
