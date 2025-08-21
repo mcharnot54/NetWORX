@@ -145,7 +145,7 @@ export class RealDataTransportOptimizer {
     const smallerMarkets = distributionCities.slice(10); // Take remaining cities (now includes all cities)
     const remainingPerMarket = smallerMarkets.length > 0 ? Math.round(remainingCost / smallerMarkets.length) : 0;
 
-    console.log(`��� Generating routes to ${smallerMarkets.length} additional cities from comprehensive database`);
+    console.log(`📊 Generating routes to ${smallerMarkets.length} additional cities from comprehensive database`);
 
     smallerMarkets.forEach(destination => {
       if (remainingPerMarket > 0) {
@@ -482,7 +482,7 @@ export class RealDataTransportOptimizer {
         optimization_focus: this.getOptimizationFocus(scenarioType),
         cost_savings: Math.round(optimization.potential_savings),
         annual_savings: Math.round(optimization.potential_savings),
-        cities_optimized: actualCities.slice(0, 8).join(', ') + (actualCities.length > 8 ? `, +${actualCities.length - 8} more` : ''),
+        cities_optimized: actualCities.slice(0, 10).join(', ') + (actualCities.length > 10 ? ` and ${actualCities.length - 10} additional cities` : ''),
         hub_nodes: this.getRecommendedHubNodes(scenarioType, actualCities)
       }
     } as any;
