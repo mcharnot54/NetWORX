@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
 
       // If still no real data, show error but continue with a minimum estimate
       if (baseline2025FreightCost === 0) {
-        console.warn('��️ No real baseline costs found, using minimum estimate');
+        console.warn('⚠️ No real baseline costs found, using minimum estimate');
         baseline2025FreightCost = 1000000; // Minimum $1M estimate
       }
 
@@ -499,7 +499,7 @@ async function generateFallbackYearlyAnalysis(cities: string[], baseline2025Frei
         : actualFreightSpend[actualFreightSpend.length - 1] * Math.pow(1.08, actualCostIndex - actualFreightSpend.length + 1);
 
       const volumeGrowthFactor = Math.pow(1.06, year);
-      warehouseCost = Math.round(baselineWarehouseCost * volumeGrowthFactor);
+      warehouseCost = Math.round(finalBaselineWarehouseCost * volumeGrowthFactor);
     }
 
     const growthRate = year === 0 ? 0 : 6.0;
