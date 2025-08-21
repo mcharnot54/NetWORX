@@ -112,8 +112,13 @@ async function optimizeWithBaselineData(selectedCities: string[], optimizationPa
       optimized_routes: optimizedRoutes,
       cost_savings: 0, // Baseline year - no savings yet
       efficiency_improvement: 0,
-      data_source: 'baseline_with_optimal_cities',
-      baseline_totals: baselineTotals,
+      data_source: 'complete_baseline_6_56M_with_optimal_cities',
+      baseline_totals: {
+        ups_parcel: baseline_summary.ups_parcel_costs,
+        tl_freight: baseline_summary.tl_freight_costs,
+        rl_ltl: baseline_summary.rl_ltl_costs,
+        total_verified: baseline_summary.total_verified
+      },
       selected_cities: selectedCities
     };
 
