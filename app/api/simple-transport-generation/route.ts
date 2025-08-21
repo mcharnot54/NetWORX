@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         const transportResults = optimizeTransportRoutes(optimizationParams);
 
         // Generate year-by-year analysis with growth projections
-        const yearlyAnalysis = generateYearlyAnalysis(
+        const yearlyAnalysis = await generateYearlyAnalysis(
           transportResults,
           scenario.cities,
           warehouseConfigs,
