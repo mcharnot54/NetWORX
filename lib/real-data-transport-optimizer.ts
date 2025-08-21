@@ -513,17 +513,192 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Calculate real optimization based on actual data
+   * Call REAL Transport Optimizer algorithm for actual optimized costs and city selection
    */
-  static calculateRealOptimization(
+  static async calculateRealOptimization(
+    scenarioType: string,
+    routeData: RealRouteData[],
+    baselineData: RealBaselineData,
+    config: ConfigurationSettings,
+    primaryFacility: string,
+    scenarioId?: number
+  ) {
+    try {
+      console.log(`🎯 Calling REAL Transport Optimizer algorithm for scenario: ${scenarioType}`);
+
+      // Try to get facility constraints from Capacity Optimizer
+      let facilityConstraints = null;
+      if (scenarioId) {
+        try {
+          const capacityResponse = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
+          const capacityData = await capacityResponse.json();
+          if (capacityData && capacityData.facilities) {
+            facilityConstraints = capacityData.facilities;
+            console.log(`✅ Got facility constraints from Capacity Optimizer: ${facilityConstraints.length} facilities`);
+          }
+        } catch (error) {
+          console.warn('Could not get facility constraints:', error);
+        }
+      }
+
+      // Extract actual cities from route data for optimization
+      const actualCities = Array.from(new Set([
+        ...routeData.map(r => r.origin).filter(city => city && city !== 'Unknown'),
+        ...routeData.map(r => r.destination).filter(city => city && city !== 'Unknown')
+      ]));
+
+      // Call the Advanced Transport Optimizer API with real data
+      const optimizationPayload = {
+        scenario_id: scenarioId,
+        optimization_type: scenarioType,
+        config_overrides: {
+          transportation: {
+            mandatory_facilities: [primaryFacility],
+            cost_per_mile: baselineData.total_verified / 2300000, // Calculate from actual baseline / total miles
+            max_facilities: this.getMaxFacilitiesForScenario(scenarioType),
+            weights: {
+              cost: scenarioType.includes('cost') ? 0.7 : 0.5,
+              service_level: scenarioType.includes('service') ? 0.6 : 0.3
+            }
+          }
+        },
+        cities: actualCities.slice(0, 50), // Use actual cities for optimization
+        baseline_transport_cost: baselineData.total_verified
+      };
+
+      const optimizationResponse = await fetch('/api/advanced-optimization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(optimizationPayload)
+      });
+
+      if (optimizationResponse.ok) {
+        const optimizationResult = await optimizationResponse.json();
+
+        if (optimizationResult.success && optimizationResult.transport_optimization) {
+          const transportOpt = optimizationResult.transport_optimization;
+
+          console.log(`✅ REAL Transport Optimizer Results:
+          Baseline Cost: $${baselineData.total_verified.toLocaleString()}
+          Optimized Cost: $${transportOpt.total_transportation_cost.toLocaleString()}
+          Actual Savings: $${(baselineData.total_verified - transportOpt.total_transportation_cost).toLocaleString()}
+          Selected Facilities: ${transportOpt.open_facilities?.join(', ') || 'N/A'}`);
+
+          return {
+            baseline_cost: baselineData.total_verified,
+            optimized_cost: transportOpt.total_transportation_cost,
+            potential_savings: baselineData.total_verified - transportOpt.total_transportation_cost,
+            optimization_percentage: ((baselineData.total_verified - transportOpt.total_transportation_cost) / baselineData.total_verified) * 100,
+            total_miles: transportOpt.total_distance || this.estimateTotalMiles(routeData),
+            baseline_miles: this.estimateTotalMiles(routeData),
+            service_score: transportOpt.service_level || 85,
+            primary_facility: primaryFacility,
+            selected_facilities: transportOpt.open_facilities || [primaryFacility],
+            optimization_method: 'real_transport_algorithm',
+            facility_assignments: transportOpt.assignments || [],
+            solver_used: optimizationResult.solver_used || 'advanced_optimizer'
+          };
+        }
+      }
+
+      console.warn('⚠️ Real Transport Optimizer API failed, falling back to estimation');
+
+    } catch (error) {
+      console.error('❌ Error calling real Transport Optimizer:', error);
+    }
+
+    // Fallback to reasonable estimates if API fails
+    return this.fallbackOptimizationCalculation(scenarioType, routeData, baselineData, config, primaryFacility);
+  }
+
+  /**
+   * Fallback optimization calculation when real API is unavailable
+   */
+  static fallbackOptimizationCalculation(
     scenarioType: string,
     routeData: RealRouteData[],
     baselineData: RealBaselineData,
     config: ConfigurationSettings,
     primaryFacility: string
   ) {
-    
+    console.log('🔄 Using fallback optimization calculation');
+
     // Calculate total actual miles from route data
+    let totalMiles = this.estimateTotalMiles(routeData);
+    let baselineCost = baselineData.total_verified;
+
+    // Conservative but realistic optimization estimates
+    const uniqueDestinations = this.countUniqueDestinations(routeData);
+    let optimizationPercentage = 0;
+    let serviceScore = 85;
+
+    switch (scenarioType) {
+      case 'lowest_cost_city':
+        optimizationPercentage = Math.min(45, 20 + uniqueDestinations); // 20-45% based on network size
+        serviceScore = 82;
+        break;
+      case 'lowest_cost_zip':
+        optimizationPercentage = Math.min(50, 25 + uniqueDestinations); // 25-50% for ZIP optimization
+        serviceScore = 80;
+        break;
+      case 'lowest_miles_city':
+        optimizationPercentage = Math.min(40, 15 + uniqueDestinations); // 15-40% mile-focused
+        serviceScore = 88;
+        break;
+      case 'best_service_parcel':
+        optimizationPercentage = Math.min(35, 10 + uniqueDestinations); // 10-35% service-focused
+        serviceScore = 95;
+        break;
+      case 'blended_service':
+        optimizationPercentage = Math.min(45, 18 + uniqueDestinations); // 18-45% balanced
+        serviceScore = 90;
+        break;
+      default:
+        optimizationPercentage = Math.min(40, 15 + uniqueDestinations);
+        serviceScore = 85;
+    }
+
+    const potentialSavings = baselineCost * (optimizationPercentage / 100);
+
+    return {
+      baseline_cost: baselineCost,
+      optimized_cost: Math.round(baselineCost - potentialSavings),
+      potential_savings: Math.round(potentialSavings),
+      optimization_percentage: optimizationPercentage,
+      total_miles: Math.round(totalMiles * 0.75), // Assume 25% mile reduction
+      baseline_miles: totalMiles,
+      service_score: serviceScore,
+      primary_facility: primaryFacility,
+      selected_facilities: [primaryFacility],
+      optimization_method: 'fallback_estimation'
+    };
+  }
+
+  /**
+   * Get maximum facilities based on scenario type
+   */
+  static getMaxFacilitiesForScenario(scenarioType: string): number {
+    switch (scenarioType) {
+      case 'lowest_cost_city':
+      case 'lowest_cost_zip':
+        return 3; // Cost-focused: fewer facilities
+      case 'best_service_parcel':
+      case 'best_service_ltl':
+        return 6; // Service-focused: more facilities
+      case 'lowest_miles_city':
+      case 'lowest_miles_zip':
+        return 4; // Distance-focused: moderate facilities
+      case 'blended_service':
+        return 4; // Balanced approach
+      default:
+        return 4;
+    }
+  }
+
+  /**
+   * Estimate total miles from route data
+   */
+  static estimateTotalMiles(routeData: RealRouteData[]): number {
     let totalMiles = routeData.reduce((sum, route) => {
       return sum + (route.routes?.reduce((routeSum, r) => routeSum + (r.distance_miles || 0), 0) || 0);
     }, 0);
@@ -533,76 +708,7 @@ export class RealDataTransportOptimizer {
       totalMiles = routeData.length * 450; // Average 450 miles per route
     }
 
-    // Use ACTUAL baseline cost as starting point
-    let baselineCost = baselineData.total_verified;
-    
-    // Calculate REALISTIC hub-and-spoke network optimization savings
-    // Based on consolidating shipments from Littleton to strategic nodes
-    const uniqueDestinations = this.countUniqueDestinations(routeData);
-    const networkComplexity = Math.min(uniqueDestinations, 50); // Cap at 50 destinations
-
-    // Hub optimization creates exponential savings with more destinations
-    const baseOptimization = Math.min(0.65, 0.20 + (networkComplexity * 0.01)); // 20% base + 1% per destination, cap at 65%
-
-    let optimizationPercentage = 0;
-    let serviceScore = 85; // Base service score
-    let milesMultiplier = 1.0; // Miles adjustment factor
-
-    switch (scenarioType) {
-      case 'lowest_cost_city':
-        // Hub-and-spoke with 1-2 regional nodes achieves 45-55% savings
-        optimizationPercentage = Math.min(0.55, baseOptimization * 1.1);
-        serviceScore = 82;
-        milesMultiplier = 0.75; // 25% mile reduction through hub consolidation
-        break;
-      case 'lowest_cost_zip':
-        // ZIP-level optimization with micro-hubs achieves 50-60% savings
-        optimizationPercentage = Math.min(0.60, baseOptimization * 1.2);
-        serviceScore = 80;
-        milesMultiplier = 0.70; // 30% mile reduction
-        break;
-      case 'lowest_miles_city':
-        // Mile-focused optimization achieves 40-50% savings
-        optimizationPercentage = Math.min(0.50, baseOptimization * 0.9);
-        serviceScore = 88;
-        milesMultiplier = 0.60; // 40% mile reduction focused
-        break;
-      case 'best_service_parcel':
-        // Service-focused still achieves 35-45% savings
-        optimizationPercentage = Math.min(0.45, baseOptimization * 0.8);
-        serviceScore = 95;
-        milesMultiplier = 0.85; // 15% mile reduction (less aggressive for service)
-        break;
-      case 'blended_service':
-        // Balanced hub approach achieves 45-55% savings
-        optimizationPercentage = Math.min(0.55, baseOptimization);
-        serviceScore = 90;
-        milesMultiplier = 0.75; // 25% mile reduction
-        break;
-      default:
-        optimizationPercentage = Math.min(0.50, baseOptimization);
-        serviceScore = 85;
-        milesMultiplier = 0.75;
-    }
-
-    // Apply configuration weights
-    const weightedOptimization = optimizationPercentage * config.weights.cost;
-    const potentialSavings = baselineCost * weightedOptimization;
-
-    // Calculate optimized miles based on scenario type
-    const baseMiles = totalMiles || 50000; // Fallback if no distance data
-    const optimizedMiles = Math.round(baseMiles * milesMultiplier);
-
-    return {
-      baseline_cost: baselineCost,
-      optimized_cost: Math.round(baselineCost - potentialSavings),
-      potential_savings: Math.round(potentialSavings),
-      optimization_percentage: optimizationPercentage * 100,
-      total_miles: optimizedMiles,
-      baseline_miles: baseMiles,
-      service_score: serviceScore,
-      primary_facility: primaryFacility
-    };
+    return totalMiles || 50000; // Fallback
   }
 
   /**
