@@ -141,9 +141,11 @@ export class RealDataTransportOptimizer {
       });
     });
 
-    // Add remaining smaller markets
-    const smallerMarkets = distributionCities.slice(10); // Take remaining cities
-    const remainingPerMarket = Math.round(remainingCost / smallerMarkets.length);
+    // Add remaining smaller markets - use ALL available cities for comprehensive network
+    const smallerMarkets = distributionCities.slice(10); // Take remaining cities (now includes all cities)
+    const remainingPerMarket = smallerMarkets.length > 0 ? Math.round(remainingCost / smallerMarkets.length) : 0;
+
+    console.log(`��� Generating routes to ${smallerMarkets.length} additional cities from comprehensive database`);
 
     smallerMarkets.forEach(destination => {
       if (remainingPerMarket > 0) {
