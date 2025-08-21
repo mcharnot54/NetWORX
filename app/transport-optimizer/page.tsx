@@ -233,7 +233,6 @@ export default function TransportOptimizer() {
         .slice(0, 12); // Limit to top 12 strategic cities by population
 
       // Add strategic cities that exist in the database
-      const topCities = getTopCitiesByPopulation(100);
       for (const target of strategicTargets) {
         if (target !== baseCity && !strategicCities.includes(target)) {
           const cityExists = topCities.find(city =>
