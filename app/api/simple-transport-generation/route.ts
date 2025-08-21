@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
                                     transportBaseline.tl_freight_costs +
                                     transportBaseline.ltl_freight_costs);
 
-          console.log(`��� Using real baseline costs:`);
+          console.log(`✅ Using real baseline costs:`);
           console.log(`   UPS Parcel: $${transportBaseline.ups_parcel_costs?.toLocaleString()}`);
           console.log(`   TL Freight: $${transportBaseline.tl_freight_costs?.toLocaleString()}`);
           console.log(`   LTL Freight: $${transportBaseline.ltl_freight_costs?.toLocaleString()}`);
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
         console.error(`Failed to generate ${scenario.name}:`, optimizationError);
 
         // Create detailed fallback scenario data
-        const fallbackYearlyAnalysis = await generateFallbackYearlyAnalysis(scenario.cities);
+        const fallbackYearlyAnalysis = await generateFallbackYearlyAnalysis(scenario.cities, baseline2025FreightCost, baselineWarehouseCost);
 
         const fallbackData = {
           id: scenarioId * 1000 + index,
