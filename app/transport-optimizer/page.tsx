@@ -945,8 +945,9 @@ export default function TransportOptimizer() {
                 <div className="selected-scenario-info">
                   <h3>Selected Scenario: {selectedScenario.name}</h3>
                   <div className="transport-data-notice">
-                    <p>✅ <strong>Using Real Transport Data:</strong> Cities, origins, destinations, and baseline costs will be extracted directly from your uploaded transport files (UPS, TL, R&L files).</p>
-                    <p>🚫 <strong>No Hardcoded Cities:</strong> The optimizer will analyze actual zip codes and routes from your data to determine optimal facility locations and cost savings.</p>
+                    <p>🎯 <strong>Strategic City Selection:</strong> Uses comprehensive North American cities database with optimal population centers and geographic distribution for strategic network design.</p>
+                    <p>📊 <strong>Real Baseline Data:</strong> Baseline costs and current facility identification extracted from your uploaded transport files (UPS, TL, R&L).</p>
+                    <p>🚫 <strong>No Hardcoded Values:</strong> The optimizer analyzes your actual data against strategically selected cities to determine optimal network configuration and savings.</p>
                   </div>
                 </div>
               )}
