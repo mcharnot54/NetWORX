@@ -35,36 +35,24 @@ export async function POST(request: NextRequest) {
 
     console.log('Found scenario:', scenario.name);
 
-    // Get cities from REAL transport data instead of hardcoded values
+    // Get strategic cities from comprehensive cities database for optimal node selection
     let cities: string[] = [];
     let baseCity = '';
 
     try {
-      console.log('🚀 Fetching real transport data for scenario generation...');
+      console.log('🎯 Using comprehensive cities database for strategic node selection...');
 
-      // First, try to get real route data from transport files
-      const routeResponse = await fetch(`http://localhost:3000/api/extract-actual-routes`);
-      if (routeResponse.ok) {
-        const routeData = await routeResponse.json();
-        if (routeData.success && routeData.data.route_groups) {
-          const extractedCities: string[] = [];
+      // Import the comprehensive cities database
+      const { COMPREHENSIVE_CITIES, getTopCitiesByPopulation, getCitiesByCountry } = await import('@/lib/comprehensive-cities-database');
 
-          // Extract origins and destinations from actual routes
-          routeData.data.route_groups.forEach((routeGroup: any) => {
-            const [origin, destination] = routeGroup.route_key.split(' → ');
-            if (origin && origin !== 'Unknown Origin' && origin !== 'Various Destinations') {
-              if (!extractedCities.includes(origin)) extractedCities.push(origin);
-            }
-            if (destination && destination !== 'Unknown Destination' && destination !== 'Various Destinations') {
-              if (!extractedCities.includes(destination)) extractedCities.push(destination);
-            }
-          });
-
-          if (extractedCities.length > 0) {
-            cities = extractedCities.slice(0, 10); // Limit to 10 cities for performance
-            console.log(`✅ Using ${cities.length} real cities from transport files:`, cities);
-
-            // Find the primary facility (most frequently appearing as origin)
+      // Check if we have real transport data to identify current primary facility
+      let identifiedPrimaryFacility = '';
+      try {
+        const routeResponse = await fetch(`http://localhost:3000/api/extract-actual-routes`);
+        if (routeResponse.ok) {
+          const routeData = await routeResponse.json();
+          if (routeData.success && routeData.data.route_groups) {
+            // Find the primary facility from transport data (most frequent origin)
             const originCounts: Record<string, number> = {};
             routeData.data.route_groups.forEach((routeGroup: any) => {
               const [origin] = routeGroup.route_key.split(' → ');
@@ -73,62 +61,86 @@ export async function POST(request: NextRequest) {
               }
             });
 
-            // Use the highest cost origin as the base facility
-            baseCity = Object.entries(originCounts)
-              .sort(([, a], [, b]) => b - a)[0]?.[0] || cities[0];
-
-            console.log(`📍 Primary facility identified: ${baseCity}`);
-          }
-        }
-      }
-
-      // Fallback: Try to get cities from final transport extraction
-      if (cities.length === 0) {
-        const baselineResponse = await fetch(`http://localhost:3000/api/final-transport-extraction`);
-        if (baselineResponse.ok) {
-          const baselineData = await baselineResponse.json();
-          if (baselineData.success && baselineData.extraction_details) {
-            const extractedCities: string[] = [];
-
-            // Extract cities from extraction details if available
-            ['ups', 'tl', 'rl'].forEach(mode => {
-              const details = baselineData.extraction_details[mode];
-              if (details?.cities_identified) {
-                details.cities_identified.forEach((city: string) => {
-                  if (city && !extractedCities.includes(city)) {
-                    extractedCities.push(city);
-                  }
-                });
-              }
-            });
-
-            if (extractedCities.length > 0) {
-              cities = extractedCities.slice(0, 8);
-              baseCity = cities[0]; // Use first city as base
-              console.log(`✅ Using ${cities.length} cities from baseline extraction:`, cities);
+            if (Object.keys(originCounts).length > 0) {
+              identifiedPrimaryFacility = Object.entries(originCounts)
+                .sort(([, a], [, b]) => b - a)[0]?.[0] || '';
+              console.log(`📍 Identified current primary facility: ${identifiedPrimaryFacility}`);
             }
           }
         }
+      } catch (error) {
+        console.log('Transport data not available, using strategic cities only');
       }
 
-      // Final fallback: Use scenario cities if available
-      if (cities.length === 0 && scenario.cities && scenario.cities.length > 0) {
-        cities = scenario.cities;
-        baseCity = cities[0];
-        console.log('Using cities from scenario metadata:', cities);
+      // Select strategic cities based on scenario requirements and geographic distribution
+      const strategicCities: string[] = [];
+
+      // If we have an identified primary facility, use it as base
+      if (identifiedPrimaryFacility && identifiedPrimaryFacility.includes(',')) {
+        baseCity = identifiedPrimaryFacility;
+        strategicCities.push(baseCity);
+      } else {
+        // Default to Littleton, MA as base (current facility)
+        baseCity = 'Littleton, MA';
+        strategicCities.push(baseCity);
       }
 
-      // If still no cities, return error
-      if (cities.length === 0) {
-        throw new Error('No transport data available. Please upload transport files (UPS, TL, R&L) before generating scenarios.');
+      // Select top strategic cities by population and geographic distribution
+      const topCities = getTopCitiesByPopulation(100); // Get top 100 cities
+
+      // Target strategic regions for optimal network coverage
+      const targetRegions = [
+        // Major metros for strategic coverage
+        { name: 'Chicago, IL', priority: 1 }, // Central hub
+        { name: 'Dallas, TX', priority: 1 }, // Southern hub
+        { name: 'Los Angeles, CA', priority: 1 }, // West Coast
+        { name: 'Atlanta, GA', priority: 1 }, // Southeast hub
+        { name: 'Seattle, WA', priority: 2 }, // Pacific Northwest
+        { name: 'Denver, CO', priority: 2 }, // Mountain West
+        { name: 'Phoenix, AZ', priority: 2 }, // Southwest
+        { name: 'Miami, FL', priority: 3 }, // South Florida
+        { name: 'New York City, NY', priority: 3 }, // Northeast
+        { name: 'Toronto, ON', priority: 3 }, // Canadian hub
+        { name: 'Vancouver, BC', priority: 3 }, // Canadian West
+        { name: 'Montreal, QC', priority: 3 }, // Canadian East
+      ];
+
+      // Add strategic cities based on priority and excluding base city
+      for (const region of targetRegions) {
+        if (region.name !== baseCity && !strategicCities.includes(region.name)) {
+          // Verify city exists in comprehensive database
+          const cityExists = topCities.find(city =>
+            `${city.name}, ${city.state_province}` === region.name
+          );
+
+          if (cityExists) {
+            strategicCities.push(region.name);
+            if (strategicCities.length >= 8) break; // Limit to 8 strategic cities
+          }
+        }
       }
+
+      // If we need more cities, add highest population cities that aren't already included
+      if (strategicCities.length < 8) {
+        for (const city of topCities) {
+          const cityName = `${city.name}, ${city.state_province}`;
+          if (!strategicCities.includes(cityName) && strategicCities.length < 8) {
+            strategicCities.push(cityName);
+          }
+        }
+      }
+
+      cities = strategicCities;
+      console.log(`✅ Selected ${cities.length} strategic cities for optimal network:`, cities);
+      console.log(`📍 Base facility: ${baseCity}`);
 
     } catch (error) {
-      console.error('❌ Error fetching transport data:', error);
-      throw new Error(`Failed to fetch transport data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ Error accessing comprehensive cities database:', error);
+      // Fallback to essential strategic cities
+      baseCity = 'Littleton, MA';
+      cities = [baseCity, 'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA'];
     }
 
-    console.log(`🎯 Using ${cities.length} cities with base facility: ${baseCity}`);
     const otherCities = cities.filter(city => city !== baseCity);
 
     // Define detailed scenario types based on specific city combinations
