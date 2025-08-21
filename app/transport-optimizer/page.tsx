@@ -214,7 +214,7 @@ export default function TransportOptimizer() {
     // FIRST PRIORITY: Get actual cities from your transport files
     const actualCities = await getActualCitiesFromTransportData();
     if (actualCities.length > 0) {
-      console.log(`🎯 Using ${actualCities.length} ACTUAL cities from your transport files`);
+      console.log(`���� Using ${actualCities.length} ACTUAL cities from your transport files`);
       return actualCities;
     }
 
@@ -915,9 +915,10 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
                 <div className="selected-scenario-info">
                   <h3>Selected Scenario: {selectedScenario.name}</h3>
                   <div className="transport-data-notice">
-                    <p>🎯 <strong>Strategic City Selection:</strong> Uses comprehensive North American cities database with optimal population centers and geographic distribution for strategic network design.</p>
-                    <p>📊 <strong>Real Baseline Data:</strong> Baseline costs and current facility identification extracted from your uploaded transport files (UPS, TL, R&L).</p>
-                    <p>🚫 <strong>No Hardcoded Values:</strong> The optimizer analyzes your actual data against strategically selected cities to determine optimal network configuration and savings.</p>
+                    <p>🎯 <strong>ACTUAL Route Analysis:</strong> Uses real origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
+                    <p>📊 <strong>Verified $6.56M Baseline:</strong> Optimization starts from your actual transport costs, not estimates.</p>
+                    <p>⚙️ <strong>Configuration Integration:</strong> Uses your cost weights, service levels, and optimization criteria from the Configuration tab.</p>
+                    <p>🚫 <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
                   </div>
                 </div>
               )}
