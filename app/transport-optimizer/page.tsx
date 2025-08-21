@@ -2455,6 +2455,52 @@ export default function TransportOptimizer() {
             padding: 0.75rem;
           }
         }
+
+        .transport-data-notice {
+          background: #f0fdf4;
+          border: 1px solid #10b981;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-top: 0.5rem;
+        }
+
+        .transport-data-notice p {
+          margin: 0.5rem 0;
+          font-size: 0.875rem;
+          line-height: 1.5;
+        }
+
+        .data-source-indicator {
+          background: #f0fdf4;
+          border: 1px solid #10b981;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .data-source-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .badge-icon {
+          font-size: 1.25rem;
+        }
+
+        .badge-text {
+          font-weight: 600;
+          color: #166534;
+          font-size: 1rem;
+        }
+
+        .data-source-description {
+          color: #166534;
+          font-size: 0.875rem;
+          line-height: 1.5;
+          margin: 0;
+        }
       `}</style>
     </div>
   );
