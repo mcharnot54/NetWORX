@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
 
       // If still no real data, show error but continue with a minimum estimate
       if (baseline2025FreightCost === 0) {
-        console.warn('⚠️ No real baseline costs found, using minimum estimate');
+        console.warn('��️ No real baseline costs found, using minimum estimate');
         baseline2025FreightCost = 1000000; // Minimum $1M estimate
       }
 
@@ -479,8 +479,9 @@ async function generateFallbackYearlyAnalysis(cities: string[], baseline2025Frei
     6009305, 3868767, 4930096, 5278949, 6577972, 8880267, 10021347, 12249125
   ];
 
-  // Use the real baseline costs calculated earlier
-  // baseline2025FreightCost and baselineWarehouseCost are already defined above
+  // Use passed baseline costs or defaults
+  const finalBaseline2025FreightCost = baseline2025FreightCost || 1000000;
+  const finalBaselineWarehouseCost = baselineWarehouseCost || 850000;
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
@@ -488,8 +489,8 @@ async function generateFallbackYearlyAnalysis(cities: string[], baseline2025Frei
 
     if (year === 0) {
       // 2025 baseline
-      transportCost = baseline2025FreightCost;
-      warehouseCost = baselineWarehouseCost;
+      transportCost = finalBaseline2025FreightCost;
+      warehouseCost = finalBaselineWarehouseCost;
     } else {
       // Use actual freight data for 2026+
       const actualCostIndex = year - 1;
