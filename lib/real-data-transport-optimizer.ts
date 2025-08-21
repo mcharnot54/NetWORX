@@ -40,6 +40,8 @@ interface VolumeGrowthData {
   current_volume: number;
   growth_rate: number;
   forecast_years: number;
+  yearly_volumes?: Array<{year: number, volume: number, raw_data?: any}>;
+  source?: string;
 }
 
 interface RealOptimizationResult {
