@@ -1326,12 +1326,26 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
                   </div>
 
                   <div className="recommended-scenario">
-                    <h3 className="subsection-title">Recommended Scenario</h3>
+                    <h3 className="subsection-title">🏆 Recommended Scenario</h3>
                     <div className="recommended-card">
                       <h4 className="recommended-name">{analysisResults.recommendedScenario?.scenario_name}</h4>
+                      <div className="recommended-route-highlight">
+                        <span className="route-highlight-label">Primary Route:</span>
+                        <span className="route-highlight-value">{analysisResults.recommendedScenario?.primary_route || "Littleton, MA → Distribution Network"}</span>
+                      </div>
+                      <div className="recommended-cities-highlight">
+                        <span className="cities-highlight-label">Key Cities Selected:</span>
+                        <div className="cities-highlight-list">
+                          {analysisResults.analyzedCities?.slice(0, 8).map((city: string, index: number) => (
+                            <span key={index} className="city-highlight-tag">{city}</span>
+                          ))}
+                          {(analysisResults.analyzedCities?.length || 0) > 8 && (
+                            <span className="city-count-more">+{(analysisResults.analyzedCities?.length || 0) - 8} more cities</span>
+                          )}
+                        </div>
+                      </div>
                       <p className="recommended-description">
-                        Based on your optimization criteria, this scenario provides the best balance 
-                        of cost, service, and distance factors.
+                        {analysisResults.recommendationReason || "Based on your optimization criteria, this scenario provides the best balance of cost, service, and distance factors."}
                       </p>
                       <div className="recommended-metrics">
                         <div className="recommended-metric">
