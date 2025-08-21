@@ -225,21 +225,12 @@ export default function TransportOptimizer() {
         : 'Littleton, MA';
       strategicCities.push(baseCity);
 
-      // Strategic cities for optimal North American coverage
-      const strategicTargets = [
-        'Chicago, IL',     // Central hub
-        'Dallas, TX',      // Southern hub
-        'Los Angeles, CA', // West Coast
-        'Atlanta, GA',     // Southeast
-        'Seattle, WA',     // Pacific Northwest
-        'Denver, CO',      // Mountain West
-        'Phoenix, AZ',     // Southwest
-        'Toronto, ON',     // Canadian hub
-        'Vancouver, BC',   // Canadian West
-        'Montreal, QC',    // Canadian East
-        'Miami, FL',       // South Florida
-        'New York City, NY' // Northeast
-      ];
+      // Get strategic cities from the comprehensive database's top population centers
+      const topCities = getTopCitiesByPopulation(100);
+      const strategicTargets = topCities
+        .filter(city => city.population >= 500000) // Major metropolitan areas only
+        .map(city => `${city.name}, ${city.state_province}`)
+        .slice(0, 12); // Limit to top 12 strategic cities by population
 
       // Add strategic cities that exist in the database
       const topCities = getTopCitiesByPopulation(100);
