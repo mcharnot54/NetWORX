@@ -266,15 +266,15 @@ export default function TransportOptimizer() {
     }
   };
 
-  // Function to extract cities from capacity analysis data (updated to prioritize real transport data)
+  // Function to extract cities from capacity analysis data (updated to prioritize strategic cities)
   const extractCitiesFromCapacityData = async (capacityData: any): Promise<string[]> => {
-    console.log('🎯 Starting dynamic city extraction (NO hardcoded cities)...');
+    console.log('🎯 Starting strategic city selection for optimal network design...');
 
-    // FIRST PRIORITY: Get cities from REAL transport data files
-    const transportCities = await extractCitiesFromTransportData();
-    if (transportCities.length > 0) {
-      console.log(`🚀 Using ${transportCities.length} cities from real transport data`);
-      return transportCities;
+    // FIRST PRIORITY: Get strategic cities from comprehensive database
+    const strategicCities = await getStrategicCitiesFromDatabase();
+    if (strategicCities.length > 0) {
+      console.log(`🎯 Using ${strategicCities.length} strategic cities for optimal network`);
+      return strategicCities;
     }
 
     const cities: string[] = [];
