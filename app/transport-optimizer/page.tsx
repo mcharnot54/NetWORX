@@ -1157,6 +1157,18 @@ export default function TransportOptimizer() {
 
               {analysisResults ? (
                 <div className="results-container">
+                  {analysisResults.realDataUsed && (
+                    <div className="data-source-indicator">
+                      <div className="data-source-badge">
+                        <span className="badge-icon">🎯</span>
+                        <span className="badge-text">Real Transport Data Used</span>
+                      </div>
+                      <p className="data-source-description">
+                        Results based on actual origins, destinations, zip codes, and baseline costs from your uploaded transport files (UPS, TL, R&L).
+                        No hardcoded cities or assumptions.
+                      </p>
+                    </div>
+                  )}
                   <div className="results-summary">
                     <div className="summary-grid">
                       <div className="summary-card">
