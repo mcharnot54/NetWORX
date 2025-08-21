@@ -276,15 +276,15 @@ export async function POST(request: NextRequest) {
           cities: scenario.cities
         });
 
-        // Create detailed scenario data with realistic baseline costs
+        // Create detailed scenario data with REAL baseline costs and optimization results
         const scenarioData = {
           id: scenarioId * 1000 + index,
           scenario_type: scenario.key,
           scenario_name: scenario.name,
           scenario_description: scenario.description,
-          total_miles: 15000, // Baseline distance for Littleton-St. Louis network
-          total_cost: 5500000, // 2025 baseline cost ($5.5M)
-          service_score: 75, // Baseline service score
+          total_miles: transportResults.total_distance || 0, // Use REAL optimization results
+          total_cost: Math.round(baseline2025FreightCost), // Use REAL baseline costs
+          service_score: Math.round(transportResults.service_level_percentage || 75), // Use REAL service score
           generated: true,
           cities: scenario.cities,
           primary_route: `${scenario.cities[0]} ↔ ${scenario.cities[1]}`,
