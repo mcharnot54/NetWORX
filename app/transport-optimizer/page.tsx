@@ -182,13 +182,13 @@ export default function TransportOptimizer() {
     return null;
   };
 
-  // Import Real Data Transport Optimizer
-  const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
-
   // Function to get actual cities from real transport data
   const getActualCitiesFromTransportData = async (): Promise<string[]> => {
     try {
       console.log('🎯 Using ACTUAL cities from your uploaded transport files...');
+
+      // Import Real Data Transport Optimizer dynamically
+      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
 
       // Get real route data from uploaded files
       const routeData = await RealDataTransportOptimizer.getActualRouteData();
@@ -214,7 +214,7 @@ export default function TransportOptimizer() {
     // FIRST PRIORITY: Get actual cities from your transport files
     const actualCities = await getActualCitiesFromTransportData();
     if (actualCities.length > 0) {
-      console.log(`���� Using ${actualCities.length} ACTUAL cities from your transport files`);
+      console.log(`🎯 Using ${actualCities.length} ACTUAL cities from your transport files`);
       return actualCities;
     }
 
