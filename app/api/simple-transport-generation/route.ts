@@ -327,7 +327,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper functions for detailed analysis using actual freight spend data
-function generateYearlyAnalysis(transportResults: any, cities: string[], warehouseConfigs: any[], transportConfigs: any[], capacityData?: any) {
+async function generateYearlyAnalysis(transportResults: any, cities: string[], warehouseConfigs: any[], transportConfigs: any[], capacityData?: any) {
   const baseYear = 2025; // Current baseline year
   const analysisYears = 8; // 2025-2032
   const yearlyData = [];
