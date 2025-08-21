@@ -88,22 +88,15 @@ export async function POST(request: NextRequest) {
       // Select top strategic cities by population and geographic distribution
       const topCities = getTopCitiesByPopulation(100); // Get top 100 cities
 
-      // Target strategic regions for optimal network coverage
-      const targetRegions = [
-        // Major metros for strategic coverage
-        { name: 'Chicago, IL', priority: 1 }, // Central hub
-        { name: 'Dallas, TX', priority: 1 }, // Southern hub
-        { name: 'Los Angeles, CA', priority: 1 }, // West Coast
-        { name: 'Atlanta, GA', priority: 1 }, // Southeast hub
-        { name: 'Seattle, WA', priority: 2 }, // Pacific Northwest
-        { name: 'Denver, CO', priority: 2 }, // Mountain West
-        { name: 'Phoenix, AZ', priority: 2 }, // Southwest
-        { name: 'Miami, FL', priority: 3 }, // South Florida
-        { name: 'New York City, NY', priority: 3 }, // Northeast
-        { name: 'Toronto, ON', priority: 3 }, // Canadian hub
-        { name: 'Vancouver, BC', priority: 3 }, // Canadian West
-        { name: 'Montreal, QC', priority: 3 }, // Canadian East
-      ];
+      // Get strategic regions dynamically from top population centers
+      const topCities = getTopCitiesByPopulation(50); // Get top 50 cities
+      const targetRegions = topCities
+        .filter(city => city.population >= 500000) // Major metros only
+        .map((city, index) => ({
+          name: `${city.name}, ${city.state_province}`,
+          priority: index < 4 ? 1 : index < 8 ? 2 : 3
+        }))
+        .slice(0, 12); // Limit to top 12 strategic regions
 
       // Add strategic cities based on priority and excluding base city
       for (const region of targetRegions) {
