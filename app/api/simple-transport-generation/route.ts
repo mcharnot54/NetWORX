@@ -194,6 +194,55 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${warehouseConfigs.length} warehouses and ${transportConfigs.length} transport configs`);
 
+    // Calculate baseline costs for use in scenarios
+    let baseline2025FreightCost = 0;
+    let baselineWarehouseCost = 850000; // Default warehouse cost
+
+    try {
+      console.log('🚀 Fetching real baseline costs from transport files...');
+
+      // Get real baseline costs from final transport extraction
+      const baselineResponse = await fetch(`http://localhost:3000/api/final-transport-extraction`);
+      if (baselineResponse.ok) {
+        const baselineData = await baselineResponse.json();
+        if (baselineData.success && baselineData.transportation_baseline_2024) {
+          const transportBaseline = baselineData.transportation_baseline_2024;
+          baseline2025FreightCost = transportBaseline.total_transportation_baseline ||
+                                   (transportBaseline.ups_parcel_costs +
+                                    transportBaseline.tl_freight_costs +
+                                    transportBaseline.ltl_freight_costs);
+
+          console.log(`✅ Using real baseline costs:`);
+          console.log(`   UPS Parcel: $${transportBaseline.ups_parcel_costs?.toLocaleString()}`);
+          console.log(`   TL Freight: $${transportBaseline.tl_freight_costs?.toLocaleString()}`);
+          console.log(`   LTL Freight: $${transportBaseline.ltl_freight_costs?.toLocaleString()}`);
+          console.log(`   Total 2025 Baseline: $${baseline2025FreightCost.toLocaleString()}`);
+        }
+      }
+
+      // Fallback: Try current baseline costs API
+      if (baseline2025FreightCost === 0) {
+        const currentBaselineResponse = await fetch(`http://localhost:3000/api/current-baseline-costs`);
+        if (currentBaselineResponse.ok) {
+          const currentBaseline = await currentBaselineResponse.json();
+          if (currentBaseline.success && currentBaseline.baseline_costs) {
+            baseline2025FreightCost = currentBaseline.baseline_costs.transport_costs.freight_costs.raw || 0;
+            console.log(`✅ Using current baseline freight cost: $${baseline2025FreightCost.toLocaleString()}`);
+          }
+        }
+      }
+
+      // If still no real data, show error but continue with a minimum estimate
+      if (baseline2025FreightCost === 0) {
+        console.warn('⚠️ No real baseline costs found, using minimum estimate');
+        baseline2025FreightCost = 1000000; // Minimum $1M estimate
+      }
+
+    } catch (error) {
+      console.error('❌ Error fetching baseline costs:', error);
+      baseline2025FreightCost = 1000000; // Fallback minimum
+    }
+
     // Generate each detailed scenario
     for (let index = 0; index < typesToGenerate.length; index++) {
       const scenario = typesToGenerate[index];
@@ -222,12 +271,14 @@ export async function POST(request: NextRequest) {
         const transportResults = optimizeTransportRoutes(optimizationParams);
 
         // Generate year-by-year analysis with growth projections
-        const yearlyAnalysis = generateYearlyAnalysis(
+        const yearlyAnalysis = await generateYearlyAnalysis(
           transportResults,
           scenario.cities,
           warehouseConfigs,
           transportConfigs,
-          capacityGrowthData
+          capacityGrowthData,
+          baseline2025FreightCost,
+          baselineWarehouseCost
         );
 
         console.log(`✅ Generated ${scenario.name}:`, {
@@ -278,7 +329,7 @@ export async function POST(request: NextRequest) {
         console.error(`Failed to generate ${scenario.name}:`, optimizationError);
 
         // Create detailed fallback scenario data
-        const fallbackYearlyAnalysis = generateFallbackYearlyAnalysis(scenario.cities);
+        const fallbackYearlyAnalysis = await generateFallbackYearlyAnalysis(scenario.cities, baseline2025FreightCost, baselineWarehouseCost);
 
         const fallbackData = {
           id: scenarioId * 1000 + index,
@@ -327,7 +378,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper functions for detailed analysis using actual freight spend data
-function generateYearlyAnalysis(transportResults: any, cities: string[], warehouseConfigs: any[], transportConfigs: any[], capacityData?: any) {
+async function generateYearlyAnalysis(transportResults: any, cities: string[], warehouseConfigs: any[], transportConfigs: any[], capacityData?: any, baseline2025FreightCost?: number, baselineWarehouseCost?: number) {
   const baseYear = 2025; // Current baseline year
   const analysisYears = 8; // 2025-2032
   const yearlyData = [];
@@ -344,54 +395,9 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
     12249125   // 2033 (extrapolated)
   ];
 
-  // Get REAL baseline costs from transport data instead of hardcoded values
-  let baseline2025FreightCost = 0;
-  let baselineWarehouseCost = 850000; // Keep warehouse cost for now
-
-  try {
-    console.log('🚀 Fetching real baseline costs from transport files...');
-
-    // Get real baseline costs from final transport extraction
-    const baselineResponse = await fetch(`http://localhost:3000/api/final-transport-extraction`);
-    if (baselineResponse.ok) {
-      const baselineData = await baselineResponse.json();
-      if (baselineData.success && baselineData.transportation_baseline_2024) {
-        const transportBaseline = baselineData.transportation_baseline_2024;
-        baseline2025FreightCost = transportBaseline.total_transportation_baseline ||
-                                 (transportBaseline.ups_parcel_costs +
-                                  transportBaseline.tl_freight_costs +
-                                  transportBaseline.ltl_freight_costs);
-
-        console.log(`✅ Using real baseline costs:`);
-        console.log(`   UPS Parcel: $${transportBaseline.ups_parcel_costs?.toLocaleString()}`);
-        console.log(`   TL Freight: $${transportBaseline.tl_freight_costs?.toLocaleString()}`);
-        console.log(`   LTL Freight: $${transportBaseline.ltl_freight_costs?.toLocaleString()}`);
-        console.log(`   Total 2025 Baseline: $${baseline2025FreightCost.toLocaleString()}`);
-      }
-    }
-
-    // Fallback: Try current baseline costs API
-    if (baseline2025FreightCost === 0) {
-      const currentBaselineResponse = await fetch(`http://localhost:3000/api/current-baseline-costs`);
-      if (currentBaselineResponse.ok) {
-        const currentBaseline = await currentBaselineResponse.json();
-        if (currentBaseline.success && currentBaseline.baseline_costs) {
-          baseline2025FreightCost = currentBaseline.baseline_costs.transport_costs.freight_costs.raw || 0;
-          console.log(`✅ Using current baseline freight cost: $${baseline2025FreightCost.toLocaleString()}`);
-        }
-      }
-    }
-
-    // If still no real data, show error but continue with a minimum estimate
-    if (baseline2025FreightCost === 0) {
-      console.warn('⚠️ No real baseline costs found, using minimum estimate');
-      baseline2025FreightCost = 1000000; // Minimum $1M estimate
-    }
-
-  } catch (error) {
-    console.error('❌ Error fetching baseline costs:', error);
-    baseline2025FreightCost = 1000000; // Fallback minimum
-  }
+  // Use passed baseline costs or defaults
+  const finalBaseline2025FreightCost = baseline2025FreightCost || 1000000;
+  const finalBaselineWarehouseCost = baselineWarehouseCost || 850000;
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
@@ -410,8 +416,8 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
 
     if (year === 0) {
       // Year 1 (2025): Baseline year, no optimization, no savings
-      transportCost = baseline2025FreightCost;
-      warehouseCost = baselineWarehouseCost;
+      transportCost = finalBaseline2025FreightCost;
+      warehouseCost = finalBaselineWarehouseCost;
       isOptimized = false;
     } else {
       // Years 2026+ (year >= 1): Use actual freight spend data with optimization
@@ -427,7 +433,7 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
 
       // Calculate warehouse costs with volume growth (from capacity data if available)
       const volumeGrowthFactor = Math.pow(1 + volumeGrowthRate, year);
-      warehouseCost = Math.round(baselineWarehouseCost * volumeGrowthFactor);
+      warehouseCost = Math.round(finalBaselineWarehouseCost * volumeGrowthFactor);
       isOptimized = true;
     }
 
@@ -463,7 +469,7 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
   return yearlyData;
 }
 
-function generateFallbackYearlyAnalysis(cities: string[]) {
+async function generateFallbackYearlyAnalysis(cities: string[], baseline2025FreightCost?: number, baselineWarehouseCost?: number) {
   const baseYear = 2025; // Current baseline year
   const analysisYears = 8; // 2025-2032
   const yearlyData = [];
@@ -473,8 +479,9 @@ function generateFallbackYearlyAnalysis(cities: string[]) {
     6009305, 3868767, 4930096, 5278949, 6577972, 8880267, 10021347, 12249125
   ];
 
-  // Use the real baseline costs calculated earlier
-  // baseline2025FreightCost and baselineWarehouseCost are already defined above
+  // Use passed baseline costs or defaults
+  const finalBaseline2025FreightCost = baseline2025FreightCost || 1000000;
+  const finalBaselineWarehouseCost = baselineWarehouseCost || 850000;
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
@@ -482,8 +489,8 @@ function generateFallbackYearlyAnalysis(cities: string[]) {
 
     if (year === 0) {
       // 2025 baseline
-      transportCost = baseline2025FreightCost;
-      warehouseCost = baselineWarehouseCost;
+      transportCost = finalBaseline2025FreightCost;
+      warehouseCost = finalBaselineWarehouseCost;
     } else {
       // Use actual freight data for 2026+
       const actualCostIndex = year - 1;
@@ -492,7 +499,7 @@ function generateFallbackYearlyAnalysis(cities: string[]) {
         : actualFreightSpend[actualFreightSpend.length - 1] * Math.pow(1.08, actualCostIndex - actualFreightSpend.length + 1);
 
       const volumeGrowthFactor = Math.pow(1.06, year);
-      warehouseCost = Math.round(baselineWarehouseCost * volumeGrowthFactor);
+      warehouseCost = Math.round(finalBaselineWarehouseCost * volumeGrowthFactor);
     }
 
     const growthRate = year === 0 ? 0 : 6.0;
