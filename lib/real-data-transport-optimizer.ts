@@ -472,7 +472,7 @@ export class RealDataTransportOptimizer {
       baselineData,
       config,
       primaryFacility,
-      undefined // TODO: Pass actual scenarioId when available
+      scenarioId // Pass scenarioId for facility constraints and real optimization
     );
     
     // Generate 8-year projection with volume growth
