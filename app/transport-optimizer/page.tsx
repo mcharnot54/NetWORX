@@ -403,8 +403,7 @@ export default function TransportOptimizer() {
         'blended_service'
       ];
 
-      // Import Real Data Transport Optimizer dynamically inside try block
-      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
+      // Use the statically imported RealDataTransportOptimizer to avoid ChunkLoadError
 
       // Generate scenarios using REAL data
       const generatedScenarios = await RealDataTransportOptimizer.generateRealDataScenarios(
