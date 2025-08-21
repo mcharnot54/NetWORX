@@ -517,16 +517,31 @@ export class RealDataTransportOptimizer {
    */
   static getOptimizationFocus(scenarioType: string): string {
     const focus: Record<string, string> = {
-      'lowest_cost_city': 'Minimizes total transport costs using city-level routing optimization',
-      'lowest_cost_zip': 'Achieves maximum cost savings through ZIP-code precision routing',
-      'lowest_miles_city': 'Reduces total miles traveled while maintaining service levels',
-      'lowest_miles_zip': 'Optimizes routing for shortest distance at ZIP code level',
-      'best_service_parcel': 'Prioritizes service quality and delivery speed for parcel shipments',
-      'best_service_ltl': 'Maximizes service levels for LTL freight operations',
-      'blended_service': 'Balances cost, miles, and service for optimal overall performance'
+      'lowest_cost_city': 'Hub-and-spoke network with 1-2 regional distribution centers for maximum cost reduction',
+      'lowest_cost_zip': 'Micro-hub strategy with ZIP-code level consolidation for optimal cost efficiency',
+      'lowest_miles_city': 'Distance-optimized hub placement to minimize total network miles',
+      'lowest_miles_zip': 'Shortest-path routing with strategic hub locations',
+      'best_service_parcel': 'Service-focused hub network balancing speed and cost for parcel delivery',
+      'best_service_ltl': 'LTL-optimized hub strategy for maximum service levels',
+      'blended_service': 'Balanced hub network optimizing cost, distance, and service simultaneously'
     };
 
-    return focus[scenarioType] || 'Custom optimization approach';
+    return focus[scenarioType] || 'Custom hub optimization approach';
+  }
+
+  /**
+   * Count unique destinations for optimization calculation
+   */
+  static countUniqueDestinations(routeData: RealRouteData[]): number {
+    const destinations = new Set<string>();
+
+    routeData.forEach(route => {
+      if (route.destination && route.destination !== 'Unknown' && route.destination !== 'Various') {
+        destinations.add(route.destination);
+      }
+    });
+
+    return destinations.size;
   }
 
   /**
