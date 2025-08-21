@@ -498,17 +498,22 @@ export class RealDataTransportOptimizer {
         optimization_percentage: optimization.optimization_percentage
       },
       yearly_analysis: yearlyAnalysis,
-      // Add scenario-specific details for better display
+      // Add scenario-specific details from REAL optimization results
       scenario_details: {
         primary_facility: primaryFacility,
+        selected_facilities: optimization.selected_facilities || [primaryFacility],
+        optimization_method: optimization.optimization_method || 'unknown',
+        solver_used: optimization.solver_used,
         hub_strategy: this.getHubStrategy(scenarioType, actualCities.length),
         total_routes: routeData.length,
         unique_destinations: actualCities.length,
         optimization_focus: this.getOptimizationFocus(scenarioType),
         cost_savings: Math.round(optimization.potential_savings),
         annual_savings: Math.round(optimization.potential_savings),
+        savings_percentage: optimization.optimization_percentage.toFixed(1) + '%',
         cities_optimized: actualCities.slice(0, 10).join(', ') + (actualCities.length > 10 ? ` and ${actualCities.length - 10} additional cities` : ''),
-        hub_nodes: this.getRecommendedHubNodes(scenarioType, actualCities)
+        hub_nodes: optimization.selected_facilities || this.getRecommendedHubNodes(scenarioType, actualCities),
+        real_algorithm_used: optimization.optimization_method === 'real_transport_algorithm'
       }
     } as any;
   }
