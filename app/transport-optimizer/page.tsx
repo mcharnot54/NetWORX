@@ -182,18 +182,96 @@ export default function TransportOptimizer() {
     return null;
   };
 
-  // Function to extract cities from capacity analysis data
-  const extractCitiesFromCapacityData = (capacityData: any): string[] => {
-    const cities: string[] = [];
+  // Function to extract cities from real transport data (NO MORE HARDCODED CITIES)
+  const extractCitiesFromTransportData = async (): Promise<string[]> => {
+    try {
+      console.log('🚀 Fetching real transport data from uploaded files...');
 
-    // First priority: Use cities from the selected scenario metadata
-    if (selectedScenario?.cities && selectedScenario.cities.length > 0) {
-      console.log('Using cities from scenario metadata:', selectedScenario.cities);
-      return selectedScenario.cities.filter((city: string) => city && city.trim() !== '');
+      // First, get the actual route data from transport files
+      const routeResponse = await fetch('/api/extract-actual-routes');
+      if (routeResponse.ok) {
+        const routeData = await routeResponse.json();
+        if (routeData.success && routeData.data.route_groups) {
+          const cities: string[] = [];
+
+          // Extract origins and destinations from actual routes
+          routeData.data.route_groups.forEach((routeGroup: any) => {
+            const [origin, destination] = routeGroup.route_key.split(' → ');
+            if (origin && origin !== 'Unknown Origin' && origin !== 'Various Destinations') {
+              if (!cities.includes(origin)) cities.push(origin);
+            }
+            if (destination && destination !== 'Unknown Destination' && destination !== 'Various Destinations') {
+              if (!cities.includes(destination)) cities.push(destination);
+            }
+          });
+
+          console.log(`✅ Found ${cities.length} real cities from transport files:`, cities);
+          if (cities.length > 0) {
+            return cities.slice(0, 12); // Allow up to 12 real cities
+          }
+        }
+      }
+
+      // Fallback: Get baseline transport data
+      const baselineResponse = await fetch('/api/final-transport-extraction');
+      if (baselineResponse.ok) {
+        const baselineData = await baselineResponse.json();
+        if (baselineData.success) {
+          const cities: string[] = [];
+
+          // Try to extract cities from baseline extraction details
+          if (baselineData.extraction_details) {
+            ['ups', 'tl', 'rl'].forEach(mode => {
+              const details = baselineData.extraction_details[mode];
+              if (details?.cities_identified) {
+                details.cities_identified.forEach((city: string) => {
+                  if (city && !cities.includes(city)) {
+                    cities.push(city);
+                  }
+                });
+              }
+            });
+          }
+
+          if (cities.length > 0) {
+            console.log(`✅ Found ${cities.length} cities from baseline extraction:`, cities);
+            return cities.slice(0, 12);
+          }
+        }
+      }
+
+      console.log('⚠️ No transport data found, checking scenario metadata...');
+      return [];
+
+    } catch (error) {
+      console.error('❌ Error fetching transport data:', error);
+      return [];
+    }
+  };
+
+  // Function to extract cities from capacity analysis data (updated to prioritize real transport data)
+  const extractCitiesFromCapacityData = async (capacityData: any): Promise<string[]> => {
+    console.log('🎯 Starting dynamic city extraction (NO hardcoded cities)...');
+
+    // FIRST PRIORITY: Get cities from REAL transport data files
+    const transportCities = await extractCitiesFromTransportData();
+    if (transportCities.length > 0) {
+      console.log(`🚀 Using ${transportCities.length} cities from real transport data`);
+      return transportCities;
     }
 
-    // Second priority: Extract from capacity analysis facility data
-    // Look for the original facilities data that was used for the analysis
+    const cities: string[] = [];
+
+    // Second priority: Use cities from the selected scenario metadata (if dynamically populated)
+    if (selectedScenario?.cities && selectedScenario.cities.length > 0) {
+      console.log('Using cities from scenario metadata:', selectedScenario.cities);
+      const scenarioCities = selectedScenario.cities.filter((city: string) => city && city.trim() !== '');
+      if (scenarioCities.length > 0) {
+        return scenarioCities;
+      }
+    }
+
+    // Third priority: Extract from capacity analysis facility data
     if (capacityData?.facilities && Array.isArray(capacityData.facilities)) {
       console.log('Extracting cities from facilities data:', capacityData.facilities);
       capacityData.facilities.forEach((facility: any) => {
@@ -206,7 +284,7 @@ export default function TransportOptimizer() {
       });
     }
 
-    // Third priority: Extract from capacity analysis recommended facilities
+    // Fourth priority: Extract from capacity analysis recommended facilities
     if (cities.length === 0 && capacityData?.yearly_results) {
       capacityData.yearly_results.forEach((year: any) => {
         if (year.recommended_facilities) {
@@ -219,14 +297,6 @@ export default function TransportOptimizer() {
                 if (!cities.includes(cityName)) {
                   cities.push(cityName);
                 }
-              } else if (facility.name.includes('Littleton')) {
-                const littletonCity = 'Littleton, MA';
-                if (!cities.includes(littletonCity)) {
-                  cities.push(littletonCity);
-                }
-              } else {
-                // For generic facility names like "New Facility 2025", try to derive from scenario context
-                console.log('Found facility with generic name:', facility.name);
               }
             }
           });
@@ -234,65 +304,39 @@ export default function TransportOptimizer() {
       });
     }
 
-    // Fourth priority: Check scenario metadata for warehouse configurations
+    // Fifth priority: Check scenario warehouse configurations
     if (cities.length === 0 && selectedScenario) {
       try {
-        const fetchWarehouseConfigs = async () => {
-          const response = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
-          if (response.ok) {
-            const warehouseData = await response.json();
-            if (warehouseData.data && Array.isArray(warehouseData.data)) {
-              const warehouseCities: string[] = [];
-              warehouseData.data.forEach((warehouse: any) => {
-                if (warehouse.location) {
-                  // Parse location like "Chicago, IL" or "Atlanta, GA"
-                  const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
-                  if (locationMatch) {
-                    const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
-                    if (!warehouseCities.includes(cityName)) {
-                      warehouseCities.push(cityName);
-                    }
+        const response = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
+        if (response.ok) {
+          const warehouseData = await response.json();
+          if (warehouseData.data && Array.isArray(warehouseData.data)) {
+            warehouseData.data.forEach((warehouse: any) => {
+              if (warehouse.location) {
+                const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
+                if (locationMatch) {
+                  const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
+                  if (!cities.includes(cityName)) {
+                    cities.push(cityName);
                   }
                 }
-              });
-              cities.push(...warehouseCities);
-            }
+              }
+            });
           }
-        };
-
-        // This will be async, but we can't await here in this sync function
-        // So we'll use this as a fallback for the next time cities are needed
-        fetchWarehouseConfigs().catch(console.warn);
+        }
       } catch (error) {
         console.warn('Could not fetch warehouse configurations:', error);
       }
     }
 
-    // Fifth priority: Generate based on scenario requirements
-    if (cities.length === 0 && selectedScenario?.number_of_nodes) {
-      console.log('Generating cities based on scenario node count:', selectedScenario.number_of_nodes);
-      const defaultCities = [
-        'Littleton, MA',
-        'Chicago, IL',
-        'Dallas, TX',
-        'Los Angeles, CA',
-        'Atlanta, GA',
-        'Seattle, WA',
-        'Denver, CO',
-        'Phoenix, AZ'
-      ];
-
-      // Use the number of nodes to determine how many cities to include
-      return defaultCities.slice(0, selectedScenario.number_of_nodes);
-    }
-
-    // Final fallback
+    // ONLY if absolutely no data is available anywhere, return error
     if (cities.length === 0) {
-      console.log('Using fallback default cities');
-      cities.push('Littleton, MA', 'Chicago, IL', 'Dallas, TX');
+      console.error('❌ NO TRANSPORT DATA FOUND - Please upload transport files (UPS, TL, R&L) first');
+      throw new Error('No transport data available. Please upload your transport data files (UPS, TL, R&L) before running optimization.');
     }
 
-    return cities.slice(0, 8); // Allow up to 8 cities max
+    console.log(`✅ Using ${cities.length} cities from capacity/scenario data:`, cities);
+    return cities.slice(0, 12); // Allow up to 12 cities
   };
 
   // Function to call real transport optimization API (now uses background jobs)
