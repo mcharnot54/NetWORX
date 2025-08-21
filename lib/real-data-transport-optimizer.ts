@@ -606,7 +606,7 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Generate 8-year financial projection with volume growth
+   * Generate yearly financial projection using REAL growth data from Capacity Optimizer
    */
   static generateYearlyProjection(
     optimization: any,
@@ -618,43 +618,86 @@ export class RealDataTransportOptimizer {
     // Calculate one-time optimized baseline for 2026 and beyond
     const optimizedBaseline = Math.round(baselineData.total_verified * (1.0 - optimization.optimization_percentage / 100));
 
-    for (let year = 0; year < 8; year++) {
-      const currentYear = 2025 + year;
-      const volumeMultiplier = Math.pow(1 + volumeGrowth.growth_rate, year);
+    console.log(`📊 Using ${volumeGrowth.source} for yearly projections`);
 
-      // 2025 is baseline year (no optimization)
-      const isBaseline = year === 0;
+    // If we have actual yearly volume data from Capacity Optimizer, use it
+    if (volumeGrowth.yearly_volumes && volumeGrowth.yearly_volumes.length > 0) {
+      console.log(`✅ Using REAL volume data from Capacity Optimizer for ${volumeGrowth.yearly_volumes.length} years`);
 
-      let transportCost: number;
-      if (isBaseline) {
-        // 2025: Use actual baseline cost with no optimization
-        transportCost = Math.round(baselineData.total_verified * volumeMultiplier);
-      } else {
-        // 2026+: Use optimized baseline, then grow with volume
-        // Volume growth from 2026 baseline (year 1), not year 0
-        const growthFromOptimizedYear = Math.pow(1 + volumeGrowth.growth_rate, year - 1);
-        transportCost = Math.round(optimizedBaseline * (1 + volumeGrowth.growth_rate) * growthFromOptimizedYear);
-      }
+      volumeGrowth.yearly_volumes.forEach((yearData, index) => {
+        const isBaseline = index === 0; // First year is baseline
+        const currentYear = yearData.year;
 
-      projection.push({
-        year: currentYear,
-        is_baseline: isBaseline,
-        growth_rate: (volumeGrowth.growth_rate * 100).toFixed(1),
-        volume_multiplier: volumeMultiplier.toFixed(2),
-        transport_cost: transportCost,
-        total_cost: transportCost, // Simplified for transport focus
-        efficiency_score: isBaseline ? 85 : optimization.service_score,
-        optimization_applied: !isBaseline,
-        explanation: isBaseline
-          ? "Baseline year - no optimization applied"
-          : `Optimized baseline + ${((year - 1) * volumeGrowth.growth_rate * 100).toFixed(1)}% volume growth from 2026`
+        // Calculate volume multiplier based on actual volume data
+        const baselineVolume = volumeGrowth.yearly_volumes![0].volume;
+        const volumeMultiplier = baselineVolume > 0 ? yearData.volume / baselineVolume : 1.0;
+
+        let transportCost: number;
+        if (isBaseline) {
+          // Use baseline transport cost for first year
+          transportCost = Math.round(baselineData.total_verified);
+        } else {
+          // Apply optimization savings and scale by actual volume growth
+          transportCost = Math.round(optimizedBaseline * volumeMultiplier);
+        }
+
+        projection.push({
+          year: currentYear,
+          is_baseline: isBaseline,
+          actual_volume: yearData.volume,
+          volume_multiplier: volumeMultiplier.toFixed(2),
+          growth_rate: index > 0 ? (((yearData.volume / volumeGrowth.yearly_volumes![index-1].volume) - 1) * 100).toFixed(1) : '0.0',
+          transport_cost: transportCost,
+          total_cost: transportCost,
+          efficiency_score: isBaseline ? 85 : optimization.service_score,
+          optimization_applied: !isBaseline,
+          data_source: 'capacity_optimizer_real_data',
+          explanation: isBaseline
+            ? "Baseline year from real capacity analysis - no optimization applied"
+            : `Optimized cost scaled by real volume growth: ${yearData.volume.toLocaleString()} units (${volumeMultiplier.toFixed(1)}x baseline)`
+        });
       });
+    } else {
+      // Fallback to calculated projections if no real data available
+      console.warn('⚠️ No real volume data available, using calculated projections');
+
+      for (let year = 0; year < 8; year++) {
+        const currentYear = 2025 + year;
+        const volumeMultiplier = Math.pow(1 + volumeGrowth.growth_rate, year);
+        const isBaseline = year === 0;
+
+        let transportCost: number;
+        if (isBaseline) {
+          transportCost = Math.round(baselineData.total_verified);
+        } else {
+          transportCost = Math.round(optimizedBaseline * volumeMultiplier);
+        }
+
+        projection.push({
+          year: currentYear,
+          is_baseline: isBaseline,
+          volume_multiplier: volumeMultiplier.toFixed(2),
+          growth_rate: (volumeGrowth.growth_rate * 100).toFixed(1),
+          transport_cost: transportCost,
+          total_cost: transportCost,
+          efficiency_score: isBaseline ? 85 : optimization.service_score,
+          optimization_applied: !isBaseline,
+          data_source: 'calculated_fallback',
+          explanation: isBaseline
+            ? "Baseline year - no optimization applied"
+            : `Optimized baseline + calculated ${(volumeGrowth.growth_rate * 100).toFixed(1)}% growth`
+        });
+      }
     }
 
-    console.log(`📊 Yearly Projection Logic:
-    2025 Baseline: $${baselineData.total_verified.toLocaleString()}
-    2026 Optimized: $${optimizedBaseline.toLocaleString()} (${optimization.optimization_percentage.toFixed(1)}% savings)
-    2032 With Growth: $${projection[7]?.transport_cost.toLocaleString()} (${((projection[7]?.transport_cost / baselineData.total_verified - 1) * 100).toFixed(1)}% vs 2025)`);
+    if (projection.length > 0) {
+      const finalYear = projection[projection.length - 1];
+      console.log(`📊 REAL Yearly Projection Results (${volumeGrowth.source}):
+      Baseline (${projection[0].year}): $${projection[0].transport_cost.toLocaleString()}
+      Optimized Baseline: $${optimizedBaseline.toLocaleString()} (${optimization.optimization_percentage.toFixed(1)}% savings)
+      Final Year (${finalYear.year}): $${finalYear.transport_cost.toLocaleString()}
+      Growth Factor: ${finalYear.volume_multiplier}x`);
+    }
 
     return projection;
   }
