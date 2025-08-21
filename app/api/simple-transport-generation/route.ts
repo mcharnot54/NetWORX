@@ -157,40 +157,68 @@ export async function POST(request: NextRequest) {
         strategicCities.push(baseCity);
       }
 
-      // Get strategic regions dynamically from top population centers
-      const topCities = getTopCitiesByPopulation(50); // Get top 50 cities
-      const targetRegions = topCities
-        .filter(city => city.population >= 500000) // Major metros only
-        .map((city, index) => ({
+      // ALGORITHM: Select optimal cities from comprehensive database for future network optimization
+      console.log('🎯 Running optimization algorithm to select best cities from comprehensive database...');
+
+      // Get candidate cities from comprehensive database (major metros for strategic network design)
+      const candidateCities = getTopCitiesByPopulation(100)
+        .filter(city => city.population >= 300000) // Major metropolitan areas for network nodes
+        .filter(city => city.country === 'US'); // Focus on US for now (can expand to Canada later)
+
+      console.log(`📊 Evaluating ${candidateCities.length} candidate cities from comprehensive database`);
+
+      // OPTIMIZATION ALGORITHM: Score cities based on:
+      // 1. Population (market size)
+      // 2. Geographic distribution (network coverage)
+      // 3. Distance from current facility (logistics efficiency)
+      // 4. Strategic regional importance
+
+      const currentFacilityCoords = { lat: 42.5334, lon: -71.4912 }; // Littleton, MA
+      const scoredCities = candidateCities.map(city => {
+        // Distance score (closer is better for initial expansion)
+        const distance = calculateDistanceFromCoords(
+          currentFacilityCoords.lat, currentFacilityCoords.lon,
+          city.lat, city.lon
+        );
+        const distanceScore = Math.max(0, 100 - (distance / 20)); // Normalize distance
+
+        // Population score (larger markets are better)
+        const populationScore = Math.min(100, (city.population / 50000)); // Normalize population
+
+        // Regional diversity score (prefer different regions)
+        const regionScore = getRegionalDiversityScore(city, strategicCities);
+
+        // Strategic importance score (key transportation hubs)
+        const strategicScore = getStrategicImportanceScore(city);
+
+        const totalScore = (populationScore * 0.4) + (distanceScore * 0.2) + (regionScore * 0.2) + (strategicScore * 0.2);
+
+        return {
+          city,
           name: `${city.name}, ${city.state_province}`,
-          priority: index < 4 ? 1 : index < 8 ? 2 : 3
-        }))
-        .slice(0, 12); // Limit to top 12 strategic regions
+          totalScore,
+          populationScore,
+          distanceScore,
+          regionScore,
+          strategicScore,
+          distance
+        };
+      });
 
-      // Add strategic cities based on priority and excluding base city
-      for (const region of targetRegions) {
-        if (region.name !== baseCity && !strategicCities.includes(region.name)) {
-          // Verify city exists in comprehensive database
-          const cityExists = topCities.find(city =>
-            `${city.name}, ${city.state_province}` === region.name
-          );
+      // Sort by optimization score and select top cities
+      const optimalCities = scoredCities
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 8); // Select top 8 optimal cities
 
-          if (cityExists) {
-            strategicCities.push(region.name);
-            if (strategicCities.length >= 8) break; // Limit to 8 strategic cities
-          }
+      // Add optimal cities to strategic list
+      optimalCities.forEach(cityData => {
+        if (cityData.name !== baseCity && !strategicCities.includes(cityData.name)) {
+          strategicCities.push(cityData.name);
         }
-      }
+      });
 
-      // If we need more cities, add highest population cities that aren't already included
-      if (strategicCities.length < 8) {
-        for (const city of topCities) {
-          const cityName = `${city.name}, ${city.state_province}`;
-          if (!strategicCities.includes(cityName) && strategicCities.length < 8) {
-            strategicCities.push(cityName);
-          }
-        }
-      }
+      console.log(`✅ Algorithm selected ${strategicCities.length - 1} optimal cities:`,
+        optimalCities.map(c => `${c.name} (score: ${c.totalScore.toFixed(1)})`));
 
       cities = strategicCities;
       console.log(`✅ Selected ${cities.length} strategic cities for optimal network:`, cities);
