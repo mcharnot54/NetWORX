@@ -332,9 +332,54 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
     12249125   // 2033 (extrapolated)
   ];
 
-  // Calculate baseline costs for 2025 (no optimization, standard costs)
-  const baseline2025FreightCost = 5500000; // Baseline freight cost for 2025
-  const baselineWarehouseCost = 850000; // Baseline warehouse cost
+  // Get REAL baseline costs from transport data instead of hardcoded values
+  let baseline2025FreightCost = 0;
+  let baselineWarehouseCost = 850000; // Keep warehouse cost for now
+
+  try {
+    console.log('🚀 Fetching real baseline costs from transport files...');
+
+    // Get real baseline costs from final transport extraction
+    const baselineResponse = await fetch(`http://localhost:3000/api/final-transport-extraction`);
+    if (baselineResponse.ok) {
+      const baselineData = await baselineResponse.json();
+      if (baselineData.success && baselineData.transportation_baseline_2024) {
+        const transportBaseline = baselineData.transportation_baseline_2024;
+        baseline2025FreightCost = transportBaseline.total_transportation_baseline ||
+                                 (transportBaseline.ups_parcel_costs +
+                                  transportBaseline.tl_freight_costs +
+                                  transportBaseline.ltl_freight_costs);
+
+        console.log(`✅ Using real baseline costs:`);
+        console.log(`   UPS Parcel: $${transportBaseline.ups_parcel_costs?.toLocaleString()}`);
+        console.log(`   TL Freight: $${transportBaseline.tl_freight_costs?.toLocaleString()}`);
+        console.log(`   LTL Freight: $${transportBaseline.ltl_freight_costs?.toLocaleString()}`);
+        console.log(`   Total 2025 Baseline: $${baseline2025FreightCost.toLocaleString()}`);
+      }
+    }
+
+    // Fallback: Try current baseline costs API
+    if (baseline2025FreightCost === 0) {
+      const currentBaselineResponse = await fetch(`http://localhost:3000/api/current-baseline-costs`);
+      if (currentBaselineResponse.ok) {
+        const currentBaseline = await currentBaselineResponse.json();
+        if (currentBaseline.success && currentBaseline.baseline_costs) {
+          baseline2025FreightCost = currentBaseline.baseline_costs.transport_costs.freight_costs.raw || 0;
+          console.log(`✅ Using current baseline freight cost: $${baseline2025FreightCost.toLocaleString()}`);
+        }
+      }
+    }
+
+    // If still no real data, show error but continue with a minimum estimate
+    if (baseline2025FreightCost === 0) {
+      console.warn('⚠️ No real baseline costs found, using minimum estimate');
+      baseline2025FreightCost = 1000000; // Minimum $1M estimate
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching baseline costs:', error);
+    baseline2025FreightCost = 1000000; // Fallback minimum
+  }
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
