@@ -287,43 +287,65 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Get volume growth data from capacity optimizer
+   * Get volume growth data from capacity optimizer - REAL DATA SOURCE
    */
   static async getVolumeGrowthData(scenarioId: number): Promise<VolumeGrowthData> {
     try {
+      console.log(`📊 Getting REAL growth data from Capacity Optimizer for scenario ${scenarioId}...`);
+
       const response = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
       const data = await response.json();
-      
-      if (data.success && data.yearly_results) {
-        // Extract growth rate from yearly results
-        const firstYear = data.yearly_results[0];
-        const lastYear = data.yearly_results[data.yearly_results.length - 1];
-        
-        if (firstYear && lastYear) {
-          const years = data.yearly_results.length;
-          const totalGrowth = (lastYear.projected_volume || lastYear.volume) / (firstYear.projected_volume || firstYear.volume);
+
+      if (data && data.yearly_results && data.yearly_results.length > 0) {
+        console.log(`✅ Found ${data.yearly_results.length} years of capacity analysis data`);
+
+        // Get actual yearly volume projections from Capacity Optimizer
+        const yearlyVolumes = data.yearly_results.map((year: any) => ({
+          year: year.year,
+          volume: year.required_capacity || year.projected_volume || year.volume || 0,
+          raw_data: year
+        }));
+
+        // Calculate actual growth rate from real data
+        const baselineYear = yearlyVolumes[0];
+        const finalYear = yearlyVolumes[yearlyVolumes.length - 1];
+
+        if (baselineYear && finalYear && baselineYear.volume > 0 && finalYear.volume > 0) {
+          const years = yearlyVolumes.length - 1; // Exclude baseline year
+          const totalGrowth = finalYear.volume / baselineYear.volume;
           const annualGrowthRate = Math.pow(totalGrowth, 1/years) - 1;
-          
+
+          console.log(`📈 REAL Growth Analysis:
+          Baseline (${baselineYear.year}): ${baselineYear.volume.toLocaleString()} units
+          Final (${finalYear.year}): ${finalYear.volume.toLocaleString()} units
+          Annual Growth Rate: ${(annualGrowthRate * 100).toFixed(1)}%`);
+
           return {
-            current_volume: firstYear.projected_volume || firstYear.volume || 13000000, // 13M units
-            growth_rate: annualGrowthRate || 0.06, // 6% default
-            forecast_years: years || 8
+            current_volume: baselineYear.volume,
+            growth_rate: annualGrowthRate,
+            forecast_years: yearlyVolumes.length,
+            yearly_volumes: yearlyVolumes,
+            source: 'capacity_optimizer_real_data'
           };
         }
       }
-      
-      // Default growth assumptions based on capacity analysis
+
+      console.warn('⚠️ No valid capacity analysis data found, using baseline assumptions');
+
+      // Fallback to reasonable growth assumptions if no data available
       return {
-        current_volume: 13000000, // 13M units from network baseline
-        growth_rate: 0.06, // 6% annual growth
-        forecast_years: 8
+        current_volume: 13000000, // 13M units baseline assumption
+        growth_rate: 0.06, // 6% annual growth assumption
+        forecast_years: 8,
+        source: 'fallback_assumption'
       };
     } catch (error) {
-      console.error('Error fetching volume growth data:', error);
+      console.error('❌ Error fetching real volume growth data:', error);
       return {
         current_volume: 13000000,
         growth_rate: 0.06,
-        forecast_years: 8
+        forecast_years: 8,
+        source: 'error_fallback'
       };
     }
   }
