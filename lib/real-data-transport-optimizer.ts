@@ -432,7 +432,8 @@ export class RealDataTransportOptimizer {
         baselineData,
         config,
         volumeGrowth,
-        actualCities
+        actualCities,
+        scenarioId  // Pass scenarioId for real optimization API calls
       );
       scenarios.push(scenario);
     }
