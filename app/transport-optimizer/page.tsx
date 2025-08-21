@@ -393,9 +393,6 @@ export default function TransportOptimizer() {
     try {
       console.log('🎯 Generating scenarios using REAL transport data for:', selectedScenario.name);
 
-      // Import Real Data Transport Optimizer
-      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
-
       // Determine which scenario types to generate
       const typesToGenerate = specificScenarioTypes || [
         'lowest_cost_city',
@@ -404,6 +401,9 @@ export default function TransportOptimizer() {
         'best_service_parcel',
         'blended_service'
       ];
+
+      // Import Real Data Transport Optimizer dynamically inside try block
+      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
 
       // Generate scenarios using REAL data
       const generatedScenarios = await RealDataTransportOptimizer.generateRealDataScenarios(
