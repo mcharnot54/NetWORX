@@ -416,8 +416,8 @@ async function generateYearlyAnalysis(transportResults: any, cities: string[], w
 
     if (year === 0) {
       // Year 1 (2025): Baseline year, no optimization, no savings
-      transportCost = baseline2025FreightCost;
-      warehouseCost = baselineWarehouseCost;
+      transportCost = finalBaseline2025FreightCost;
+      warehouseCost = finalBaselineWarehouseCost;
       isOptimized = false;
     } else {
       // Years 2026+ (year >= 1): Use actual freight spend data with optimization
