@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
         console.error(`Failed to generate ${scenario.name}:`, optimizationError);
 
         // Create detailed fallback scenario data
-        const fallbackYearlyAnalysis = generateFallbackYearlyAnalysis(scenario.cities);
+        const fallbackYearlyAnalysis = await generateFallbackYearlyAnalysis(scenario.cities);
 
         const fallbackData = {
           id: scenarioId * 1000 + index,
