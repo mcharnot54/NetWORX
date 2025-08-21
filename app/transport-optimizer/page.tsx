@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import ProjectScenarioManager from '@/components/ProjectScenarioManager';
+import { RealDataTransportOptimizer } from '@/lib/real-data-transport-optimizer';
 
 interface TransportScenario {
   id?: number;
