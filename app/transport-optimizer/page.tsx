@@ -465,9 +465,13 @@ export default function TransportOptimizer() {
   };
 
   const generateMockRouteDetails = (cities?: string[]): RouteDetail[] => {
-    let routeCities = cities || [
-      'Chicago, IL', 'New York, NY', 'Los Angeles, CA', 'Phoenix, AZ', 'Dallas, TX'
-    ];
+    // Only use provided cities - no hardcoded fallback
+    if (!cities || cities.length === 0) {
+      console.warn('No cities provided for route generation');
+      return [];
+    }
+
+    let routeCities = cities;
 
     const routes = [];
 
