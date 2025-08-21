@@ -291,7 +291,7 @@ export class RealDataTransportOptimizer {
     return {
       scenario_name: this.getScenarioDisplayName(scenarioType),
       scenario_type: scenarioType,
-      total_cost: optimization.baseline_cost,
+      total_cost: optimization.optimized_cost, // Show optimized cost, not baseline
       total_miles: optimization.total_miles,
       service_score: optimization.service_score,
       route_details: this.generateRealRouteDetails(routeData, primaryFacility),
@@ -305,7 +305,15 @@ export class RealDataTransportOptimizer {
         projected_savings: optimization.potential_savings,
         optimization_percentage: optimization.optimization_percentage
       },
-      yearly_analysis: yearlyAnalysis
+      yearly_analysis: yearlyAnalysis,
+      // Add scenario-specific details for better display
+      scenario_details: {
+        primary_facility: primaryFacility,
+        total_routes: routeData.length,
+        optimization_focus: this.getOptimizationFocus(scenarioType),
+        cost_savings: Math.round(optimization.potential_savings),
+        cities_optimized: actualCities.slice(0, 5).join(', ') + (actualCities.length > 5 ? '...' : '')
+      }
     } as any;
   }
 
