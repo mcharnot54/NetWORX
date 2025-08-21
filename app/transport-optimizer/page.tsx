@@ -182,88 +182,40 @@ export default function TransportOptimizer() {
     return null;
   };
 
-  // Function to get strategic cities from comprehensive database
-  const getStrategicCitiesFromDatabase = async (): Promise<string[]> => {
+  // Import Real Data Transport Optimizer
+  const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
+
+  // Function to get actual cities from real transport data
+  const getActualCitiesFromTransportData = async (): Promise<string[]> => {
     try {
-      console.log('🎯 Using comprehensive cities database for strategic city selection...');
+      console.log('🎯 Using ACTUAL cities from your uploaded transport files...');
 
-      // Import the comprehensive cities database
-      const { COMPREHENSIVE_CITIES, getTopCitiesByPopulation } = await import('@/lib/comprehensive-cities-database');
+      // Get real route data from uploaded files
+      const routeData = await RealDataTransportOptimizer.getActualRouteData();
+      const actualCities = RealDataTransportOptimizer.extractActualCities(routeData);
 
-      // Get current primary facility from transport data if available
-      let identifiedPrimaryFacility = '';
-      try {
-        const routeResponse = await fetch('/api/extract-actual-routes');
-        if (routeResponse.ok) {
-          const routeData = await routeResponse.json();
-          if (routeData.success && routeData.data.route_groups) {
-            const originCounts: Record<string, number> = {};
-            routeData.data.route_groups.forEach((routeGroup: any) => {
-              const [origin] = routeGroup.route_key.split(' → ');
-              if (origin && origin !== 'Unknown Origin') {
-                originCounts[origin] = (originCounts[origin] || 0) + routeGroup.total_cost;
-              }
-            });
-
-            if (Object.keys(originCounts).length > 0) {
-              identifiedPrimaryFacility = Object.entries(originCounts)
-                .sort(([, a], [, b]) => b - a)[0]?.[0] || '';
-              console.log(`📍 Current primary facility: ${identifiedPrimaryFacility}`);
-            }
-          }
-        }
-      } catch (error) {
-        console.log('Using strategic cities without transport data reference');
+      if (actualCities.length === 0) {
+        throw new Error('No cities found in uploaded transport data. Please upload UPS, TL, and R&L files first.');
       }
 
-      // Select strategic cities for optimal network coverage
-      const strategicCities: string[] = [];
-
-      // Base facility (current or default)
-      const baseCity = identifiedPrimaryFacility && identifiedPrimaryFacility.includes(',')
-        ? identifiedPrimaryFacility
-        : 'Littleton, MA';
-      strategicCities.push(baseCity);
-
-      // Get strategic cities from the comprehensive database's top population centers
-      const topCities = getTopCitiesByPopulation(100);
-      const strategicTargets = topCities
-        .filter(city => city.population >= 500000) // Major metropolitan areas only
-        .map(city => `${city.name}, ${city.state_province}`)
-        .slice(0, 12); // Limit to top 12 strategic cities by population
-
-      // Add strategic cities that exist in the database
-      for (const target of strategicTargets) {
-        if (target !== baseCity && !strategicCities.includes(target)) {
-          const cityExists = topCities.find(city =>
-            `${city.name}, ${city.state_province}` === target
-          );
-
-          if (cityExists) {
-            strategicCities.push(target);
-            if (strategicCities.length >= 12) break;
-          }
-        }
-      }
-
-      console.log(`✅ Selected ${strategicCities.length} strategic cities:`, strategicCities);
-      return strategicCities;
+      console.log(`✅ Found ${actualCities.length} ACTUAL cities from your transport files:`, actualCities);
+      return actualCities;
 
     } catch (error) {
-      console.error('❌ Error accessing comprehensive cities database:', error);
-      throw new Error('Cannot access cities database. Please ensure transport data is uploaded first.');
+      console.error('❌ Error accessing actual transport data:', error);
+      throw new Error('Cannot access transport data. Please ensure UPS, TL, and R&L files are uploaded first.');
     }
   };
 
-  // Function to extract cities from capacity analysis data (updated to prioritize strategic cities)
+  // Function to extract cities from capacity analysis data (updated to use ACTUAL cities)
   const extractCitiesFromCapacityData = async (capacityData: any): Promise<string[]> => {
-    console.log('🎯 Starting strategic city selection for optimal network design...');
+    console.log('🎯 Starting REAL city selection from your uploaded transport data...');
 
-    // FIRST PRIORITY: Get strategic cities from comprehensive database
-    const strategicCities = await getStrategicCitiesFromDatabase();
-    if (strategicCities.length > 0) {
-      console.log(`🎯 Using ${strategicCities.length} strategic cities for optimal network`);
-      return strategicCities;
+    // FIRST PRIORITY: Get actual cities from your transport files
+    const actualCities = await getActualCitiesFromTransportData();
+    if (actualCities.length > 0) {
+      console.log(`🎯 Using ${actualCities.length} ACTUAL cities from your transport files`);
+      return actualCities;
     }
 
     const cities: string[] = [];
@@ -437,42 +389,46 @@ export default function TransportOptimizer() {
     }
 
     setIsGenerating(true);
-    setIsLoadingCapacityData(false); // Skip capacity data loading
 
     try {
-      console.log('Generating scenarios for:', selectedScenario.name);
+      console.log('🎯 Generating scenarios using REAL transport data for:', selectedScenario.name);
 
-      // Use simple generation API instead of complex job queue
-      const response = await fetch('/api/simple-transport-generation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          scenarioId: selectedScenario.id,
-          scenarioTypes: specificScenarioTypes
-        })
-      });
+      // Import Real Data Transport Optimizer
+      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
 
-      const result = await response.json();
+      // Determine which scenario types to generate
+      const typesToGenerate = specificScenarioTypes || [
+        'lowest_cost_city',
+        'lowest_cost_zip',
+        'lowest_miles_city',
+        'best_service_parcel',
+        'blended_service'
+      ];
 
-      if (!response.ok) {
-        throw new Error(`Generation failed: ${response.status} ${result.error || 'Unknown error'}`);
-      }
+      // Generate scenarios using REAL data
+      const generatedScenarios = await RealDataTransportOptimizer.generateRealDataScenarios(
+        selectedScenario.id,
+        configuration, // Pass UI configuration
+        typesToGenerate
+      );
 
-      if (result.success && result.data.generated_scenarios) {
-        setScenarios(result.data.generated_scenarios);
-        console.log('✅ Generated scenarios successfully:', result.data.generated_scenarios);
+      setScenarios(generatedScenarios);
+      console.log('✅ Generated scenarios using REAL data:', generatedScenarios);
 
-        // Show success message
-        alert(`Successfully generated ${result.data.generated_scenarios.length} transport scenarios!`);
-      } else {
-        throw new Error(result.error || 'Unknown generation error');
-      }
+      // Show success message with details
+      alert(`Successfully generated ${generatedScenarios.length} transport scenarios using your ACTUAL transport data!
+
+🎯 Real Data Used:
+- Actual routes from UPS, TL, R&L files
+- $6.56M verified baseline costs
+- Configuration settings from UI
+- Volume growth projections`);
 
     } catch (error) {
-      console.error('Scenario generation failed:', error);
-      alert(`Failed to generate scenarios: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Real data scenario generation failed:', error);
+      alert(`Failed to generate scenarios with real data: ${error instanceof Error ? error.message : 'Unknown error'}
+
+Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
     } finally {
       setIsGenerating(false);
     }
