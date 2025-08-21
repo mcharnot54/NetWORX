@@ -2529,6 +2529,68 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
           line-height: 1.5;
           margin: 0;
         }
+
+        .recommended-route-highlight {
+          margin: 0.75rem 0;
+          padding: 0.75rem;
+          background: #fef3c7;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .route-highlight-label {
+          font-weight: 600;
+          color: #92400e;
+          font-size: 0.875rem;
+        }
+
+        .route-highlight-value {
+          font-weight: 500;
+          color: #a16207;
+          font-size: 0.875rem;
+        }
+
+        .recommended-cities-highlight {
+          margin: 0.75rem 0;
+          padding: 0.75rem;
+          background: #f0fdf4;
+          border-radius: 6px;
+        }
+
+        .cities-highlight-label {
+          font-weight: 600;
+          color: #166534;
+          font-size: 0.875rem;
+          display: block;
+          margin-bottom: 0.5rem;
+        }
+
+        .cities-highlight-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .city-highlight-tag {
+          background: #166534;
+          color: white;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .city-count-more {
+          background: #6b7280;
+          color: white;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          font-style: italic;
+        }
       `}</style>
     </div>
   );
