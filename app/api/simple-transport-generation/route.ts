@@ -463,7 +463,7 @@ async function generateYearlyAnalysis(transportResults: any, cities: string[], w
   return yearlyData;
 }
 
-function generateFallbackYearlyAnalysis(cities: string[]) {
+async function generateFallbackYearlyAnalysis(cities: string[]) {
   const baseYear = 2025; // Current baseline year
   const analysisYears = 8; // 2025-2032
   const yearlyData = [];
