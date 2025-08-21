@@ -357,16 +357,16 @@ export class RealDataTransportOptimizer {
    */
   static generateRealisticDistributionNetwork(): string[] {
     // Import the comprehensive cities database
-    const { getTopCitiesByPopulation, getAllUSCities } = require('./comprehensive-cities-database');
+    const { getAllUSCities } = require('./comprehensive-cities-database');
 
-    // Get top US cities by population for educational distribution
-    const topCities = getTopCitiesByPopulation(100)
-      .filter(city => city.country === 'US')
-      .map(city => `${city.name}, ${city.state_province}`)
-      .slice(0, 50); // Top 50 US cities for comprehensive network
+    // Get ALL US cities from the comprehensive database for full coverage
+    const allUSCities = getAllUSCities()
+      .map(city => `${city.name}, ${city.state_province}`);
+
+    console.log(`🌎 Using ${allUSCities.length} cities from comprehensive database for maximum coverage`);
 
     // Ensure Littleton, MA is included as primary facility
-    const cities = ['Littleton, MA', ...topCities.filter(city => city !== 'Littleton, MA')];
+    const cities = ['Littleton, MA', ...allUSCities.filter(city => city !== 'Littleton, MA')];
 
     return cities;
   }
