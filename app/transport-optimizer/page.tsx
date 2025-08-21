@@ -456,12 +456,11 @@ export default function TransportOptimizer() {
         })
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Generation failed: ${response.status} ${errorText}`);
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`Generation failed: ${response.status} ${result.error || 'Unknown error'}`);
+      }
 
       if (result.success && result.data.generated_scenarios) {
         setScenarios(result.data.generated_scenarios);
