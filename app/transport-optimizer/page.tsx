@@ -182,70 +182,87 @@ export default function TransportOptimizer() {
     return null;
   };
 
-  // Function to extract cities from real transport data (NO MORE HARDCODED CITIES)
-  const extractCitiesFromTransportData = async (): Promise<string[]> => {
+  // Function to get strategic cities from comprehensive database
+  const getStrategicCitiesFromDatabase = async (): Promise<string[]> => {
     try {
-      console.log('🚀 Fetching real transport data from uploaded files...');
+      console.log('🎯 Using comprehensive cities database for strategic city selection...');
 
-      // First, get the actual route data from transport files
-      const routeResponse = await fetch('/api/extract-actual-routes');
-      if (routeResponse.ok) {
-        const routeData = await routeResponse.json();
-        if (routeData.success && routeData.data.route_groups) {
-          const cities: string[] = [];
+      // Import the comprehensive cities database
+      const { COMPREHENSIVE_CITIES, getTopCitiesByPopulation } = await import('@/lib/comprehensive-cities-database');
 
-          // Extract origins and destinations from actual routes
-          routeData.data.route_groups.forEach((routeGroup: any) => {
-            const [origin, destination] = routeGroup.route_key.split(' → ');
-            if (origin && origin !== 'Unknown Origin' && origin !== 'Various Destinations') {
-              if (!cities.includes(origin)) cities.push(origin);
-            }
-            if (destination && destination !== 'Unknown Destination' && destination !== 'Various Destinations') {
-              if (!cities.includes(destination)) cities.push(destination);
-            }
-          });
-
-          console.log(`✅ Found ${cities.length} real cities from transport files:`, cities);
-          if (cities.length > 0) {
-            return cities.slice(0, 12); // Allow up to 12 real cities
-          }
-        }
-      }
-
-      // Fallback: Get baseline transport data
-      const baselineResponse = await fetch('/api/final-transport-extraction');
-      if (baselineResponse.ok) {
-        const baselineData = await baselineResponse.json();
-        if (baselineData.success) {
-          const cities: string[] = [];
-
-          // Try to extract cities from baseline extraction details
-          if (baselineData.extraction_details) {
-            ['ups', 'tl', 'rl'].forEach(mode => {
-              const details = baselineData.extraction_details[mode];
-              if (details?.cities_identified) {
-                details.cities_identified.forEach((city: string) => {
-                  if (city && !cities.includes(city)) {
-                    cities.push(city);
-                  }
-                });
+      // Get current primary facility from transport data if available
+      let identifiedPrimaryFacility = '';
+      try {
+        const routeResponse = await fetch('/api/extract-actual-routes');
+        if (routeResponse.ok) {
+          const routeData = await routeResponse.json();
+          if (routeData.success && routeData.data.route_groups) {
+            const originCounts: Record<string, number> = {};
+            routeData.data.route_groups.forEach((routeGroup: any) => {
+              const [origin] = routeGroup.route_key.split(' → ');
+              if (origin && origin !== 'Unknown Origin') {
+                originCounts[origin] = (originCounts[origin] || 0) + routeGroup.total_cost;
               }
             });
-          }
 
-          if (cities.length > 0) {
-            console.log(`✅ Found ${cities.length} cities from baseline extraction:`, cities);
-            return cities.slice(0, 12);
+            if (Object.keys(originCounts).length > 0) {
+              identifiedPrimaryFacility = Object.entries(originCounts)
+                .sort(([, a], [, b]) => b - a)[0]?.[0] || '';
+              console.log(`📍 Current primary facility: ${identifiedPrimaryFacility}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Using strategic cities without transport data reference');
+      }
+
+      // Select strategic cities for optimal network coverage
+      const strategicCities: string[] = [];
+
+      // Base facility (current or default)
+      const baseCity = identifiedPrimaryFacility && identifiedPrimaryFacility.includes(',')
+        ? identifiedPrimaryFacility
+        : 'Littleton, MA';
+      strategicCities.push(baseCity);
+
+      // Strategic cities for optimal North American coverage
+      const strategicTargets = [
+        'Chicago, IL',     // Central hub
+        'Dallas, TX',      // Southern hub
+        'Los Angeles, CA', // West Coast
+        'Atlanta, GA',     // Southeast
+        'Seattle, WA',     // Pacific Northwest
+        'Denver, CO',      // Mountain West
+        'Phoenix, AZ',     // Southwest
+        'Toronto, ON',     // Canadian hub
+        'Vancouver, BC',   // Canadian West
+        'Montreal, QC',    // Canadian East
+        'Miami, FL',       // South Florida
+        'New York City, NY' // Northeast
+      ];
+
+      // Add strategic cities that exist in the database
+      const topCities = getTopCitiesByPopulation(100);
+      for (const target of strategicTargets) {
+        if (target !== baseCity && !strategicCities.includes(target)) {
+          const cityExists = topCities.find(city =>
+            `${city.name}, ${city.state_province}` === target
+          );
+
+          if (cityExists) {
+            strategicCities.push(target);
+            if (strategicCities.length >= 12) break;
           }
         }
       }
 
-      console.log('⚠️ No transport data found, checking scenario metadata...');
-      return [];
+      console.log(`✅ Selected ${strategicCities.length} strategic cities:`, strategicCities);
+      return strategicCities;
 
     } catch (error) {
-      console.error('❌ Error fetching transport data:', error);
-      return [];
+      console.error('❌ Error accessing comprehensive cities database:', error);
+      // Fallback to essential strategic cities
+      return ['Littleton, MA', 'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA'];
     }
   };
 
