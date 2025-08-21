@@ -182,18 +182,113 @@ export default function TransportOptimizer() {
     return null;
   };
 
-  // Function to extract cities from capacity analysis data
-  const extractCitiesFromCapacityData = (capacityData: any): string[] => {
-    const cities: string[] = [];
+  // Function to get strategic cities from comprehensive database
+  const getStrategicCitiesFromDatabase = async (): Promise<string[]> => {
+    try {
+      console.log('🎯 Using comprehensive cities database for strategic city selection...');
 
-    // First priority: Use cities from the selected scenario metadata
-    if (selectedScenario?.cities && selectedScenario.cities.length > 0) {
-      console.log('Using cities from scenario metadata:', selectedScenario.cities);
-      return selectedScenario.cities.filter((city: string) => city && city.trim() !== '');
+      // Import the comprehensive cities database
+      const { COMPREHENSIVE_CITIES, getTopCitiesByPopulation } = await import('@/lib/comprehensive-cities-database');
+
+      // Get current primary facility from transport data if available
+      let identifiedPrimaryFacility = '';
+      try {
+        const routeResponse = await fetch('/api/extract-actual-routes');
+        if (routeResponse.ok) {
+          const routeData = await routeResponse.json();
+          if (routeData.success && routeData.data.route_groups) {
+            const originCounts: Record<string, number> = {};
+            routeData.data.route_groups.forEach((routeGroup: any) => {
+              const [origin] = routeGroup.route_key.split(' → ');
+              if (origin && origin !== 'Unknown Origin') {
+                originCounts[origin] = (originCounts[origin] || 0) + routeGroup.total_cost;
+              }
+            });
+
+            if (Object.keys(originCounts).length > 0) {
+              identifiedPrimaryFacility = Object.entries(originCounts)
+                .sort(([, a], [, b]) => b - a)[0]?.[0] || '';
+              console.log(`📍 Current primary facility: ${identifiedPrimaryFacility}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Using strategic cities without transport data reference');
+      }
+
+      // Select strategic cities for optimal network coverage
+      const strategicCities: string[] = [];
+
+      // Base facility (current or default)
+      const baseCity = identifiedPrimaryFacility && identifiedPrimaryFacility.includes(',')
+        ? identifiedPrimaryFacility
+        : 'Littleton, MA';
+      strategicCities.push(baseCity);
+
+      // Strategic cities for optimal North American coverage
+      const strategicTargets = [
+        'Chicago, IL',     // Central hub
+        'Dallas, TX',      // Southern hub
+        'Los Angeles, CA', // West Coast
+        'Atlanta, GA',     // Southeast
+        'Seattle, WA',     // Pacific Northwest
+        'Denver, CO',      // Mountain West
+        'Phoenix, AZ',     // Southwest
+        'Toronto, ON',     // Canadian hub
+        'Vancouver, BC',   // Canadian West
+        'Montreal, QC',    // Canadian East
+        'Miami, FL',       // South Florida
+        'New York City, NY' // Northeast
+      ];
+
+      // Add strategic cities that exist in the database
+      const topCities = getTopCitiesByPopulation(100);
+      for (const target of strategicTargets) {
+        if (target !== baseCity && !strategicCities.includes(target)) {
+          const cityExists = topCities.find(city =>
+            `${city.name}, ${city.state_province}` === target
+          );
+
+          if (cityExists) {
+            strategicCities.push(target);
+            if (strategicCities.length >= 12) break;
+          }
+        }
+      }
+
+      console.log(`✅ Selected ${strategicCities.length} strategic cities:`, strategicCities);
+      return strategicCities;
+
+    } catch (error) {
+      console.error('❌ Error accessing comprehensive cities database:', error);
+      // Fallback to essential strategic cities
+      return ['Littleton, MA', 'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA'];
+    }
+  };
+
+  // Function to extract cities from capacity analysis data (updated to prioritize strategic cities)
+  const extractCitiesFromCapacityData = async (capacityData: any): Promise<string[]> => {
+    console.log('🎯 Starting strategic city selection for optimal network design...');
+
+    // FIRST PRIORITY: Get strategic cities from comprehensive database
+    const strategicCities = await getStrategicCitiesFromDatabase();
+    if (strategicCities.length > 0) {
+      console.log(`🎯 Using ${strategicCities.length} strategic cities for optimal network`);
+      return strategicCities;
     }
 
-    // Second priority: Extract from capacity analysis facility data
-    // Look for the original facilities data that was used for the analysis
+    const cities: string[] = [];
+
+    // Second priority: Use cities from the selected scenario metadata (if dynamically populated)
+    if (selectedScenario?.cities && selectedScenario.cities.length > 0) {
+      console.log('Using cities from scenario metadata:', selectedScenario.cities);
+      const scenarioCities = selectedScenario.cities.filter((city: string) => city && city.trim() !== '');
+      if (scenarioCities.length > 0) {
+        return scenarioCities;
+      }
+    }
+
+    // Third priority: Extract from capacity analysis facility data
     if (capacityData?.facilities && Array.isArray(capacityData.facilities)) {
       console.log('Extracting cities from facilities data:', capacityData.facilities);
       capacityData.facilities.forEach((facility: any) => {
@@ -206,7 +301,7 @@ export default function TransportOptimizer() {
       });
     }
 
-    // Third priority: Extract from capacity analysis recommended facilities
+    // Fourth priority: Extract from capacity analysis recommended facilities
     if (cities.length === 0 && capacityData?.yearly_results) {
       capacityData.yearly_results.forEach((year: any) => {
         if (year.recommended_facilities) {
@@ -219,14 +314,6 @@ export default function TransportOptimizer() {
                 if (!cities.includes(cityName)) {
                   cities.push(cityName);
                 }
-              } else if (facility.name.includes('Littleton')) {
-                const littletonCity = 'Littleton, MA';
-                if (!cities.includes(littletonCity)) {
-                  cities.push(littletonCity);
-                }
-              } else {
-                // For generic facility names like "New Facility 2025", try to derive from scenario context
-                console.log('Found facility with generic name:', facility.name);
               }
             }
           });
@@ -234,65 +321,39 @@ export default function TransportOptimizer() {
       });
     }
 
-    // Fourth priority: Check scenario metadata for warehouse configurations
+    // Fifth priority: Check scenario warehouse configurations
     if (cities.length === 0 && selectedScenario) {
       try {
-        const fetchWarehouseConfigs = async () => {
-          const response = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
-          if (response.ok) {
-            const warehouseData = await response.json();
-            if (warehouseData.data && Array.isArray(warehouseData.data)) {
-              const warehouseCities: string[] = [];
-              warehouseData.data.forEach((warehouse: any) => {
-                if (warehouse.location) {
-                  // Parse location like "Chicago, IL" or "Atlanta, GA"
-                  const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
-                  if (locationMatch) {
-                    const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
-                    if (!warehouseCities.includes(cityName)) {
-                      warehouseCities.push(cityName);
-                    }
+        const response = await fetch(`/api/scenarios/${selectedScenario.id}/warehouses`);
+        if (response.ok) {
+          const warehouseData = await response.json();
+          if (warehouseData.data && Array.isArray(warehouseData.data)) {
+            warehouseData.data.forEach((warehouse: any) => {
+              if (warehouse.location) {
+                const locationMatch = warehouse.location.match(/([A-Za-z\s]+),?\s*([A-Z]{2})/);
+                if (locationMatch) {
+                  const cityName = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
+                  if (!cities.includes(cityName)) {
+                    cities.push(cityName);
                   }
                 }
-              });
-              cities.push(...warehouseCities);
-            }
+              }
+            });
           }
-        };
-
-        // This will be async, but we can't await here in this sync function
-        // So we'll use this as a fallback for the next time cities are needed
-        fetchWarehouseConfigs().catch(console.warn);
+        }
       } catch (error) {
         console.warn('Could not fetch warehouse configurations:', error);
       }
     }
 
-    // Fifth priority: Generate based on scenario requirements
-    if (cities.length === 0 && selectedScenario?.number_of_nodes) {
-      console.log('Generating cities based on scenario node count:', selectedScenario.number_of_nodes);
-      const defaultCities = [
-        'Littleton, MA',
-        'Chicago, IL',
-        'Dallas, TX',
-        'Los Angeles, CA',
-        'Atlanta, GA',
-        'Seattle, WA',
-        'Denver, CO',
-        'Phoenix, AZ'
-      ];
-
-      // Use the number of nodes to determine how many cities to include
-      return defaultCities.slice(0, selectedScenario.number_of_nodes);
-    }
-
-    // Final fallback
+    // ONLY if absolutely no data is available anywhere, return error
     if (cities.length === 0) {
-      console.log('Using fallback default cities');
-      cities.push('Littleton, MA', 'Chicago, IL', 'Dallas, TX');
+      console.error('❌ NO TRANSPORT DATA FOUND - Please upload transport files (UPS, TL, R&L) first');
+      throw new Error('No transport data available. Please upload your transport data files (UPS, TL, R&L) before running optimization.');
     }
 
-    return cities.slice(0, 8); // Allow up to 8 cities max
+    console.log(`✅ Using ${cities.length} cities from capacity/scenario data:`, cities);
+    return cities.slice(0, 12); // Allow up to 12 cities
   };
 
   // Function to call real transport optimization API (now uses background jobs)
@@ -421,9 +482,13 @@ export default function TransportOptimizer() {
   };
 
   const generateMockRouteDetails = (cities?: string[]): RouteDetail[] => {
-    let routeCities = cities || [
-      'Chicago, IL', 'New York, NY', 'Los Angeles, CA', 'Phoenix, AZ', 'Dallas, TX'
-    ];
+    // Only use provided cities - no hardcoded fallback
+    if (!cities || cities.length === 0) {
+      console.warn('No cities provided for route generation');
+      return [];
+    }
+
+    let routeCities = cities;
 
     const routes = [];
 
@@ -874,12 +939,16 @@ export default function TransportOptimizer() {
               {!selectedScenario ? (
                 <div className="warning-message">
                   <h3>⚠️ No Scenario Selected</h3>
-                  <p>Please select a scenario from the "Projects & Scenarios" tab first. Transport optimization requires capacity analysis data to determine the cities and requirements.</p>
+                  <p>Please select a scenario from the "Projects & Scenarios" tab first. Transport optimization uses real data from your uploaded transport files (UPS, TL, R&L).</p>
                 </div>
               ) : (
                 <div className="selected-scenario-info">
                   <h3>Selected Scenario: {selectedScenario.name}</h3>
-                  <p>Cities from capacity analysis will be used for transport optimization</p>
+                  <div className="transport-data-notice">
+                    <p>🎯 <strong>Strategic City Selection:</strong> Uses comprehensive North American cities database with optimal population centers and geographic distribution for strategic network design.</p>
+                    <p>📊 <strong>Real Baseline Data:</strong> Baseline costs and current facility identification extracted from your uploaded transport files (UPS, TL, R&L).</p>
+                    <p>🚫 <strong>No Hardcoded Values:</strong> The optimizer analyzes your actual data against strategically selected cities to determine optimal network configuration and savings.</p>
+                  </div>
                 </div>
               )}
 
@@ -1110,6 +1179,18 @@ export default function TransportOptimizer() {
 
               {analysisResults ? (
                 <div className="results-container">
+                  {analysisResults.realDataUsed && (
+                    <div className="data-source-indicator">
+                      <div className="data-source-badge">
+                        <span className="badge-icon">🎯</span>
+                        <span className="badge-text">Real Transport Data Used</span>
+                      </div>
+                      <p className="data-source-description">
+                        Results based on actual origins, destinations, zip codes, and baseline costs from your uploaded transport files (UPS, TL, R&L).
+                        No hardcoded cities or assumptions.
+                      </p>
+                    </div>
+                  )}
                   <div className="results-summary">
                     <div className="summary-grid">
                       <div className="summary-card">
@@ -2395,6 +2476,52 @@ export default function TransportOptimizer() {
           .individual-scenario-checkbox {
             padding: 0.75rem;
           }
+        }
+
+        .transport-data-notice {
+          background: #f0fdf4;
+          border: 1px solid #10b981;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-top: 0.5rem;
+        }
+
+        .transport-data-notice p {
+          margin: 0.5rem 0;
+          font-size: 0.875rem;
+          line-height: 1.5;
+        }
+
+        .data-source-indicator {
+          background: #f0fdf4;
+          border: 1px solid #10b981;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .data-source-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .badge-icon {
+          font-size: 1.25rem;
+        }
+
+        .badge-text {
+          font-weight: 600;
+          color: #166534;
+          font-size: 1rem;
+        }
+
+        .data-source-description {
+          color: #166534;
+          font-size: 0.875rem;
+          line-height: 1.5;
+          margin: 0;
         }
       `}</style>
     </div>

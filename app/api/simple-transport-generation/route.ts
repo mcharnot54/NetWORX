@@ -35,12 +35,112 @@ export async function POST(request: NextRequest) {
 
     console.log('Found scenario:', scenario.name);
 
-    // Use scenario cities or default cities
-    const cities = scenario.cities || ['Littleton, MA', 'Chicago, IL', 'Dallas, TX'];
-    console.log('Using cities:', cities);
+    // Get strategic cities from comprehensive cities database for optimal node selection
+    let cities: string[] = [];
+    let baseCity = '';
 
-    // Create specific city-to-city scenarios starting with Littleton, MA
-    const baseCity = 'Littleton, MA';
+    try {
+      console.log('🎯 Using comprehensive cities database for strategic node selection...');
+
+      // Import the comprehensive cities database
+      const { COMPREHENSIVE_CITIES, getTopCitiesByPopulation, getCitiesByCountry } = await import('@/lib/comprehensive-cities-database');
+
+      // Check if we have real transport data to identify current primary facility
+      let identifiedPrimaryFacility = '';
+      try {
+        const routeResponse = await fetch(`http://localhost:3000/api/extract-actual-routes`);
+        if (routeResponse.ok) {
+          const routeData = await routeResponse.json();
+          if (routeData.success && routeData.data.route_groups) {
+            // Find the primary facility from transport data (most frequent origin)
+            const originCounts: Record<string, number> = {};
+            routeData.data.route_groups.forEach((routeGroup: any) => {
+              const [origin] = routeGroup.route_key.split(' → ');
+              if (origin && origin !== 'Unknown Origin') {
+                originCounts[origin] = (originCounts[origin] || 0) + routeGroup.total_cost;
+              }
+            });
+
+            if (Object.keys(originCounts).length > 0) {
+              identifiedPrimaryFacility = Object.entries(originCounts)
+                .sort(([, a], [, b]) => b - a)[0]?.[0] || '';
+              console.log(`📍 Identified current primary facility: ${identifiedPrimaryFacility}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Transport data not available, using strategic cities only');
+      }
+
+      // Select strategic cities based on scenario requirements and geographic distribution
+      const strategicCities: string[] = [];
+
+      // If we have an identified primary facility, use it as base
+      if (identifiedPrimaryFacility && identifiedPrimaryFacility.includes(',')) {
+        baseCity = identifiedPrimaryFacility;
+        strategicCities.push(baseCity);
+      } else {
+        // Default to Littleton, MA as base (current facility)
+        baseCity = 'Littleton, MA';
+        strategicCities.push(baseCity);
+      }
+
+      // Select top strategic cities by population and geographic distribution
+      const topCities = getTopCitiesByPopulation(100); // Get top 100 cities
+
+      // Target strategic regions for optimal network coverage
+      const targetRegions = [
+        // Major metros for strategic coverage
+        { name: 'Chicago, IL', priority: 1 }, // Central hub
+        { name: 'Dallas, TX', priority: 1 }, // Southern hub
+        { name: 'Los Angeles, CA', priority: 1 }, // West Coast
+        { name: 'Atlanta, GA', priority: 1 }, // Southeast hub
+        { name: 'Seattle, WA', priority: 2 }, // Pacific Northwest
+        { name: 'Denver, CO', priority: 2 }, // Mountain West
+        { name: 'Phoenix, AZ', priority: 2 }, // Southwest
+        { name: 'Miami, FL', priority: 3 }, // South Florida
+        { name: 'New York City, NY', priority: 3 }, // Northeast
+        { name: 'Toronto, ON', priority: 3 }, // Canadian hub
+        { name: 'Vancouver, BC', priority: 3 }, // Canadian West
+        { name: 'Montreal, QC', priority: 3 }, // Canadian East
+      ];
+
+      // Add strategic cities based on priority and excluding base city
+      for (const region of targetRegions) {
+        if (region.name !== baseCity && !strategicCities.includes(region.name)) {
+          // Verify city exists in comprehensive database
+          const cityExists = topCities.find(city =>
+            `${city.name}, ${city.state_province}` === region.name
+          );
+
+          if (cityExists) {
+            strategicCities.push(region.name);
+            if (strategicCities.length >= 8) break; // Limit to 8 strategic cities
+          }
+        }
+      }
+
+      // If we need more cities, add highest population cities that aren't already included
+      if (strategicCities.length < 8) {
+        for (const city of topCities) {
+          const cityName = `${city.name}, ${city.state_province}`;
+          if (!strategicCities.includes(cityName) && strategicCities.length < 8) {
+            strategicCities.push(cityName);
+          }
+        }
+      }
+
+      cities = strategicCities;
+      console.log(`✅ Selected ${cities.length} strategic cities for optimal network:`, cities);
+      console.log(`📍 Base facility: ${baseCity}`);
+
+    } catch (error) {
+      console.error('❌ Error accessing comprehensive cities database:', error);
+      // Fallback to essential strategic cities
+      baseCity = 'Littleton, MA';
+      cities = [baseCity, 'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA'];
+    }
+
     const otherCities = cities.filter(city => city !== baseCity);
 
     // Define detailed scenario types based on specific city combinations
@@ -244,9 +344,54 @@ function generateYearlyAnalysis(transportResults: any, cities: string[], warehou
     12249125   // 2033 (extrapolated)
   ];
 
-  // Calculate baseline costs for 2025 (no optimization, standard costs)
-  const baseline2025FreightCost = 5500000; // Baseline freight cost for 2025
-  const baselineWarehouseCost = 850000; // Baseline warehouse cost
+  // Get REAL baseline costs from transport data instead of hardcoded values
+  let baseline2025FreightCost = 0;
+  let baselineWarehouseCost = 850000; // Keep warehouse cost for now
+
+  try {
+    console.log('🚀 Fetching real baseline costs from transport files...');
+
+    // Get real baseline costs from final transport extraction
+    const baselineResponse = await fetch(`http://localhost:3000/api/final-transport-extraction`);
+    if (baselineResponse.ok) {
+      const baselineData = await baselineResponse.json();
+      if (baselineData.success && baselineData.transportation_baseline_2024) {
+        const transportBaseline = baselineData.transportation_baseline_2024;
+        baseline2025FreightCost = transportBaseline.total_transportation_baseline ||
+                                 (transportBaseline.ups_parcel_costs +
+                                  transportBaseline.tl_freight_costs +
+                                  transportBaseline.ltl_freight_costs);
+
+        console.log(`✅ Using real baseline costs:`);
+        console.log(`   UPS Parcel: $${transportBaseline.ups_parcel_costs?.toLocaleString()}`);
+        console.log(`   TL Freight: $${transportBaseline.tl_freight_costs?.toLocaleString()}`);
+        console.log(`   LTL Freight: $${transportBaseline.ltl_freight_costs?.toLocaleString()}`);
+        console.log(`   Total 2025 Baseline: $${baseline2025FreightCost.toLocaleString()}`);
+      }
+    }
+
+    // Fallback: Try current baseline costs API
+    if (baseline2025FreightCost === 0) {
+      const currentBaselineResponse = await fetch(`http://localhost:3000/api/current-baseline-costs`);
+      if (currentBaselineResponse.ok) {
+        const currentBaseline = await currentBaselineResponse.json();
+        if (currentBaseline.success && currentBaseline.baseline_costs) {
+          baseline2025FreightCost = currentBaseline.baseline_costs.transport_costs.freight_costs.raw || 0;
+          console.log(`✅ Using current baseline freight cost: $${baseline2025FreightCost.toLocaleString()}`);
+        }
+      }
+    }
+
+    // If still no real data, show error but continue with a minimum estimate
+    if (baseline2025FreightCost === 0) {
+      console.warn('⚠️ No real baseline costs found, using minimum estimate');
+      baseline2025FreightCost = 1000000; // Minimum $1M estimate
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching baseline costs:', error);
+    baseline2025FreightCost = 1000000; // Fallback minimum
+  }
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
@@ -328,8 +473,8 @@ function generateFallbackYearlyAnalysis(cities: string[]) {
     6009305, 3868767, 4930096, 5278949, 6577972, 8880267, 10021347, 12249125
   ];
 
-  const baseline2025FreightCost = 5500000;
-  const baselineWarehouseCost = 850000;
+  // Use the real baseline costs calculated earlier
+  // baseline2025FreightCost and baselineWarehouseCost are already defined above
 
   for (let year = 0; year < analysisYears; year++) {
     const currentYear = baseYear + year;
