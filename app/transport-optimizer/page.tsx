@@ -252,8 +252,7 @@ export default function TransportOptimizer() {
 
     } catch (error) {
       console.error('❌ Error accessing comprehensive cities database:', error);
-      // Fallback to essential strategic cities
-      return ['Littleton, MA', 'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA'];
+      throw new Error('Cannot access cities database. Please ensure transport data is uploaded first.');
     }
   };
 
