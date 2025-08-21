@@ -463,13 +463,14 @@ export class RealDataTransportOptimizer {
     const primaryFacility = Object.entries(originCounts)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Littleton, MA';
     
-    // Calculate optimization based on scenario type
-    const optimization = this.calculateRealOptimization(
+    // Calculate optimization using REAL Transport Optimizer algorithm
+    const optimization = await this.calculateRealOptimization(
       scenarioType,
       routeData,
       baselineData,
       config,
-      primaryFacility
+      primaryFacility,
+      undefined // TODO: Pass actual scenarioId when available
     );
     
     // Generate 8-year projection with volume growth
