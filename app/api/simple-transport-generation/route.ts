@@ -405,8 +405,8 @@ export async function POST(request: NextRequest) {
           inbound_weight_percentage: 50
         };
 
-        // Use REAL route extraction instead of mock optimization
-        const transportResults = await extractRealTransportRoutes(scenario.cities, optimizationParams);
+        // Use baseline data with optimally selected cities from comprehensive database
+        const transportResults = await optimizeWithBaselineData(scenario.cities, optimizationParams);
 
         // Generate year-by-year analysis with growth projections
         const yearlyAnalysis = await generateYearlyAnalysis(
