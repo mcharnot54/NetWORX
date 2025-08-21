@@ -590,17 +590,28 @@ export class RealDataTransportOptimizer {
     baselineData: RealBaselineData
   ) {
     const projection = [];
-    
+
+    // Calculate one-time optimized baseline for 2026 and beyond
+    const optimizedBaseline = Math.round(baselineData.total_verified * (1.0 - optimization.optimization_percentage / 100));
+
     for (let year = 0; year < 8; year++) {
       const currentYear = 2025 + year;
       const volumeMultiplier = Math.pow(1 + volumeGrowth.growth_rate, year);
-      
+
       // 2025 is baseline year (no optimization)
       const isBaseline = year === 0;
-      const costMultiplier = isBaseline ? 1.0 : (1.0 - optimization.optimization_percentage / 100);
-      
-      const transportCost = Math.round(baselineData.total_verified * volumeMultiplier * costMultiplier);
-      
+
+      let transportCost: number;
+      if (isBaseline) {
+        // 2025: Use actual baseline cost with no optimization
+        transportCost = Math.round(baselineData.total_verified * volumeMultiplier);
+      } else {
+        // 2026+: Use optimized baseline, then grow with volume
+        // Volume growth from 2026 baseline (year 1), not year 0
+        const growthFromOptimizedYear = Math.pow(1 + volumeGrowth.growth_rate, year - 1);
+        transportCost = Math.round(optimizedBaseline * (1 + volumeGrowth.growth_rate) * growthFromOptimizedYear);
+      }
+
       projection.push({
         year: currentYear,
         is_baseline: isBaseline,
@@ -609,10 +620,18 @@ export class RealDataTransportOptimizer {
         transport_cost: transportCost,
         total_cost: transportCost, // Simplified for transport focus
         efficiency_score: isBaseline ? 85 : optimization.service_score,
-        optimization_applied: !isBaseline
+        optimization_applied: !isBaseline,
+        explanation: isBaseline
+          ? "Baseline year - no optimization applied"
+          : `Optimized baseline + ${((year - 1) * volumeGrowth.growth_rate * 100).toFixed(1)}% volume growth from 2026`
       });
     }
-    
+
+    console.log(`📊 Yearly Projection Logic:
+    2025 Baseline: $${baselineData.total_verified.toLocaleString()}
+    2026 Optimized: $${optimizedBaseline.toLocaleString()} (${optimization.optimization_percentage.toFixed(1)}% savings)
+    2032 With Growth: $${projection[7]?.transport_cost.toLocaleString()} (${((projection[7]?.transport_cost / baselineData.total_verified - 1) * 100).toFixed(1)}% vs 2025)`);
+
     return projection;
   }
 
