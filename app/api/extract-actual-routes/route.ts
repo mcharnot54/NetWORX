@@ -9,16 +9,16 @@ export async function GET() {
 
     // Get all processed transportation files
     const transportFiles = await sql`
-      SELECT * FROM files 
-      WHERE status = 'completed' 
+      SELECT * FROM data_files
+      WHERE processing_status = 'completed'
       AND (
-        filename ILIKE '%ups%' OR 
-        filename ILIKE '%transport%' OR 
-        filename ILIKE '%r&l%' OR
-        filename ILIKE '%freight%' OR
-        filename ILIKE '%tl%'
+        file_name ILIKE '%ups%' OR
+        file_name ILIKE '%transport%' OR
+        file_name ILIKE '%r&l%' OR
+        file_name ILIKE '%freight%' OR
+        file_name ILIKE '%tl%'
       )
-      ORDER BY processed_at DESC
+      ORDER BY upload_date DESC
     `;
 
     console.log(`Found ${transportFiles.length} transportation files to analyze`);
@@ -29,47 +29,47 @@ export async function GET() {
 
     for (const file of transportFiles) {
       try {
-        console.log(`Analyzing file: ${file.filename}`);
-        
+        console.log(`Analyzing file: ${file.file_name}`);
+
         // Parse the stored content to extract route information
         let parsedData = null;
-        
-        if (file.content) {
+
+        if (file.processed_data) {
           try {
-            if (typeof file.content === 'string') {
-              parsedData = JSON.parse(file.content);
+            if (typeof file.processed_data === 'string') {
+              parsedData = JSON.parse(file.processed_data);
             } else {
-              parsedData = file.content;
+              parsedData = file.processed_data;
             }
           } catch (parseError) {
-            console.warn(`Could not parse content for ${file.filename}:`, parseError);
+            console.warn(`Could not parse content for ${file.file_name}:`, parseError);
             continue;
           }
         }
 
         if (!parsedData) {
-          console.warn(`No parsed data for ${file.filename}`);
+          console.warn(`No parsed data for ${file.file_name}`);
           continue;
         }
 
         // Extract route data based on file type
         let routes = [];
-        
-        if (file.filename.toLowerCase().includes('ups')) {
+
+        if (file.file_name.toLowerCase().includes('ups')) {
           // UPS files - extract state-to-state routes
-          routes = extractUPSRoutes(parsedData, file.filename);
-        } else if (file.filename.toLowerCase().includes('r&l')) {
+          routes = extractUPSRoutes(parsedData, file.file_name);
+        } else if (file.file_name.toLowerCase().includes('r&l')) {
           // R&L files - extract LTL routes with origin/destination
-          routes = extractRLRoutes(parsedData, file.filename);
-        } else if (file.filename.toLowerCase().includes('tl')) {
+          routes = extractRLRoutes(parsedData, file.file_name);
+        } else if (file.file_name.toLowerCase().includes('tl')) {
           // TL files - extract truckload routes
-          routes = extractTLRoutes(parsedData, file.filename);
+          routes = extractTLRoutes(parsedData, file.file_name);
         }
 
-        console.log(`Extracted ${routes.length} routes from ${file.filename}`);
+        console.log(`Extracted ${routes.length} routes from ${file.file_name}`);
         extractedRoutes.push(...routes);
         totalRoutes += routes.length;
-        
+
         // Sum up actual costs
         routes.forEach(route => {
           if (route.actual_cost && typeof route.actual_cost === 'number') {
@@ -78,7 +78,7 @@ export async function GET() {
         });
 
       } catch (fileError) {
-        console.error(`Error processing file ${file.filename}:`, fileError);
+        console.error(`Error processing file ${file.file_name}:`, fileError);
       }
     }
 
@@ -93,7 +93,7 @@ export async function GET() {
         total_routes_extracted: totalRoutes,
         total_actual_costs: actualCosts,
         unique_route_pairs: Object.keys(routeGroups).length,
-        files_analyzed: transportFiles.map(f => f.filename)
+        files_analyzed: transportFiles.map(f => f.file_name)
       },
       route_groups: routeGroups,
       all_routes: extractedRoutes.slice(0, 100), // Return sample of routes
