@@ -309,10 +309,14 @@ export class RealDataTransportOptimizer {
       // Add scenario-specific details for better display
       scenario_details: {
         primary_facility: primaryFacility,
+        hub_strategy: this.getHubStrategy(scenarioType, actualCities.length),
         total_routes: routeData.length,
+        unique_destinations: actualCities.length,
         optimization_focus: this.getOptimizationFocus(scenarioType),
         cost_savings: Math.round(optimization.potential_savings),
-        cities_optimized: actualCities.slice(0, 5).join(', ') + (actualCities.length > 5 ? '...' : '')
+        annual_savings: Math.round(optimization.potential_savings),
+        cities_optimized: actualCities.slice(0, 8).join(', ') + (actualCities.length > 8 ? `, +${actualCities.length - 8} more` : ''),
+        hub_nodes: this.getRecommendedHubNodes(scenarioType, actualCities)
       }
     } as any;
   }
