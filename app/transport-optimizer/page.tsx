@@ -575,6 +575,22 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
       const totalMiles = enhancedScenarios.reduce((sum, s) => sum + (s.total_miles || 0), 0);
       const totalService = enhancedScenarios.reduce((sum, s) => sum + (s.service_score || 0), 0);
 
+      // Smart recommendation logic - balance cost, service, and efficiency
+      const recommendedScenario = enhancedScenarios.reduce((best, current) => {
+        // Calculate weighted score: 50% cost, 30% service, 20% efficiency (inverse of miles)
+        const currentScore =
+          (1 - (current.total_cost || 0) / Math.max(...enhancedScenarios.map(s => s.total_cost || 1))) * 0.5 +
+          ((current.service_score || 0) / 100) * 0.3 +
+          (1 - (current.total_miles || 0) / Math.max(...enhancedScenarios.map(s => s.total_miles || 1))) * 0.2;
+
+        const bestScore =
+          (1 - (best.total_cost || 0) / Math.max(...enhancedScenarios.map(s => s.total_cost || 1))) * 0.5 +
+          ((best.service_score || 0) / 100) * 0.3 +
+          (1 - (best.total_miles || 0) / Math.max(...enhancedScenarios.map(s => s.total_miles || 1))) * 0.2;
+
+        return currentScore > bestScore ? current : best;
+      });
+
       const results = {
         scenariosAnalyzed: enhancedScenarios.length,
         analyzedCities: Array.from(allCities),
@@ -586,10 +602,16 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
         averageMiles: totalMiles / enhancedScenarios.length,
         averageService: totalService / enhancedScenarios.length,
         costSavingsPotential: Math.max(...enhancedScenarios.map(s => s.total_cost || 0)) - Math.min(...enhancedScenarios.map(s => s.total_cost || 0)),
-        recommendedScenario: bestCostScenario, // Based on cost optimization as default
+        recommendedScenario: recommendedScenario,
+        recommendationReason: `Selected for balanced optimization: ${recommendedScenario.scenario_name} provides optimal balance of cost ($${recommendedScenario.total_cost?.toLocaleString()}), service (${recommendedScenario.service_score}%), and efficiency.`,
         realDataUsed: true,
         analysisTimestamp: new Date().toISOString()
       };
+
+      console.log(`🎯 RECOMMENDED SCENARIO: ${recommendedScenario.scenario_name}`);
+      console.log(`📍 PRIMARY CITIES: ${Array.from(allCities).slice(0, 5).join(', ')}`);
+      console.log(`💰 TOTAL COST: $${recommendedScenario.total_cost?.toLocaleString()}`);
+      console.log(`🛣️ REASONING: Balanced 50% cost, 30% service, 20% efficiency optimization`);
 
       console.log('Transport analysis completed with real data:', results);
       setAnalysisResults(results);
