@@ -496,8 +496,25 @@ export class RealDataTransportOptimizer {
       'best_service_ltl': 'Best Service (LTL Zone)',
       'blended_service': 'Blended Service Zone'
     };
-    
+
     return names[scenarioType] || scenarioType;
+  }
+
+  /**
+   * Get optimization focus description for scenarios
+   */
+  static getOptimizationFocus(scenarioType: string): string {
+    const focus: Record<string, string> = {
+      'lowest_cost_city': 'Minimizes total transport costs using city-level routing optimization',
+      'lowest_cost_zip': 'Achieves maximum cost savings through ZIP-code precision routing',
+      'lowest_miles_city': 'Reduces total miles traveled while maintaining service levels',
+      'lowest_miles_zip': 'Optimizes routing for shortest distance at ZIP code level',
+      'best_service_parcel': 'Prioritizes service quality and delivery speed for parcel shipments',
+      'best_service_ltl': 'Maximizes service levels for LTL freight operations',
+      'blended_service': 'Balances cost, miles, and service for optimal overall performance'
+    };
+
+    return focus[scenarioType] || 'Custom optimization approach';
   }
 
   /**
