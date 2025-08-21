@@ -167,32 +167,65 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Calculate distance from Littleton, MA to destination city
+   * Calculate distance from Littleton, MA to destination city using coordinates
    */
   static calculateDistanceToCity(destination: string): number {
-    const distances: Record<string, number> = {
-      'Chicago, IL': 980,
-      'Atlanta, GA': 1100,
-      'Dallas, TX': 1780,
-      'Los Angeles, CA': 3100,
-      'Denver, CO': 1900,
-      'Phoenix, AZ': 2400,
-      'Orlando, FL': 1200,
-      'Charlotte, NC': 750,
-      'Columbus, OH': 650,
-      'Nashville, TN': 950,
-      'Kansas City, MO': 1300,
-      'Minneapolis, MN': 1200,
-      'Sacramento, CA': 3000,
-      'Virginia Beach, VA': 550,
-      'Buffalo, NY': 450,
-      'Milwaukee, WI': 1050,
-      'Oklahoma City, OK': 1400,
-      'Salt Lake City, UT': 2200,
-      'Portland, OR': 3100
-    };
+    try {
+      const { getCityCoordinates } = require('./comprehensive-cities-database');
 
-    return distances[destination] || 800; // Default distance
+      // Littleton, MA coordinates
+      const littletonCoords = { lat: 42.5584, lon: -71.4834 };
+
+      // Get destination coordinates
+      const destCoords = getCityCoordinates(destination.split(', ')[0]);
+
+      if (destCoords) {
+        // Calculate distance using Haversine formula
+        const distance = this.calculateHaversineDistance(
+          littletonCoords.lat, littletonCoords.lon,
+          destCoords.lat, destCoords.lon
+        );
+        return Math.round(distance);
+      }
+    } catch (error) {
+      console.warn('Could not calculate distance for:', destination);
+    }
+
+    // Fallback to reasonable estimates based on destination
+    const dest = destination.toLowerCase();
+    if (dest.includes('ca')) return 3000;  // California
+    if (dest.includes('tx')) return 1700;  // Texas
+    if (dest.includes('fl')) return 1200;  // Florida
+    if (dest.includes('il')) return 980;   // Illinois
+    if (dest.includes('co')) return 1900;  // Colorado
+    if (dest.includes('wa')) return 3100;  // Washington
+    if (dest.includes('ga')) return 1100;  // Georgia
+    if (dest.includes('ny')) return 300;   // New York
+
+    return 800; // Default distance
+  }
+
+  /**
+   * Calculate distance between two points using Haversine formula
+   */
+  static calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLon = this.toRadians(lon2 - lon1);
+
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  /**
+   * Convert degrees to radians
+   */
+  static toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 
   /**
