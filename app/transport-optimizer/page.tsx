@@ -225,24 +225,14 @@ export default function TransportOptimizer() {
         : 'Littleton, MA';
       strategicCities.push(baseCity);
 
-      // Strategic cities for optimal North American coverage
-      const strategicTargets = [
-        'Chicago, IL',     // Central hub
-        'Dallas, TX',      // Southern hub
-        'Los Angeles, CA', // West Coast
-        'Atlanta, GA',     // Southeast
-        'Seattle, WA',     // Pacific Northwest
-        'Denver, CO',      // Mountain West
-        'Phoenix, AZ',     // Southwest
-        'Toronto, ON',     // Canadian hub
-        'Vancouver, BC',   // Canadian West
-        'Montreal, QC',    // Canadian East
-        'Miami, FL',       // South Florida
-        'New York City, NY' // Northeast
-      ];
+      // Get strategic cities from the comprehensive database's top population centers
+      const topCities = getTopCitiesByPopulation(100);
+      const strategicTargets = topCities
+        .filter(city => city.population >= 500000) // Major metropolitan areas only
+        .map(city => `${city.name}, ${city.state_province}`)
+        .slice(0, 12); // Limit to top 12 strategic cities by population
 
       // Add strategic cities that exist in the database
-      const topCities = getTopCitiesByPopulation(100);
       for (const target of strategicTargets) {
         if (target !== baseCity && !strategicCities.includes(target)) {
           const cityExists = topCities.find(city =>
@@ -261,8 +251,7 @@ export default function TransportOptimizer() {
 
     } catch (error) {
       console.error('❌ Error accessing comprehensive cities database:', error);
-      // Fallback to essential strategic cities
-      return ['Littleton, MA', 'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA'];
+      throw new Error('Cannot access cities database. Please ensure transport data is uploaded first.');
     }
   };
 
@@ -729,8 +718,8 @@ export default function TransportOptimizer() {
         <div className="transport-optimizer-container">
           <h1 className="page-title">Transport Optimizer</h1>
           <p className="page-description">
-            Generate and analyze multiple transport scenarios to determine optimal routing strategies 
-            based on cost, service, and distance optimization criteria.
+            Generate and analyze multiple transport scenarios using your actual transport data to determine optimal routing strategies.
+            Uses strategic city selection from comprehensive database and real baseline costs from uploaded transport files.
           </p>
 
           <div className="tab-navigation">

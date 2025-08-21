@@ -16,11 +16,15 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to get baseline transportation data');
     }
 
+    if (!cities || cities.length === 0) {
+      throw new Error('Cities parameter is required. Please provide cities for optimization from your transport data.');
+    }
+
     // Run optimization using actual baseline costs and routes
     const optimizationResult = optimizeWithActualData(
       baselineData,
       optimization_type,
-      cities || ['Littleton, MA', 'Chicago, IL', 'Dallas, TX', 'Atlanta, GA']
+      cities
     );
 
     return NextResponse.json({
