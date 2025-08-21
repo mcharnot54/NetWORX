@@ -49,23 +49,25 @@ async function optimizeWithBaselineData(selectedCities: string[], optimizationPa
     console.log('🔍 Extracting baseline shipping patterns and optimizing selected cities...');
     console.log(`🎯 Selected optimal cities for analysis: ${selectedCities.join(', ')}`);
 
-    // Extract baseline shipping costs and patterns (current state)
-    const baselineResponse = await fetch('http://localhost:3000/api/extract-dynamic-transport-data');
+    // Extract COMPLETE baseline shipping costs and patterns (current state) - $6.56M total
+    const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
     const baselineData = await baselineResponse.json();
 
     if (!baselineData.success) {
-      throw new Error('Failed to extract baseline shipping data');
+      throw new Error('Failed to extract complete baseline shipping data');
     }
 
-    const { extracted_data } = baselineData;
-    const baselineTotals = extracted_data.baseline_totals || {};
-    const currentRoutes = extracted_data.routes || [];
+    const { baseline_summary } = baselineData;
+    const currentRoutes = []; // Routes will be derived from optimization, not baseline extraction
 
-    console.log(`📊 Baseline analysis: ${currentRoutes.length} current shipping routes`);
-    console.log(`💰 Current baseline costs:`, baselineTotals);
+    console.log(`📊 COMPLETE Baseline Analysis: $${baseline_summary.total_verified.toLocaleString()} total verified baseline`);
+    console.log(`💰 UPS Parcel: $${baseline_summary.ups_parcel_costs.toLocaleString()}`);
+    console.log(`💰 TL Freight: $${baseline_summary.tl_freight_costs.toLocaleString()}`);
+    console.log(`💰 R&L LTL: $${baseline_summary.rl_ltl_costs.toLocaleString()}`);
+    console.log(`💰 TOTAL VERIFIED: $${baseline_summary.total_verified.toLocaleString()}`);
 
-    // Calculate optimization results for the selected cities
-    const totalBaselineCost = baselineTotals.ups_parcel + baselineTotals.tl_freight + baselineTotals.rl_ltl;
+    // Use the COMPLETE $6.56M baseline cost
+    const totalBaselineCost = baseline_summary.total_verified; // $6.56M
 
     // Generate optimized routes between Littleton, MA and selected optimal cities
     const optimizedRoutes = selectedCities.slice(1).map((city, index) => {
