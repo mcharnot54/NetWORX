@@ -114,9 +114,22 @@ export async function GET() {
 
 function extractUPSRoutes(parsedData: any, filename: string) {
   const routes = [];
-  
-  if (Array.isArray(parsedData)) {
-    for (const row of parsedData) {
+
+  // Handle nested data structure from data_files.processed_data
+  let dataArray = parsedData;
+  if (parsedData.parsedData && Array.isArray(parsedData.parsedData)) {
+    dataArray = parsedData.parsedData;
+  } else if (parsedData.data && Array.isArray(parsedData.data)) {
+    dataArray = parsedData.data;
+  } else if (Array.isArray(parsedData)) {
+    dataArray = parsedData;
+  } else {
+    console.warn(`No array data found in UPS file: ${filename}`);
+    return routes;
+  }
+
+  if (Array.isArray(dataArray)) {
+    for (const row of dataArray) {
       // Look for state information and costs
       let origin = null;
       let destination = null;
@@ -170,9 +183,22 @@ function extractUPSRoutes(parsedData: any, filename: string) {
 
 function extractRLRoutes(parsedData: any, filename: string) {
   const routes = [];
-  
-  if (Array.isArray(parsedData)) {
-    for (const row of parsedData) {
+
+  // Handle nested data structure from data_files.processed_data
+  let dataArray = parsedData;
+  if (parsedData.parsedData && Array.isArray(parsedData.parsedData)) {
+    dataArray = parsedData.parsedData;
+  } else if (parsedData.data && Array.isArray(parsedData.data)) {
+    dataArray = parsedData.data;
+  } else if (Array.isArray(parsedData)) {
+    dataArray = parsedData;
+  } else {
+    console.warn(`No array data found in R&L file: ${filename}`);
+    return routes;
+  }
+
+  if (Array.isArray(dataArray)) {
+    for (const row of dataArray) {
       let origin = null;
       let destination = null;
       let cost = 0;
@@ -245,9 +271,22 @@ function extractRLRoutes(parsedData: any, filename: string) {
 
 function extractTLRoutes(parsedData: any, filename: string) {
   const routes = [];
-  
-  if (Array.isArray(parsedData)) {
-    for (const row of parsedData) {
+
+  // Handle nested data structure from data_files.processed_data
+  let dataArray = parsedData;
+  if (parsedData.parsedData && Array.isArray(parsedData.parsedData)) {
+    dataArray = parsedData.parsedData;
+  } else if (parsedData.data && Array.isArray(parsedData.data)) {
+    dataArray = parsedData.data;
+  } else if (Array.isArray(parsedData)) {
+    dataArray = parsedData;
+  } else {
+    console.warn(`No array data found in TL file: ${filename}`);
+    return routes;
+  }
+
+  if (Array.isArray(dataArray)) {
+    for (const row of dataArray) {
       let origin = null;
       let destination = null;
       let cost = 0;
