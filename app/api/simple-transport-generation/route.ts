@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
                                     transportBaseline.tl_freight_costs +
                                     transportBaseline.ltl_freight_costs);
 
-          console.log(`✅ Using real baseline costs:`);
+          console.log(`��� Using real baseline costs:`);
           console.log(`   UPS Parcel: $${transportBaseline.ups_parcel_costs?.toLocaleString()}`);
           console.log(`   TL Freight: $${transportBaseline.tl_freight_costs?.toLocaleString()}`);
           console.log(`   LTL Freight: $${transportBaseline.ltl_freight_costs?.toLocaleString()}`);
@@ -276,7 +276,9 @@ export async function POST(request: NextRequest) {
           scenario.cities,
           warehouseConfigs,
           transportConfigs,
-          capacityGrowthData
+          capacityGrowthData,
+          baseline2025FreightCost,
+          baselineWarehouseCost
         );
 
         console.log(`✅ Generated ${scenario.name}:`, {
