@@ -918,12 +918,15 @@ export default function TransportOptimizer() {
               {!selectedScenario ? (
                 <div className="warning-message">
                   <h3>⚠️ No Scenario Selected</h3>
-                  <p>Please select a scenario from the "Projects & Scenarios" tab first. Transport optimization requires capacity analysis data to determine the cities and requirements.</p>
+                  <p>Please select a scenario from the "Projects & Scenarios" tab first. Transport optimization uses real data from your uploaded transport files (UPS, TL, R&L).</p>
                 </div>
               ) : (
                 <div className="selected-scenario-info">
                   <h3>Selected Scenario: {selectedScenario.name}</h3>
-                  <p>Cities from capacity analysis will be used for transport optimization</p>
+                  <div className="transport-data-notice">
+                    <p>✅ <strong>Using Real Transport Data:</strong> Cities, origins, destinations, and baseline costs will be extracted directly from your uploaded transport files (UPS, TL, R&L files).</p>
+                    <p>🚫 <strong>No Hardcoded Cities:</strong> The optimizer will analyze actual zip codes and routes from your data to determine optimal facility locations and cost savings.</p>
+                  </div>
                 </div>
               )}
 
