@@ -107,17 +107,17 @@ export async function POST(req: NextRequest) {
       { sku: 'Educational_Materials_C', annual_volume: 2_800_000, units_per_case: 18, cases_per_pallet: 42 },
     ];
 
-    // Default candidate facilities and destinations
-    const defaultCandidates = candidateFacilities || [
-      'Littleton, MA', 'Chicago, IL', 'St. Louis, MO', 'Dallas, TX', 'Atlanta, GA', 
-      'Los Angeles, CA', 'Phoenix, AZ', 'Denver, CO', 'Nashville, TN', 'Kansas City, MO'
-    ];
+    // Require candidate facilities and destinations to be provided
+    if (!candidateFacilities || candidateFacilities.length === 0) {
+      throw new Error('candidateFacilities is required. Please provide cities from your transport data.');
+    }
 
-    const defaultDestinations = destinations || [
-      'New York, NY', 'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA',
-      'Seattle, WA', 'Denver, CO', 'Phoenix, AZ', 'Houston, TX', 'Miami, FL',
-      'Boston, MA', 'Philadelphia, PA', 'San Francisco, CA', 'Detroit, MI', 'Minneapolis, MN'
-    ];
+    if (!destinations || destinations.length === 0) {
+      throw new Error('destinations is required. Please provide destination cities from your transport data.');
+    }
+
+    const defaultCandidates = candidateFacilities;
+    const defaultDestinations = destinations;
 
     // Dynamically import heavy optimization modules to improve startup time
     const { optimizeWarehouse } = await import('@/lib/advanced-warehouse-optimizer');
