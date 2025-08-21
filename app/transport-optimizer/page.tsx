@@ -188,8 +188,7 @@ export default function TransportOptimizer() {
     try {
       console.log('🎯 Using ACTUAL cities from your uploaded transport files...');
 
-      // Import Real Data Transport Optimizer dynamically
-      const { RealDataTransportOptimizer } = await import('@/lib/real-data-transport-optimizer');
+      // Use the statically imported RealDataTransportOptimizer
 
       // Get real route data from uploaded files
       const routeData = await RealDataTransportOptimizer.getActualRouteData();
