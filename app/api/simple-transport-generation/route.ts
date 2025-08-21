@@ -397,8 +397,8 @@ export async function POST(request: NextRequest) {
           scenario_type: scenario.key,
           scenario_name: scenario.name,
           scenario_description: scenario.description,
-          total_miles: 15000, // Baseline distance
-          total_cost: 5500000, // 2025 baseline cost ($5.5M)
+          total_miles: 1000, // Minimum baseline distance estimate
+          total_cost: Math.round(baseline2025FreightCost), // Use REAL baseline costs
           service_score: 75, // Baseline service score
           generated: true,
           cities: scenario.cities,
