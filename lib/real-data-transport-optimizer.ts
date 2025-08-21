@@ -450,7 +450,8 @@ export class RealDataTransportOptimizer {
     baselineData: RealBaselineData,
     config: ConfigurationSettings,
     volumeGrowth: VolumeGrowthData,
-    actualCities: string[]
+    actualCities: string[],
+    scenarioId?: number
   ): Promise<RealOptimizationResult> {
     
     // Identify primary facility from route data
