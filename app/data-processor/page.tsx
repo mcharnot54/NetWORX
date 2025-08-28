@@ -658,7 +658,7 @@ export default function DataProcessor() {
       } else {
         addToLog(`✗ Excel parsing failed for ${file.name}`);
         try {
-          addToLog(DataProcessingUtils.formatValidationResults(result.data?.metadata?.validationResults || []));
+          addToLog(DataProcessingUtils.formatValidationResults(((result as any).data?.metadata?.validationResults) || []));
         } catch (formatError) {
           addToLog(`✗ Validation failed (details unavailable)`);
         }
@@ -1151,7 +1151,7 @@ export default function DataProcessor() {
                       <div>• Files are stored securely in the database</div>
                       <div>�� No need to re-upload files when switching between scenarios</div>
                       <div>• Validation results and processing status are preserved</div>
-                      <div>• Green dot indicates files are saved 🟢</div>
+                      <div>• Green dot indicates files are saved ��</div>
                     </div>
                   </div>
                 </div>
