@@ -229,7 +229,6 @@ export async function POST(req: NextRequest) {
         const totalNetworkCost = transportMultiYear.totals.total_transportation_cost + warehouseCostAllYears + inventoryCostAllYears;
 
         // Calculate savings based on baseline scaled to all years
-        const baselineAllYears = actualTransportBaseline * defaultForecast.length;
         const transportSavings = baselineAllYears - transportMultiYear.totals.total_transportation_cost;
         const transportSavingsPercent = (transportSavings / baselineAllYears) * 100;
 
