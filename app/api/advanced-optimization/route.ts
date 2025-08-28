@@ -105,36 +105,45 @@ export async function POST(request: NextRequest) {
       { sku: 'Educational_Materials_E', annual_volume: 700_000,   units_per_case: 30, cases_per_pallet: 25 },
     ];
 
-    // Candidate facilities for network optimization - comprehensive coverage
-    // Major US distribution hubs + current facility
-    const defaultCandidateFacilities = [
-      'Littleton, MA',     // Current facility (mandatory)
-      'Chicago, IL',       // Midwest coverage
-      'St. Louis, MO',     // Central US hub - optimal Midwest location
-      'Dallas, TX',        // South/Central coverage
-      'Atlanta, GA',       // Southeast coverage
-      'Los Angeles, CA',   // West Coast coverage
-      'Phoenix, AZ',       // Southwest coverage
-      'Denver, CO',        // Mountain West coverage
-      'Nashville, TN',     // Southeast logistics hub
-      'Kansas City, MO',   // Central logistics hub
-      'Memphis, TN',       // Central logistics hub
-      'Columbus, OH',      // Ohio Valley coverage
-      'Indianapolis, IN',  // Midwest logistics hub
-      'Charlotte, NC',     // Southeast coverage
-      'Jacksonville, FL',  // Southeast/Florida coverage
-      'Portland, OR',      // Pacific Northwest coverage
-      'Seattle, WA',       // Pacific Northwest coverage
-      'Salt Lake City, UT',// Mountain West coverage
-      'Albuquerque, NM',   // Southwest coverage
-      'Oklahoma City, OK', // South Central coverage
-      // Canadian major centers for cross-border coverage
-      'Toronto, ON',       // Central Canada
-      'Montreal, QC',      // Eastern Canada
-      'Vancouver, BC',     // Western Canada
-      'Calgary, AB',       // Western Canada
-      'Winnipeg, MB',      // Central Canada
-    ];
+    // Candidate facilities for network optimization - use comprehensive cities DB (500+ entries)
+    let defaultCandidateFacilities: string[] = [];
+    try {
+      const { getAllUSCities, getAllCanadianCities } = await import('@/lib/comprehensive-cities-database');
+      const us = getAllUSCities().map(c => `${c.name}, ${c.state_province}`);
+      const ca = getAllCanadianCities().map(c => `${c.name}, ${c.state_province}`);
+      defaultCandidateFacilities = ['Littleton, MA', ...us.slice(0, 600), ...ca.slice(0, 200)];
+      console.log(`Using comprehensive candidate facility list: ${defaultCandidateFacilities.length} entries`);
+    } catch (err) {
+      console.warn('Failed to load comprehensive cities DB, falling back to curated defaults', err);
+      defaultCandidateFacilities = [
+        'Littleton, MA',     // Current facility (mandatory)
+        'Chicago, IL',       // Midwest coverage
+        'St. Louis, MO',     // Central US hub - optimal Midwest location
+        'Dallas, TX',        // South/Central coverage
+        'Atlanta, GA',       // Southeast coverage
+        'Los Angeles, CA',   // West Coast coverage
+        'Phoenix, AZ',       // Southwest coverage
+        'Denver, CO',        // Mountain West coverage
+        'Nashville, TN',     // Southeast logistics hub
+        'Kansas City, MO',   // Central logistics hub
+        'Memphis, TN',       // Central logistics hub
+        'Columbus, OH',      // Ohio Valley coverage
+        'Indianapolis, IN',  // Midwest logistics hub
+        'Charlotte, NC',     // Southeast coverage
+        'Jacksonville, FL',  // Southeast/Florida coverage
+        'Portland, OR',      // Pacific Northwest coverage
+        'Seattle, WA',       // Pacific Northwest coverage
+        'Salt Lake City, UT',// Mountain West coverage
+        'Albuquerque, NM',   // Southwest coverage
+        'Oklahoma City, OK', // South Central coverage
+        // Canadian major centers for cross-border coverage
+        'Toronto, ON',       // Central Canada
+        'Montreal, QC',      // Eastern Canada
+        'Vancouver, BC',     // Western Canada
+        'Calgary, AB',       // Western Canada
+        'Winnipeg, MB',      // Central Canada
+      ];
+    }
 
     let candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
       ? bodyCities.map((c:any)=>String(c).trim()).filter(Boolean)
