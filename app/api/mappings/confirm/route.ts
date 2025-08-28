@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
           await upsertCustomerMapping(
             customerId,
             c.rawHeader,
-            c.canonicalField,
+            c.canonicalField as any,
             c.confidence ?? 0.9
           );
         }
