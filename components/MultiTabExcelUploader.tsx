@@ -767,7 +767,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           errors: [],
           warnings: [],
           usingAdaptiveLearning: true,
-          summary: { totalRows: Object.keys(sheets).length, validRows: 0, skippedRows: 0, dataQuality: { validRecords: 0, totalRecords: 0 } }
+          summary: { totalRows: Object.keys(sheets).length, validRows: 0, skippedRows: 0, dataQuality: { completeness: 0, accuracy: 0, consistency: 0, timeliness: 0, validRecords: 0, totalRecords: 0, missingFields: [], invalidValues: [] } }
         };
 
         addLog(`🎯 ADAPTIVE SUCCESS: Using full adaptive learning system!`);
@@ -802,7 +802,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           errors: [],
           warnings: [],
           usingAdaptiveLearning: false,
-          summary: { totalRows: Object.keys(sheets).length, validRows: 0, skippedRows: 0, dataQuality: { validRecords: 0, totalRecords: 0 } }
+          summary: { totalRows: Object.keys(sheets).length, validRows: 0, skippedRows: 0, dataQuality: { completeness: 0, accuracy: 0, consistency: 0, timeliness: 0, validRecords: 0, totalRecords: 0, missingFields: [], invalidValues: [] } }
         };
       }
 
@@ -2071,7 +2071,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       };
 
       // Add completion log with learning status
-      addLog(`✓ ${file.name} processed successfully`);
+      addLog(`�� ${file.name} processed successfully`);
       addLog(`  Total extracted: $${totalExtracted.toLocaleString()} from ${tabs.length} tabs`);
       addLog(`  File type detected: ${result.detectedFileType}`);
       addLog(`  🧠 Learning mode: ${usingAdaptiveLearning ? 'ADAPTIVE LEARNING ACTIVE' : 'Simple fallback mode'}`);
