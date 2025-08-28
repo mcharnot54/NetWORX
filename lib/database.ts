@@ -21,7 +21,7 @@ const createDatabaseConnection = () => {
   }
 
   // Configure Neon connection with optimized timeout settings for cloud environments
-  return neon(process.env.DATABASE_URL, {
+  return neon(process.env.DATABASE_URL, ({
     // Connection timeout optimized for cloud environments
     connectionTimeoutMillis: 15000, // Reduced to 15 seconds for faster failure detection
     queryTimeoutMillis: 30000, // Reduced to 30 seconds to prevent long waits
@@ -34,11 +34,11 @@ const createDatabaseConnection = () => {
       cache: 'no-store', // Prevent stale connections
       signal: AbortSignal.timeout(25000), // 25 second fetch timeout
     },
-  });
+  }) as any);
 };
 
 // Initialize the sql connection
-const sql = createDatabaseConnection();
+const sql: any = createDatabaseConnection();
 
 // Type definitions for database entities
 export interface Project {
