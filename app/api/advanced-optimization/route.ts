@@ -136,13 +136,27 @@ export async function POST(request: NextRequest) {
       'Winnipeg, MB',      // Central Canada
     ];
 
-    const candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
-      ? bodyCities
+    let candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
+      ? bodyCities.map((c:any)=>String(c).trim()).filter(Boolean)
       : (config_overrides?.transportation?.candidateFacilities || defaultCandidateFacilities);
 
     // Debug: log incoming city/destination overrides and chosen candidates
     console.log('Debug: bodyCities length=', Array.isArray(bodyCities) ? bodyCities.length : 0, 'bodyCities=', bodyCities);
-    console.log('Debug: candidateFacilities chosen count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
+    console.log('Debug: raw candidateFacilities chosen count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
+
+    // Validate candidateFacilities look like city strings (contain comma 'City, ST' or known token)
+    const looksLikeCity = (s: string) => typeof s === 'string' && s.includes(',');
+    const validatedCandidates = candidateFacilities.filter(looksLikeCity);
+
+    if (validatedCandidates.length === 0) {
+      console.warn('Candidate facilities override did not contain city,state entries. Falling back to defaultCandidateFacilities. Received:', candidateFacilities.slice(0,5));
+      candidateFacilities = defaultCandidateFacilities;
+    } else if (validatedCandidates.length !== candidateFacilities.length) {
+      console.warn(`Filtered candidateFacilities to ${validatedCandidates.length}/${candidateFacilities.length} entries that look like 'City, ST'`);
+      candidateFacilities = validatedCandidates;
+    }
+
+    console.log('Debug: candidateFacilities final count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
 
     // Default major North American delivery markets - comprehensive coverage
     const defaultDestinations = [
