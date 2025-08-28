@@ -47,6 +47,7 @@ export async function generateCostMatrix(
   const baseCostPerMile = 2.85; // Derived from actual $6.56M / estimated miles
 
   const cost: number[][] = [];
+  const availableFacilities: string[] = [];
 
   for (let i = 0; i < candidateFacilities.length; i++) {
     const facilityCity = candidateFacilities[i];
@@ -59,12 +60,13 @@ export async function generateCostMatrix(
     }
 
     if (!facilityCoords) {
-      console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping...`);
+      console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping facility from matrix generation...`);
       continue;
     }
-    
+
+    availableFacilities.push(facilityCity);
     const rowCosts: number[] = [];
-    
+
     for (let j = 0; j < destinations.length; j++) {
       const destCity = destinations[j];
       let destCoords = CITY_COORDINATES[destCity];
@@ -75,19 +77,20 @@ export async function generateCostMatrix(
         destCoords = getCityCoordinates(cityName);
       }
 
-      if (!destCoords) {
-        console.warn(`⚠️ No coordinates found for destination: ${destCity}, skipping...`);
-        continue;
+      // If destination coordinates missing, estimate a reasonable distance instead of skipping
+      let distance = 800; // default fallback distance
+      if (destCoords) {
+        distance = calculateDistance(
+          facilityCoords.lat, facilityCoords.lon,
+          destCoords.lat, destCoords.lon
+        );
+      } else {
+        console.warn(`⚠️ No coordinates found for destination: ${destCity}, using fallback distance estimate (${distance} miles)`);
       }
-      
-      const distance = calculateDistance(
-        facilityCoords.lat, facilityCoords.lon,
-        destCoords.lat, destCoords.lon
-      );
-      
+
       // Calculate cost using actual baseline-derived rates
       let costPerUnit = distance * baseCostPerMile;
-      
+
       // Apply zone-based pricing similar to actual UPS/LTL structure
       if (distance <= 150) {
         costPerUnit *= 0.85; // Zone 1-2 discount
@@ -98,24 +101,34 @@ export async function generateCostMatrix(
       } else {
         costPerUnit *= 1.25; // Zone 7-8 high premium
       }
-      
+
       // Add fuel surcharge based on actual data
       costPerUnit += distance * 0.35; // $0.35/mile fuel surcharge from actual analysis
-      
+
       rowCosts.push(Math.round(costPerUnit * 100) / 100);
     }
-    
+
+    // Ensure row length matches destinations length
+    while (rowCosts.length < destinations.length) {
+      // Fill with a high cost fallback to prevent optimizer selecting missing mappings
+      rowCosts.push(99999);
+    }
+
     cost.push(rowCosts);
   }
-  
-  console.log(`Generated cost matrix: ${candidateFacilities.length} facilities × ${destinations.length} destinations`);
+
+  console.log(`Generated cost matrix: ${availableFacilities.length} facilities × ${destinations.length} destinations`);
   console.log(`Using baseline-derived cost rate: $${baseCostPerMile}/mile + fuel surcharge`);
-  
+
   return {
-    rows: candidateFacilities,
+    rows: availableFacilities,
     cols: destinations,
     cost
   };
+}
+
+function sanitizeVar(s: string) {
+  return String(s).replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
 export function optimizeTransport(
@@ -168,7 +181,7 @@ export function optimizeTransport(
   // Define decision variables
   for (let i = 0; i < cities.length; i++) {
     const ci = cities[i];
-    const x = `x_${ci}`;
+    const x = `x_${sanitizeVar(ci)}`;
     
     // Facility opening variable (binary)
     builder.addVariable(x, 'binary');
@@ -191,12 +204,12 @@ export function optimizeTransport(
     // Capacity constraint for this facility
     const capKey = `Cap_${ci}`;
     builder.addConstraint(capKey, { max: 0 });
-    builder.setConstraintCoef(x, capKey, -capacityMap[ci]);
+    builder.setConstraintCoef(x, capKey, -(capacityMap[ci] ?? params.max_capacity_per_facility ?? 1_000_000));
 
     // Assignment variables for each destination
     for (let j = 0; j < dests.length; j++) {
       const dj = dests[j];
-      const y = `y_${ci}__${dj}`;
+      const y = `y_${sanitizeVar(ci)}__${sanitizeVar(dj)}`;
       const dUnits = demandMap[dj] ?? 0;
       const unitCost = cost[i][j];
       const dist = toDistance(unitCost, params.cost_per_mile ?? 2.5);
@@ -243,21 +256,50 @@ export function optimizeTransport(
   }
 
   console.log('🔧 Solving transport optimization MIP...');
-  const t0 = Date.now();
-  const sol = solve(model);
-  const solveTime = (Date.now() - t0) / 1000;
-
-  if (!sol.feasible) {
-    throw new Error('Transportation optimization infeasible - check service level and capacity constraints');
+  // Log brief model diagnostics to help debugging (size, constraints/variables counts)
+  try {
+    const varCount = Object.keys(model.variables || {}).length;
+    const consCount = Object.keys(model.constraints || {}).length;
+    console.log(`Model: vars=${varCount}, constraints=${consCount}`);
+    // Truncate model JSON to avoid huge logs
+    const modelJson = JSON.stringify(model);
+    console.log('Model JSON (truncated 30k chars):', modelJson.slice(0, 30000));
+  } catch (e) {
+    console.warn('Failed to serialize model for logging:', e);
   }
 
-  console.log(`✅ Transport optimization solved in ${solveTime.toFixed(2)}s`);
-  console.log(`Objective value: $${sol.result?.toLocaleString()}`);
+  const t0 = Date.now();
+  let sol: any;
+  let solveTime = 0;
+
+  try {
+    sol = solve(model);
+    solveTime = (Date.now() - t0) / 1000;
+
+    // Log solver raw result for inspection
+    try {
+      console.log('Solver result (truncated 30k chars):', JSON.stringify(sol).slice(0, 30000));
+    } catch (err) {
+      console.log('Solver result:', sol);
+    }
+
+    if (!sol || !sol.feasible) {
+      console.warn('⚠️ Transport MIP reported infeasible or no solution');
+      throw new Error('Transport MIP reported infeasible or no solution');
+    }
+
+    console.log(`✅ Transport optimization solved in ${solveTime.toFixed(2)}s`);
+    console.log(`Objective value: $${sol.result?.toLocaleString()}`);
+
+  } catch (e) {
+    console.error('Solver error:', e);
+    throw e instanceof Error ? e : new Error(String(e));
+  }
 
   // Extract solution
   const open: string[] = [];
   for (const c of cities) {
-    if (Number(sol[`x_${c}`] || 0) > 0.5) {
+    if (Number(sol[`x_${sanitizeVar(c)}`] || 0) > 0.5) {
       open.push(c);
     }
   }
@@ -267,7 +309,7 @@ export function optimizeTransport(
   
   for (let i = 0; i < cities.length; i++) {
     for (let j = 0; j < dests.length; j++) {
-      const yName = `y_${cities[i]}__${dests[j]}`;
+      const yName = `y_${sanitizeVar(cities[i])}__${sanitizeVar(dests[j])}`;
       if (Number(sol[yName] || 0) > 0.5) {
         const dUnits = demandMap[dests[j]] ?? 0;
         const unitCost = cost[i][j];

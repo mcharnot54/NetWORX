@@ -39,6 +39,8 @@ interface ProductivityMetrics {
     totalHours?: number;      // Cell AR102
     payrollUPH?: number;      // Calculated: unitsShipped / payrollHours
     totalUPH?: number;        // Calculated: unitsShipped / totalHours
+    productiveHours?: number;
+    productiveUPH?: number;
   };
   year2025?: {
     unitsShipped?: number;    // Cell AR73
@@ -46,13 +48,17 @@ interface ProductivityMetrics {
     totalHours?: number;      // Cell AR102
     payrollUPH?: number;      // Calculated: unitsShipped / payrollHours
     totalUPH?: number;        // Calculated: unitsShipped / totalHours
+    productiveHours?: number;
+    productiveUPH?: number;
   };
   productivityChange?: {
     unitsShippedChange?: number;    // % change
     payrollUPHChange?: number;      // % change
     totalUPHChange?: number;        // % change
     hoursEfficiencyChange?: number; // % change in productive/total ratio
+    productiveUPHChange?: number;
   };
+  [key: string]: any;
 }
 
 interface InventoryMetrics {
@@ -78,6 +84,11 @@ interface SalesData {
   salesPlan?: number;                // Column T - sales plan data
   tab?: string;                      // Should be "May24-April25"
   planYear?: string;                 // Current volume plan year
+  // Additional flexible fields detected during processing
+  totalSales?: number;
+  salesPeriods?: number;
+  averageSalesPerPeriod?: number;
+  [key: string]: any;
 }
 
 interface NetworkFootprintData {
@@ -87,6 +98,8 @@ interface NetworkFootprintData {
   skuCount?: number;                 // Number of SKUs processed
   tab?: string;                      // Should be "Data Dump"
   matchedDimensions?: number;        // Count of items matching Sales Column T
+  dimensionalData?: any;
+  [key: string]: any;
 }
 
 interface MultiTabFile {
@@ -753,7 +766,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           totalExtracted: 0, // Will be calculated below
           errors: [],
           warnings: [],
-          usingAdaptiveLearning: true
+          usingAdaptiveLearning: true,
+          summary: { totalRows: Object.keys(sheets).length, validRows: 0, skippedRows: 0, dataQuality: { completeness: 0, accuracy: 0, consistency: 0, timeliness: 0, validRecords: 0, totalRecords: 0, missingFields: [], invalidValues: [] } }
         };
 
         addLog(`🎯 ADAPTIVE SUCCESS: Using full adaptive learning system!`);
@@ -787,7 +801,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           totalExtracted: 0,
           errors: [],
           warnings: [],
-          usingAdaptiveLearning: false
+          usingAdaptiveLearning: false,
+          summary: { totalRows: Object.keys(sheets).length, validRows: 0, skippedRows: 0, dataQuality: { completeness: 0, accuracy: 0, consistency: 0, timeliness: 0, validRecords: 0, totalRecords: 0, missingFields: [], invalidValues: [] } }
         };
       }
 
@@ -807,7 +822,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       addLog(`Found ${Object.keys(result.sheets).length} sheets: ${Object.keys(result.sheets).join(', ')}`);
 
-      for (const [sheetName, sheetData] of Object.entries(result.sheets)) {
+      for (const [sheetName, sheetData] of Object.entries(result.sheets as Record<string, any>)) {
         if (sheetData.data.length === 0) continue;
 
         // Use adaptive learning system for transportation cost extraction
@@ -914,7 +929,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
           // TL FILES: Use adaptive learning with intelligent column detection
           } else if (fileType === 'TL') {
-            addLog(`🚛 TL PROCESSING: Using adaptive learning to find best cost column`);
+            addLog(`���� TL PROCESSING: Using adaptive learning to find best cost column`);
 
             // Find rate column with correct priority: NET first, then Gross Rate as fallback
             const netColumns = ['Net Charge', 'Net Rate', 'Net Cost', 'net_charge', 'net_rate'];
@@ -1356,7 +1371,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`📋 BREAKDOWN: Wages: $${operatingCosts.regularWages?.toLocaleString() || 0}, Benefits: $${operatingCosts.employeeBenefits?.toLocaleString() || 0}, Supplies: $${operatingCosts.generalSupplies?.toLocaleString() || 0}`);
 
               if (operatingCosts.thirdPartyLogistics) {
-                addLog(`🚚 3PL COSTS: $${operatingCosts.thirdPartyLogistics.toLocaleString()} (separate line item)`);
+                addLog(`���� 3PL COSTS: $${operatingCosts.thirdPartyLogistics.toLocaleString()} (separate line item)`);
               }
 
             } catch (operatingError) {
@@ -2056,7 +2071,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
       };
 
       // Add completion log with learning status
-      addLog(`✓ ${file.name} processed successfully`);
+      addLog(`�� ${file.name} processed successfully`);
       addLog(`  Total extracted: $${totalExtracted.toLocaleString()} from ${tabs.length} tabs`);
       addLog(`  File type detected: ${result.detectedFileType}`);
       addLog(`  🧠 Learning mode: ${usingAdaptiveLearning ? 'ADAPTIVE LEARNING ACTIVE' : 'Simple fallback mode'}`);

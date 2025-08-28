@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { exportToXlsx } from '@/lib/export/xlsx';
 
-export default function BatchScenario({ payload }: { payload: any }) {
+export default function BatchScenario({ payload }: { payload?: any } = {}) {
   const [runs, setRuns] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 

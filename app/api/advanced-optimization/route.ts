@@ -11,7 +11,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { scenario_id, optimization_type, config_overrides } = body;
+    const { scenario_id, optimization_type, config_overrides, cities: bodyCities, destinations: bodyDestinations, baseline_transport_cost: bodyBaselineCost } = body;
 
     console.log('🚀 Starting advanced optimization with MIP solvers...');
     console.log(`Scenario: ${scenario_id}, Type: ${optimization_type}`);
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Candidate facilities for network optimization - comprehensive coverage
     // Major US distribution hubs + current facility
-    const candidateFacilities = [
+    const defaultCandidateFacilities = [
       'Littleton, MA',     // Current facility (mandatory)
       'Chicago, IL',       // Midwest coverage
       'St. Louis, MO',     // Central US hub - optimal Midwest location
@@ -136,8 +136,12 @@ export async function POST(request: NextRequest) {
       'Winnipeg, MB',      // Central Canada
     ];
 
-    // Major North American delivery markets - comprehensive coverage
-    const destinations = [
+    const candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
+      ? bodyCities
+      : (config_overrides?.transportation?.candidateFacilities || defaultCandidateFacilities);
+
+    // Default major North American delivery markets - comprehensive coverage
+    const defaultDestinations = [
       // Major US Metro Areas
       'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ',
       'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'San Jose, CA',
@@ -161,27 +165,62 @@ export async function POST(request: NextRequest) {
       'Cambridge, ON', 'Whitby, ON', 'Guelph, ON', 'Kelowna, BC', 'Kingston, ON'
     ];
 
+    const destinations = (Array.isArray(bodyDestinations) && bodyDestinations.length > 0)
+      ? bodyDestinations
+      : (config_overrides?.transportation?.destinations || defaultDestinations);
+
     // Generate cost matrix using actual baseline data
     const costMatrix = await generateCostMatrix(
-      candidateFacilities, 
-      destinations, 
-      actualTransportBaseline
+      candidateFacilities,
+      destinations,
+      bodyBaselineCost ?? actualTransportBaseline
     );
 
-    // Create demand map (equal distribution for simplicity)
-    const totalDemand = forecast[0].annual_units;
-    const demandPerDest = totalDemand / destinations.length;
-    const demand: DemandMap = Object.fromEntries(
-      destinations.map(dest => [dest, demandPerDest])
-    );
+    // Create demand map: prefer caller-provided demand_map, otherwise use forecast equal distribution
+    const requestDemandMap: Record<string, number> | undefined = (body as any).demand_map;
+    let demand: DemandMap = {};
+
+    // Derive totalDemand from provided demand_map or forecast baseline (safe fallbacks)
+    let totalDemand: number = 0;
+    if (requestDemandMap && Object.keys(requestDemandMap).length > 0) {
+      // Sum provided demands (only for supplied destinations)
+      totalDemand = Object.values(requestDemandMap).reduce((s, v) => s + (Number(v) || 0), 0) || 0;
+      // Ensure destinations present in matrix are included and fallback to small positive demand for missing
+      demand = Object.fromEntries(destinations.map(dest => [dest, Number(requestDemandMap[dest]) || 1]));
+
+      // If sum is still zero (bad input), recompute from the constructed demand map
+      if (!totalDemand) {
+        totalDemand = Object.values(demand).reduce((s, v) => s + (Number(v) || 0), 0) || 0;
+      }
+    } else {
+      totalDemand = (forecast && forecast.length > 0 && Number(forecast[0].annual_units)) || 0;
+      if (!totalDemand || totalDemand <= 0) {
+        // Last resort fallback to a reasonable default to prevent solver issues
+        totalDemand = 13_000_000;
+      }
+      const demandPerDest = Math.max(1, Math.floor(totalDemand / Math.max(1, destinations.length)));
+      demand = Object.fromEntries(destinations.map(dest => [dest, demandPerDest]));
+    }
+
+    // Align capacity map with facilities actually present in the generated cost matrix
+    const availableFacilities = (costMatrix && Array.isArray(costMatrix.rows) && costMatrix.rows.length > 0)
+      ? costMatrix.rows
+      : candidateFacilities;
 
     // Create capacity map (higher capacities for optimization)
     const capacity: CapacityMap = Object.fromEntries(
-      candidateFacilities.map(facility => [
-        facility, 
-        facility === 'Littleton, MA' ? totalDemand : totalDemand * 0.8
+      availableFacilities.map(facility => [
+        facility,
+        facility === 'Littleton, MA' ? totalDemand : Math.max(1, Math.floor(totalDemand * 0.8))
       ])
     );
+
+    // Ensure mandatory facilities exist in capacity map (add them with a sensible capacity if missing)
+    (config.transportation.mandatory_facilities || []).forEach((m: string) => {
+      if (!capacity[m]) {
+        capacity[m] = Math.max(1, Math.floor(totalDemand * 0.9));
+      }
+    });
 
     console.log('🏭 Running warehouse capacity optimization...');
     const warehouseResult = optimizeWarehouse(config, forecast, skus);

@@ -169,10 +169,16 @@ export interface ValidationResult {
 // File processing results
 export interface ProcessingResult {
   success: boolean;
-  data?: ComprehensiveOperationalData;
-  errors: string[];
-  warnings: string[];
-  summary: {
+  data?: any;
+  errors?: string[];
+  warnings?: string[];
+  // Backwards-compatible fields used in many modules
+  validationResults?: ValidationResult[];
+  processedData?: any[];
+  validRows?: number;
+  skippedRows?: number;
+  dataQuality?: DataQualityMetrics;
+  summary?: {
     totalRows: number;
     validRows: number;
     skippedRows: number;

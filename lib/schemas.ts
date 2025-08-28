@@ -101,15 +101,15 @@ export function getSchemaForDomain(domain: "WAREHOUSE" | "TRANSPORT" | "INVENTOR
 }
 
 // Helper function for validating and transforming data
-export function validateAndTransformData<T>(
+export function validateAndTransformData(
   data: unknown[],
-  schema: z.ZodSchema<T>
+  schema: z.ZodTypeAny
 ): {
-  valid: T[];
+  valid: any[];
   errors: Array<{ row: number; field: string; message: string }>;
   stats: { totalRows: number; validRows: number; errorRate: number };
 } {
-  const valid: T[] = [];
+  const valid: any[] = [];
   const errors: Array<{ row: number; field: string; message: string }> = [];
 
   data.forEach((row, index) => {

@@ -45,6 +45,7 @@ export default function MapDeck({
     () => ({ longitude: -96.9, latitude: 37.6, zoom: 3.5, bearing: 0, pitch: 0 }),
     []
   );
+  const initialAny = initial as any;
 
   // Normalize the selected year slice from transport results
   const yr = useMemo(() => {
@@ -250,29 +251,29 @@ export default function MapDeck({
     }
     if (cogs.baseline && cogs.selected) {
       layers.push(
-        new GeoJsonLayer({
-          id: "cog-shift",
-          data: {
-            type: "Feature",
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [cogs.baseline.lng, cogs.baseline.lat],
-                [cogs.selected.lng, cogs.selected.lat],
-              ],
-            },
+      new GeoJsonLayer({
+        id: "cog-shift",
+        data: ({
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [cogs.baseline.lng, cogs.baseline.lat],
+              [cogs.selected.lng, cogs.selected.lat],
+            ],
           },
-          getLineColor: [255, 140, 0],
-          getLineWidth: 2,
-        })
-      );
+        }) as any,
+        getLineColor: [255, 140, 0],
+        getLineWidth: 2,
+      })
+    );
     }
   }
 
   return (
     <DeckGL
-      initialViewState={initial}
-      controller={true}
+      initialViewState={initialAny}
+      controller={true as any}
       layers={layers}
       width="100%"
       height="100%"
@@ -280,7 +281,7 @@ export default function MapDeck({
     >
       <Map
         reuseMaps
-        attributionControl={true}
+        attributionControl={false as any}
         mapStyle={BASE_STYLE}
         style={{ width: '100%', height: '100%' }}
       />

@@ -48,21 +48,21 @@ export async function GET(request: NextRequest) {
         }
       } else if (fileNameLower.includes('r&l') && fileNameLower.includes('curriculum')) {
         // R&L: Find best cost column
-        const allColumns = new Set();
+        const allColumns = new Set<string>();
         for (const row of data.slice(0, 10)) {
           if (typeof row === 'object' && row) {
-            Object.keys(row).forEach(key => allColumns.add(key));
+            Object.keys(row).forEach(key => allColumns.add(String(key)));
           }
         }
-        
+
         let bestTotal = 0;
-        let bestColumn = null;
-        
+        let bestColumn: string | null = null;
+
         for (const col of Array.from(allColumns)) {
           let testTotal = 0;
-          for (const row of data) {
-            if (row && row[col]) {
-              const numValue = parseFloat(String(row[col]).replace(/[$,\s]/g, ''));
+          for (const row of data as any[]) {
+            if (row && (row as any)[col]) {
+              const numValue = parseFloat(String((row as any)[col]).replace(/[$,\s]/g, ''));
               if (!isNaN(numValue) && numValue > 50) {
                 testTotal += numValue;
               }

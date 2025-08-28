@@ -240,9 +240,9 @@ function FacilityTimelineView({
                 return null;
               }}
             />
-            <Scatter 
-              dataKey="capacity" 
-              fill={(entry: any) => statusColors[entry.status as keyof typeof statusColors]}
+            <Scatter
+              dataKey="capacity"
+              fill="#10b981"
               onClick={(data: any) => onFacilitySelect(data.facility)}
             />
           </ScatterChart>

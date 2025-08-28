@@ -16,17 +16,15 @@ try {
 
 export function solve(model: LpModel): LpSolveResult {
   if (!JSLP) {
-    console.warn('Using fallback solver - install javascript-lp-solver for optimal results');
-    return fallbackSolver(model);
+    throw new Error('javascript-lp-solver not available. Install javascript-lp-solver to run MIP optimizations.');
   }
-  
+
   try {
     const result = JSLP.Solve(model);
     return result;
   } catch (error) {
     console.error('MIP solver error:', error);
-    console.warn('Falling back to heuristic solver');
-    return fallbackSolver(model);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
@@ -36,98 +34,6 @@ export function addCoef(vars: Record<string, number>, cKey: string, val: number)
   vars[cKey] = (vars[cKey] ?? 0) + val;
 }
 
-// Fallback heuristic solver for when javascript-lp-solver is not available
-function fallbackSolver(model: LpModel): LpSolveResult {
-  console.log('Using NetWORX fallback optimization heuristics...');
-  
-  const variables = Object.keys(model.variables);
-  const constraints = model.constraints;
-  const isMinimization = model.opType === 'min';
-  
-  // Simple greedy heuristic approach
-  const solution: Record<string, number> = {};
-  
-  // Initialize all variables to 0
-  for (const varName of variables) {
-    if (model.binaries && model.binaries[varName]) {
-      solution[varName] = 0; // Binary variables start at 0
-    } else if (model.ints && model.ints[varName]) {
-      solution[varName] = 0; // Integer variables start at 0
-    } else {
-      solution[varName] = 0; // Continuous variables start at 0
-    }
-  }
-  
-  // Simple heuristic: try to satisfy constraints while optimizing objective
-  let bestObjective = isMinimization ? Infinity : -Infinity;
-  let bestSolution = { ...solution };
-  
-  // Try multiple random configurations
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const currentSolution: Record<string, number> = {};
-    
-    // Generate feasible solution
-    for (const varName of variables) {
-      if (model.binaries && model.binaries[varName]) {
-        currentSolution[varName] = Math.random() > 0.5 ? 1 : 0;
-      } else if (model.ints && model.ints[varName]) {
-        currentSolution[varName] = Math.floor(Math.random() * 10);
-      } else {
-        currentSolution[varName] = Math.random() * 1000;
-      }
-    }
-    
-    // Check if solution satisfies constraints
-    let feasible = true;
-    for (const [constraintName, bound] of Object.entries(constraints)) {
-      let value = 0;
-      
-      for (const varName of variables) {
-        const coef = model.variables[varName][constraintName] || 0;
-        value += coef * currentSolution[varName];
-      }
-      
-      if (bound.max !== undefined && value > bound.max + 1e-6) {
-        feasible = false;
-        break;
-      }
-      if (bound.min !== undefined && value < bound.min - 1e-6) {
-        feasible = false;
-        break;
-      }
-      if (bound.equal !== undefined && Math.abs(value - bound.equal) > 1e-6) {
-        feasible = false;
-        break;
-      }
-    }
-    
-    if (feasible) {
-      // Calculate objective value
-      let objective = 0;
-      for (const varName of variables) {
-        const coef = model.variables[varName][model.optimize] || 0;
-        objective += coef * currentSolution[varName];
-      }
-      
-      // Check if this is better
-      const isBetter = isMinimization ? 
-        objective < bestObjective : 
-        objective > bestObjective;
-        
-      if (isBetter) {
-        bestObjective = objective;
-        bestSolution = { ...currentSolution };
-      }
-    }
-  }
-  
-  return {
-    feasible: bestObjective !== (isMinimization ? Infinity : -Infinity),
-    result: bestObjective,
-    bounded: true,
-    ...bestSolution
-  };
-}
 
 // Create a constraint building helper
 export function createConstraintBuilder() {

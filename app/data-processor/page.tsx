@@ -596,9 +596,20 @@ export default function DataProcessor() {
         addToLog(`⚠ No template detected for ${file.name} - processing as generic data`);
       }
 
+      const fallbackDataQuality = {
+        completeness: 100,
+        accuracy: 100,
+        consistency: 100,
+        timeliness: 100,
+        validRecords: (fullFileData.parsedData?.length || 0),
+        totalRecords: (fullFileData.parsedData?.length || 0),
+        missingFields: [],
+        invalidValues: []
+      };
+
       const result = templateToUse
         ? DataValidator.processDataWithTemplate(fullFileData.parsedData, templateToUse)
-        : { success: true, data: fullFileData.parsedData, summary: { dataQuality: { validRecords: (fullFileData.parsedData?.length || 0), totalRecords: (fullFileData.parsedData?.length || 0) } } };
+        : { success: true, data: fullFileData.parsedData, summary: { totalRows: fullFileData.parsedData?.length || 0, validRows: fullFileData.parsedData?.length || 0, skippedRows: 0, dataQuality: fallbackDataQuality } };
 
       // CRITICAL FIX: Separate Excel parsing success from template validation
       const hasExcelData = fullFileData.parsedData && Array.isArray(fullFileData.parsedData) && fullFileData.parsedData.length > 0;
@@ -647,7 +658,7 @@ export default function DataProcessor() {
         if (templateValidationPassed) {
           addToLog(`✓ Template validation also passed`);
           try {
-            addToLog(DataProcessingUtils.formatDataQuality(result.summary?.dataQuality || result.dataQuality));
+            addToLog(DataProcessingUtils.formatDataQuality(result.summary?.dataQuality || (result as any).dataQuality));
           } catch (formatError) {
             addToLog(`✓ Template validation completed (formatting issue)`);
           }
@@ -658,7 +669,7 @@ export default function DataProcessor() {
       } else {
         addToLog(`✗ Excel parsing failed for ${file.name}`);
         try {
-          addToLog(DataProcessingUtils.formatValidationResults(result.data?.metadata?.validationResults || []));
+          addToLog(DataProcessingUtils.formatValidationResults(((result as any).data?.metadata?.validationResults) || []));
         } catch (formatError) {
           addToLog(`✗ Validation failed (details unavailable)`);
         }
@@ -1151,7 +1162,7 @@ export default function DataProcessor() {
                       <div>• Files are stored securely in the database</div>
                       <div>�� No need to re-upload files when switching between scenarios</div>
                       <div>• Validation results and processing status are preserved</div>
-                      <div>• Green dot indicates files are saved 🟢</div>
+                      <div>• Green dot indicates files are saved ��</div>
                     </div>
                   </div>
                 </div>

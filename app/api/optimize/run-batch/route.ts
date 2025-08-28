@@ -141,9 +141,16 @@ export async function POST(req: NextRequest) {
       demand_cv: 0.2,
       operating_days: defaultConfig.warehouse.operating_days
     };
-    
+
+    // Convert inventory params to legacy optimizeInventory signature
+    const inventoryOptimizerParams = {
+      holding_cost_per_unit: inventoryParams.holding_cost_per_unit_per_year,
+      safety_stock_factor: 0.05, // conservative default
+      cycle_stock_days: inventoryParams.lead_time_days
+    };
+
     const inventoryResult = optimizeInventory(
-      inventoryParams,
+      inventoryOptimizerParams,
       defaultForecast,
       defaultSKUs
     );
@@ -164,7 +171,9 @@ export async function POST(req: NextRequest) {
     );
 
     const scenarios: any[] = [];
-    
+    // Precompute baseline over all years
+    const baselineAllYears = actualTransportBaseline * defaultForecast.length;
+
     // Run multi-year transport optimization for each node count
     for (let nodes = minNodes; nodes <= maxNodes; nodes += step) {
       console.log(`🚛 Optimizing transport network: ${nodes} nodes (multi-year)...`);
@@ -190,7 +199,7 @@ export async function POST(req: NextRequest) {
           // Use fixed-lease optimizer when lease term >= planning horizon
           console.log(`📋 Using fixed-lease optimizer (${leaseYears}yr lease >= ${span}yr horizon)`);
           transportMultiYear = optimizeTransportMultiYearFixed(
-            defaultConfig.transportation,
+            defaultConfig.transportation as any,
             costMatrix,
             defaultForecast,
             {
@@ -203,7 +212,7 @@ export async function POST(req: NextRequest) {
           // Use standard year-by-year optimizer for shorter leases
           console.log(`📋 Using year-by-year optimizer (${leaseYears}yr lease < ${span}yr horizon)`);
           transportMultiYear = optimizeTransportMultiYear(
-            defaultConfig.transportation,
+            defaultConfig.transportation as any,
             costMatrix,
             defaultForecast,
             {
@@ -220,7 +229,6 @@ export async function POST(req: NextRequest) {
         const totalNetworkCost = transportMultiYear.totals.total_transportation_cost + warehouseCostAllYears + inventoryCostAllYears;
 
         // Calculate savings based on baseline scaled to all years
-        const baselineAllYears = actualTransportBaseline * defaultForecast.length;
         const transportSavings = baselineAllYears - transportMultiYear.totals.total_transportation_cost;
         const transportSavingsPercent = (transportSavings / baselineAllYears) * 100;
 

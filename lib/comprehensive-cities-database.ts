@@ -794,8 +794,42 @@ export function getAllCanadianCities(): CityData[] {
 }
 
 export function getCityCoordinates(cityName: string): { lat: number, lon: number } | null {
-  const city = COMPREHENSIVE_CITIES.find(c => c.name === cityName);
-  return city ? { lat: city.lat, lon: city.lon } : null;
+  if (!cityName) return null;
+  const raw = String(cityName).trim();
+
+  // If input contains state like 'City, ST', try direct lookup in CITY_COORDINATES_LOOKUP
+  const parts = raw.split(',').map(p => p.trim());
+  if (parts.length === 2) {
+    const key = `${parts[0]}, ${parts[1]}`;
+    if (CITY_COORDINATES_LOOKUP[key]) return CITY_COORDINATES_LOOKUP[key];
+  }
+
+  // Try exact name match (case-insensitive)
+  const exact = COMPREHENSIVE_CITIES.find(c => c.name.toLowerCase() === raw.toLowerCase());
+  if (exact) return { lat: exact.lat, lon: exact.lon };
+
+  // Common variant: 'New York' -> 'New York City'
+  const withCity = COMPREHENSIVE_CITIES.find(c => `${c.name.toLowerCase()} city` === raw.toLowerCase() || `${raw.toLowerCase()} city` === c.name.toLowerCase());
+  if (withCity) return { lat: withCity.lat, lon: withCity.lon };
+
+  // If provided a state code (second part), try to find the city name within that state
+  if (parts.length === 2) {
+    const [namePart, statePart] = parts;
+    const matchInState = COMPREHENSIVE_CITIES.find(c =>
+      c.state_province.toLowerCase() === statePart.toLowerCase() && c.name.toLowerCase() === namePart.toLowerCase()
+    );
+    if (matchInState) return { lat: matchInState.lat, lon: matchInState.lon };
+  }
+
+  // Fallback: search by partial match and pick the largest population match
+  const term = raw.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+  const partialMatches = COMPREHENSIVE_CITIES.filter(c => c.name.toLowerCase().includes(term) || (c.metro_area || '').toLowerCase().includes(term));
+  if (partialMatches.length > 0) {
+    const best = partialMatches.sort((a, b) => b.population - a.population)[0];
+    return { lat: best.lat, lon: best.lon };
+  }
+
+  return null;
 }
 
 export function searchCitiesByName(searchTerm: string): CityData[] {

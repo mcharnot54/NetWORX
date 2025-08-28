@@ -43,6 +43,7 @@ export default function SimpleMapDeck({
     () => ({ longitude: -96.9, latitude: 37.6, zoom: 3.5, bearing: 0, pitch: 0 }),
     []
   );
+  const initialAny = initial as any;
 
   // Normalize the selected year slice from transport results
   const yr = useMemo(() => {
@@ -164,8 +165,8 @@ export default function SimpleMapDeck({
 
   return (
     <DeckGL
-      initialViewState={initial}
-      controller={true}
+      initialViewState={initialAny}
+      controller={true as any}
       layers={layers}
       width="100%"
       height="100%"
@@ -173,7 +174,7 @@ export default function SimpleMapDeck({
     >
       <Map
         reuseMaps
-        attributionControl={true}
+        attributionControl={false as any}
         mapStyle={BASE_STYLE}
         style={{ width: '100%', height: '100%' }}
       />

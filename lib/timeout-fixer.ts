@@ -234,17 +234,20 @@ export async function quickTimeoutHealthCheck() {
 export function emergencyTimeoutReset() {
   try {
     // Clear all timeouts and intervals (this is drastic but effective)
-    const highestId = setTimeout(() => {}, 1);
-    for (let i = 0; i < highestId; i++) {
-      clearTimeout(i);
-      clearInterval(i);
+    // Use a conservative numeric bound to clear handles (Node setTimeout returns object)
+    const maxHandle = 10000;
+    for (let i = 0; i < maxHandle; i++) {
+      try {
+        clearTimeout(i as unknown as number);
+        clearInterval(i as unknown as number);
+      } catch (e) {}
     }
-    
+
     // Force garbage collection
     if (global.gc) {
       global.gc();
     }
-    
+
     console.log('Emergency timeout reset completed');
     return { success: true, message: 'All timeouts and intervals cleared' };
   } catch (error) {

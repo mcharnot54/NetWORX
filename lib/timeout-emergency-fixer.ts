@@ -94,18 +94,15 @@ class TimeoutEmergencyFixer {
   private clearAllTimeouts(): void {
     try {
       // Get the highest timeout ID by creating a dummy timeout
-      const highestId = setTimeout(() => {}, 1);
-      
-      // Clear all timeouts and intervals up to the highest ID
-      for (let i = 0; i < highestId; i++) {
-        clearTimeout(i);
-        clearInterval(i);
+      // In Node.js setTimeout returns a Timeout object; use a safe upper bound to clear handles
+      const maxHandle = 10000;
+      for (let i = 0; i < maxHandle; i++) {
+        try {
+          clearTimeout(i as unknown as number);
+          clearInterval(i as unknown as number);
+        } catch (e) {}
       }
-      
-      // Clear the dummy timeout we created
-      clearTimeout(highestId);
-      
-      console.log(`Cleared ${highestId} timeout/interval handles`);
+      console.log(`Cleared up to ${maxHandle} timeout/interval handles`);
     } catch (error) {
       console.error('Error clearing timeouts:', error);
     }

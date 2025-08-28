@@ -296,7 +296,14 @@ export class RealDataTransportOptimizer {
       console.log(`📊 Getting REAL growth data from Capacity Optimizer for scenario ${scenarioId}...`);
 
       const response = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
-      const data = await response.json();
+      let data: any = null;
+      try {
+        // Clone the response before parsing to avoid 'body stream already read' if another consumer read it
+        data = await (response.clone ? response.clone().json() : response.json());
+      } catch (parseError) {
+        console.warn('Failed to parse capacity-analysis response JSON via clone, falling back to direct parse:', parseError);
+        try { data = await response.json(); } catch (e) { data = null; }
+      }
 
       if (data && data.yearly_results && data.yearly_results.length > 0) {
         console.log(`✅ Found ${data.yearly_results.length} years of capacity analysis data`);
@@ -505,7 +512,7 @@ export class RealDataTransportOptimizer {
         primary_facility: primaryFacility,
         selected_facilities: optimization.selected_facilities || [primaryFacility],
         optimization_method: optimization.optimization_method || 'unknown',
-        solver_used: optimization.solver_used,
+        solver_used: (optimization as any).solver_used || (optimization as any).solverUsed || null,
         hub_strategy: this.getHubStrategy(scenarioType, actualCities.length),
         total_routes: routeData.length,
         unique_destinations: actualCities.length,
@@ -539,7 +546,13 @@ export class RealDataTransportOptimizer {
       if (scenarioId) {
         try {
           const capacityResponse = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
-          const capacityData = await capacityResponse.json();
+          let capacityData: any = null;
+          try {
+            capacityData = await (capacityResponse.clone ? capacityResponse.clone().json() : capacityResponse.json());
+          } catch (parseErr) {
+            console.warn('Failed to parse capacity-analysis clone JSON, falling back:', parseErr);
+            try { capacityData = await capacityResponse.json(); } catch (e) { capacityData = null; }
+          }
           if (capacityData && capacityData.facilities) {
             facilityConstraints = capacityData.facilities;
             console.log(`✅ Got facility constraints from Capacity Optimizer: ${facilityConstraints.length} facilities`);
@@ -556,6 +569,15 @@ export class RealDataTransportOptimizer {
       ]));
 
       // Call the Advanced Transport Optimizer API with real data
+      // Build demand map from routeData (aggregate total_shipments by destination)
+      const demandMap = Object.fromEntries(
+        actualCities.slice(0, 50).map(dest => {
+          const destRoutes = routeData.filter(r => r.destination === dest || r.origin === dest);
+          const volume = destRoutes.reduce((s, r) => s + (r.total_shipments || 0), 0) || 0;
+          return [dest, volume];
+        })
+      );
+
       const optimizationPayload = {
         scenario_id: scenarioId,
         optimization_type: scenarioType,
@@ -571,7 +593,8 @@ export class RealDataTransportOptimizer {
           }
         },
         cities: actualCities.slice(0, 50), // Use actual cities for optimization
-        baseline_transport_cost: baselineData.total_verified
+        baseline_transport_cost: baselineData.total_verified,
+        demand_map: demandMap
       };
 
       const optimizationResponse = await fetch('/api/advanced-optimization', {
@@ -604,7 +627,7 @@ export class RealDataTransportOptimizer {
             selected_facilities: transportOpt.open_facilities || [primaryFacility],
             optimization_method: 'real_transport_algorithm',
             facility_assignments: transportOpt.assignments || [],
-            solver_used: optimizationResult.solver_used || 'advanced_optimizer'
+            solver_used: (optimizationResult as any).solver_used || (optimizationResult as any).solverUsed || 'advanced_optimizer'
           };
         }
       }
