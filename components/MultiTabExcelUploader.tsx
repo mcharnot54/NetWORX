@@ -39,6 +39,8 @@ interface ProductivityMetrics {
     totalHours?: number;      // Cell AR102
     payrollUPH?: number;      // Calculated: unitsShipped / payrollHours
     totalUPH?: number;        // Calculated: unitsShipped / totalHours
+    productiveHours?: number;
+    productiveUPH?: number;
   };
   year2025?: {
     unitsShipped?: number;    // Cell AR73
@@ -46,13 +48,17 @@ interface ProductivityMetrics {
     totalHours?: number;      // Cell AR102
     payrollUPH?: number;      // Calculated: unitsShipped / payrollHours
     totalUPH?: number;        // Calculated: unitsShipped / totalHours
+    productiveHours?: number;
+    productiveUPH?: number;
   };
   productivityChange?: {
     unitsShippedChange?: number;    // % change
     payrollUPHChange?: number;      // % change
     totalUPHChange?: number;        // % change
     hoursEfficiencyChange?: number; // % change in productive/total ratio
+    productiveUPHChange?: number;
   };
+  [key: string]: any;
 }
 
 interface InventoryMetrics {
