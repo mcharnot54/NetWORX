@@ -251,22 +251,22 @@ export default function MapDeck({
     }
     if (cogs.baseline && cogs.selected) {
       layers.push(
-        new GeoJsonLayer({
-          id: "cog-shift",
-          data: {
-            type: "Feature",
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [cogs.baseline.lng, cogs.baseline.lat],
-                [cogs.selected.lng, cogs.selected.lat],
-              ],
-            },
+      new GeoJsonLayer({
+        id: "cog-shift",
+        data: ({
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [cogs.baseline.lng, cogs.baseline.lat],
+              [cogs.selected.lng, cogs.selected.lat],
+            ],
           },
-          getLineColor: [255, 140, 0],
-          getLineWidth: 2,
-        })
-      );
+        }) as any,
+        getLineColor: [255, 140, 0],
+        getLineWidth: 2,
+      })
+    );
     }
   }
 
