@@ -505,7 +505,7 @@ export class RealDataTransportOptimizer {
         primary_facility: primaryFacility,
         selected_facilities: optimization.selected_facilities || [primaryFacility],
         optimization_method: optimization.optimization_method || 'unknown',
-        solver_used: optimization.solver_used,
+        solver_used: (optimization as any).solver_used || (optimization as any).solverUsed || null,
         hub_strategy: this.getHubStrategy(scenarioType, actualCities.length),
         total_routes: routeData.length,
         unique_destinations: actualCities.length,
