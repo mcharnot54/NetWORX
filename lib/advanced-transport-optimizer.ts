@@ -51,12 +51,29 @@ export async function generateCostMatrix(
 
   for (let i = 0; i < candidateFacilities.length; i++) {
     const facilityCity = candidateFacilities[i];
-    let facilityCoords = CITY_COORDINATES[facilityCity];
+    // Normalize key
+    const key = String(facilityCity).trim();
+    let facilityCoords = CITY_COORDINATES[key];
 
-    // Try alternative lookup if direct lookup fails
+    // Try comprehensive DB lookup using full string
     if (!facilityCoords) {
-      const cityName = facilityCity.split(', ')[0];
+      facilityCoords = getCityCoordinates(key);
+    }
+
+    // Try looser search by city name if still missing
+    if (!facilityCoords) {
+      const cityName = key.split(',')[0].trim();
       facilityCoords = getCityCoordinates(cityName);
+    }
+
+    // Fallback to optimization-algorithms constant if available
+    if (!facilityCoords) {
+      try {
+        const { CITY_COORDINATES: FALLBACK_COORDS } = require('./optimization-algorithms');
+        facilityCoords = FALLBACK_COORDS[key] || FALLBACK_COORDS[cityName];
+      } catch (e) {
+        // ignore
+      }
     }
 
     if (!facilityCoords) {
