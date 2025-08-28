@@ -814,7 +814,7 @@ export class EnhancedExcelValidator {
       recommendations.push(`File contains ${Object.keys(multiTabData).length} sheets - ensure all relevant tabs are processed`);
     }
 
-    if (dataQuality.completenessScore < 0.8) {
+    if ((dataQuality.completeness ?? 0) < 80) {
       recommendations.push('Data completeness is below 80% - consider data quality improvements');
     }
 
