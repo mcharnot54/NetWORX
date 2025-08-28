@@ -200,7 +200,7 @@ export function optimizeTransport(
     // Capacity constraint for this facility
     const capKey = `Cap_${ci}`;
     builder.addConstraint(capKey, { max: 0 });
-    builder.setConstraintCoef(x, capKey, -capacityMap[ci]);
+    builder.setConstraintCoef(x, capKey, -(capacityMap[ci] ?? params.max_capacity_per_facility ?? 1_000_000));
 
     // Assignment variables for each destination
     for (let j = 0; j < dests.length; j++) {
