@@ -78,6 +78,11 @@ interface SalesData {
   salesPlan?: number;                // Column T - sales plan data
   tab?: string;                      // Should be "May24-April25"
   planYear?: string;                 // Current volume plan year
+  // Additional flexible fields detected during processing
+  totalSales?: number;
+  salesPeriods?: number;
+  averageSalesPerPeriod?: number;
+  [key: string]: any;
 }
 
 interface NetworkFootprintData {
