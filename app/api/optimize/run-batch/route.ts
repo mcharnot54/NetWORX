@@ -164,7 +164,9 @@ export async function POST(req: NextRequest) {
     );
 
     const scenarios: any[] = [];
-    
+    // Precompute baseline over all years
+    const baselineAllYears = actualTransportBaseline * defaultForecast.length;
+
     // Run multi-year transport optimization for each node count
     for (let nodes = minNodes; nodes <= maxNodes; nodes += step) {
       console.log(`🚛 Optimizing transport network: ${nodes} nodes (multi-year)...`);
