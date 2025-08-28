@@ -197,6 +197,11 @@ export async function POST(request: NextRequest) {
     // Debug: log costMatrix dimensions
     console.log('Debug: costMatrix rows=', costMatrix.rows?.length, 'cols=', costMatrix.cols?.length);
 
+    if (!costMatrix || !Array.isArray(costMatrix.rows) || costMatrix.rows.length === 0) {
+      console.error('Cost matrix generation produced zero candidate facilities. Aborting optimization. Candidate facilities provided:', candidateFacilities.slice(0,10));
+      throw new Error('No valid candidate facilities found for optimization. Ensure candidate facilities are proper "City, ST" strings or leave blank to use defaults.');
+    }
+
     // Create demand map: prefer caller-provided demand_map, otherwise use forecast equal distribution
     const requestDemandMap: Record<string, number> | undefined = (body as any).demand_map;
     let demand: DemandMap = {};
