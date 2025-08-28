@@ -11,7 +11,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { scenario_id, optimization_type, config_overrides } = body;
+    const { scenario_id, optimization_type, config_overrides, cities: bodyCities, destinations: bodyDestinations, baseline_transport_cost: bodyBaselineCost } = body;
 
     console.log('🚀 Starting advanced optimization with MIP solvers...');
     console.log(`Scenario: ${scenario_id}, Type: ${optimization_type}`);
