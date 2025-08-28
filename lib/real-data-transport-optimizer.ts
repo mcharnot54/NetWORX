@@ -296,7 +296,14 @@ export class RealDataTransportOptimizer {
       console.log(`📊 Getting REAL growth data from Capacity Optimizer for scenario ${scenarioId}...`);
 
       const response = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
-      const data = await response.json();
+      let data: any = null;
+      try {
+        // Clone the response before parsing to avoid 'body stream already read' if another consumer read it
+        data = await (response.clone ? response.clone().json() : response.json());
+      } catch (parseError) {
+        console.warn('Failed to parse capacity-analysis response JSON via clone, falling back to direct parse:', parseError);
+        try { data = await response.json(); } catch (e) { data = null; }
+      }
 
       if (data && data.yearly_results && data.yearly_results.length > 0) {
         console.log(`✅ Found ${data.yearly_results.length} years of capacity analysis data`);
