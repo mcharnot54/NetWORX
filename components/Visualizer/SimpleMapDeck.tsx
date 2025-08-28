@@ -43,6 +43,7 @@ export default function SimpleMapDeck({
     () => ({ longitude: -96.9, latitude: 37.6, zoom: 3.5, bearing: 0, pitch: 0 }),
     []
   );
+  const initialAny = initial as any;
 
   // Normalize the selected year slice from transport results
   const yr = useMemo(() => {
