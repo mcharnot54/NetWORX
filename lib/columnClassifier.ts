@@ -38,13 +38,13 @@ export function classifyColumn(header: string, sample: unknown[], columnIndex?: 
     bump("gross_charge", 0.1);
     bump("column_v", 0.1);
   }
-  
+
   if (transportFeatures.isColumnLetter) {
     bump("column_v", 0.2); // Boost for single letter columns
   }
-  
+
   if (transportDetection.canonicalField) {
-    bump(transportDetection.canonicalField, transportDetection.confidence * 0.3);
+    bump(transportDetection.canonicalField, (transportDetection.confidence || 0) * 0.3);
   }
 
   // General pattern boosts
