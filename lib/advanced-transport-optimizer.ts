@@ -256,6 +256,18 @@ export function optimizeTransport(
   }
 
   console.log('🔧 Solving transport optimization MIP...');
+  // Log brief model diagnostics to help debugging (size, constraints/variables counts)
+  try {
+    const varCount = Object.keys(model.variables || {}).length;
+    const consCount = Object.keys(model.constraints || {}).length;
+    console.log(`Model: vars=${varCount}, constraints=${consCount}`);
+    // Truncate model JSON to avoid huge logs
+    const modelJson = JSON.stringify(model);
+    console.log('Model JSON (truncated 30k chars):', modelJson.slice(0, 30000));
+  } catch (e) {
+    console.warn('Failed to serialize model for logging:', e);
+  }
+
   const t0 = Date.now();
   let sol: any;
   let solveTime = 0;
@@ -263,6 +275,13 @@ export function optimizeTransport(
   try {
     sol = solve(model);
     solveTime = (Date.now() - t0) / 1000;
+
+    // Log solver raw result for inspection
+    try {
+      console.log('Solver result (truncated 30k chars):', JSON.stringify(sol).slice(0, 30000));
+    } catch (err) {
+      console.log('Solver result:', sol);
+    }
 
     if (!sol || !sol.feasible) {
       console.warn('⚠️ Transport MIP reported infeasible or no solution');
