@@ -165,7 +165,7 @@ export class EnhancedExcelValidator {
 
     // Convert to object format starting from the detected header row
     const dataStartingFromHeader = allRowsRaw.slice(bestHeaderRowIndex);
-    const objectData = XLSX.utils.sheet_to_json(worksheet, {
+    const objectData = (XLSX.utils.sheet_to_json as any)(worksheet, {
       header: dataStartingFromHeader[0] as string[],
       range: bestHeaderRowIndex,
       defval: null
@@ -739,17 +739,17 @@ export class EnhancedExcelValidator {
       for (const [key, value] of Object.entries(row)) {
         if (value !== null && value !== undefined && value !== '') {
           // Attempt to convert numeric strings to numbers
-          if (typeof value === 'string' && /^-?\d*\.?\d+$/.test(value.trim())) {
-            const numValue = parseFloat(value);
+          if (typeof value === 'string' && /^-?\d*\.?\d+$/.test((value as string).trim())) {
+            const numValue = parseFloat(value as string);
             if (!isNaN(numValue)) {
               standardizedRow[key] = numValue;
               conversions++;
             }
           }
-          
+
           // Standardize text values
-          if (typeof value === 'string' && key.includes('city') || key.includes('location')) {
-            standardizedRow[key] = value.trim().replace(/\b\w/g, l => l.toUpperCase());
+          if (typeof value === 'string' && (key.includes('city') || key.includes('location'))) {
+            standardizedRow[key] = (value as string).trim().replace(/\b\w/g, (l: string) => l.toUpperCase());
             conversions++;
           }
         }
@@ -967,21 +967,16 @@ export class EnhancedExcelValidator {
       ? Math.max(completenessScore, 0.7) // Minimum 70% for substantial datasets
       : completenessScore;
 
+    // Map calculated scores into DataQualityMetrics shape
     return {
-      completenessScore: adjustedCompletenessScore,
-      accuracyScore: filledCells > 0 ? validCells / filledCells : 0,
-      consistencyScore: 0.85, // Placeholder - would need more complex calculation
-      timelinessScore: 1.0, // Assuming data is current
-      validityScore: filledCells > 0 ? validCells / filledCells : 0,
+      completeness: Math.round(adjustedCompletenessScore * 100),
+      accuracy: Math.round((filledCells > 0 ? validCells / filledCells : 0) * 100),
+      consistency: Math.round(0.85 * 100),
+      timeliness: 100,
+      validRecords: nonEmptyRows.length,
       totalRecords: nonEmptyRows.length,
-      completeRecords: nonEmptyRows.filter(row =>
-        relevantColumns.every(col => {
-          const value = row[col];
-          return value !== null && value !== undefined && value !== '' && String(value).trim() !== '';
-        })
-      ).length,
-      missingDataPoints: totalCells - filledCells,
-      duplicateRecords: 0 // Would be calculated during deduplication
+      missingFields: [],
+      invalidValues: []
     };
   }
 
@@ -990,15 +985,14 @@ export class EnhancedExcelValidator {
    */
   private getEmptyDataQuality(): DataQualityMetrics {
     return {
-      completenessScore: 0,
-      accuracyScore: 0,
-      consistencyScore: 0,
-      timelinessScore: 0,
-      validityScore: 0,
+      completeness: 0,
+      accuracy: 0,
+      consistency: 0,
+      timeliness: 0,
+      validRecords: 0,
       totalRecords: 0,
-      completeRecords: 0,
-      missingDataPoints: 0,
-      duplicateRecords: 0
+      missingFields: [],
+      invalidValues: []
     };
   }
 }
