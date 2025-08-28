@@ -47,6 +47,7 @@ export async function generateCostMatrix(
   const baseCostPerMile = 2.85; // Derived from actual $6.56M / estimated miles
 
   const cost: number[][] = [];
+  const availableFacilities: string[] = [];
 
   for (let i = 0; i < candidateFacilities.length; i++) {
     const facilityCity = candidateFacilities[i];
@@ -59,12 +60,13 @@ export async function generateCostMatrix(
     }
 
     if (!facilityCoords) {
-      console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping...`);
+      console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping facility from matrix generation...`);
       continue;
     }
-    
+
+    availableFacilities.push(facilityCity);
     const rowCosts: number[] = [];
-    
+
     for (let j = 0; j < destinations.length; j++) {
       const destCity = destinations[j];
       let destCoords = CITY_COORDINATES[destCity];
@@ -75,19 +77,20 @@ export async function generateCostMatrix(
         destCoords = getCityCoordinates(cityName);
       }
 
-      if (!destCoords) {
-        console.warn(`⚠️ No coordinates found for destination: ${destCity}, skipping...`);
-        continue;
+      // If destination coordinates missing, estimate a reasonable distance instead of skipping
+      let distance = 800; // default fallback distance
+      if (destCoords) {
+        distance = calculateDistance(
+          facilityCoords.lat, facilityCoords.lon,
+          destCoords.lat, destCoords.lon
+        );
+      } else {
+        console.warn(`⚠️ No coordinates found for destination: ${destCity}, using fallback distance estimate (${distance} miles)`);
       }
-      
-      const distance = calculateDistance(
-        facilityCoords.lat, facilityCoords.lon,
-        destCoords.lat, destCoords.lon
-      );
-      
+
       // Calculate cost using actual baseline-derived rates
       let costPerUnit = distance * baseCostPerMile;
-      
+
       // Apply zone-based pricing similar to actual UPS/LTL structure
       if (distance <= 150) {
         costPerUnit *= 0.85; // Zone 1-2 discount
@@ -98,21 +101,27 @@ export async function generateCostMatrix(
       } else {
         costPerUnit *= 1.25; // Zone 7-8 high premium
       }
-      
+
       // Add fuel surcharge based on actual data
       costPerUnit += distance * 0.35; // $0.35/mile fuel surcharge from actual analysis
-      
+
       rowCosts.push(Math.round(costPerUnit * 100) / 100);
     }
-    
+
+    // Ensure row length matches destinations length
+    while (rowCosts.length < destinations.length) {
+      // Fill with a high cost fallback to prevent optimizer selecting missing mappings
+      rowCosts.push(99999);
+    }
+
     cost.push(rowCosts);
   }
-  
-  console.log(`Generated cost matrix: ${candidateFacilities.length} facilities × ${destinations.length} destinations`);
+
+  console.log(`Generated cost matrix: ${availableFacilities.length} facilities × ${destinations.length} destinations`);
   console.log(`Using baseline-derived cost rate: $${baseCostPerMile}/mile + fuel surcharge`);
-  
+
   return {
-    rows: candidateFacilities,
+    rows: availableFacilities,
     cols: destinations,
     cost
   };
