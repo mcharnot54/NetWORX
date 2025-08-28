@@ -172,6 +172,12 @@ export interface ProcessingResult {
   data?: any;
   errors?: string[];
   warnings?: string[];
+  // Backwards-compatible fields used in many modules
+  validationResults?: ValidationResult[];
+  processedData?: any[];
+  validRows?: number;
+  skippedRows?: number;
+  dataQuality?: DataQualityMetrics;
   summary?: {
     totalRows: number;
     validRows: number;
