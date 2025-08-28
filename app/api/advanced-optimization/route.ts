@@ -180,11 +180,15 @@ export async function POST(request: NextRequest) {
     const requestDemandMap: Record<string, number> | undefined = (body as any).demand_map;
     let demand: DemandMap;
 
+    // Derive totalDemand from provided demand_map or forecast baseline
+    let totalDemand: number = 0;
     if (requestDemandMap && Object.keys(requestDemandMap).length > 0) {
+      // Sum provided demands (only for supplied destinations)
+      totalDemand = Object.values(requestDemandMap).reduce((s, v) => s + (Number(v) || 0), 0) || 0;
       // Ensure destinations present in matrix are included and fallback to small positive demand for missing
       demand = Object.fromEntries(destinations.map(dest => [dest, requestDemandMap[dest] ?? 1]));
     } else {
-      const totalDemand = forecast[0].annual_units;
+      totalDemand = forecast[0].annual_units;
       const demandPerDest = totalDemand / destinations.length;
       demand = Object.fromEntries(destinations.map(dest => [dest, demandPerDest]));
     }
@@ -192,8 +196,8 @@ export async function POST(request: NextRequest) {
     // Create capacity map (higher capacities for optimization)
     const capacity: CapacityMap = Object.fromEntries(
       candidateFacilities.map(facility => [
-        facility, 
-        facility === 'Littleton, MA' ? totalDemand : totalDemand * 0.8
+        facility,
+        facility === 'Littleton, MA' ? totalDemand : Math.max(1, Math.floor(totalDemand * 0.8))
       ])
     );
 
