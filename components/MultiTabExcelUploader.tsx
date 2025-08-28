@@ -788,7 +788,8 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
           totalExtracted: 0,
           errors: [],
           warnings: [],
-          usingAdaptiveLearning: false
+          usingAdaptiveLearning: false,
+          summary: { totalRows: Object.keys(sheets).length, validRows: 0, skippedRows: 0, dataQuality: { validRecords: 0, totalRecords: 0 } }
         };
       }
 
@@ -1303,7 +1304,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
               // Employee benefits (Row 63, columns Y:AJ)
               operatingCosts.employeeBenefits = extractFromRowColumns(63);
-              addLog(`��� Employee benefits (Row 63, cols Y:AJ): $${operatingCosts.employeeBenefits?.toLocaleString() || 0}`);
+              addLog(`🏥 Employee benefits (Row 63, cols Y:AJ): $${operatingCosts.employeeBenefits?.toLocaleString() || 0}`);
 
               // Temp employee costs (Row 68, columns Y:AJ)
               operatingCosts.tempEmployeeCosts = extractFromRowColumns(68);
@@ -1894,7 +1895,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
                   }
                   networkFootprintData.dimensionalData.estimatedPalletCount = finalPalletCount;
 
-                  addLog(`��️ FINAL PALLET COUNT: ${finalPalletCount.toLocaleString()} pallets (using ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units ÷ ${avgUnitsPerCase.toFixed(1)} units/case ÷ ${avgCasesPerPallet.toFixed(1)} cases/pallet)`);
+                  addLog(`🏗️ FINAL PALLET COUNT: ${finalPalletCount.toLocaleString()} pallets (using ${networkFootprintData.totalOnHandQuantity?.toLocaleString()} units ÷ ${avgUnitsPerCase.toFixed(1)} units/case ÷ ${avgCasesPerPallet.toFixed(1)} cases/pallet)`);
                 } else {
                   addLog(`⚠️ PALLET CALCULATION SKIPPED: Need inventory > 1M units (current: ${networkFootprintData.totalOnHandQuantity?.toLocaleString() || 0} units)`);
                 }
