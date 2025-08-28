@@ -280,7 +280,7 @@ export function optimizeTransport(
   // Extract solution
   const open: string[] = [];
   for (const c of cities) {
-    if (Number(sol[`x_${c}`] || 0) > 0.5) {
+    if (Number(sol[`x_${sanitizeVar(c)}`] || 0) > 0.5) {
       open.push(c);
     }
   }
