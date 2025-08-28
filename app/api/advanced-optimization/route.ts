@@ -171,9 +171,9 @@ export async function POST(request: NextRequest) {
 
     // Generate cost matrix using actual baseline data
     const costMatrix = await generateCostMatrix(
-      candidateFacilities, 
-      destinations, 
-      actualTransportBaseline
+      candidateFacilities,
+      destinations,
+      bodyBaselineCost ?? actualTransportBaseline
     );
 
     // Create demand map (equal distribution for simplicity)
