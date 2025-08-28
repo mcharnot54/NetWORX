@@ -98,6 +98,8 @@ interface NetworkFootprintData {
   skuCount?: number;                 // Number of SKUs processed
   tab?: string;                      // Should be "Data Dump"
   matchedDimensions?: number;        // Count of items matching Sales Column T
+  dimensionalData?: any;
+  [key: string]: any;
 }
 
 interface MultiTabFile {
