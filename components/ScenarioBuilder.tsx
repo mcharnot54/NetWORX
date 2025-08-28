@@ -8,7 +8,48 @@ import ColumnMapper from '@/components/ColumnMapper';
 import { mapDemandAoA, mapCostAoA, mapCapacityAoA, DemandMapping, CostMapping, CapacityMapping } from '@/lib/importers/map';
 
 export default function ScenarioBuilder({ onRun }: { onRun: (payload: any) => Promise<void> }) {
-  const [config, setConfig] = useState<OptimizationConfig | null>(null);
+  const [config, setConfig] = useState<OptimizationConfig>({
+    optimization: { solver: 'JSLP_SOLVER', weights: { cost: 0.6, utilization: 0.1, service_level: 0.3 } },
+    warehouse: {
+      operating_days: 260,
+      DOH: 10,
+      pallet_length_inches: 48,
+      pallet_width_inches: 40,
+      ceiling_height_inches: 432,
+      rack_height_inches: 96,
+      aisle_factor: 0.35,
+      outbound_pallets_per_door_per_day: 800,
+      inbound_pallets_per_door_per_day: 800,
+      max_outbound_doors: 40,
+      max_inbound_doors: 40,
+      outbound_area_per_door: 1200,
+      inbound_area_per_door: 1200,
+      min_office: 5000,
+      min_battery: 3000,
+      min_packing: 6000,
+      max_utilization: 0.85,
+      initial_facility_area: 250000,
+      case_pick_area_fixed: 15000,
+      each_pick_area_fixed: 8000,
+      min_conveyor: 6000,
+      facility_design_area: 400000,
+      cost_per_sqft_annual: 8.5,
+      thirdparty_cost_per_sqft: 12,
+      max_facilities: 8,
+    },
+    transportation: {
+      fixed_cost_per_facility: 150000,
+      cost_per_mile: 2.5,
+      service_level_requirement: 0.95,
+      max_distance_miles: 900,
+      required_facilities: 1,
+      max_facilities: 10,
+      max_capacity_per_facility: 5_000_000,
+      mandatory_facilities: [],
+      weights: { cost: 0.6, service_level: 0.3 },
+      lease_years: 7,
+    },
+  });
   const [forecast, setForecast] = useState<ForecastRow[]>([]);
   const [skus, setSkus] = useState<SKU[]>([]);
   const [costMatrix, setCostMatrix] = useState<CostMatrix>({ rows: [], cols: [], cost: [] });
