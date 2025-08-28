@@ -14,7 +14,7 @@ import {
 } from '../types/advanced-optimization';
 import { solve, createConstraintBuilder, validateModel } from './advanced-solver';
 
-import { CITY_COORDINATES_LOOKUP, getCityCoordinates } from './comprehensive-cities-database';
+import { CITY_COORDINATES_LOOKUP, getCityCoordinates, normalizeCityKey } from './comprehensive-cities-database';
 
 // Use comprehensive North American cities database
 const CITY_COORDINATES = CITY_COORDINATES_LOOKUP;
