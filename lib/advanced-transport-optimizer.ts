@@ -290,7 +290,7 @@ export function optimizeTransport(
   
   for (let i = 0; i < cities.length; i++) {
     for (let j = 0; j < dests.length; j++) {
-      const yName = `y_${cities[i]}__${dests[j]}`;
+      const yName = `y_${sanitizeVar(cities[i])}__${sanitizeVar(dests[j])}`;
       if (Number(sol[yName] || 0) > 0.5) {
         const dUnits = demandMap[dests[j]] ?? 0;
         const unitCost = cost[i][j];
