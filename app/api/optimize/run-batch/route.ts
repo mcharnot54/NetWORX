@@ -141,9 +141,16 @@ export async function POST(req: NextRequest) {
       demand_cv: 0.2,
       operating_days: defaultConfig.warehouse.operating_days
     };
-    
+
+    // Convert inventory params to legacy optimizeInventory signature
+    const inventoryOptimizerParams = {
+      holding_cost_per_unit: inventoryParams.holding_cost_per_unit_per_year,
+      safety_stock_factor: 0.05, // conservative default
+      cycle_stock_days: inventoryParams.lead_time_days
+    };
+
     const inventoryResult = optimizeInventory(
-      inventoryParams,
+      inventoryOptimizerParams,
       defaultForecast,
       defaultSKUs
     );
