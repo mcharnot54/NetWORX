@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         if (scope === "global" || scope === "both") {
           await upsertGlobalMapping(
             c.rawHeader,
-            c.canonicalField,
+            c.canonicalField as any,
             c.confidence ?? 0.8
           );
         }
