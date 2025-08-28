@@ -979,15 +979,6 @@ export class RealDataTransportOptimizer {
     };
     
     const key = `${origin}_${destination}`;
-    if (distances[key]) return distances[key];
-
-    // Deterministic fallback based on hashed city pair
-    try {
-      const { createSeededRng, stableSeedFromObject } = require('./seeded-rng');
-      const rng = createSeededRng(stableSeedFromObject(key));
-      return Math.floor(rng() * 800) + 300;
-    } catch (e) {
-      return 800; // Safe default
-    }
+    return distances[key] || Math.floor(Math.random() * 800) + 300;
   }
 }
