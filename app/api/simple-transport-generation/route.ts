@@ -607,34 +607,7 @@ async function generateFallbackYearlyAnalysis(cities: string[], baseline2025Frei
 }
 
 function generateDetailedVolumeAllocations(cities: string[]) {
-  // Deterministic RNG seeded from the city list
-  try {
-    const { createSeededRng, stableSeedFromObject } = require('@/lib/seeded-rng');
-    const rng = createSeededRng(stableSeedFromObject(cities));
-    return cities.map((city, index) => ({
-      facility_id: `facility_${city.toLowerCase().replace(/[^a-z]/g, '_')}`,
-      facility_name: `${city} Distribution Hub`,
-      location: city,
-      total_volume_units: Math.floor(rng() * 30000) + 40000,
-      outbound_volume: Math.floor(rng() * 20000) + 25000,
-      inbound_volume: Math.floor(rng() * 15000) + 15000,
-      capacity_utilization: Math.round((rng() * 20 + 75) * 100) / 100,
-      annual_throughput: Math.floor(rng() * 500000) + 1000000,
-      peak_season_factor: Math.round((1.3 + (rng() * 0.2)) * 100) / 100
-    }));
-  } catch (e) {
-    return cities.map((city, index) => ({
-      facility_id: `facility_${city.toLowerCase().replace(/[^a-z]/g, '_')}`,
-      facility_name: `${city} Distribution Hub`,
-      location: city,
-      total_volume_units: Math.floor(Math.random() * 30000) + 40000,
-      outbound_volume: Math.floor(Math.random() * 20000) + 25000,
-      inbound_volume: Math.floor(Math.random() * 15000) + 15000,
-      capacity_utilization: Math.random() * 20 + 75,
-      annual_throughput: Math.floor(Math.random() * 500000) + 1000000,
-      peak_season_factor: 1.3 + (Math.random() * 0.2)
-    }));
-  }
+  throw new Error('Fallback volume allocations disabled. Provide real capacity analysis data to generate volume allocations.');
 }
 
 function generateMockRouteDetails(cities: string[]) {
