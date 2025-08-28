@@ -92,17 +92,17 @@ export async function generateCostMatrix(
     for (let j = 0; j < destinations.length; j++) {
       const destCity = destinations[j];
       const destKey = String(destCity).trim();
-      let destCoords = CITY_COORDINATES[destKey];
+      let destCoords = CITY_COORDINATES[destKey] || CITY_COORDINATES[normalizeCityKey(destKey)];
 
       // Try full-string lookup in comprehensive DB
       if (!destCoords) {
-        destCoords = getCityCoordinates(destKey);
+        destCoords = getCityCoordinates(destKey) || getCityCoordinates(normalizeCityKey(destKey));
       }
 
       // Try looser lookup by city name
+      const destName = destKey.split(',')[0].trim();
       if (!destCoords) {
-        const destName = destKey.split(',')[0].trim();
-        destCoords = getCityCoordinates(destName);
+        destCoords = getCityCoordinates(destName) || getCityCoordinates(normalizeCityKey(destName));
       }
 
       // If destination coordinates missing, estimate a reasonable distance instead of skipping
@@ -113,7 +113,10 @@ export async function generateCostMatrix(
           destCoords.lat, destCoords.lon
         );
       } else {
-        console.warn(`⚠️ No coordinates found for destination: ${destCity}, using fallback distance estimate (${distance} miles)`);
+        if (!missingDestinationLogged.has(destCity)) {
+          console.warn(`⚠️ No coordinates found for destination: ${destCity}, using fallback distance estimate (${distance} miles)`);
+          missingDestinationLogged.add(destCity);
+        }
       }
 
       // Calculate cost using actual baseline-derived rates
