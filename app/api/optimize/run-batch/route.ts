@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
           // Use standard year-by-year optimizer for shorter leases
           console.log(`📋 Using year-by-year optimizer (${leaseYears}yr lease < ${span}yr horizon)`);
           transportMultiYear = optimizeTransportMultiYear(
-            defaultConfig.transportation,
+            defaultConfig.transportation as any,
             costMatrix,
             defaultForecast,
             {
