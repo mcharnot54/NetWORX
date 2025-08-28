@@ -86,12 +86,18 @@ export async function generateCostMatrix(
 
     for (let j = 0; j < destinations.length; j++) {
       const destCity = destinations[j];
-      let destCoords = CITY_COORDINATES[destCity];
+      const destKey = String(destCity).trim();
+      let destCoords = CITY_COORDINATES[destKey];
 
-      // Try alternative lookup if direct lookup fails
+      // Try full-string lookup in comprehensive DB
       if (!destCoords) {
-        const cityName = destCity.split(', ')[0];
-        destCoords = getCityCoordinates(cityName);
+        destCoords = getCityCoordinates(destKey);
+      }
+
+      // Try looser lookup by city name
+      if (!destCoords) {
+        const destName = destKey.split(',')[0].trim();
+        destCoords = getCityCoordinates(destName);
       }
 
       // If destination coordinates missing, estimate a reasonable distance instead of skipping
