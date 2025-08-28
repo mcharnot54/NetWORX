@@ -111,8 +111,10 @@ export async function POST(request: NextRequest) {
       const { getAllUSCities, getAllCanadianCities } = await import('@/lib/comprehensive-cities-database');
       const us = getAllUSCities().map(c => `${c.name}, ${c.state_province}`);
       const ca = getAllCanadianCities().map(c => `${c.name}, ${c.state_province}`);
-      defaultCandidateFacilities = ['Littleton, MA', ...us.slice(0, 600), ...ca.slice(0, 200)];
-      console.log(`Using comprehensive candidate facility list: ${defaultCandidateFacilities.length} entries`);
+      // Limit to top N candidates to avoid huge memory usage in MIP model
+      const maxCandidates = 250;
+      defaultCandidateFacilities = ['Littleton, MA', ...us.slice(0, Math.min(us.length, maxCandidates - 10)), ...ca.slice(0, Math.max(0, maxCandidates - 10 - Math.min(us.length, maxCandidates - 10)))];
+      console.log(`Using comprehensive candidate facility list: ${defaultCandidateFacilities.length} entries (limited to ${maxCandidates})`);
     } catch (err) {
       console.warn('Failed to load comprehensive cities DB, falling back to curated defaults', err);
       defaultCandidateFacilities = [
