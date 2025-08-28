@@ -807,7 +807,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
       addLog(`Found ${Object.keys(result.sheets).length} sheets: ${Object.keys(result.sheets).join(', ')}`);
 
-      for (const [sheetName, sheetData] of Object.entries(result.sheets)) {
+      for (const [sheetName, sheetData] of Object.entries(result.sheets as Record<string, any>)) {
         if (sheetData.data.length === 0) continue;
 
         // Use adaptive learning system for transportation cost extraction
@@ -914,7 +914,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
 
           // TL FILES: Use adaptive learning with intelligent column detection
           } else if (fileType === 'TL') {
-            addLog(`🚛 TL PROCESSING: Using adaptive learning to find best cost column`);
+            addLog(`���� TL PROCESSING: Using adaptive learning to find best cost column`);
 
             // Find rate column with correct priority: NET first, then Gross Rate as fallback
             const netColumns = ['Net Charge', 'Net Rate', 'Net Cost', 'net_charge', 'net_rate'];
@@ -1356,7 +1356,7 @@ export default function MultiTabExcelUploader({ onFilesProcessed, onFilesUploade
               addLog(`📋 BREAKDOWN: Wages: $${operatingCosts.regularWages?.toLocaleString() || 0}, Benefits: $${operatingCosts.employeeBenefits?.toLocaleString() || 0}, Supplies: $${operatingCosts.generalSupplies?.toLocaleString() || 0}`);
 
               if (operatingCosts.thirdPartyLogistics) {
-                addLog(`🚚 3PL COSTS: $${operatingCosts.thirdPartyLogistics.toLocaleString()} (separate line item)`);
+                addLog(`���� 3PL COSTS: $${operatingCosts.thirdPartyLogistics.toLocaleString()} (separate line item)`);
               }
 
             } catch (operatingError) {
