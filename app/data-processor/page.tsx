@@ -647,7 +647,7 @@ export default function DataProcessor() {
         if (templateValidationPassed) {
           addToLog(`✓ Template validation also passed`);
           try {
-            addToLog(DataProcessingUtils.formatDataQuality(result.summary?.dataQuality || result.dataQuality));
+            addToLog(DataProcessingUtils.formatDataQuality(result.summary?.dataQuality || (result as any).dataQuality));
           } catch (formatError) {
             addToLog(`✓ Template validation completed (formatting issue)`);
           }
