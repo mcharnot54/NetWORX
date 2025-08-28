@@ -127,6 +127,10 @@ export async function generateCostMatrix(
   };
 }
 
+function sanitizeVar(s: string) {
+  return String(s).replace(/[^a-zA-Z0-9_]/g, '_');
+}
+
 export function optimizeTransport(
   params: TransportParams,
   matrix: CostMatrix,
