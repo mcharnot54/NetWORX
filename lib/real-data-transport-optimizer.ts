@@ -604,7 +604,7 @@ export class RealDataTransportOptimizer {
             selected_facilities: transportOpt.open_facilities || [primaryFacility],
             optimization_method: 'real_transport_algorithm',
             facility_assignments: transportOpt.assignments || [],
-            solver_used: optimizationResult.solver_used || 'advanced_optimizer'
+            solver_used: (optimizationResult as any).solver_used || (optimizationResult as any).solverUsed || 'advanced_optimizer'
           };
         }
       }
