@@ -223,7 +223,12 @@ export class DataValidator {
         dataQuality: {
           completeness: 0,
           accuracy: 0,
-          consistency: 0
+          consistency: 0,
+          timeliness: 0,
+          validRecords: 0,
+          totalRecords: 0,
+          missingFields: [],
+          invalidValues: []
         }
       };
     }
