@@ -178,28 +178,49 @@ export async function POST(request: NextRequest) {
 
     // Create demand map: prefer caller-provided demand_map, otherwise use forecast equal distribution
     const requestDemandMap: Record<string, number> | undefined = (body as any).demand_map;
-    let demand: DemandMap;
+    let demand: DemandMap = {};
 
-    // Derive totalDemand from provided demand_map or forecast baseline
+    // Derive totalDemand from provided demand_map or forecast baseline (safe fallbacks)
     let totalDemand: number = 0;
     if (requestDemandMap && Object.keys(requestDemandMap).length > 0) {
       // Sum provided demands (only for supplied destinations)
       totalDemand = Object.values(requestDemandMap).reduce((s, v) => s + (Number(v) || 0), 0) || 0;
       // Ensure destinations present in matrix are included and fallback to small positive demand for missing
-      demand = Object.fromEntries(destinations.map(dest => [dest, requestDemandMap[dest] ?? 1]));
+      demand = Object.fromEntries(destinations.map(dest => [dest, Number(requestDemandMap[dest]) || 1]));
+
+      // If sum is still zero (bad input), recompute from the constructed demand map
+      if (!totalDemand) {
+        totalDemand = Object.values(demand).reduce((s, v) => s + (Number(v) || 0), 0) || 0;
+      }
     } else {
-      totalDemand = forecast[0].annual_units;
-      const demandPerDest = totalDemand / destinations.length;
+      totalDemand = (forecast && forecast.length > 0 && Number(forecast[0].annual_units)) || 0;
+      if (!totalDemand || totalDemand <= 0) {
+        // Last resort fallback to a reasonable default to prevent solver issues
+        totalDemand = 13_000_000;
+      }
+      const demandPerDest = Math.max(1, Math.floor(totalDemand / Math.max(1, destinations.length)));
       demand = Object.fromEntries(destinations.map(dest => [dest, demandPerDest]));
     }
 
+    // Align capacity map with facilities actually present in the generated cost matrix
+    const availableFacilities = (costMatrix && Array.isArray(costMatrix.rows) && costMatrix.rows.length > 0)
+      ? costMatrix.rows
+      : candidateFacilities;
+
     // Create capacity map (higher capacities for optimization)
     const capacity: CapacityMap = Object.fromEntries(
-      candidateFacilities.map(facility => [
+      availableFacilities.map(facility => [
         facility,
         facility === 'Littleton, MA' ? totalDemand : Math.max(1, Math.floor(totalDemand * 0.8))
       ])
     );
+
+    // Ensure mandatory facilities exist in capacity map (add them with a sensible capacity if missing)
+    (config.transportation.mandatory_facilities || []).forEach((m: string) => {
+      if (!capacity[m]) {
+        capacity[m] = Math.max(1, Math.floor(totalDemand * 0.9));
+      }
+    });
 
     console.log('🏭 Running warehouse capacity optimization...');
     const warehouseResult = optimizeWarehouse(config, forecast, skus);
