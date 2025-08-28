@@ -206,15 +206,31 @@ export default function ScenarioBuilder({ onRun }: { onRun: (payload: any) => Pr
           </div>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-2 items-center">
-          <button
-            className={clsx('px-4 py-2 rounded-xl shadow', canRun ? 'bg-black text-white' : 'bg-gray-200 text-gray-500')}
-            onClick={handleRunClick}
-            disabled={!canRun}
-          >
-            Run Optimizer
-          </button>
-          <span className="text-xs text-gray-500">{status}</span>
+        <div className="mt-3 grid gap-3">
+          <div className="rounded-xl border p-3 bg-gray-50">
+            <h4 className="text-sm font-medium mb-2">Configuration</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <label className="text-xs">Cost per mile</label>
+              <input type="number" step="0.01" className="form-input" value={config.transportation.cost_per_mile} onChange={(e)=>setConfig({...config, transportation:{...config.transportation, cost_per_mile: Number(e.target.value)}})} />
+              <label className="text-xs">Fixed facility cost</label>
+              <input type="number" step="1000" className="form-input" value={config.transportation.fixed_cost_per_facility} onChange={(e)=>setConfig({...config, transportation:{...config.transportation, fixed_cost_per_facility: Number(e.target.value)}})} />
+              <label className="text-xs">Lease years</label>
+              <input type="number" step="1" className="form-input" value={config.transportation.lease_years} onChange={(e)=>setConfig({...config, transportation:{...config.transportation, lease_years: Number(e.target.value)}})} />
+              <label className="text-xs">Warehouse operating days</label>
+              <input type="number" step="1" className="form-input" value={config.warehouse.operating_days} onChange={(e)=>setConfig({...config, warehouse:{...config.warehouse, operating_days: Number(e.target.value)}})} />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            <button
+              className={clsx('px-4 py-2 rounded-xl shadow', canRun ? 'bg-black text-white' : 'bg-gray-200 text-gray-500')}
+              onClick={handleRunClick}
+              disabled={!canRun}
+            >
+              Run Optimizer
+            </button>
+            <span className="text-xs text-gray-500">{status}</span>
+          </div>
         </div>
       </div>
 
