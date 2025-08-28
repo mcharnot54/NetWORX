@@ -140,6 +140,10 @@ export async function POST(request: NextRequest) {
       ? bodyCities
       : (config_overrides?.transportation?.candidateFacilities || defaultCandidateFacilities);
 
+    // Debug: log incoming city/destination overrides and chosen candidates
+    console.log('Debug: bodyCities length=', Array.isArray(bodyCities) ? bodyCities.length : 0, 'bodyCities=', bodyCities);
+    console.log('Debug: candidateFacilities chosen count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
+
     // Default major North American delivery markets - comprehensive coverage
     const defaultDestinations = [
       // Major US Metro Areas
