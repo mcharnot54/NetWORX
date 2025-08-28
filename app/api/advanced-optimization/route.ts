@@ -180,6 +180,9 @@ export async function POST(request: NextRequest) {
       bodyBaselineCost ?? actualTransportBaseline
     );
 
+    // Debug: log costMatrix dimensions
+    console.log('Debug: costMatrix rows=', costMatrix.rows?.length, 'cols=', costMatrix.cols?.length);
+
     // Create demand map: prefer caller-provided demand_map, otherwise use forecast equal distribution
     const requestDemandMap: Record<string, number> | undefined = (body as any).demand_map;
     let demand: DemandMap = {};
