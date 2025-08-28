@@ -569,6 +569,15 @@ export class RealDataTransportOptimizer {
       ]));
 
       // Call the Advanced Transport Optimizer API with real data
+      // Build demand map from routeData (aggregate total_shipments by destination)
+      const demandMap = Object.fromEntries(
+        actualCities.slice(0, 50).map(dest => {
+          const destRoutes = routeData.filter(r => r.destination === dest || r.origin === dest);
+          const volume = destRoutes.reduce((s, r) => s + (r.total_shipments || 0), 0) || 0;
+          return [dest, volume];
+        })
+      );
+
       const optimizationPayload = {
         scenario_id: scenarioId,
         optimization_type: scenarioType,
@@ -584,7 +593,8 @@ export class RealDataTransportOptimizer {
           }
         },
         cities: actualCities.slice(0, 50), // Use actual cities for optimization
-        baseline_transport_cost: baselineData.total_verified
+        baseline_transport_cost: baselineData.total_verified,
+        demand_map: demandMap
       };
 
       const optimizationResponse = await fetch('/api/advanced-optimization', {
