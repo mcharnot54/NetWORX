@@ -274,68 +274,164 @@ export function optimizeTransport(
     return fallbackOptimization();
   }
 
-  // Helper: fallback greedy optimization when MIP fails
+  // Helper: fallback heuristic optimizer when MIP fails — iterative cost-reduction approach
   function fallbackOptimization() {
-    console.log('🔄 Running fallback greedy transport optimizer');
+    console.log('🔄 Running improved fallback transport optimizer (iterative cost-reduction)');
 
-    // Start with mandatory facilities
-    const openSet = new Set<string>(mandatory ? Array.from(mandatory) : []);
+    // Start with mandatory facilities (only those present in the cost matrix)
+    const availableMandatory = Array.from(mandatory ?? []).filter((m) => cities.includes(m));
+    const openSet = new Set<string>(availableMandatory);
 
-    // Ensure at least minF facilities open; choose facilities with lowest average cost
-    const avgCosts: Array<{ city: string; avg: number }> = cities.map((c, i) => {
-      const row = cost[i] || [];
-      const sum = row.reduce((s, v) => s + (isFinite(v) ? v : 1e6), 0);
-      const avg = row.length ? sum / row.length : 1e6;
-      return { city: c, avg };
-    }).sort((a, b) => a.avg - b.avg);
+    const minOpen = Math.max(1, minF || 1);
+    const maxOpen = Math.min(cities.length, maxF || cities.length);
 
-    let idx = 0;
-    while (openSet.size < (minF || 1) && idx < avgCosts.length) {
-      openSet.add(avgCosts[idx].city);
-      idx++;
+    // Helper to get capacity for a facility (fall back to params or large number)
+    const getCapacity = (ci: string) => (capacityMap[ci] ?? params.max_capacity_per_facility ?? 1_000_000);
+
+    // Evaluate total transport cost and assignments for a given set of open facilities
+    function evaluate(openFacilities: string[]) {
+      const remainingCap: Record<string, number> = {};
+      for (const f of openFacilities) remainingCap[f] = getCapacity(f);
+
+      const assigns: TransportAssignment[] = [];
+      let totCost = 0;
+
+      for (let j = 0; j < dests.length; j++) {
+        const dj = dests[j];
+        const dUnits = demandMap[dj] ?? 0;
+
+        // choose cheapest open facility that has capacity
+        let bestFac: string | null = null;
+        let bestUnitCost = Infinity;
+        for (let i = 0; i < cities.length; i++) {
+          const ci = cities[i];
+          if (!openFacilities.includes(ci)) continue;
+          const unitCost = (cost[i] && isFinite(cost[i][j]) ? cost[i][j] : 1e6);
+          if (unitCost < bestUnitCost && remainingCap[ci] >= dUnits) {
+            bestUnitCost = unitCost;
+            bestFac = ci;
+          }
+        }
+
+        // if no facility with enough capacity, pick cheapest open regardless of capacity
+        if (!bestFac) {
+          for (let i = 0; i < cities.length; i++) {
+            const ci = cities[i];
+            if (!openFacilities.includes(ci)) continue;
+            const unitCost = (cost[i] && isFinite(cost[i][j]) ? cost[i][j] : 1e6);
+            if (unitCost < bestUnitCost) {
+              bestUnitCost = unitCost;
+              bestFac = ci;
+            }
+          }
+        }
+
+        // If still no facility (no opens), assign to global cheapest facility among all cities
+        if (!bestFac) {
+          let globalBestIdx = -1;
+          let globalBestCost = Infinity;
+          for (let i = 0; i < cities.length; i++) {
+            const unitCost = (cost[i] && isFinite(cost[i][j]) ? cost[i][j] : 1e6);
+            if (unitCost < globalBestCost) {
+              globalBestCost = unitCost;
+              globalBestIdx = i;
+            }
+          }
+          bestFac = cities[globalBestIdx] ?? cities[0];
+          bestUnitCost = (cost[globalBestIdx] && isFinite(cost[globalBestIdx][j]) ? cost[globalBestIdx][j] : 1e6);
+        }
+
+        assigns.push({
+          Facility: bestFac!,
+          Destination: dj,
+          Demand: dUnits,
+          Cost: bestUnitCost,
+          Distance: toDistance(bestUnitCost, params.cost_per_mile ?? 2.5),
+        });
+
+        if (bestFac) remainingCap[bestFac] = Math.max(0, (remainingCap[bestFac] ?? 0) - dUnits);
+        totCost += bestUnitCost * dUnits;
+      }
+
+      return { totalCost: totCost, assignments: assigns };
     }
 
-    // Greedy assignment: assign each destination to nearest open facility
-    const assignments: TransportAssignment[] = [];
-    let totalTransportCost = 0;
+    // Precompute avg costs for tie-breaking and initial seeding
+    const avgCosts = cities.map((c, i) => {
+      const r = cost[i] || [];
+      const vals = r.filter((v) => isFinite(v));
+      const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 1e6;
+      return { city: c, avg };
+    }).sort((a, b) => a.avg - b.avg).map((r) => r.city);
 
-    for (let j = 0; j < dests.length; j++) {
-      const dj = dests[j];
-      const dUnits = demandMap[dj] ?? 0;
+    // Ensure there is at least one open facility (respecting mandatory)
+    if (openSet.size === 0) {
+      openSet.add(avgCosts[0] ?? cities[0]);
+    }
 
-      let bestFac: string | null = null;
-      let bestCost = Infinity;
-      for (let i = 0; i < cities.length; i++) {
-        const ci = cities[i];
-        if (!openSet.has(ci)) continue;
-        const unitCost = (cost[i] && cost[i][j]) || 1e6;
-        if (unitCost < bestCost) {
-          bestCost = unitCost;
-          bestFac = ci;
+    // Expand until minOpen using best marginal reduction heuristic
+    let currentOpen = Array.from(openSet);
+    let currentEval = evaluate(currentOpen);
+
+    while (currentOpen.length < minOpen) {
+      let bestCandidate: string | null = null;
+      let bestReduction = -Infinity;
+
+      for (const c of cities) {
+        if (currentOpen.includes(c)) continue;
+        const trialOpen = currentOpen.concat([c]);
+        const trialEval = evaluate(trialOpen);
+        const reduction = currentEval.totalCost - trialEval.totalCost;
+        if (reduction > bestReduction) {
+          bestReduction = reduction;
+          bestCandidate = c;
         }
       }
 
-      if (!bestFac) {
-        // If no open facility can serve, pick overall cheapest and mark it open
-        const globalBest = avgCosts[0]?.city || cities[0];
-        openSet.add(globalBest);
-        // find its index
-        const gi = cities.indexOf(globalBest);
-        bestFac = globalBest;
-        bestCost = (cost[gi] && cost[gi][j]) || 1e6;
+      if (bestCandidate) {
+        currentOpen.push(bestCandidate);
+        currentEval = evaluate(currentOpen);
+      } else {
+        break;
       }
-
-      assignments.push({ Facility: bestFac!, Destination: dj, Demand: dUnits, Cost: bestCost, Distance: toDistance(bestCost, params.cost_per_mile ?? 2.5) });
-      totalTransportCost += bestCost * dUnits;
     }
 
-    const open = Array.from(openSet);
+    // Optionally add more facilities up to maxOpen if they reduce cost
+    let improving = true;
+    while (improving && currentOpen.length < maxOpen) {
+      improving = false;
+      let bestCandidate: string | null = null;
+      let bestReduction = 0;
 
-    const metrics = open.map((ci) => {
+      for (const c of cities) {
+        if (currentOpen.includes(c)) continue;
+        const trialOpen = currentOpen.concat([c]);
+        const trialEval = evaluate(trialOpen);
+        const reduction = currentEval.totalCost - trialEval.totalCost;
+        if (reduction > bestReduction) {
+          bestReduction = reduction;
+          bestCandidate = c;
+        }
+      }
+
+      if (bestCandidate && bestReduction > 1e-6) {
+        currentOpen.push(bestCandidate);
+        currentEval = evaluate(currentOpen);
+        improving = true;
+      }
+    }
+
+    const finalOpen = currentOpen;
+    const finalResult = evaluate(finalOpen);
+
+    const assignments = finalResult.assignments;
+    const totalTransportCost = finalResult.totalCost;
+
+    const metrics = finalOpen.map((ci) => {
       const served = assignments.filter((a) => a.Facility === ci);
       const totalDemand = served.reduce((s, a) => s + a.Demand, 0);
       const avgDist = served.length ? served.reduce((s, a) => s + a.Distance, 0) / served.length : 0;
-      const cap = capacityMap[ci] ?? (params.max_capacity_per_facility ?? 1_000_000);
+      const cap = getCapacity(ci);
       const costVal = served.reduce((s, a) => s + a.Cost * a.Demand, 0);
 
       return {
@@ -351,7 +447,7 @@ export function optimizeTransport(
 
     const demandWithin = assignments.filter((a) => a.Distance <= (params.max_distance_miles ?? 1000)).reduce((s, a) => s + a.Demand, 0);
     const totalDemandServed = assignments.reduce((s, a) => s + a.Demand, 0);
-    const totalCapacity = open.reduce((s, c) => s + (capacityMap[c] ?? (params.max_capacity_per_facility ?? 1_000_000)), 0);
+    const totalCapacity = finalOpen.reduce((s, c) => s + getCapacity(c), 0);
 
     const serviceLevel = totalDemandServed > 0 ? demandWithin / totalDemandServed : 0;
     const avgCostPerUnit = totalDemandServed > 0 ? totalTransportCost / totalDemandServed : 0;
@@ -360,14 +456,14 @@ export function optimizeTransport(
     const avgFacilityUtil = metrics.length ? metrics.reduce((s, m) => s + m.Capacity_Utilization, 0) / metrics.length : 0;
 
     return {
-      open_facilities: open,
+      open_facilities: finalOpen,
       assignments,
       facility_metrics: metrics,
       optimization_summary: {
         status: 'Fallback',
         objective_value: totalTransportCost,
         solve_time: solveTime,
-        facilities_opened: open.length,
+        facilities_opened: finalOpen.length,
         total_demand_served: totalDemandServed,
         total_transportation_cost: totalTransportCost,
       },
@@ -381,7 +477,7 @@ export function optimizeTransport(
         total_transportation_cost: totalTransportCost,
         demand_within_service_limit: demandWithin,
         total_demand_served: totalDemandServed,
-        facilities_opened: open.length,
+        facilities_opened: finalOpen.length,
         total_capacity_available: totalCapacity,
       },
     } as TransportResult;
