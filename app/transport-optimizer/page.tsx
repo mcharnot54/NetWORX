@@ -17,8 +17,10 @@ interface TransportScenario {
   route_details?: any;
   volume_allocations?: any;
   optimization_data?: any;
-  generated: boolean;
+  generated?: boolean;
   cities?: string[];
+  // Allow extra fields from real optimizer
+  [key: string]: any;
 }
 
 interface TransportConfiguration {
