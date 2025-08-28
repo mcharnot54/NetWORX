@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Use baseline data with optimally selected cities from comprehensive database
-        const transportResults = await optimizeWithBaselineData(scenario.cities, optimizationParams);
+        const transportResults = await optimizeWithBaselineData(scenario.cities, optimizationParams, baselineSummary);
 
         // Generate year-by-year analysis with growth projections
         const yearlyAnalysis = await generateYearlyAnalysis(
@@ -408,7 +408,8 @@ export async function POST(request: NextRequest) {
             transit_time_hours: route.transit_time_hours,
             annual_cost: route.distance_miles * route.cost_per_mile * 365 // Annual cost estimate
           })),
-          volume_allocations: generateDetailedVolumeAllocations(scenario.cities),
+          // No fallback volume allocations - rely on transportResults or capacity data
+          volume_allocations: transportResults.volume_allocations || [],
           optimization_data: {
             transport_optimization: transportResults,
             algorithm_details: {
@@ -424,29 +425,8 @@ export async function POST(request: NextRequest) {
 
       } catch (optimizationError) {
         console.error(`Failed to generate ${scenario.name}:`, optimizationError);
-
-        // Create detailed fallback scenario data
-        const fallbackYearlyAnalysis = await generateFallbackYearlyAnalysis(scenario.cities, baseline2025FreightCost, baselineWarehouseCost);
-
-        const fallbackData = {
-          id: scenarioId * 1000 + index,
-          scenario_type: scenario.key,
-          scenario_name: scenario.name,
-          scenario_description: scenario.description,
-          total_miles: 1000, // Minimum baseline distance estimate
-          total_cost: Math.round(baseline2025FreightCost), // Use REAL baseline costs
-          service_score: 75, // Baseline service score
-          generated: true,
-          cities: scenario.cities,
-          primary_route: `${scenario.cities[0]} ↔ ${scenario.cities[1]}`,
-          yearly_analysis: fallbackYearlyAnalysis,
-          route_details: generateMockRouteDetails(scenario.cities),
-          volume_allocations: generateDetailedVolumeAllocations(scenario.cities),
-          optimization_data: null,
-          error: optimizationError.message
-        };
-
-        generatedScenarios.push(fallbackData);
+        // Fail the entire generation run - no fallbacks allowed
+        throw optimizationError;
       }
     }
 
