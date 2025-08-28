@@ -181,7 +181,7 @@ export function optimizeTransport(
   // Define decision variables
   for (let i = 0; i < cities.length; i++) {
     const ci = cities[i];
-    const x = `x_${ci}`;
+    const x = `x_${sanitizeVar(ci)}`;
     
     // Facility opening variable (binary)
     builder.addVariable(x, 'binary');
