@@ -246,8 +246,9 @@ export class EnhancedExcelValidator {
         const converter = new DataConverter({
           strictMode: false,
           preserveOriginalColumns: true,
-          unitStandardization: false
-        }, this.logger);
+          unitStandardization: false,
+          logger: this.logger
+        });
 
         // Convert primary sheet data
         if (primarySheetData.data.length > 0) {
