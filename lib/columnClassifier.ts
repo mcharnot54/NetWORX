@@ -19,13 +19,13 @@ export function classifyColumn(header: string, sample: unknown[], columnIndex?: 
   const transportFeatures = extractTransportFeatures(header, sample);
   const f = extractFeatures(header, sample);
   
-  const boosts: Record<Canon, number> = {};
-  const pattKeys = Object.keys(f.patterns);
-  
+  const boosts: Partial<Record<Canon, number>> = {};
+  const pattKeys = Object.keys(f.patterns || {});
+
   // Pattern-based boosts
   const hasZip = pattKeys.some(k => /^99999(-9999)?$/.test(k));
   const looksDate = pattKeys.some(k => /99.99.9999|9999.99.99|99\/99\/9999|9999-99-99/.test(k));
-  const numericHeavy = f.uniqRatio > 0.1 && f.avgLen <= 8 && Object.keys(f.tokenBag).length < 500;
+  const numericHeavy = (f.stats?.uniqRatio ?? 0) > 0.1 && (f.stats?.avgLen ?? 0) <= 8 && Object.keys(f.tokenBag || {}).length < 500;
 
   function bump(c: Canon, by: number) { 
     boosts[c] = (boosts[c] ?? 0) + by; 
