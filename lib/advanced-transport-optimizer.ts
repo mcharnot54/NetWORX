@@ -209,7 +209,7 @@ export function optimizeTransport(
     // Assignment variables for each destination
     for (let j = 0; j < dests.length; j++) {
       const dj = dests[j];
-      const y = `y_${ci}__${dj}`;
+      const y = `y_${sanitizeVar(ci)}__${sanitizeVar(dj)}`;
       const dUnits = demandMap[dj] ?? 0;
       const unitCost = cost[i][j];
       const dist = toDistance(unitCost, params.cost_per_mile ?? 2.5);
