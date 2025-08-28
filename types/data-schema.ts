@@ -169,7 +169,7 @@ export interface ValidationResult {
 // File processing results
 export interface ProcessingResult {
   success: boolean;
-  data?: ComprehensiveOperationalData;
+  data?: any;
   errors?: string[];
   warnings?: string[];
   summary?: {
