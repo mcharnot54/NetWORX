@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Candidate facilities for network optimization - comprehensive coverage
     // Major US distribution hubs + current facility
-    const candidateFacilities = [
+    const defaultCandidateFacilities = [
       'Littleton, MA',     // Current facility (mandatory)
       'Chicago, IL',       // Midwest coverage
       'St. Louis, MO',     // Central US hub - optimal Midwest location
@@ -135,6 +135,10 @@ export async function POST(request: NextRequest) {
       'Calgary, AB',       // Western Canada
       'Winnipeg, MB',      // Central Canada
     ];
+
+    const candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
+      ? bodyCities
+      : (config_overrides?.transportation?.candidateFacilities || defaultCandidateFacilities);
 
     // Major North American delivery markets - comprehensive coverage
     const destinations = [
