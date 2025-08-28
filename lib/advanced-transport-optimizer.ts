@@ -48,36 +48,41 @@ export async function generateCostMatrix(
 
   const cost: number[][] = [];
   const availableFacilities: string[] = [];
+  const missingFacilityLogged = new Set<string>();
+  const missingDestinationLogged = new Set<string>();
 
   for (let i = 0; i < candidateFacilities.length; i++) {
     const facilityCity = candidateFacilities[i];
     // Normalize key
     const key = String(facilityCity).trim();
-    let facilityCoords = CITY_COORDINATES[key];
+    let facilityCoords = CITY_COORDINATES[key] || CITY_COORDINATES[normalizeCityKey(key)];
 
-    // Try comprehensive DB lookup using full string
+    // Try comprehensive DB lookup using full string or normalized key
     if (!facilityCoords) {
-      facilityCoords = getCityCoordinates(key);
+      facilityCoords = getCityCoordinates(key) || getCityCoordinates(normalizeCityKey(key));
     }
 
     // Try looser search by city name if still missing
+    let cityName = key.split(',')[0].trim();
     if (!facilityCoords) {
-      const cityName = key.split(',')[0].trim();
-      facilityCoords = getCityCoordinates(cityName);
+      facilityCoords = getCityCoordinates(cityName) || getCityCoordinates(normalizeCityKey(cityName));
     }
 
     // Fallback to optimization-algorithms constant if available
     if (!facilityCoords) {
       try {
         const { CITY_COORDINATES: FALLBACK_COORDS } = require('./optimization-algorithms');
-        facilityCoords = FALLBACK_COORDS[key] || FALLBACK_COORDS[cityName];
+        facilityCoords = FALLBACK_COORDS[key] || FALLBACK_COORDS[normalizeCityKey(key)] || FALLBACK_COORDS[cityName] || FALLBACK_COORDS[normalizeCityKey(cityName)];
       } catch (e) {
         // ignore
       }
     }
 
     if (!facilityCoords) {
-      console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping facility from matrix generation...`);
+      if (!missingFacilityLogged.has(facilityCity)) {
+        console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping facility from matrix generation...`);
+        missingFacilityLogged.add(facilityCity);
+      }
       continue;
     }
 
