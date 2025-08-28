@@ -846,11 +846,40 @@ export function getTopCitiesByPopulation(limit: number = 50): CityData[] {
     .slice(0, limit);
 }
 
-// Create coordinate lookup for existing function compatibility
-export const CITY_COORDINATES_LOOKUP: { [key: string]: { lat: number, lon: number } } = 
-  Object.fromEntries(
-    COMPREHENSIVE_CITIES.map(city => [
-      `${city.name}, ${city.state_province}`,
-      { lat: city.lat, lon: city.lon }
-    ])
-  );
+// Helper: normalize a city key for robust lookup
+function normalizeCityKey(raw: string) {
+  if (!raw) return '';
+  return String(raw)
+    .toLowerCase()
+    .replace(/\./g, '')           // remove periods
+    .replace(/\s+/g, ' ')         // collapse whitespace
+    .replace(/\s*,\s*/g, ', ')   // normalize comma+space
+    .trim();
+}
+
+// Create coordinate lookup for existing function compatibility with multiple key variants
+export const CITY_COORDINATES_LOOKUP: { [key: string]: { lat: number, lon: number } } = (() => {
+  const map: { [key: string]: { lat: number, lon: number } } = {};
+  for (const city of COMPREHENSIVE_CITIES) {
+    const key = `${city.name}, ${city.state_province}`;
+    map[key] = { lat: city.lat, lon: city.lon };
+    // add normalized key
+    map[normalizeCityKey(key)] = { lat: city.lat, lon: city.lon };
+    // add variants: city name only, normalized
+    map[city.name] = { lat: city.lat, lon: city.lon };
+    map[normalizeCityKey(city.name)] = { lat: city.lat, lon: city.lon };
+    // add metro area if present
+    if (city.metro_area) {
+      map[city.metro_area] = { lat: city.lat, lon: city.lon };
+      map[normalizeCityKey(city.metro_area)] = { lat: city.lat, lon: city.lon };
+    }
+  }
+  // common alias: Washington, D.C. -> Washington, DC
+  if (!map['washington, dc'] && map['washington, d c']) {
+    map['washington, dc'] = map['washington, d c'];
+  }
+  return map;
+})();
+
+// expose normalizer for use elsewhere
+export { normalizeCityKey };

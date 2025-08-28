@@ -19,9 +19,10 @@ interface ScenarioManagerProps {
   onSelectScenario: (scenario: Scenario) => void;
   selectedScenario?: Scenario | null;
   scenarioType?: 'warehouse' | 'transport' | 'combined';
+  onOptimizeScenario?: (scenario: Scenario) => Promise<void>;
 }
 
-export default function ScenarioManager({ onSelectScenario, selectedScenario, scenarioType }: ScenarioManagerProps) {
+export default function ScenarioManager({ onSelectScenario, selectedScenario, scenarioType, onOptimizeScenario }: ScenarioManagerProps) {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -60,8 +61,9 @@ export default function ScenarioManager({ onSelectScenario, selectedScenario, sc
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...newScenario,
-          created_by: 'current_user', // In a real app, this would come from authentication
+          name: newScenario.name,
+          description: newScenario.description,
+          scenario_type: newScenario.scenario_type,
           metadata: {
             created_via: 'web_interface',
             initial_configuration: {}
@@ -97,7 +99,6 @@ export default function ScenarioManager({ onSelectScenario, selectedScenario, sc
           name: `${scenario.name} (Copy)`,
           description: scenario.description,
           scenario_type: scenario.scenario_type,
-          created_by: 'current_user',
           metadata: {
             ...scenario.metadata,
             duplicated_from: scenario.id,
@@ -134,6 +135,92 @@ export default function ScenarioManager({ onSelectScenario, selectedScenario, sc
       }
     } catch (error) {
       console.error('Error deleting scenario:', error);
+    }
+  };
+
+  const setScenarioStatus = (id: number, status: Scenario['status']) => {
+    setScenarios(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+  };
+
+  const runOptimize = async (scenario: Scenario) => {
+    if (onOptimizeScenario) {
+      try {
+        setScenarioStatus(scenario.id, 'running');
+        await onOptimizeScenario(scenario);
+        setScenarioStatus(scenario.id, 'completed');
+      } catch (err) {
+        console.error('Optimize handler error:', err);
+        setScenarioStatus(scenario.id, 'failed');
+      }
+      return;
+    }
+
+    // Default optimize flow: call backend run-batch to create an async job and poll for status
+    try {
+      setScenarioStatus(scenario.id, 'running');
+      const res = await fetch('/api/optimize/run-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario_id: scenario.id })
+      });
+      const data = await res.json();
+      if (!(res.ok && data && data.success && data.job_id)) {
+        console.error('Optimize API error (no job):', data);
+        setScenarioStatus(scenario.id, 'failed');
+        return;
+      }
+
+      const jobId = data.job_id as string;
+
+      // Poll for job status
+      const pollIntervalMs = 2000;
+      const timeoutMs = 1000 * 60 * 10; // 10 minutes max
+      const start = Date.now();
+
+      while (true) {
+        await new Promise(r => setTimeout(r, pollIntervalMs));
+        try {
+          const statusRes = await fetch(`/api/optimize/run-batch?job_id=${encodeURIComponent(jobId)}`);
+          const statusData = await statusRes.json();
+          if (!statusData.success) {
+            console.error('Job status fetch error:', statusData);
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+
+          const job = statusData.job as any;
+          if (!job) {
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+
+          if (job.status === 'running' || job.status === 'pending') {
+            // still running — continue polling
+            setScenarioStatus(scenario.id, 'running');
+          } else if (job.status === 'completed') {
+            setScenarioStatus(scenario.id, 'completed');
+            // Optionally, you could fetch job.result here and attach to scenario metadata
+            break;
+          } else if (job.status === 'failed') {
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+
+          if (Date.now() - start > timeoutMs) {
+            console.error('Job polling timed out');
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+          setScenarioStatus(scenario.id, 'failed');
+          break;
+        }
+      }
+
+    } catch (err) {
+      console.error('Optimize error:', err);
+      setScenarioStatus(scenario.id, 'failed');
     }
   };
 
@@ -297,6 +384,7 @@ export default function ScenarioManager({ onSelectScenario, selectedScenario, sc
                       <button
                         className="button button-secondary"
                         style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}
+                        onClick={(e) => { e.stopPropagation(); runOptimize(scenario); }}
                       >
                         <Play size={12} />
                         Optimize

@@ -143,29 +143,21 @@ export async function GET(request: NextRequest) {
         }
       };
 
-      // Try to update the Transport Optimizer
+      // Do NOT update application source files at runtime in dev mode.
+      // Instead, surface the detected baseline and return instructions for manual or controlled application.
       try {
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        
-        const filePath = path.join(process.cwd(), 'app/api/simple-transport-generation/route.ts');
-        let fileContent = await fs.readFile(filePath, 'utf-8');
-        
         const newValue = Math.round(bestBaseline.value);
         const replacement = `const baseline2025FreightCost = ${newValue}; // Extracted from ${bestFile.name}`;
-        
-        fileContent = fileContent.replace(
-          /const baseline2025FreightCost = \d+;[^\n]*/g,
-          replacement
-        );
-        
-        await fs.writeFile(filePath, fileContent);
-        
-        results.transport_optimizer_updated = true;
-        console.log(`🔧 Updated Transport Optimizer with baseline: $${(newValue/1000000).toFixed(1)}M`);
-        
+        results.transport_optimizer_updated = false; // Not applied automatically in dev
+        results.detected_baseline = {
+          value: newValue,
+          formatted: `$${(newValue/1000000).toFixed(1)}M`,
+          intended_replacement: replacement,
+          note: 'Source files were NOT modified. Apply via source control or admin configuration.'
+        };
+        console.log('ℹ️ Detected baseline (not written to source):', results.detected_baseline);
       } catch (updateError) {
-        console.error('❌ Failed to update Transport Optimizer:', updateError);
+        console.error('❌ Failed to prepare Transport Optimizer update details:', updateError);
       }
     }
 

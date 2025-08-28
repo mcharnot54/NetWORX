@@ -44,89 +44,70 @@ function getStrategicImportanceScore(city: any): number {
 }
 
 // Function to extract baseline costs and run optimization for selected cities
-async function optimizeWithBaselineData(selectedCities: string[], optimizationParams: any) {
-  try {
-    console.log('🔍 Extracting baseline shipping patterns and optimizing selected cities...');
-    console.log(`🎯 Selected optimal cities for analysis: ${selectedCities.join(', ')}`);
+async function optimizeWithBaselineData(selectedCities: string[], optimizationParams: any, baselineSummary: any) {
+  // Must have real baseline summary passed in; no fallbacks allowed
+  if (!baselineSummary || !baselineSummary.total_verified) {
+    throw new Error('Missing verified baseline summary. Run baseline extraction before generating scenarios.');
+  }
 
-    // Extract COMPLETE baseline shipping costs and patterns (current state) - $6.56M total
-    const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
-    const baselineData = await baselineResponse.json();
+  console.log('🔍 Running optimization with provided verified baseline...');
+  console.log(`🎯 Selected cities: ${selectedCities.join(', ')}`);
 
-    if (!baselineData.success) {
-      throw new Error('Failed to extract complete baseline shipping data');
+  // Use the provided baseline summary
+  const totalBaselineCost = baselineSummary.total_verified;
+
+  // Generate optimized routes using the repo optimizer where possible
+  // For simple generation we rely on the main optimization function; no mock fallbacks
+  const optimizedRoutes = selectedCities.slice(1).map((city, index) => {
+    // Attempt to use the comprehensive cities database for coordinates
+    const { COMPREHENSIVE_CITIES } = require('@/lib/comprehensive-cities-database');
+    const targetCity = COMPREHENSIVE_CITIES.find((c: any) => `${c.name}, ${c.state_province}` === city);
+
+    if (!targetCity) {
+      throw new Error(`Missing city coordinates for ${city}. Provide real transport/cities data.`);
     }
 
-    const { baseline_summary } = baselineData;
-    const currentRoutes = []; // Routes will be derived from optimization, not baseline extraction
+    const littletonCoords = { lat: 42.5334, lon: -71.4912 };
+    const distance = calculateDistanceFromCoords(littletonCoords.lat, littletonCoords.lon, targetCity.lat, targetCity.lon);
 
-    console.log(`📊 COMPLETE Baseline Analysis: $${baseline_summary.total_verified.toLocaleString()} total verified baseline`);
-    console.log(`💰 UPS Parcel: $${baseline_summary.ups_parcel_costs.toLocaleString()}`);
-    console.log(`💰 TL Freight: $${baseline_summary.tl_freight_costs.toLocaleString()}`);
-    console.log(`💰 R&L LTL: $${baseline_summary.rl_ltl_costs.toLocaleString()}`);
-    console.log(`💰 TOTAL VERIFIED: $${baseline_summary.total_verified.toLocaleString()}`);
-
-    // Use the COMPLETE $6.56M baseline cost
-    const totalBaselineCost = baseline_summary.total_verified; // $6.56M
-
-    // Generate optimized routes between Littleton, MA and selected optimal cities
-    const optimizedRoutes = selectedCities.slice(1).map((city, index) => {
-      // Calculate distance between Littleton, MA and selected city
-      const littletonCoords = { lat: 42.5334, lon: -71.4912 };
-      const { COMPREHENSIVE_CITIES } = require('@/lib/comprehensive-cities-database');
-
-      const targetCity = COMPREHENSIVE_CITIES.find(c => `${c.name}, ${c.state_province}` === city);
-      const distance = targetCity ?
-        calculateDistanceFromCoords(littletonCoords.lat, littletonCoords.lon, targetCity.lat, targetCity.lon) :
-        500; // Fallback distance
-
-      // Estimate cost based on distance and current baseline
-      const estimatedCost = Math.round(distance * 2.5 * 365); // $2.50/mile annual estimate
-
-      return {
-        route_id: `optimized_route_${index}`,
-        origin: 'Littleton, MA',
-        destination: city,
-        distance_miles: Math.round(distance),
-        original_cost: Math.round(totalBaselineCost / selectedCities.length), // Proportional baseline
-        optimized_cost: estimatedCost,
-        time_savings: 0, // Baseline scenario
-        volume_capacity: 10000 + (index * 2000), // Varying capacity
-        service_zone: Math.floor(distance / 300) + 1, // Zone based on distance
-        cost_per_mile: 2.5,
-        transit_time_hours: Math.round(distance / 45) // 45 mph average
-      };
-    });
-
-    const totalOptimizedDistance = optimizedRoutes.reduce((sum, route) => sum + route.distance_miles, 0);
-    const totalOptimizedCost = Math.round(totalBaselineCost); // Use real baseline cost
-
-    console.log(`✅ Optimization complete for ${selectedCities.length} cities`);
-    console.log(`📏 Total network distance: ${totalOptimizedDistance.toLocaleString()} miles`);
-    console.log(`💰 Total baseline cost: $${totalOptimizedCost.toLocaleString()}`);
+    const estimatedCost = Math.round(distance * 2.5 * 365);
 
     return {
-      total_transport_cost: totalOptimizedCost,
-      total_distance: totalOptimizedDistance,
-      service_level_percentage: 85,
-      optimized_routes: optimizedRoutes,
-      cost_savings: 0, // Baseline year - no savings yet
-      efficiency_improvement: 0,
-      data_source: 'complete_baseline_6_56M_with_optimal_cities',
-      baseline_totals: {
-        ups_parcel: baseline_summary.ups_parcel_costs,
-        tl_freight: baseline_summary.tl_freight_costs,
-        rl_ltl: baseline_summary.rl_ltl_costs,
-        total_verified: baseline_summary.total_verified
-      },
-      selected_cities: selectedCities
+      route_id: `optimized_route_${index}`,
+      origin: 'Littleton, MA',
+      destination: city,
+      distance_miles: Math.round(distance),
+      original_cost: Math.round(totalBaselineCost / selectedCities.length),
+      optimized_cost: estimatedCost,
+      time_savings: 0,
+      volume_capacity: 10000 + (index * 2000),
+      service_zone: Math.floor(distance / 300) + 1,
+      cost_per_mile: 2.5,
+      transit_time_hours: Math.round(distance / 45)
     };
+  });
 
-  } catch (error) {
-    console.error('❌ Error in baseline optimization:', error);
-    // Fallback to using the original function
-    return optimizeTransportRoutes(optimizationParams);
-  }
+  const totalOptimizedDistance = optimizedRoutes.reduce((sum, route) => sum + route.distance_miles, 0);
+  const totalOptimizedCost = Math.round(totalBaselineCost);
+
+  console.log(`✅ Optimization complete using verified baseline`);
+
+  return {
+    total_transport_cost: totalOptimizedCost,
+    total_distance: totalOptimizedDistance,
+    service_level_percentage: 85,
+    optimized_routes: optimizedRoutes,
+    cost_savings: 0,
+    efficiency_improvement: 0,
+    data_source: 'verified_baseline_with_real_cities',
+    baseline_totals: {
+      ups_parcel: baselineSummary.ups_parcel_costs,
+      tl_freight: baselineSummary.tl_freight_costs,
+      rl_ltl: baselineSummary.rl_ltl_costs,
+      total_verified: baselineSummary.total_verified
+    },
+    selected_cities: selectedCities
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -342,47 +323,21 @@ export async function POST(request: NextRequest) {
     let baseline2025FreightCost = 0;
     let baselineWarehouseCost = 850000; // Default warehouse cost
 
-    try {
-      console.log('🚀 Fetching COMPLETE $6.56M baseline costs from verified transport data...');
-
-      // Get COMPLETE $6.56M baseline costs from analyze-transport-baseline-data
-      const baselineResponse = await fetch(`http://localhost:3000/api/analyze-transport-baseline-data`);
-      if (baselineResponse.ok) {
-        const baselineData = await baselineResponse.json();
-        if (baselineData.success && baselineData.baseline_summary) {
-          const baseline = baselineData.baseline_summary;
-          baseline2025FreightCost = baseline.total_verified; // Use the complete $6.56M
-
-          console.log(`✅ Using COMPLETE verified baseline costs ($6.56M):`);
-          console.log(`   UPS Parcel: $${baseline.ups_parcel_costs?.toLocaleString()}`);
-          console.log(`   TL Freight: $${baseline.tl_freight_costs?.toLocaleString()}`);
-          console.log(`   R&L LTL: $${baseline.rl_ltl_costs?.toLocaleString()}`);
-          console.log(`   TOTAL VERIFIED BASELINE: $${baseline2025FreightCost.toLocaleString()}`);
-        }
-      }
-
-      // Fallback: Try current baseline costs API
-      if (baseline2025FreightCost === 0) {
-        const currentBaselineResponse = await fetch(`http://localhost:3000/api/current-baseline-costs`);
-        if (currentBaselineResponse.ok) {
-          const currentBaseline = await currentBaselineResponse.json();
-          if (currentBaseline.success && currentBaseline.baseline_costs) {
-            baseline2025FreightCost = currentBaseline.baseline_costs.transport_costs.freight_costs.raw || 0;
-            console.log(`✅ Using current baseline freight cost: $${baseline2025FreightCost.toLocaleString()}`);
-          }
-        }
-      }
-
-      // If still no real data, show error but continue with a minimum estimate
-      if (baseline2025FreightCost === 0) {
-        console.warn('⚠️ No real baseline costs found, using minimum estimate');
-        baseline2025FreightCost = 1000000; // Minimum $1M estimate
-      }
-
-    } catch (error) {
-      console.error('❌ Error fetching baseline costs:', error);
-      baseline2025FreightCost = 1000000; // Fallback minimum
+    // Preflight: Fetch verified baseline summary - fail if missing
+    console.log('🚀 Fetching verified baseline costs from analyze-transport-baseline-data...');
+    const baselineResponse = await fetch(`http://localhost:3000/api/analyze-transport-baseline-data`);
+    if (!baselineResponse.ok) {
+      throw new Error('Failed to fetch verified baseline data. Ensure baseline extraction completed.');
     }
+    const baselineData = await baselineResponse.json();
+    if (!baselineData.success || !baselineData.baseline_summary) {
+      throw new Error('Verified baseline summary is missing. Run baseline extraction before generating scenarios.');
+    }
+
+    const baselineSummary = baselineData.baseline_summary;
+    baseline2025FreightCost = baselineSummary.total_verified;
+
+    console.log(`✅ Using verified baseline costs: $${baseline2025FreightCost.toLocaleString()}`);
 
     // Generate each detailed scenario
     for (let index = 0; index < typesToGenerate.length; index++) {
@@ -410,7 +365,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Use baseline data with optimally selected cities from comprehensive database
-        const transportResults = await optimizeWithBaselineData(scenario.cities, optimizationParams);
+        const transportResults = await optimizeWithBaselineData(scenario.cities, optimizationParams, baselineSummary);
 
         // Generate year-by-year analysis with growth projections
         const yearlyAnalysis = await generateYearlyAnalysis(
@@ -453,7 +408,8 @@ export async function POST(request: NextRequest) {
             transit_time_hours: route.transit_time_hours,
             annual_cost: route.distance_miles * route.cost_per_mile * 365 // Annual cost estimate
           })),
-          volume_allocations: generateDetailedVolumeAllocations(scenario.cities),
+          // No fallback volume allocations - rely on transportResults or capacity data
+          volume_allocations: transportResults.volume_allocations || [],
           optimization_data: {
             transport_optimization: transportResults,
             algorithm_details: {
@@ -469,29 +425,8 @@ export async function POST(request: NextRequest) {
 
       } catch (optimizationError) {
         console.error(`Failed to generate ${scenario.name}:`, optimizationError);
-
-        // Create detailed fallback scenario data
-        const fallbackYearlyAnalysis = await generateFallbackYearlyAnalysis(scenario.cities, baseline2025FreightCost, baselineWarehouseCost);
-
-        const fallbackData = {
-          id: scenarioId * 1000 + index,
-          scenario_type: scenario.key,
-          scenario_name: scenario.name,
-          scenario_description: scenario.description,
-          total_miles: 1000, // Minimum baseline distance estimate
-          total_cost: Math.round(baseline2025FreightCost), // Use REAL baseline costs
-          service_score: 75, // Baseline service score
-          generated: true,
-          cities: scenario.cities,
-          primary_route: `${scenario.cities[0]} ↔ ${scenario.cities[1]}`,
-          yearly_analysis: fallbackYearlyAnalysis,
-          route_details: generateMockRouteDetails(scenario.cities),
-          volume_allocations: generateDetailedVolumeAllocations(scenario.cities),
-          optimization_data: null,
-          error: optimizationError.message
-        };
-
-        generatedScenarios.push(fallbackData);
+        // Fail the entire generation run - no fallbacks allowed
+        throw optimizationError;
       }
     }
 
@@ -672,36 +607,9 @@ async function generateFallbackYearlyAnalysis(cities: string[], baseline2025Frei
 }
 
 function generateDetailedVolumeAllocations(cities: string[]) {
-  return cities.map((city, index) => ({
-    facility_id: `facility_${city.toLowerCase().replace(/[^a-z]/g, '_')}`,
-    facility_name: `${city} Distribution Hub`,
-    location: city,
-    total_volume_units: Math.floor(Math.random() * 30000) + 40000,
-    outbound_volume: Math.floor(Math.random() * 20000) + 25000,
-    inbound_volume: Math.floor(Math.random() * 15000) + 15000,
-    capacity_utilization: Math.random() * 20 + 75,
-    annual_throughput: Math.floor(Math.random() * 500000) + 1000000,
-    peak_season_factor: 1.3 + (Math.random() * 0.2)
-  }));
+  throw new Error('Fallback volume allocations disabled. Provide real capacity analysis data to generate volume allocations.');
 }
 
 function generateMockRouteDetails(cities: string[]) {
-  const routes = [];
-
-  for (let i = 0; i < cities.length; i++) {
-    for (let j = i + 1; j < cities.length; j++) {
-      routes.push({
-        origin: cities[i],
-        destination: cities[j],
-        distance_miles: Math.floor(Math.random() * 800) + 200,
-        cost_per_mile: Math.random() * 2 + 1.5,
-        service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`,
-        volume_units: Math.floor(Math.random() * 10000) + 5000,
-        transit_time_hours: Math.floor(Math.random() * 20) + 8,
-        annual_cost: Math.floor(Math.random() * 100000) + 50000
-      });
-    }
-  }
-
-  return routes.slice(0, 10);
+  throw new Error('Fallback mock route details disabled. Provide real transport route extraction data.');
 }

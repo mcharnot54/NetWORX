@@ -29,30 +29,19 @@ export async function POST(request: NextRequest) {
       console.log('Could not extract from TL file, using provided baseline:', actualBaseline);
     }
 
-    // Update the simple-transport-generation route with the new baseline
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    
-    const filePath = path.join(process.cwd(), 'app/api/simple-transport-generation/route.ts');
-    let fileContent = await fs.readFile(filePath, 'utf-8');
-    
-    // Replace the hardcoded baseline values
-    const oldBaseline = 'const baseline2025FreightCost = 5500000;';
-    const newBaseline = `const baseline2025FreightCost = ${actualBaseline}; // Extracted from TL file`;
-    
-    fileContent = fileContent.replace(oldBaseline, newBaseline);
-    
-    // Also update the fallback function
-    const oldFallbackBaseline = 'const baseline2025FreightCost = 5500000;';
-    const newFallbackBaseline = `const baseline2025FreightCost = ${actualBaseline}; // Extracted from TL file`;
-    
-    // Replace all instances
-    fileContent = fileContent.replace(/const baseline2025FreightCost = \d+;/g, 
-      `const baseline2025FreightCost = ${actualBaseline}; // Extracted from TL file`);
-    
-    await fs.writeFile(filePath, fileContent);
-    
-    console.log(`Updated Transport Optimizer baseline from $5.5M to $${(actualBaseline/1000000).toFixed(1)}M`);
+    // NOTE: Avoid modifying application source files at runtime in the dev server.
+    // Instead of writing to app/api/simple-transport-generation/route.ts, return the detected baseline
+    // and provide instructions for applying the change via source control or a config endpoint.
+
+    console.log(`Detected baseline to update Transport Optimizer: $${(actualBaseline/1000000).toFixed(1)}M`);
+
+    // We intentionally do not modify source files here to prevent Next.js dev server restarts.
+    // If you want to apply the baseline programmatically, create a dedicated configuration endpoint
+    // or update the file through CI / source control.
+
+    // Log the intended replacement for operator inspection
+    const intendedReplacement = `const baseline2025FreightCost = ${actualBaseline}; // Extracted from TL file`;
+    console.log('Intended baseline replacement (not applied):', intendedReplacement);
 
     return NextResponse.json({
       success: true,

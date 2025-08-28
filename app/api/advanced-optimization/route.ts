@@ -105,40 +105,69 @@ export async function POST(request: NextRequest) {
       { sku: 'Educational_Materials_E', annual_volume: 700_000,   units_per_case: 30, cases_per_pallet: 25 },
     ];
 
-    // Candidate facilities for network optimization - comprehensive coverage
-    // Major US distribution hubs + current facility
-    const defaultCandidateFacilities = [
-      'Littleton, MA',     // Current facility (mandatory)
-      'Chicago, IL',       // Midwest coverage
-      'St. Louis, MO',     // Central US hub - optimal Midwest location
-      'Dallas, TX',        // South/Central coverage
-      'Atlanta, GA',       // Southeast coverage
-      'Los Angeles, CA',   // West Coast coverage
-      'Phoenix, AZ',       // Southwest coverage
-      'Denver, CO',        // Mountain West coverage
-      'Nashville, TN',     // Southeast logistics hub
-      'Kansas City, MO',   // Central logistics hub
-      'Memphis, TN',       // Central logistics hub
-      'Columbus, OH',      // Ohio Valley coverage
-      'Indianapolis, IN',  // Midwest logistics hub
-      'Charlotte, NC',     // Southeast coverage
-      'Jacksonville, FL',  // Southeast/Florida coverage
-      'Portland, OR',      // Pacific Northwest coverage
-      'Seattle, WA',       // Pacific Northwest coverage
-      'Salt Lake City, UT',// Mountain West coverage
-      'Albuquerque, NM',   // Southwest coverage
-      'Oklahoma City, OK', // South Central coverage
-      // Canadian major centers for cross-border coverage
-      'Toronto, ON',       // Central Canada
-      'Montreal, QC',      // Eastern Canada
-      'Vancouver, BC',     // Western Canada
-      'Calgary, AB',       // Western Canada
-      'Winnipeg, MB',      // Central Canada
-    ];
+    // Candidate facilities for network optimization - use comprehensive cities DB (500+ entries)
+    let defaultCandidateFacilities: string[] = [];
+    try {
+      const { getAllUSCities, getAllCanadianCities } = await import('@/lib/comprehensive-cities-database');
+      const us = getAllUSCities().map(c => `${c.name}, ${c.state_province}`);
+      const ca = getAllCanadianCities().map(c => `${c.name}, ${c.state_province}`);
+      // Limit to top N candidates to avoid huge memory usage in MIP model
+      const maxCandidates = 250;
+      defaultCandidateFacilities = ['Littleton, MA', ...us.slice(0, Math.min(us.length, maxCandidates - 10)), ...ca.slice(0, Math.max(0, maxCandidates - 10 - Math.min(us.length, maxCandidates - 10)))];
+      console.log(`Using comprehensive candidate facility list: ${defaultCandidateFacilities.length} entries (limited to ${maxCandidates})`);
+    } catch (err) {
+      console.warn('Failed to load comprehensive cities DB, falling back to curated defaults', err);
+      defaultCandidateFacilities = [
+        'Littleton, MA',     // Current facility (mandatory)
+        'Chicago, IL',       // Midwest coverage
+        'St. Louis, MO',     // Central US hub - optimal Midwest location
+        'Dallas, TX',        // South/Central coverage
+        'Atlanta, GA',       // Southeast coverage
+        'Los Angeles, CA',   // West Coast coverage
+        'Phoenix, AZ',       // Southwest coverage
+        'Denver, CO',        // Mountain West coverage
+        'Nashville, TN',     // Southeast logistics hub
+        'Kansas City, MO',   // Central logistics hub
+        'Memphis, TN',       // Central logistics hub
+        'Columbus, OH',      // Ohio Valley coverage
+        'Indianapolis, IN',  // Midwest logistics hub
+        'Charlotte, NC',     // Southeast coverage
+        'Jacksonville, FL',  // Southeast/Florida coverage
+        'Portland, OR',      // Pacific Northwest coverage
+        'Seattle, WA',       // Pacific Northwest coverage
+        'Salt Lake City, UT',// Mountain West coverage
+        'Albuquerque, NM',   // Southwest coverage
+        'Oklahoma City, OK', // South Central coverage
+        // Canadian major centers for cross-border coverage
+        'Toronto, ON',       // Central Canada
+        'Montreal, QC',      // Eastern Canada
+        'Vancouver, BC',     // Western Canada
+        'Calgary, AB',       // Western Canada
+        'Winnipeg, MB',      // Central Canada
+      ];
+    }
 
-    const candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
-      ? bodyCities
+    let candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
+      ? bodyCities.map((c:any)=>String(c).trim()).filter(Boolean)
       : (config_overrides?.transportation?.candidateFacilities || defaultCandidateFacilities);
+
+    // Debug: log incoming city/destination overrides and chosen candidates
+    console.log('Debug: bodyCities length=', Array.isArray(bodyCities) ? bodyCities.length : 0, 'bodyCities=', bodyCities);
+    console.log('Debug: raw candidateFacilities chosen count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
+
+    // Validate candidateFacilities look like city strings (contain comma 'City, ST' or known token)
+    const looksLikeCity = (s: string) => typeof s === 'string' && s.includes(',');
+    const validatedCandidates = candidateFacilities.filter(looksLikeCity);
+
+    if (validatedCandidates.length === 0) {
+      console.warn('Candidate facilities override did not contain city,state entries. Falling back to defaultCandidateFacilities. Received:', candidateFacilities.slice(0,5));
+      candidateFacilities = defaultCandidateFacilities;
+    } else if (validatedCandidates.length !== candidateFacilities.length) {
+      console.warn(`Filtered candidateFacilities to ${validatedCandidates.length}/${candidateFacilities.length} entries that look like 'City, ST'`);
+      candidateFacilities = validatedCandidates;
+    }
+
+    console.log('Debug: candidateFacilities final count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
 
     // Default major North American delivery markets - comprehensive coverage
     const defaultDestinations = [
@@ -175,6 +204,14 @@ export async function POST(request: NextRequest) {
       destinations,
       bodyBaselineCost ?? actualTransportBaseline
     );
+
+    // Debug: log costMatrix dimensions
+    console.log('Debug: costMatrix rows=', costMatrix.rows?.length, 'cols=', costMatrix.cols?.length);
+
+    if (!costMatrix || !Array.isArray(costMatrix.rows) || costMatrix.rows.length === 0) {
+      console.error('Cost matrix generation produced zero candidate facilities. Aborting optimization. Candidate facilities provided:', candidateFacilities.slice(0,10));
+      throw new Error('No valid candidate facilities found for optimization. Ensure candidate facilities are proper "City, ST" strings or leave blank to use defaults.');
+    }
 
     // Create demand map: prefer caller-provided demand_map, otherwise use forecast equal distribution
     const requestDemandMap: Record<string, number> | undefined = (body as any).demand_map;

@@ -14,7 +14,7 @@ import {
 } from '../types/advanced-optimization';
 import { solve, createConstraintBuilder, validateModel } from './advanced-solver';
 
-import { CITY_COORDINATES_LOOKUP, getCityCoordinates } from './comprehensive-cities-database';
+import { CITY_COORDINATES_LOOKUP, getCityCoordinates, normalizeCityKey } from './comprehensive-cities-database';
 
 // Use comprehensive North American cities database
 const CITY_COORDINATES = CITY_COORDINATES_LOOKUP;
@@ -48,19 +48,41 @@ export async function generateCostMatrix(
 
   const cost: number[][] = [];
   const availableFacilities: string[] = [];
+  const missingFacilityLogged = new Set<string>();
+  const missingDestinationLogged = new Set<string>();
 
   for (let i = 0; i < candidateFacilities.length; i++) {
     const facilityCity = candidateFacilities[i];
-    let facilityCoords = CITY_COORDINATES[facilityCity];
+    // Normalize key
+    const key = String(facilityCity).trim();
+    let facilityCoords = CITY_COORDINATES[key] || CITY_COORDINATES[normalizeCityKey(key)];
 
-    // Try alternative lookup if direct lookup fails
+    // Try comprehensive DB lookup using full string or normalized key
     if (!facilityCoords) {
-      const cityName = facilityCity.split(', ')[0];
-      facilityCoords = getCityCoordinates(cityName);
+      facilityCoords = getCityCoordinates(key) || getCityCoordinates(normalizeCityKey(key));
+    }
+
+    // Try looser search by city name if still missing
+    let cityName = key.split(',')[0].trim();
+    if (!facilityCoords) {
+      facilityCoords = getCityCoordinates(cityName) || getCityCoordinates(normalizeCityKey(cityName));
+    }
+
+    // Fallback to optimization-algorithms constant if available
+    if (!facilityCoords) {
+      try {
+        const { CITY_COORDINATES: FALLBACK_COORDS } = require('./optimization-algorithms');
+        facilityCoords = FALLBACK_COORDS[key] || FALLBACK_COORDS[normalizeCityKey(key)] || FALLBACK_COORDS[cityName] || FALLBACK_COORDS[normalizeCityKey(cityName)];
+      } catch (e) {
+        // ignore
+      }
     }
 
     if (!facilityCoords) {
-      console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping facility from matrix generation...`);
+      if (!missingFacilityLogged.has(facilityCity)) {
+        console.warn(`⚠️ No coordinates found for facility: ${facilityCity}, skipping facility from matrix generation...`);
+        missingFacilityLogged.add(facilityCity);
+      }
       continue;
     }
 
@@ -69,12 +91,18 @@ export async function generateCostMatrix(
 
     for (let j = 0; j < destinations.length; j++) {
       const destCity = destinations[j];
-      let destCoords = CITY_COORDINATES[destCity];
+      const destKey = String(destCity).trim();
+      let destCoords = CITY_COORDINATES[destKey] || CITY_COORDINATES[normalizeCityKey(destKey)];
 
-      // Try alternative lookup if direct lookup fails
+      // Try full-string lookup in comprehensive DB
       if (!destCoords) {
-        const cityName = destCity.split(', ')[0];
-        destCoords = getCityCoordinates(cityName);
+        destCoords = getCityCoordinates(destKey) || getCityCoordinates(normalizeCityKey(destKey));
+      }
+
+      // Try looser lookup by city name
+      const destName = destKey.split(',')[0].trim();
+      if (!destCoords) {
+        destCoords = getCityCoordinates(destName) || getCityCoordinates(normalizeCityKey(destName));
       }
 
       // If destination coordinates missing, estimate a reasonable distance instead of skipping
@@ -85,7 +113,10 @@ export async function generateCostMatrix(
           destCoords.lat, destCoords.lon
         );
       } else {
-        console.warn(`⚠️ No coordinates found for destination: ${destCity}, using fallback distance estimate (${distance} miles)`);
+        if (!missingDestinationLogged.has(destCity)) {
+          console.warn(`⚠️ No coordinates found for destination: ${destCity}, using fallback distance estimate (${distance} miles)`);
+          missingDestinationLogged.add(destCity);
+        }
       }
 
       // Calculate cost using actual baseline-derived rates

@@ -69,35 +69,25 @@ export class RealDataTransportOptimizer {
    * Extract real route data from uploaded transport files
    */
   static async getActualRouteData(): Promise<RealRouteData[]> {
-    try {
-      const response = await fetch('/api/extract-actual-routes');
-      const data = await response.json();
+    const response = await fetch('/api/extract-actual-routes');
+    const data = await response.json();
 
-      if (data.success && data.route_groups) {
-        const extractedRoutes = Object.values(data.route_groups).map((group: any) => ({
-          route_pair: group.route_pair,
-          origin: group.origin,
-          destination: group.destination,
-          transport_modes: group.transport_modes || [],
-          total_cost: group.total_cost || 0,
-          total_shipments: group.total_shipments || 0,
-          routes: group.routes || []
-        }));
+    if (data && data.success && data.route_groups) {
+      const extractedRoutes = Object.values(data.route_groups).map((group: any) => ({
+        route_pair: group.route_pair,
+        origin: group.origin,
+        destination: group.destination,
+        transport_modes: group.transport_modes || [],
+        total_cost: group.total_cost || 0,
+        total_shipments: group.total_shipments || 0,
+        routes: group.routes || []
+      }));
 
-        // If extraction found good data, use it
-        if (extractedRoutes.length > 3 && extractedRoutes.some(r => r.total_cost > 1000)) {
-          return extractedRoutes;
-        }
-      }
-
-      // Fallback: Generate realistic route data based on $6.56M baseline
-      console.log('🎯 Generating realistic route data based on verified $6.56M transport baseline...');
-      return this.generateRealisticRouteData();
-    } catch (error) {
-      console.error('Error fetching actual route data:', error);
-      // Fallback to generated realistic data
-      return this.generateRealisticRouteData();
+      if (extractedRoutes.length > 0) return extractedRoutes;
     }
+
+    // No actual route data found - fail loudly so caller can surface the issue
+    throw new Error('No actual route data found. Please upload UPS, TL, and R&L transport files before generating scenarios.');
   }
 
   /**
