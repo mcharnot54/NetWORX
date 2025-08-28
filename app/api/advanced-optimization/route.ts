@@ -140,8 +140,8 @@ export async function POST(request: NextRequest) {
       ? bodyCities
       : (config_overrides?.transportation?.candidateFacilities || defaultCandidateFacilities);
 
-    // Major North American delivery markets - comprehensive coverage
-    const destinations = [
+    // Default major North American delivery markets - comprehensive coverage
+    const defaultDestinations = [
       // Major US Metro Areas
       'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ',
       'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'San Jose, CA',
@@ -164,6 +164,10 @@ export async function POST(request: NextRequest) {
       'Barrie, ON', 'Abbotsford, BC', 'Coquitlam, BC', 'Trois-Rivières, QC', 'St. Catharines, ON',
       'Cambridge, ON', 'Whitby, ON', 'Guelph, ON', 'Kelowna, BC', 'Kingston, ON'
     ];
+
+    const destinations = (Array.isArray(bodyDestinations) && bodyDestinations.length > 0)
+      ? bodyDestinations
+      : (config_overrides?.transportation?.destinations || defaultDestinations);
 
     // Generate cost matrix using actual baseline data
     const costMatrix = await generateCostMatrix(
