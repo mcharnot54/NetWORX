@@ -132,10 +132,10 @@ export default function COGSensitivityPanel({
           <CardHeader><CardTitle>COG Sensitivity Heatmap</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="h-[60vh] w-full">
-              <DeckGL initialViewState={{ ...initial }} controller layers={layers}>
+              <DeckGL initialViewState={initial as any} controller={true as any} layers={layers}>
                 <Map
                   reuseMaps
-                  attributionControl
+                  attributionControl={false as any}
                   mapStyle={BASE_STYLE}
                 />
               </DeckGL>
