@@ -111,8 +111,6 @@ export interface TransportOptimizationResult {
  * Real Transport Optimization Algorithm
  * Uses operations research principles for route optimization
  */
-import { createSeededRng, stableSeedFromObject } from './seeded-rng';
-
 export function optimizeTransportRoutes(params: RouteOptimizationParams): TransportOptimizationResult {
   const { cities, scenario_type, optimization_criteria } = params;
   
