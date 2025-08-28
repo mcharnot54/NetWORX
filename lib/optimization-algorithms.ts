@@ -149,19 +149,27 @@ export function optimizeTransportRoutes(params: RouteOptimizationParams): Transp
       const originalCostPerMile = baseCostPerMile + fuelSurcharge + tollsAndFees;
       const originalCost = distance * originalCostPerMile;
 
+      // Create a deterministic RNG seeded from the optimization parameters and city pair
+      const seedData = {
+        params: stableSeedFromObject(optimization_criteria),
+        citiesPair: `${origin}->${destination}`,
+        scenario: scenario_type
+      };
+      const rng = createSeededRng(stableSeedFromObject(seedData));
+
       // Optimization factors based on scenario type
       let optimizationFactor = 1.0;
       let serviceZone = 1;
-      
+
       if (scenario_type.includes('lowest_miles')) {
         // Optimize for shortest routes
         optimizationFactor = 0.75 + (distance / 2000) * 0.20; // Better optimization for shorter routes
       } else if (scenario_type.includes('lowest_cost')) {
         // Optimize for cost efficiency
-        optimizationFactor = 0.72 + Math.random() * 0.15;
+        optimizationFactor = 0.72 + rng() * 0.15;
       } else if (scenario_type.includes('best_service')) {
         // Service optimization - may cost more but faster/reliable
-        optimizationFactor = 0.85 + Math.random() * 0.10;
+        optimizationFactor = 0.85 + rng() * 0.10;
         serviceZone = distance < 300 ? 1 : distance < 800 ? 2 : 3;
       }
 
@@ -169,14 +177,14 @@ export function optimizeTransportRoutes(params: RouteOptimizationParams): Transp
       const costWeight = optimization_criteria.cost_weight / 100;
       const serviceWeight = optimization_criteria.service_weight / 100;
       const distanceWeight = optimization_criteria.distance_weight / 100;
-      
-      const weightedOptimization = 
-        (costWeight * 0.75) + 
-        (serviceWeight * 0.85) + 
+
+      const weightedOptimization =
+        (costWeight * 0.75) +
+        (serviceWeight * 0.85) +
         (distanceWeight * 0.80);
-      
+
       optimizationFactor = optimizationFactor * weightedOptimization;
-      
+
       const optimizedCost = originalCost * optimizationFactor;
       const timeSavings = (1 - optimizationFactor) * (distance / 55); // Assume 55 mph average
 
@@ -188,7 +196,7 @@ export function optimizeTransportRoutes(params: RouteOptimizationParams): Transp
         original_cost: Math.round(originalCost),
         optimized_cost: Math.round(optimizedCost),
         time_savings: Math.round(timeSavings * 10) / 10,
-        volume_capacity: Math.floor(8000 + Math.random() * 4000), // 8-12k volume capacity
+        volume_capacity: Math.floor(8000 + Math.floor(rng() * 4000)), // 8-12k volume capacity
         service_zone: serviceZone,
         cost_per_mile: Math.round((optimizedCost / distance) * 100) / 100,
         transit_time_hours: Math.round((distance / 55) * 10) / 10
