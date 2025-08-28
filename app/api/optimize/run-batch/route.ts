@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
           // Use fixed-lease optimizer when lease term >= planning horizon
           console.log(`📋 Using fixed-lease optimizer (${leaseYears}yr lease >= ${span}yr horizon)`);
           transportMultiYear = optimizeTransportMultiYearFixed(
-            defaultConfig.transportation,
+            defaultConfig.transportation as any,
             costMatrix,
             defaultForecast,
             {
