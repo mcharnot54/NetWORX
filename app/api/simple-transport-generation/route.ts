@@ -44,89 +44,70 @@ function getStrategicImportanceScore(city: any): number {
 }
 
 // Function to extract baseline costs and run optimization for selected cities
-async function optimizeWithBaselineData(selectedCities: string[], optimizationParams: any) {
-  try {
-    console.log('🔍 Extracting baseline shipping patterns and optimizing selected cities...');
-    console.log(`🎯 Selected optimal cities for analysis: ${selectedCities.join(', ')}`);
+async function optimizeWithBaselineData(selectedCities: string[], optimizationParams: any, baselineSummary: any) {
+  // Must have real baseline summary passed in; no fallbacks allowed
+  if (!baselineSummary || !baselineSummary.total_verified) {
+    throw new Error('Missing verified baseline summary. Run baseline extraction before generating scenarios.');
+  }
 
-    // Extract COMPLETE baseline shipping costs and patterns (current state) - $6.56M total
-    const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
-    const baselineData = await baselineResponse.json();
+  console.log('🔍 Running optimization with provided verified baseline...');
+  console.log(`🎯 Selected cities: ${selectedCities.join(', ')}`);
 
-    if (!baselineData.success) {
-      throw new Error('Failed to extract complete baseline shipping data');
+  // Use the provided baseline summary
+  const totalBaselineCost = baselineSummary.total_verified;
+
+  // Generate optimized routes using the repo optimizer where possible
+  // For simple generation we rely on the main optimization function; no mock fallbacks
+  const optimizedRoutes = selectedCities.slice(1).map((city, index) => {
+    // Attempt to use the comprehensive cities database for coordinates
+    const { COMPREHENSIVE_CITIES } = require('@/lib/comprehensive-cities-database');
+    const targetCity = COMPREHENSIVE_CITIES.find((c: any) => `${c.name}, ${c.state_province}` === city);
+
+    if (!targetCity) {
+      throw new Error(`Missing city coordinates for ${city}. Provide real transport/cities data.`);
     }
 
-    const { baseline_summary } = baselineData;
-    const currentRoutes = []; // Routes will be derived from optimization, not baseline extraction
+    const littletonCoords = { lat: 42.5334, lon: -71.4912 };
+    const distance = calculateDistanceFromCoords(littletonCoords.lat, littletonCoords.lon, targetCity.lat, targetCity.lon);
 
-    console.log(`📊 COMPLETE Baseline Analysis: $${baseline_summary.total_verified.toLocaleString()} total verified baseline`);
-    console.log(`💰 UPS Parcel: $${baseline_summary.ups_parcel_costs.toLocaleString()}`);
-    console.log(`💰 TL Freight: $${baseline_summary.tl_freight_costs.toLocaleString()}`);
-    console.log(`💰 R&L LTL: $${baseline_summary.rl_ltl_costs.toLocaleString()}`);
-    console.log(`💰 TOTAL VERIFIED: $${baseline_summary.total_verified.toLocaleString()}`);
-
-    // Use the COMPLETE $6.56M baseline cost
-    const totalBaselineCost = baseline_summary.total_verified; // $6.56M
-
-    // Generate optimized routes between Littleton, MA and selected optimal cities
-    const optimizedRoutes = selectedCities.slice(1).map((city, index) => {
-      // Calculate distance between Littleton, MA and selected city
-      const littletonCoords = { lat: 42.5334, lon: -71.4912 };
-      const { COMPREHENSIVE_CITIES } = require('@/lib/comprehensive-cities-database');
-
-      const targetCity = COMPREHENSIVE_CITIES.find(c => `${c.name}, ${c.state_province}` === city);
-      const distance = targetCity ?
-        calculateDistanceFromCoords(littletonCoords.lat, littletonCoords.lon, targetCity.lat, targetCity.lon) :
-        500; // Fallback distance
-
-      // Estimate cost based on distance and current baseline
-      const estimatedCost = Math.round(distance * 2.5 * 365); // $2.50/mile annual estimate
-
-      return {
-        route_id: `optimized_route_${index}`,
-        origin: 'Littleton, MA',
-        destination: city,
-        distance_miles: Math.round(distance),
-        original_cost: Math.round(totalBaselineCost / selectedCities.length), // Proportional baseline
-        optimized_cost: estimatedCost,
-        time_savings: 0, // Baseline scenario
-        volume_capacity: 10000 + (index * 2000), // Varying capacity
-        service_zone: Math.floor(distance / 300) + 1, // Zone based on distance
-        cost_per_mile: 2.5,
-        transit_time_hours: Math.round(distance / 45) // 45 mph average
-      };
-    });
-
-    const totalOptimizedDistance = optimizedRoutes.reduce((sum, route) => sum + route.distance_miles, 0);
-    const totalOptimizedCost = Math.round(totalBaselineCost); // Use real baseline cost
-
-    console.log(`✅ Optimization complete for ${selectedCities.length} cities`);
-    console.log(`📏 Total network distance: ${totalOptimizedDistance.toLocaleString()} miles`);
-    console.log(`💰 Total baseline cost: $${totalOptimizedCost.toLocaleString()}`);
+    const estimatedCost = Math.round(distance * 2.5 * 365);
 
     return {
-      total_transport_cost: totalOptimizedCost,
-      total_distance: totalOptimizedDistance,
-      service_level_percentage: 85,
-      optimized_routes: optimizedRoutes,
-      cost_savings: 0, // Baseline year - no savings yet
-      efficiency_improvement: 0,
-      data_source: 'complete_baseline_6_56M_with_optimal_cities',
-      baseline_totals: {
-        ups_parcel: baseline_summary.ups_parcel_costs,
-        tl_freight: baseline_summary.tl_freight_costs,
-        rl_ltl: baseline_summary.rl_ltl_costs,
-        total_verified: baseline_summary.total_verified
-      },
-      selected_cities: selectedCities
+      route_id: `optimized_route_${index}`,
+      origin: 'Littleton, MA',
+      destination: city,
+      distance_miles: Math.round(distance),
+      original_cost: Math.round(totalBaselineCost / selectedCities.length),
+      optimized_cost: estimatedCost,
+      time_savings: 0,
+      volume_capacity: 10000 + (index * 2000),
+      service_zone: Math.floor(distance / 300) + 1,
+      cost_per_mile: 2.5,
+      transit_time_hours: Math.round(distance / 45)
     };
+  });
 
-  } catch (error) {
-    console.error('❌ Error in baseline optimization:', error);
-    // Fallback to using the original function
-    return optimizeTransportRoutes(optimizationParams);
-  }
+  const totalOptimizedDistance = optimizedRoutes.reduce((sum, route) => sum + route.distance_miles, 0);
+  const totalOptimizedCost = Math.round(totalBaselineCost);
+
+  console.log(`✅ Optimization complete using verified baseline`);
+
+  return {
+    total_transport_cost: totalOptimizedCost,
+    total_distance: totalOptimizedDistance,
+    service_level_percentage: 85,
+    optimized_routes: optimizedRoutes,
+    cost_savings: 0,
+    efficiency_improvement: 0,
+    data_source: 'verified_baseline_with_real_cities',
+    baseline_totals: {
+      ups_parcel: baselineSummary.ups_parcel_costs,
+      tl_freight: baselineSummary.tl_freight_costs,
+      rl_ltl: baselineSummary.rl_ltl_costs,
+      total_verified: baselineSummary.total_verified
+    },
+    selected_cities: selectedCities
+  };
 }
 
 export async function POST(request: NextRequest) {
