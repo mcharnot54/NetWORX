@@ -155,7 +155,7 @@ export default function ScenarioManager({ onSelectScenario, selectedScenario, sc
       return;
     }
 
-    // Default optimize flow: call backend run-batch and update status optimistically
+    // Default optimize flow: call backend run-batch to create an async job and poll for status
     try {
       setScenarioStatus(scenario.id, 'running');
       const res = await fetch('/api/optimize/run-batch', {
@@ -164,12 +164,60 @@ export default function ScenarioManager({ onSelectScenario, selectedScenario, sc
         body: JSON.stringify({ scenario_id: scenario.id })
       });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setScenarioStatus(scenario.id, 'completed');
-      } else {
-        console.error('Optimize API error:', data);
+      if (!(res.ok && data && data.success && data.job_id)) {
+        console.error('Optimize API error (no job):', data);
         setScenarioStatus(scenario.id, 'failed');
+        return;
       }
+
+      const jobId = data.job_id as string;
+
+      // Poll for job status
+      const pollIntervalMs = 2000;
+      const timeoutMs = 1000 * 60 * 10; // 10 minutes max
+      const start = Date.now();
+
+      while (true) {
+        await new Promise(r => setTimeout(r, pollIntervalMs));
+        try {
+          const statusRes = await fetch(`/api/optimize/run-batch?job_id=${encodeURIComponent(jobId)}`);
+          const statusData = await statusRes.json();
+          if (!statusData.success) {
+            console.error('Job status fetch error:', statusData);
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+
+          const job = statusData.job as any;
+          if (!job) {
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+
+          if (job.status === 'running' || job.status === 'pending') {
+            // still running — continue polling
+            setScenarioStatus(scenario.id, 'running');
+          } else if (job.status === 'completed') {
+            setScenarioStatus(scenario.id, 'completed');
+            // Optionally, you could fetch job.result here and attach to scenario metadata
+            break;
+          } else if (job.status === 'failed') {
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+
+          if (Date.now() - start > timeoutMs) {
+            console.error('Job polling timed out');
+            setScenarioStatus(scenario.id, 'failed');
+            break;
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+          setScenarioStatus(scenario.id, 'failed');
+          break;
+        }
+      }
+
     } catch (err) {
       console.error('Optimize error:', err);
       setScenarioStatus(scenario.id, 'failed');
