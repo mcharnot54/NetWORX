@@ -139,39 +139,26 @@ export async function POST(request: NextRequest) {
     // Step 3: Update Transport Optimizer if we found a valid baseline
     let updateResult = null;
     if (baselineFreightCost && baselineFreightCost > 1000000) {
-      console.log('Step 3: Updating Transport Optimizer with baseline:', baselineFreightCost);
-      
+      console.log('Step 3: Detected baseline (no on-disk source changes will be applied in dev):', baselineFreightCost);
+
+      // Do NOT modify application source files at runtime; this causes Next.js dev server to restart.
+      // Instead we return the detected baseline in the response so it can be applied via a controlled process
+      // (CI, admin UI, or manual edit) and recorded in a proper configuration or database.
       try {
-        // Read current transport generation file
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        
-        const filePath = path.join(process.cwd(), 'app/api/simple-transport-generation/route.ts');
-        let fileContent = await fs.readFile(filePath, 'utf-8');
-        
-        // Replace baseline values
-        const oldPattern = /const baseline2025FreightCost = \d+;.*$/gm;
-        const newBaseline = `const baseline2025FreightCost = ${Math.round(baselineFreightCost)}; // Extracted from TL file: ${tlFile.file_name}`;
-        
-        fileContent = fileContent.replace(oldPattern, newBaseline);
-        
-        await fs.writeFile(filePath, fileContent);
-        
         updateResult = {
           success: true,
           old_baseline: 5500000,
           new_baseline: Math.round(baselineFreightCost),
           baseline_change: Math.round(baselineFreightCost) - 5500000,
-          source_file: tlFile.file_name
+          source_file: tlFile.file_name,
+          note: 'Detected baseline; source files were not modified to avoid dev-server restarts. Apply updates via source control or a configuration endpoint.'
         };
-        
-        console.log('✅ Successfully updated Transport Optimizer baseline');
-        
+        console.log('ℹ️ Baseline detected (no source file modification performed):', updateResult);
       } catch (updateError) {
-        console.error('Error updating Transport Optimizer:', updateError);
+        console.error('Error preparing Transport Optimizer update result:', updateError);
         updateResult = {
           success: false,
-          error: updateError.message
+          error: updateError instanceof Error ? updateError.message : String(updateError)
         };
       }
     }
