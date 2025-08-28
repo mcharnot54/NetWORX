@@ -122,7 +122,7 @@ export class EnhancedExcelValidator {
     // Dynamic import to avoid SSR issues
     const XLSX = await import('xlsx');
     // Get raw data with row numbers preserved
-    const allRowsRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+    const allRowsRaw = (XLSX.utils.sheet_to_json as any)(worksheet, { header: 1, defval: null });
 
     let bestHeaderRowIndex = 0;
     let bestScore = 0;
