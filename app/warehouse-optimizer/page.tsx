@@ -103,49 +103,32 @@ export default function WarehouseOptimizer() {
 
   // Data initialization
   useEffect(() => {
-    // Mock transport scenarios with volume allocations
-    const mockScenarios: TransportScenario[] = [
-      {
-        id: 1,
-        scenario_name: 'Lowest Cost (ZIP to ZIP)',
-        total_cost: 245000,
-        total_miles: 120000,
-        service_score: 85,
-        volume_allocations: [
-          { facility_id: 'F001', facility_name: 'Chicago DC', location: 'Chicago, IL', total_volume_units: 125000, outbound_volume: 75000, inbound_volume: 50000 },
-          { facility_id: 'F002', facility_name: 'Atlanta DC', location: 'Atlanta, GA', total_volume_units: 98000, outbound_volume: 58000, inbound_volume: 40000 },
-          { facility_id: 'F003', facility_name: 'Phoenix DC', location: 'Phoenix, AZ', total_volume_units: 87000, outbound_volume: 52000, inbound_volume: 35000 }
-        ]
-      },
-      {
-        id: 2,
-        scenario_name: 'Best Service (Parcel Zone)',
-        total_cost: 267000,
-        total_miles: 105000,
-        service_score: 95,
-        volume_allocations: [
-          { facility_id: 'F001', facility_name: 'Chicago DC', location: 'Chicago, IL', total_volume_units: 115000, outbound_volume: 70000, inbound_volume: 45000 },
-          { facility_id: 'F002', facility_name: 'Atlanta DC', location: 'Atlanta, GA', total_volume_units: 105000, outbound_volume: 63000, inbound_volume: 42000 },
-          { facility_id: 'F003', facility_name: 'Phoenix DC', location: 'Phoenix, AZ', total_volume_units: 95000, outbound_volume: 57000, inbound_volume: 38000 }
-        ]
-      },
-      {
-        id: 3,
-        scenario_name: 'Lowest Miles (City to City)',
-        total_cost: 255000,
-        total_miles: 95000,
-        service_score: 88,
-        volume_allocations: [
-          { facility_id: 'F001', facility_name: 'Chicago DC', location: 'Chicago, IL', total_volume_units: 130000, outbound_volume: 78000, inbound_volume: 52000 },
-          { facility_id: 'F002', facility_name: 'Atlanta DC', location: 'Atlanta, GA', total_volume_units: 92000, outbound_volume: 55000, inbound_volume: 37000 },
-          { facility_id: 'F003', facility_name: 'Phoenix DC', location: 'Phoenix, AZ', total_volume_units: 85000, outbound_volume: 51000, inbound_volume: 34000 }
-        ]
-      }
-    ];
-    setTransportScenarios(mockScenarios);
+    // Load transport scenarios from API (falls back to empty array when DB not configured)
+    async function loadScenarios() {
+      try {
+        const res = await fetch('/api/scenarios?type=transport');
+        if (!res.ok) throw new Error(`Failed to fetch scenarios: ${res.status}`);
+        const json = await res.json();
+        if (json && json.success && Array.isArray(json.data)) {
+          setTransportScenarios(json.data as TransportScenario[]);
+          if (json.data.length > 0) {
+            setSelectedTransportScenario(json.data[0] as TransportScenario);
+          }
+        } else {
+          setTransportScenarios([]);
+        }
 
-    // Fetch real-time market data
-    fetchMarketData();
+        // After loading scenarios, fetch market data if any locations exist
+        setTimeout(() => fetchMarketData(), 0);
+      } catch (err) {
+        console.error('Error loading transport scenarios:', err);
+        // Leave scenarios empty and allow user to create or import scenarios
+        setTransportScenarios([]);
+        setTimeout(() => fetchMarketData(), 0);
+      }
+    }
+
+    loadScenarios();
   }, []);
 
   const fetchMarketData = async (forceRefresh = false) => {
