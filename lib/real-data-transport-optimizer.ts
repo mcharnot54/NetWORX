@@ -546,7 +546,13 @@ export class RealDataTransportOptimizer {
       if (scenarioId) {
         try {
           const capacityResponse = await fetch(`/api/scenarios/${scenarioId}/capacity-analysis`);
-          const capacityData = await capacityResponse.json();
+          let capacityData: any = null;
+          try {
+            capacityData = await (capacityResponse.clone ? capacityResponse.clone().json() : capacityResponse.json());
+          } catch (parseErr) {
+            console.warn('Failed to parse capacity-analysis clone JSON, falling back:', parseErr);
+            try { capacityData = await capacityResponse.json(); } catch (e) { capacityData = null; }
+          }
           if (capacityData && capacityData.facilities) {
             facilityConstraints = capacityData.facilities;
             console.log(`✅ Got facility constraints from Capacity Optimizer: ${facilityConstraints.length} facilities`);
