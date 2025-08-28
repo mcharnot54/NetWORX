@@ -213,7 +213,10 @@ export function optimizeTransportRoutes(params: RouteOptimizationParams): Transp
   const costSavings = totalOriginalCost - totalOptimizedCost;
   const costSavingsPercentage = (costSavings / totalOriginalCost) * 100;
   const routeEfficiency = Math.min(95, 65 + costSavingsPercentage);
-  const serviceImprovement = scenario_type.includes('service') ? 15 + Math.random() * 10 : 5 + Math.random() * 8;
+
+  // Create deterministic rng for summary metrics seeded from the overall params
+  const summarySeed = createSeededRng(stableSeedFromObject({ cities: validCities, scenario: scenario_type }));
+  const serviceImprovement = scenario_type.includes('service') ? 15 + summarySeed() * 10 : 5 + summarySeed() * 8;
 
   return {
     total_transport_cost: Math.round(totalOptimizedCost),
