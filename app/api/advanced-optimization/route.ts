@@ -176,12 +176,18 @@ export async function POST(request: NextRequest) {
       bodyBaselineCost ?? actualTransportBaseline
     );
 
-    // Create demand map (equal distribution for simplicity)
-    const totalDemand = forecast[0].annual_units;
-    const demandPerDest = totalDemand / destinations.length;
-    const demand: DemandMap = Object.fromEntries(
-      destinations.map(dest => [dest, demandPerDest])
-    );
+    // Create demand map: prefer caller-provided demand_map, otherwise use forecast equal distribution
+    const requestDemandMap: Record<string, number> | undefined = (body as any).demand_map;
+    let demand: DemandMap;
+
+    if (requestDemandMap && Object.keys(requestDemandMap).length > 0) {
+      // Ensure destinations present in matrix are included and fallback to small positive demand for missing
+      demand = Object.fromEntries(destinations.map(dest => [dest, requestDemandMap[dest] ?? 1]));
+    } else {
+      const totalDemand = forecast[0].annual_units;
+      const demandPerDest = totalDemand / destinations.length;
+      demand = Object.fromEntries(destinations.map(dest => [dest, demandPerDest]));
+    }
 
     // Create capacity map (higher capacities for optimization)
     const capacity: CapacityMap = Object.fromEntries(
