@@ -323,47 +323,21 @@ export async function POST(request: NextRequest) {
     let baseline2025FreightCost = 0;
     let baselineWarehouseCost = 850000; // Default warehouse cost
 
-    try {
-      console.log('🚀 Fetching COMPLETE $6.56M baseline costs from verified transport data...');
-
-      // Get COMPLETE $6.56M baseline costs from analyze-transport-baseline-data
-      const baselineResponse = await fetch(`http://localhost:3000/api/analyze-transport-baseline-data`);
-      if (baselineResponse.ok) {
-        const baselineData = await baselineResponse.json();
-        if (baselineData.success && baselineData.baseline_summary) {
-          const baseline = baselineData.baseline_summary;
-          baseline2025FreightCost = baseline.total_verified; // Use the complete $6.56M
-
-          console.log(`✅ Using COMPLETE verified baseline costs ($6.56M):`);
-          console.log(`   UPS Parcel: $${baseline.ups_parcel_costs?.toLocaleString()}`);
-          console.log(`   TL Freight: $${baseline.tl_freight_costs?.toLocaleString()}`);
-          console.log(`   R&L LTL: $${baseline.rl_ltl_costs?.toLocaleString()}`);
-          console.log(`   TOTAL VERIFIED BASELINE: $${baseline2025FreightCost.toLocaleString()}`);
-        }
-      }
-
-      // Fallback: Try current baseline costs API
-      if (baseline2025FreightCost === 0) {
-        const currentBaselineResponse = await fetch(`http://localhost:3000/api/current-baseline-costs`);
-        if (currentBaselineResponse.ok) {
-          const currentBaseline = await currentBaselineResponse.json();
-          if (currentBaseline.success && currentBaseline.baseline_costs) {
-            baseline2025FreightCost = currentBaseline.baseline_costs.transport_costs.freight_costs.raw || 0;
-            console.log(`✅ Using current baseline freight cost: $${baseline2025FreightCost.toLocaleString()}`);
-          }
-        }
-      }
-
-      // If still no real data, show error but continue with a minimum estimate
-      if (baseline2025FreightCost === 0) {
-        console.warn('⚠️ No real baseline costs found, using minimum estimate');
-        baseline2025FreightCost = 1000000; // Minimum $1M estimate
-      }
-
-    } catch (error) {
-      console.error('❌ Error fetching baseline costs:', error);
-      baseline2025FreightCost = 1000000; // Fallback minimum
+    // Preflight: Fetch verified baseline summary - fail if missing
+    console.log('🚀 Fetching verified baseline costs from analyze-transport-baseline-data...');
+    const baselineResponse = await fetch(`http://localhost:3000/api/analyze-transport-baseline-data`);
+    if (!baselineResponse.ok) {
+      throw new Error('Failed to fetch verified baseline data. Ensure baseline extraction completed.');
     }
+    const baselineData = await baselineResponse.json();
+    if (!baselineData.success || !baselineData.baseline_summary) {
+      throw new Error('Verified baseline summary is missing. Run baseline extraction before generating scenarios.');
+    }
+
+    const baselineSummary = baselineData.baseline_summary;
+    baseline2025FreightCost = baselineSummary.total_verified;
+
+    console.log(`✅ Using verified baseline costs: $${baseline2025FreightCost.toLocaleString()}`);
 
     // Generate each detailed scenario
     for (let index = 0; index < typesToGenerate.length; index++) {
