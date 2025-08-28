@@ -611,42 +611,5 @@ function generateDetailedVolumeAllocations(cities: string[]) {
 }
 
 function generateMockRouteDetails(cities: string[]) {
-  const routes = [];
-
-  try {
-    const { createSeededRng, stableSeedFromObject } = require('@/lib/seeded-rng');
-    const rng = createSeededRng(stableSeedFromObject(cities));
-
-    for (let i = 0; i < cities.length; i++) {
-      for (let j = i + 1; j < cities.length; j++) {
-        routes.push({
-          origin: cities[i],
-          destination: cities[j],
-          distance_miles: Math.floor(rng() * 800) + 200,
-          cost_per_mile: Math.round((rng() * 2 + 1.5) * 100) / 100,
-          service_zone: `Zone ${Math.floor(rng() * 3) + 1}`,
-          volume_units: Math.floor(rng() * 10000) + 5000,
-          transit_time_hours: Math.floor(rng() * 20) + 8,
-          annual_cost: Math.floor(rng() * 100000) + 50000
-        });
-      }
-    }
-  } catch (e) {
-    for (let i = 0; i < cities.length; i++) {
-      for (let j = i + 1; j < cities.length; j++) {
-        routes.push({
-          origin: cities[i],
-          destination: cities[j],
-          distance_miles: Math.floor(Math.random() * 800) + 200,
-          cost_per_mile: Math.random() * 2 + 1.5,
-          service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`,
-          volume_units: Math.floor(Math.random() * 10000) + 5000,
-          transit_time_hours: Math.floor(Math.random() * 20) + 8,
-          annual_cost: Math.floor(Math.random() * 100000) + 50000
-        });
-      }
-    }
-  }
-
-  return routes.slice(0, 10);
+  throw new Error('Fallback mock route details disabled. Provide real transport route extraction data.');
 }
