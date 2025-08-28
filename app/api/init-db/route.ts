@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    const startTime = Date.now();
     // Check if DATABASE_URL is set first
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({
