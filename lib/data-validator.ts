@@ -333,9 +333,14 @@ export class DataValidator {
       validRows: hasExcelData ? rawData.length : 0,
       skippedRows,
       dataQuality: hasExcelData ? {
-        completeness: 100, // We have the complete Excel file
-        accuracy: templateValidationPassed ? 100 : 50, // Lower if template failed
-        consistency: 75
+        completeness: 100,
+        accuracy: templateValidationPassed ? 100 : 50,
+        consistency: 75,
+        timeliness: 100,
+        validRecords: hasExcelData ? rawData.length : 0,
+        totalRecords: hasExcelData ? rawData.length : 0,
+        missingFields: [],
+        invalidValues: []
       } : dataQuality
     };
   }
