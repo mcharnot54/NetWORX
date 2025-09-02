@@ -988,8 +988,8 @@ export default function TransportOptimizer() {
             <div className="tab-content">
               <h2 className="section-title">Scenario Generation</h2>
               <p className="section-description">
-                Generate transport optimization scenarios based on capacity analysis data.
-                Each scenario will use real cities and optimization algorithms to provide accurate results.
+                Generate transport optimization scenarios using ONLY your uploaded real data.
+                <strong>NO SYNTHETIC DATA:</strong> Scenarios will only be generated if all real data requirements are met.
               </p>
 
               {!selectedScenario ? (
