@@ -304,10 +304,19 @@ function extractRLRoutes(parsedData: any, filename: string) {
           }
         }
 
-        // Look for origin information
-        if ((keyLower.includes('origin') || keyLower.includes('pickup') ||
-             keyLower.includes('from')) && value) {
-          origin = extractCityFromValue(value.toString()) || origin;
+        // Look for origin information - STRICT geographic columns only
+        const isOriginGeographicColumn = (
+          keyLower.includes('origin') && (keyLower.includes('city') || keyLower.includes('state')) ||
+          keyLower.includes('pickup') && (keyLower.includes('city') || keyLower.includes('state')) ||
+          keyLower.includes('from') && (keyLower.includes('city') || keyLower.includes('state'))
+        );
+
+        if (isOriginGeographicColumn && value) {
+          const potentialOrigin = extractCityFromValue(value.toString());
+          if (potentialOrigin) {
+            origin = potentialOrigin;
+            console.log(`✅ Found origin in geographic column '${key}': ${potentialOrigin}`);
+          }
         }
 
         // Look for cost information (Column V and other cost columns)
