@@ -69,8 +69,16 @@ export class RealDataTransportOptimizer {
    * Extract real route data from uploaded transport files
    */
   static async getActualRouteData(): Promise<RealRouteData[]> {
-    const response = await fetch('/api/extract-actual-routes');
-    const data = await response.json();
+    try {
+      const response = await fetch('/api/extract-actual-routes', {
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
 
     if (data && data.success && data.route_groups) {
       const extractedRoutes = Object.values(data.route_groups).map((group: any) => ({
@@ -102,9 +110,13 @@ export class RealDataTransportOptimizer {
       }
     }
 
-    // No valid route data found - return empty to trigger comprehensive DB fallback in caller
-    console.warn('⚠️ Route extraction returned no usable data. Falling back to comprehensive cities database.');
-    return [];
+      // No valid route data found - return empty to trigger comprehensive DB fallback in caller
+      console.warn('⚠️ Route extraction returned no usable data. Falling back to comprehensive cities database.');
+      return [];
+    } catch (error) {
+      console.warn('Error fetching route data:', error);
+      return []; // Return empty array to allow fallback behavior
+    }
   }
 
   /**
@@ -236,22 +248,11 @@ export class RealDataTransportOptimizer {
         };
       }
       
-      // Fallback to verified baseline
-      return {
-        ups_parcel_costs: 2930000,
-        tl_freight_costs: 1190000,
-        rl_ltl_costs: 2440000,
-        total_verified: 6560000
-      };
+      throw new Error('No valid baseline data returned from API. Ensure transport files (UPS, TL, R&L) are uploaded and baseline analysis is completed.');
     } catch (error) {
       console.error('Error fetching baseline data:', error);
-      // Return verified baseline as fallback
-      return {
-        ups_parcel_costs: 2930000,
-        tl_freight_costs: 1190000,
-        rl_ltl_costs: 2440000,
-        total_verified: 6560000
-      };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch transport baseline data: ${errorMessage}. Upload and process transport files first.`);
     }
   }
 
@@ -326,23 +327,11 @@ export class RealDataTransportOptimizer {
         }
       }
 
-      console.warn('⚠️ No valid capacity analysis data found, using baseline assumptions');
-
-      // Fallback to reasonable growth assumptions if no data available
-      return {
-        current_volume: 13000000, // 13M units baseline assumption
-        growth_rate: 0.06, // 6% annual growth assumption
-        forecast_years: 8,
-        source: 'fallback_assumption'
-      };
+      throw new Error('No valid capacity analysis data found. Complete capacity analysis for the selected scenario first to get real volume growth projections.');
     } catch (error) {
       console.error('❌ Error fetching real volume growth data:', error);
-      return {
-        current_volume: 13000000,
-        growth_rate: 0.06,
-        forecast_years: 8,
-        source: 'error_fallback'
-      };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch volume growth data: ${errorMessage}. Complete capacity analysis for the scenario first.`);
     }
   }
 
@@ -389,11 +378,9 @@ export class RealDataTransportOptimizer {
 
     const actualCities = Array.from(cities);
 
-    // If route extraction failed or found company names, use comprehensive database
+    // If route extraction failed, throw an error instead of using fallback
     if (actualCities.length < 2) {
-      console.log('🎯 Route extraction incomplete or found invalid data, using FULL comprehensive cities database...');
-      console.log('🚫 NO HARDCODED FALLBACKS: Using complete North American city network');
-      return this.generateRealisticDistributionNetwork();
+      throw new Error(`Insufficient valid city data extracted from transport files (found ${actualCities.length} cities). Upload and process transport files with valid geographic data (city, state format) before running optimization.`);
     }
 
     console.log(`✅ VALIDATED REAL DATA: Using ${actualCities.length} valid cities from your transport files`);
@@ -401,33 +388,13 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Generate realistic distribution network using comprehensive cities database
+   * Validate that sufficient city data is available - no fallbacks
    */
-  static generateRealisticDistributionNetwork(): string[] {
-    try {
-      // Import the comprehensive cities database
-      const { getAllUSCities, getAllCanadianCities } = require('./comprehensive-cities-database');
-
-      // Get ALL cities from comprehensive database - US and Canadian
-      const allUSCities = getAllUSCities().map(city => `${city.name}, ${city.state_province}`);
-      const allCanadianCities = getAllCanadianCities().map(city => `${city.name}, ${city.state_province}`);
-      const allCities = [...allUSCities, ...allCanadianCities];
-
-      console.log(`🌎 COMPREHENSIVE COVERAGE: ${allCities.length} cities (${allUSCities.length} US + ${allCanadianCities.length} Canadian)`);
-      console.log(`✅ FULL DATABASE: Using complete comprehensive cities list as requested`);
-      console.log(`🚫 NO TRUNCATION: All cities from database included`);
-      console.log(`🚫 NO HARDCODED BIAS: Algorithm will select optimal cities from full dataset`);
-      console.log(`🎯 ALGORITHM DECIDES: Optimization will find truly optimal locations from complete data`);
-
-      // Ensure Littleton, MA is included as primary facility
-      const cities = ['Littleton, MA', ...allCities.filter(city => city !== 'Littleton, MA')];
-
-      return cities;
-    } catch (error) {
-      console.error('❌ CRITICAL: Cannot load comprehensive cities database:', error);
-      // PASS-FAIL APPROACH: No fallbacks, fail completely
-      throw new Error('PASS-FAIL: Comprehensive cities database required for real optimization. No fallbacks available. Please ensure database is available.');
+  static validateCityDataAvailability(cities: string[]): boolean {
+    if (!cities || cities.length < 2) {
+      throw new Error('Insufficient city data for optimization. At least 2 valid cities required from transport files.');
     }
+    return true;
   }
 
   /**
@@ -658,77 +625,42 @@ export class RealDataTransportOptimizer {
         }
       }
 
-      console.warn('⚠️ Real Transport Optimizer API failed, falling back to estimation');
+      const errorMsg = 'Real Transport Optimizer API failed to return valid results';
+      console.error('❌', errorMsg);
+      throw new Error(`${errorMsg}. Cannot proceed without valid optimization results from /api/advanced-optimization endpoint.`);
 
     } catch (error) {
       console.error('❌ Error calling real Transport Optimizer:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown optimization error';
+      throw new Error(`Transport optimization failed: ${errorMessage}. Ensure the advanced optimization API is available and transport data is properly loaded.`);
     }
-
-    // Fallback to reasonable estimates if API fails
-    return this.fallbackOptimizationCalculation(scenarioType, routeData, baselineData, config, primaryFacility);
   }
 
   /**
-   * Fallback optimization calculation when real API is unavailable
+   * No fallback calculations - optimization must use real data only
    */
-  static fallbackOptimizationCalculation(
+  static validateOptimizationRequirements(
     scenarioType: string,
     routeData: RealRouteData[],
     baselineData: RealBaselineData,
     config: ConfigurationSettings,
     primaryFacility: string
   ) {
-    console.log('🔄 Using fallback optimization calculation');
-
-    // Calculate total actual miles from route data
-    let totalMiles = this.estimateTotalMiles(routeData);
-    let baselineCost = baselineData.total_verified;
-
-    // Conservative but realistic optimization estimates
-    const uniqueDestinations = this.countUniqueDestinations(routeData);
-    let optimizationPercentage = 0;
-    let serviceScore = 85;
-
-    switch (scenarioType) {
-      case 'lowest_cost_city':
-        optimizationPercentage = Math.min(45, 20 + uniqueDestinations); // 20-45% based on network size
-        serviceScore = 82;
-        break;
-      case 'lowest_cost_zip':
-        optimizationPercentage = Math.min(50, 25 + uniqueDestinations); // 25-50% for ZIP optimization
-        serviceScore = 80;
-        break;
-      case 'lowest_miles_city':
-        optimizationPercentage = Math.min(40, 15 + uniqueDestinations); // 15-40% mile-focused
-        serviceScore = 88;
-        break;
-      case 'best_service_parcel':
-        optimizationPercentage = Math.min(35, 10 + uniqueDestinations); // 10-35% service-focused
-        serviceScore = 95;
-        break;
-      case 'blended_service':
-        optimizationPercentage = Math.min(45, 18 + uniqueDestinations); // 18-45% balanced
-        serviceScore = 90;
-        break;
-      default:
-        optimizationPercentage = Math.min(40, 15 + uniqueDestinations);
-        serviceScore = 85;
+    // Validate that we have sufficient real data for optimization
+    if (!routeData || routeData.length === 0) {
+      throw new Error('No route data available. Upload and process transport files (UPS, TL, R&L) before running optimization.');
     }
 
-    const potentialSavings = baselineCost * (optimizationPercentage / 100);
+    if (!baselineData || baselineData.total_verified <= 0) {
+      throw new Error('No baseline cost data available. Ensure transport baseline analysis has been completed.');
+    }
 
-    return {
-      baseline_cost: baselineCost,
-      optimized_cost: Math.round(baselineCost - potentialSavings),
-      potential_savings: Math.round(potentialSavings),
-      optimization_percentage: optimizationPercentage,
-      total_miles: Math.round(totalMiles * 0.75), // Assume 25% mile reduction
-      baseline_miles: totalMiles,
-      service_score: serviceScore,
-      primary_facility: primaryFacility,
-      selected_facilities: [primaryFacility],
-      optimization_method: 'fallback_estimation'
-    };
+    if (!primaryFacility || primaryFacility.trim() === '') {
+      throw new Error('No primary facility specified. Configure warehouse settings before running optimization.');
+    }
+
+    // All validation passed - ready for real optimization
+    return true;
   }
 
   /**
@@ -765,7 +697,11 @@ export class RealDataTransportOptimizer {
       totalMiles = routeData.length * 450; // Average 450 miles per route
     }
 
-    return totalMiles || 50000; // Fallback
+    if (totalMiles === 0) {
+      throw new Error('No mileage data available in route data. Cannot estimate transportation distances without valid route information.');
+    }
+
+    return totalMiles;
   }
 
   /**
@@ -821,36 +757,8 @@ export class RealDataTransportOptimizer {
         });
       });
     } else {
-      // Fallback to calculated projections if no real data available
-      console.warn('⚠️ No real volume data available, using calculated projections');
-
-      for (let year = 0; year < 8; year++) {
-        const currentYear = 2025 + year;
-        const volumeMultiplier = Math.pow(1 + volumeGrowth.growth_rate, year);
-        const isBaseline = year === 0;
-
-        let transportCost: number;
-        if (isBaseline) {
-          transportCost = Math.round(baselineData.total_verified);
-        } else {
-          transportCost = Math.round(optimizedBaseline * volumeMultiplier);
-        }
-
-        projection.push({
-          year: currentYear,
-          is_baseline: isBaseline,
-          volume_multiplier: volumeMultiplier.toFixed(2),
-          growth_rate: (volumeGrowth.growth_rate * 100).toFixed(1),
-          transport_cost: transportCost,
-          total_cost: transportCost,
-          efficiency_score: isBaseline ? 85 : optimization.service_score,
-          optimization_applied: !isBaseline,
-          data_source: 'calculated_fallback',
-          explanation: isBaseline
-            ? "Baseline year - no optimization applied"
-            : `Optimized baseline + calculated ${(volumeGrowth.growth_rate * 100).toFixed(1)}% growth`
-        });
-      }
+      // No fallback - require real volume data for projections
+      throw new Error('No real volume data available for yearly projections. Complete capacity analysis first to generate accurate multi-year projections. Cannot generate projections without actual volume growth data from capacity optimizer.');
     }
 
     if (projection.length > 0) {
