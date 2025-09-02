@@ -264,7 +264,7 @@ export default function TransportOptimizer() {
 
   // Function to extract cities from capacity analysis data (load cities only when needed)
   const extractCitiesFromCapacityData = async (capacityData: any, skipExpensiveCalls = false): Promise<string[]> => {
-    console.log('🎯 Starting city selection...');
+    console.log('��� Starting city selection...');
 
     // FIRST PRIORITY: Get actual cities from transport files (only if not skipping expensive calls)
     if (!skipExpensiveCalls) {
@@ -1003,7 +1003,7 @@ export default function TransportOptimizer() {
                   <div className="transport-data-notice">
                     <p>🎯 <strong>REAL DATA ONLY:</strong> Uses actual origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
                     <p>📊 <strong>Verified Baseline Required:</strong> Optimization requires completed transport baseline analysis.</p>
-                    <p>⚙️ <strong>Configuration Integration:</strong> Uses your cost weights, service levels, and optimization criteria from the Configuration tab.</p>
+                    <p>⚙️ <strong>Capacity Analysis Required:</strong> Volume growth projections require completed capacity analysis.</p>
                     <p>��� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
                   </div>
                 </div>
