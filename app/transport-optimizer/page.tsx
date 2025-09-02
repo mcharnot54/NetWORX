@@ -781,8 +781,8 @@ export default function TransportOptimizer() {
         <div className="transport-optimizer-container">
           <h1 className="page-title">Transport Optimizer</h1>
           <p className="page-description">
-            🎯 <strong>REAL DATA OPTIMIZER:</strong> Generate and analyze transport scenarios using your ACTUAL uploaded transport data.
-            Uses real origins/destinations, $6.56M verified baseline costs, and configuration settings to determine optimal routing strategies.
+            🎯 <strong>TRANSPORT OPTIMIZER:</strong> Generate and analyze transport scenarios using your uploaded transport data or default city networks.
+            Configure optimization settings and generate scenarios on-demand by clicking the buttons below.
           </p>
           <div style={{
             backgroundColor: '#f0fdf4',
@@ -793,7 +793,7 @@ export default function TransportOptimizer() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
               <h3 style={{ color: '#15803d', margin: '0', fontSize: '1rem', fontWeight: '600' }}>
-                ✅ Real Data Sources Active:
+                ✅ Transport Optimizer Ready:
               </h3>
               <button
                 className="restart-button"
@@ -820,10 +820,10 @@ export default function TransportOptimizer() {
               </button>
             </div>
             <div style={{ fontSize: '0.875rem', color: '#166534' }}>
-              • <strong>Actual Routes:</strong> Origins/destinations from your UPS, TL, R&L files<br/>
-              • <strong>Verified Baseline:</strong> $6.56M total (UPS: $2.93M, TL: $1.19M, R&L: $2.44M)<br/>
-              • <strong>Configuration:</strong> Cost weights, service levels, optimization criteria from UI<br/>
-              • <strong>Volume Growth:</strong> Projections from capacity optimizer analysis
+              • <strong>Data Sources:</strong> Uses uploaded files or comprehensive city database<br/>
+              • <strong>Configuration:</strong> Customizable cost weights, service levels, and optimization criteria<br/>
+              • <strong>Scenarios:</strong> Generate multiple optimization scenarios on-demand<br/>
+              • <strong>Analysis:</strong> Compare scenarios and select optimal solutions
             </div>
           </div>
 
