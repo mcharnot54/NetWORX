@@ -348,16 +348,9 @@ export default function TransportOptimizer() {
       }
     }
 
-    // ONLY if absolutely no data is available anywhere, use default cities
+    // ONLY if absolutely no data is available anywhere, throw an error
     if (cities.length === 0) {
-      console.warn('No specific cities found, using default set for demo purposes');
-      return [
-        'Chicago, IL',
-        'Atlanta, GA',
-        'Dallas, TX',
-        'Los Angeles, CA',
-        'New York, NY'
-      ];
+      throw new Error('No city data available. Please ensure:\n\n1. Transport files (UPS, TL, R&L) are uploaded and processed\n2. Scenario has warehouse configurations\n3. Capacity analysis has been completed\n\nWithout valid city data, transport optimization cannot proceed.');
     }
 
     console.log(`✅ Using ${cities.length} cities from capacity/scenario data:`, cities);
@@ -493,27 +486,22 @@ export default function TransportOptimizer() {
 
       } catch (innerError) {
         console.error('Scenario generation failed:', innerError);
+        const errorMessage = innerError instanceof Error ? innerError.message : 'Unknown error occurred';
 
-        // Generate fallback scenarios with default cities
-        const fallbackScenarios = typesToGenerate.map((type, index) => ({
-          id: Date.now() + index,
-          scenario_type: type,
-          scenario_name: `${type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Scenario`,
-          total_cost: 4500000 + Math.random() * 2000000,
-          total_miles: 800000 + Math.random() * 400000,
-          service_score: 75 + Math.random() * 20,
-          cities: ['Chicago, IL', 'Atlanta, GA', 'Dallas, TX', 'Los Angeles, CA', 'New York, NY'],
-          generated: true,
-          optimization_data: null
-        }));
-
-        setScenarios(fallbackScenarios as any);
-        alert(`Generated ${fallbackScenarios.length} demo scenarios. To use real data, ensure transport files are uploaded first.`);
+        // Clear any existing scenarios and throw the error
+        setScenarios([]);
+        throw new Error(`Failed to generate scenarios: ${errorMessage}`);
       }
 
     } catch (error) {
       console.error('Scenario generation setup failed:', error);
-      alert(`Failed to initialize scenario generation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+      // Show detailed error message to user
+      alert(`❌ SCENARIO GENERATION FAILED\n\n${errorMessage}\n\nPossible solutions:\n• Upload and process transport files (UPS, TL, R&L)\n• Complete capacity analysis for the selected scenario\n• Ensure warehouse configurations are set up\n• Check that the selected scenario has valid data`);
+
+      // Clear scenarios on failure
+      setScenarios([]);
     } finally {
       setIsGenerating(false);
     }
@@ -1050,7 +1038,7 @@ export default function TransportOptimizer() {
                     <p>🎯 <strong>ACTUAL Route Analysis:</strong> Uses real origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
                     <p>📊 <strong>Verified $6.56M Baseline:</strong> Optimization starts from your actual transport costs, not estimates.</p>
                     <p>⚙️ <strong>Configuration Integration:</strong> Uses your cost weights, service levels, and optimization criteria from the Configuration tab.</p>
-                    <p>��� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
+                    <p>����� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
                   </div>
                 </div>
               )}
