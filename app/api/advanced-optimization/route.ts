@@ -105,22 +105,27 @@ export async function POST(request: NextRequest) {
       { sku: 'Educational_Materials_E', annual_volume: 700_000,   units_per_case: 30, cases_per_pallet: 25 },
     ];
 
-    // 🎯 FORCE USE OF COMPREHENSIVE CITIES DATABASE - NO HARDCODED FALLBACKS
+    // 🎯 USE COMPREHENSIVE CITIES DATABASE WITH REASONABLE MIP SOLVER LIMITS
     let defaultCandidateFacilities: string[] = [];
 
-    console.log('🎯 Loading FULL comprehensive cities database for real optimization...');
+    console.log('🎯 Loading comprehensive cities database with MIP solver optimization...');
 
     try {
-      const { getAllUSCities, getAllCanadianCities } = await import('@/lib/comprehensive-cities-database');
-      const us = getAllUSCities().map(c => `${c.name}, ${c.state_province}`);
-      const ca = getAllCanadianCities().map(c => `${c.name}, ${c.state_province}`);
+      const { getAllUSCities, getAllCanadianCities, getTopCitiesByPopulation } = await import('@/lib/comprehensive-cities-database');
 
-      // Use ALL cities from comprehensive database - remove artificial limits
-      defaultCandidateFacilities = ['Littleton, MA', ...us, ...ca];
+      // Get top cities by population for more realistic optimization
+      // MIP solvers work best with 50-200 candidate facilities for performance
+      const maxCandidates = 150; // Optimal balance: comprehensive coverage + solver performance
 
-      console.log(`✅ REAL DATA: Using ${defaultCandidateFacilities.length} cities from comprehensive database`);
-      console.log(`📊 Coverage: ${us.length} US cities + ${ca.length} Canadian cities`);
-      console.log(`🚫 NO HARDCODED CITIES: Algorithm will select optimal locations from real data`);
+      const topCities = getTopCitiesByPopulation(maxCandidates - 1) // -1 for Littleton, MA
+        .map(c => `${c.name}, ${c.state_province}`);
+
+      defaultCandidateFacilities = ['Littleton, MA', ...topCities];
+
+      console.log(`✅ OPTIMIZED REAL DATA: Using top ${defaultCandidateFacilities.length} cities by population`);
+      console.log(`🎯 MIP-FRIENDLY SIZE: ${defaultCandidateFacilities.length} facilities for optimal solver performance`);
+      console.log(`📊 GEOGRAPHIC COVERAGE: Major population centers across North America`);
+      console.log(`🚫 NO HARDCODED PREFERENCES: Population-weighted selection, no Chicago bias`);
 
     } catch (err) {
       console.error('❌ CRITICAL ERROR: Failed to load comprehensive cities database:', err);
