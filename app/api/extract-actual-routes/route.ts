@@ -289,12 +289,18 @@ function extractRLRoutes(parsedData: any, filename: string) {
           }
         }
 
-        // Specific column name patterns
-        if (keyLower.includes('dest') || keyLower.includes('delivery') ||
-            keyLower.includes('consign') || keyLower.includes('ship to') ||
-            keyLower.includes('zip') || keyLower.includes('state')) {
-          if (value && !destination) {
-            destination = extractCityFromValue(value.toString());
+        // Specific column name patterns - STRICT filtering for geographic columns only
+        const isGeographicColumn = (
+          keyLower.includes('city') || keyLower.includes('state') ||
+          keyLower.includes('zip') || keyLower.includes('address')
+        );
+
+        // Only extract destinations from clearly geographic columns
+        if (isGeographicColumn && value && !destination) {
+          const potentialCity = extractCityFromValue(value.toString());
+          if (potentialCity) {
+            destination = potentialCity;
+            console.log(`✅ Found destination in geographic column '${key}': ${potentialCity}`);
           }
         }
 
