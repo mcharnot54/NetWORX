@@ -119,74 +119,8 @@ export class RealDataTransportOptimizer {
     }
   }
 
-  /**
-   * Generate realistic route data for educational publisher distribution
-   */
-  static generateRealisticRouteData(): RealRouteData[] {
-    const distributionCities = this.generateRealisticDistributionNetwork();
-    const routes: RealRouteData[] = [];
-
-    // Total baseline is $6.56M - distribute EVENLY across ALL cities (NO CHICAGO BIAS)
-    const totalBaseline = 6560000;
-
-    console.log(`🚫 REMOVING CHICAGO BIAS: No hardcoded 15% allocation to Chicago, IL`);
-    console.log(`📊 UNBIASED DISTRIBUTION: Distributing $${totalBaseline.toLocaleString()} across ${distributionCities.length} cities`);
-    console.log(`🎯 ALGORITHM-DRIVEN: Let optimization determine best cities based on distance, cost, and service`);
-
-    // Calculate cost per destination (exclude Littleton, MA from destinations)
-    const destinations = distributionCities.filter(city => city !== 'Littleton, MA');
-    const costPerDestination = destinations.length > 0 ? Math.round(totalBaseline / destinations.length) : 0;
-
-    console.log(`💰 Equal distribution: $${costPerDestination.toLocaleString()} per destination (${destinations.length} destinations)`);
-    console.log(`🚫 NO HARDCODED PREFERENCES: All cities have equal baseline opportunity`);
-
-    // Generate routes to ALL destinations from comprehensive database
-    destinations.forEach(destination => {
-      if (costPerDestination > 0) {
-        routes.push({
-          route_pair: `Littleton, MA → ${destination}`,
-          origin: 'Littleton, MA',
-          destination: destination,
-          transport_modes: ['UPS_PARCEL', 'R&L_LTL', 'TL_FREIGHT'],
-          total_cost: costPerDestination,
-          total_shipments: Math.round(costPerDestination / 400), // ~$400 average per shipment
-          routes: [{
-            distance_miles: this.calculateDistanceToCity(destination),
-            transport_mode: 'MIXED',
-            cost: costPerDestination
-          }]
-        });
-      }
-    });
-
-    console.log(`✅ Generated ${routes.length} routes with ZERO hardcoded preferences`);
-    console.log(`🎯 NOW the algorithm will determine optimal cities based on REAL factors:`);
-    console.log(`   - Distance from Littleton, MA`);
-    console.log(`   - Cost per mile calculations`);
-    console.log(`   - Service level requirements`);
-    console.log(`   - Optimization criteria weights`);
-
-    return routes;
-  }
-
-  /**
-   * Build a realistic distribution network city list using the comprehensive database
-   */
-  static generateRealisticDistributionNetwork(): string[] {
-    try {
-      const { getTopCitiesByPopulation } = require('./comprehensive-cities-database');
-      const top = getTopCitiesByPopulation(60).map((c: any) => `${c.name}, ${c.state_province}`);
-      const unique = Array.from(new Set<string>(top));
-      // Ensure origin is present first
-      return ['Littleton, MA', ...unique.filter(c => c !== 'Littleton, MA')];
-    } catch (err) {
-      console.warn('Failed to load comprehensive cities for distribution network, using defaults:', err);
-      return [
-        'Littleton, MA', 'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Dallas, TX',
-        'Atlanta, GA', 'Denver, CO', 'Seattle, WA', 'Miami, FL', 'Toronto, ON', 'Montreal, QC'
-      ];
-    }
-  }
+  // SYNTHETIC DATA GENERATION REMOVED - REAL DATA ONLY
+  // No fallback route generation methods allowed per strict requirements
 
   /**
    * Calculate distance from Littleton, MA to destination city using coordinates
@@ -778,7 +712,7 @@ export class RealDataTransportOptimizer {
       });
     } else {
       // No fallback - require real volume data for projections
-      throw new Error('No real volume data available for yearly projections. Complete capacity analysis first to generate accurate multi-year projections. Cannot generate projections without actual volume growth data from capacity optimizer.');
+      throw new Error('REAL DATA REQUIRED: No volume data available for yearly projections. Complete capacity analysis for the selected scenario first to get real volume growth projections. No synthetic growth projections will be generated.');
     }
 
     if (projection.length > 0) {
