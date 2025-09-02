@@ -378,11 +378,9 @@ export class RealDataTransportOptimizer {
 
     const actualCities = Array.from(cities);
 
-    // If route extraction failed or found company names, use comprehensive database
+    // If route extraction failed, throw an error instead of using fallback
     if (actualCities.length < 2) {
-      console.log('🎯 Route extraction incomplete or found invalid data, using FULL comprehensive cities database...');
-      console.log('🚫 NO HARDCODED FALLBACKS: Using complete North American city network');
-      return this.generateRealisticDistributionNetwork();
+      throw new Error(`Insufficient valid city data extracted from transport files (found ${actualCities.length} cities). Upload and process transport files with valid geographic data (city, state format) before running optimization.`);
     }
 
     console.log(`✅ VALIDATED REAL DATA: Using ${actualCities.length} valid cities from your transport files`);
