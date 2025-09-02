@@ -170,6 +170,25 @@ export class RealDataTransportOptimizer {
   }
 
   /**
+   * Build a realistic distribution network city list using the comprehensive database
+   */
+  static generateRealisticDistributionNetwork(): string[] {
+    try {
+      const { getTopCitiesByPopulation } = require('./comprehensive-cities-database');
+      const top = getTopCitiesByPopulation(60).map((c: any) => `${c.name}, ${c.state_province}`);
+      const unique = Array.from(new Set<string>(top));
+      // Ensure origin is present first
+      return ['Littleton, MA', ...unique.filter(c => c !== 'Littleton, MA')];
+    } catch (err) {
+      console.warn('Failed to load comprehensive cities for distribution network, using defaults:', err);
+      return [
+        'Littleton, MA', 'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Dallas, TX',
+        'Atlanta, GA', 'Denver, CO', 'Seattle, WA', 'Miami, FL', 'Toronto, ON', 'Montreal, QC'
+      ];
+    }
+  }
+
+  /**
    * Calculate distance from Littleton, MA to destination city using coordinates
    */
   static calculateDistanceToCity(destination: string): number {
