@@ -97,12 +97,14 @@ export class RealDataTransportOptimizer {
         console.log(`✅ Found ${validRoutes.length} valid geographic routes from transport files`);
         return validRoutes;
       } else {
-        console.log('🚫 No valid geographic routes found, extracted data contains company names');
+        console.warn('🚫 No valid geographic routes found, extracted data contains company names or invalid formats. Falling back to comprehensive cities database.');
+        return [];
       }
     }
 
-    // No valid route data found - throw error to trigger comprehensive database fallback
-    throw new Error('No valid geographic route data found. Route extraction returned company names instead of cities.');
+    // No valid route data found - return empty to trigger comprehensive DB fallback in caller
+    console.warn('⚠️ Route extraction returned no usable data. Falling back to comprehensive cities database.');
+    return [];
   }
 
   /**
