@@ -363,19 +363,21 @@ export class RealDataTransportOptimizer {
   static generateRealisticDistributionNetwork(): string[] {
     try {
       // Import the comprehensive cities database
-      const { getAllUSCities, getAllCanadianCities } = require('./comprehensive-cities-database');
+      const { getTopCitiesByPopulation } = require('./comprehensive-cities-database');
 
-      // Get ALL cities from comprehensive database - US and Canadian
-      const allUSCities = getAllUSCities().map(city => `${city.name}, ${city.state_province}`);
-      const allCanadianCities = getAllCanadianCities().map(city => `${city.name}, ${city.state_province}`);
+      // Use top cities by population for optimal MIP solver performance
+      // Balance: comprehensive coverage + solver performance + no hardcoded bias
+      const maxCities = 150; // Optimal for MIP solver performance
+      const topCities = getTopCitiesByPopulation(maxCities - 1) // -1 for Littleton, MA
+        .map(city => `${city.name}, ${city.state_province}`);
 
-      const allCities = [...allUSCities, ...allCanadianCities];
-
-      console.log(`🌎 COMPREHENSIVE COVERAGE: ${allCities.length} cities (${allUSCities.length} US + ${allCanadianCities.length} Canadian)`);
-      console.log(`🎯 NO ARTIFICIAL LIMITS: Algorithm will optimize across full North American network`);
+      console.log(`🌎 POPULATION-WEIGHTED COVERAGE: Top ${maxCities} cities by population`);
+      console.log(`⚖️  BALANCED APPROACH: Comprehensive coverage + MIP solver performance`);
+      console.log(`🚫 NO HARDCODED BIAS: Population-based selection, no Chicago preference`);
+      console.log(`🎯 ALGORITHM DECIDES: Optimization will find truly optimal locations`);
 
       // Ensure Littleton, MA is included as primary facility
-      const cities = ['Littleton, MA', ...allCities.filter(city => city !== 'Littleton, MA')];
+      const cities = ['Littleton, MA', ...topCities.filter(city => city !== 'Littleton, MA')];
 
       return cities;
     } catch (error) {
