@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+// Using native fetch (Node.js 18+)
 
 async function testOptimizerStatus() {
   try {
@@ -37,7 +37,7 @@ async function testOptimizerStatus() {
       console.log('✅ Database Connection: WORKING');
       console.log(`   🔗 Status: ${dbData.status || 'Connected'}`);
     } else {
-      console.log('❌ Database Connection: FAILED');
+      console.log('��� Database Connection: FAILED');
     }
 
     console.log('\n🎯 SUMMARY: All core systems are operational!');
