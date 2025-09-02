@@ -802,36 +802,8 @@ export class RealDataTransportOptimizer {
         });
       });
     } else {
-      // Fallback to calculated projections if no real data available
-      console.warn('⚠️ No real volume data available, using calculated projections');
-
-      for (let year = 0; year < 8; year++) {
-        const currentYear = 2025 + year;
-        const volumeMultiplier = Math.pow(1 + volumeGrowth.growth_rate, year);
-        const isBaseline = year === 0;
-
-        let transportCost: number;
-        if (isBaseline) {
-          transportCost = Math.round(baselineData.total_verified);
-        } else {
-          transportCost = Math.round(optimizedBaseline * volumeMultiplier);
-        }
-
-        projection.push({
-          year: currentYear,
-          is_baseline: isBaseline,
-          volume_multiplier: volumeMultiplier.toFixed(2),
-          growth_rate: (volumeGrowth.growth_rate * 100).toFixed(1),
-          transport_cost: transportCost,
-          total_cost: transportCost,
-          efficiency_score: isBaseline ? 85 : optimization.service_score,
-          optimization_applied: !isBaseline,
-          data_source: 'calculated_fallback',
-          explanation: isBaseline
-            ? "Baseline year - no optimization applied"
-            : `Optimized baseline + calculated ${(volumeGrowth.growth_rate * 100).toFixed(1)}% growth`
-        });
-      }
+      // No fallback - require real volume data for projections
+      throw new Error('No real volume data available for yearly projections. Complete capacity analysis first to generate accurate multi-year projections. Cannot generate projections without actual volume growth data from capacity optimizer.');
     }
 
     if (projection.length > 0) {
