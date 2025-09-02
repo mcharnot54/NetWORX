@@ -1004,7 +1004,8 @@ export default function TransportOptimizer() {
                     <p>🎯 <strong>REAL DATA ONLY:</strong> Uses actual origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
                     <p>📊 <strong>Verified Baseline Required:</strong> Optimization requires completed transport baseline analysis.</p>
                     <p>⚙️ <strong>Capacity Analysis Required:</strong> Volume growth projections require completed capacity analysis.</p>
-                    <p>��� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
+                    <p>❌ <strong>NO FALLBACKS:</strong> No synthetic, estimated, or mock data will be generated. Only real data scenarios allowed.</p>
+                    <p>🚨 <strong>STRICT VALIDATION:</strong> Scenario generation will fail if real data requirements are not met.</p>
                   </div>
                 </div>
               )}
