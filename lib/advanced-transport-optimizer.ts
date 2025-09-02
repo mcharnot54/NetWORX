@@ -183,7 +183,6 @@ export function optimizeTransport(
   
   if (baselineIntegration) {
     console.log(`Current baseline cost: $${baselineIntegration.current_cost.toLocaleString()}`);
-    console.log(`Target savings: ${baselineIntegration.target_savings}%`);
   }
 
   const demandMap: DemandMap = demand ?? Object.fromEntries(dests.map((d) => [d, 1000]));
