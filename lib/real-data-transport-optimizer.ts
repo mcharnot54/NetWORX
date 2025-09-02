@@ -670,77 +670,42 @@ export class RealDataTransportOptimizer {
         }
       }
 
-      console.warn('⚠️ Real Transport Optimizer API failed, falling back to estimation');
+      const errorMsg = 'Real Transport Optimizer API failed to return valid results';
+      console.error('❌', errorMsg);
+      throw new Error(`${errorMsg}. Cannot proceed without valid optimization results from /api/advanced-optimization endpoint.`);
 
     } catch (error) {
       console.error('❌ Error calling real Transport Optimizer:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown optimization error';
+      throw new Error(`Transport optimization failed: ${errorMessage}. Ensure the advanced optimization API is available and transport data is properly loaded.`);
     }
-
-    // Fallback to reasonable estimates if API fails
-    return this.fallbackOptimizationCalculation(scenarioType, routeData, baselineData, config, primaryFacility);
   }
 
   /**
-   * Fallback optimization calculation when real API is unavailable
+   * No fallback calculations - optimization must use real data only
    */
-  static fallbackOptimizationCalculation(
+  static validateOptimizationRequirements(
     scenarioType: string,
     routeData: RealRouteData[],
     baselineData: RealBaselineData,
     config: ConfigurationSettings,
     primaryFacility: string
   ) {
-    console.log('🔄 Using fallback optimization calculation');
-
-    // Calculate total actual miles from route data
-    let totalMiles = this.estimateTotalMiles(routeData);
-    let baselineCost = baselineData.total_verified;
-
-    // Conservative but realistic optimization estimates
-    const uniqueDestinations = this.countUniqueDestinations(routeData);
-    let optimizationPercentage = 0;
-    let serviceScore = 85;
-
-    switch (scenarioType) {
-      case 'lowest_cost_city':
-        optimizationPercentage = Math.min(45, 20 + uniqueDestinations); // 20-45% based on network size
-        serviceScore = 82;
-        break;
-      case 'lowest_cost_zip':
-        optimizationPercentage = Math.min(50, 25 + uniqueDestinations); // 25-50% for ZIP optimization
-        serviceScore = 80;
-        break;
-      case 'lowest_miles_city':
-        optimizationPercentage = Math.min(40, 15 + uniqueDestinations); // 15-40% mile-focused
-        serviceScore = 88;
-        break;
-      case 'best_service_parcel':
-        optimizationPercentage = Math.min(35, 10 + uniqueDestinations); // 10-35% service-focused
-        serviceScore = 95;
-        break;
-      case 'blended_service':
-        optimizationPercentage = Math.min(45, 18 + uniqueDestinations); // 18-45% balanced
-        serviceScore = 90;
-        break;
-      default:
-        optimizationPercentage = Math.min(40, 15 + uniqueDestinations);
-        serviceScore = 85;
+    // Validate that we have sufficient real data for optimization
+    if (!routeData || routeData.length === 0) {
+      throw new Error('No route data available. Upload and process transport files (UPS, TL, R&L) before running optimization.');
     }
 
-    const potentialSavings = baselineCost * (optimizationPercentage / 100);
+    if (!baselineData || baselineData.total_verified <= 0) {
+      throw new Error('No baseline cost data available. Ensure transport baseline analysis has been completed.');
+    }
 
-    return {
-      baseline_cost: baselineCost,
-      optimized_cost: Math.round(baselineCost - potentialSavings),
-      potential_savings: Math.round(potentialSavings),
-      optimization_percentage: optimizationPercentage,
-      total_miles: Math.round(totalMiles * 0.75), // Assume 25% mile reduction
-      baseline_miles: totalMiles,
-      service_score: serviceScore,
-      primary_facility: primaryFacility,
-      selected_facilities: [primaryFacility],
-      optimization_method: 'fallback_estimation'
-    };
+    if (!primaryFacility || primaryFacility.trim() === '') {
+      throw new Error('No primary facility specified. Configure warehouse settings before running optimization.');
+    }
+
+    // All validation passed - ready for real optimization
+    return true;
   }
 
   /**
@@ -777,7 +742,11 @@ export class RealDataTransportOptimizer {
       totalMiles = routeData.length * 450; // Average 450 miles per route
     }
 
-    return totalMiles || 50000; // Fallback
+    if (totalMiles === 0) {
+      throw new Error('No mileage data available in route data. Cannot estimate transportation distances without valid route information.');
+    }
+
+    return totalMiles;
   }
 
   /**
