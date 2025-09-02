@@ -473,7 +473,7 @@ export default function TransportOptimizer() {
         );
 
         setScenarios(generatedScenarios as any);
-        console.log('✅ Generated scenarios using data:', generatedScenarios);
+        console.log('�� Generated scenarios using data:', generatedScenarios);
 
         // Show success message with details
         alert(`Successfully generated ${generatedScenarios.length} transport scenarios!
@@ -995,7 +995,14 @@ export default function TransportOptimizer() {
               {!selectedScenario ? (
                 <div className="warning-message">
                   <h3>⚠️ No Scenario Selected</h3>
-                  <p>Please select a scenario from the "Projects & Scenarios" tab first. Transport optimization uses real data from your uploaded transport files (UPS, TL, R&L).</p>
+                  <p>Please select a scenario from the "Projects & Scenarios" tab first.</p>
+                  <p><strong>REAL DATA REQUIREMENTS:</strong></p>
+                  <ul>
+                    <li>Upload and process transport files (UPS, TL, R&L)</li>
+                    <li>Complete transport baseline analysis</li>
+                    <li>Complete capacity analysis for the scenario</li>
+                  </ul>
+                  <p><strong>NO FALLBACK DATA WILL BE GENERATED.</strong></p>
                 </div>
               ) : (
                 <div className="selected-scenario-info">
