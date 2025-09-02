@@ -346,20 +346,23 @@ function extractRLRoutes(parsedData: any, filename: string) {
         }
       });
 
-      // Only add route if we have a cost and at least one location
-      if (cost > 0) {
+      // Only add route if we have a cost AND valid geographic destination (no company names)
+      if (cost > 0 && destination && destination.includes(',')) {
         routes.push({
           file_source: filename,
           transport_mode: 'R&L_LTL',
           origin: origin,
-          destination: destination || `Unknown Destination ${routes.length + 1}`,
+          destination: destination,
           actual_cost: cost,
           weight_lbs: weight,
           distance_miles: distance || estimateDistanceForDestination(destination),
           cost_per_pound: weight > 0 ? cost / weight : 0,
           cost_per_mile: distance > 0 ? cost / distance : 0,
-          data_quality: destination ? 'Good' : 'Partial'
+          data_quality: 'Valid_Geographic'
         });
+        console.log(`✅ Added valid route: ${origin} → ${destination} ($${cost})`);
+      } else if (cost > 0) {
+        console.log(`🚫 Rejected route with invalid destination: '${destination}' (cost: $${cost})`);
       }
     }
   }
