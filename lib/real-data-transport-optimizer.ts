@@ -344,7 +344,7 @@ export class RealDataTransportOptimizer {
    */
   static validateCityDataAvailability(cities: string[]): boolean {
     if (!cities || cities.length < 2) {
-      throw new Error('Insufficient city data for optimization. At least 2 valid cities required from transport files.');
+      throw new Error('REAL DATA REQUIRED: Insufficient city data for optimization. At least 2 valid cities required from transport files. No synthetic cities will be generated.');
     }
     return true;
   }
@@ -600,17 +600,17 @@ export class RealDataTransportOptimizer {
     config: ConfigurationSettings,
     primaryFacility: string
   ) {
-    // Validate that we have sufficient real data for optimization
+    // STRICT VALIDATION: Real data required, no fallbacks allowed
     if (!routeData || routeData.length === 0) {
-      throw new Error('No route data available. Upload and process transport files (UPS, TL, R&L) before running optimization.');
+      throw new Error('REAL DATA REQUIRED: No route data available. Upload and process transport files (UPS, TL, R&L) before running optimization. No synthetic routes will be generated.');
     }
 
     if (!baselineData || baselineData.total_verified <= 0) {
-      throw new Error('No baseline cost data available. Ensure transport baseline analysis has been completed.');
+      throw new Error('REAL DATA REQUIRED: No baseline cost data available. Ensure transport baseline analysis has been completed. No estimated costs will be used.');
     }
 
     if (!primaryFacility || primaryFacility.trim() === '') {
-      throw new Error('No primary facility specified. Configure warehouse settings before running optimization.');
+      throw new Error('REAL DATA REQUIRED: No primary facility specified. Configure warehouse settings before running optimization. No default facility will be assumed.');
     }
 
     // All validation passed - ready for real optimization
