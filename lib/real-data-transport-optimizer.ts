@@ -335,25 +335,51 @@ export class RealDataTransportOptimizer {
   static extractActualCities(routeData: RealRouteData[]): string[] {
     const cities = new Set<string>();
 
+    // Company keywords to filter out
+    const companyKeywords = [
+      'INC', 'LLC', 'CORP', 'COMPANY', 'ASSOCIATES', 'CURRICULUM', 'ENTERPRISES',
+      'SOLUTIONS', 'SERVICES', 'SYSTEMS', 'TECHNOLOGIES', 'GROUP', 'INTERNATIONAL',
+      'AMERICA', 'USA', 'DISTRIBUTION', 'LOGISTICS', 'WAREHOUSE', 'CENTER'
+    ];
+
+    const isValidCity = (cityName: string): boolean => {
+      if (!cityName || cityName === 'Unknown' || cityName === 'Various') return false;
+
+      // Check if it contains company keywords
+      const upperCity = cityName.toUpperCase();
+      if (companyKeywords.some(keyword => upperCity.includes(keyword))) {
+        console.log(`🚫 Rejected company name as city: ${cityName}`);
+        return false;
+      }
+
+      // Must contain a comma ("City, ST" format)
+      if (!cityName.includes(',')) {
+        console.log(`🚫 Rejected invalid city format: ${cityName}`);
+        return false;
+      }
+
+      return true;
+    };
+
     routeData.forEach(route => {
-      if (route.origin && route.origin !== 'Unknown' && route.origin !== 'Various') {
+      if (route.origin && isValidCity(route.origin)) {
         cities.add(route.origin);
       }
-      if (route.destination && route.destination !== 'Unknown' && route.destination !== 'Various') {
+      if (route.destination && isValidCity(route.destination)) {
         cities.add(route.destination);
       }
     });
 
     const actualCities = Array.from(cities);
 
-    // If route extraction failed, use comprehensive database (DON'T fall back to hardcoded cities)
-    if (actualCities.length < 5 || actualCities.some(city => city.includes('CURRICULUM') || city === 'Unknown')) {
-      console.log('🎯 Route extraction incomplete, using FULL comprehensive cities database...');
+    // If route extraction failed or found company names, use comprehensive database
+    if (actualCities.length < 2) {
+      console.log('🎯 Route extraction incomplete or found invalid data, using FULL comprehensive cities database...');
       console.log('🚫 NO HARDCODED FALLBACKS: Using complete North American city network');
       return this.generateRealisticDistributionNetwork();
     }
 
-    console.log(`✅ REAL ROUTE DATA: Using ${actualCities.length} actual cities from your transport files`);
+    console.log(`✅ VALIDATED REAL DATA: Using ${actualCities.length} valid cities from your transport files`);
     return actualCities;
   }
 
