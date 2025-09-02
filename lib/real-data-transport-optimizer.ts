@@ -97,65 +97,45 @@ export class RealDataTransportOptimizer {
     const distributionCities = this.generateRealisticDistributionNetwork();
     const routes: RealRouteData[] = [];
 
-    // Total baseline is $6.56M - distribute across routes based on market size
+    // Total baseline is $6.56M - distribute EVENLY across ALL cities (NO CHICAGO BIAS)
     const totalBaseline = 6560000;
-    const marketSizes = {
-      'Chicago, IL': 0.15,        // 15% - Major Midwest market
-      'Atlanta, GA': 0.12,        // 12% - Southeast hub
-      'Dallas, TX': 0.11,         // 11% - Texas education market
-      'Los Angeles, CA': 0.10,    // 10% - California schools
-      'Denver, CO': 0.08,         // 8% - Mountain West
-      'Phoenix, AZ': 0.07,        // 7% - Southwest
-      'Orlando, FL': 0.06,        // 6% - Florida market
-      'Charlotte, NC': 0.05,      // 5% - Carolinas
-      'Columbus, OH': 0.05,       // 5% - Ohio
-      'Nashville, TN': 0.04,      // 4% - Tennessee
-    };
 
-    let remainingCost = totalBaseline;
+    console.log(`🚫 REMOVING CHICAGO BIAS: No hardcoded 15% allocation to Chicago, IL`);
+    console.log(`📊 UNBIASED DISTRIBUTION: Distributing $${totalBaseline.toLocaleString()} across ${distributionCities.length} cities`);
+    console.log(`🎯 ALGORITHM-DRIVEN: Let optimization determine best cities based on distance, cost, and service`);
 
-    Object.entries(marketSizes).forEach(([destination, percentage]) => {
-      const routeCost = Math.round(totalBaseline * percentage);
-      remainingCost -= routeCost;
+    // Calculate cost per destination (exclude Littleton, MA from destinations)
+    const destinations = distributionCities.filter(city => city !== 'Littleton, MA');
+    const costPerDestination = destinations.length > 0 ? Math.round(totalBaseline / destinations.length) : 0;
 
-      routes.push({
-        route_pair: `Littleton, MA → ${destination}`,
-        origin: 'Littleton, MA',
-        destination: destination,
-        transport_modes: ['UPS_PARCEL', 'R&L_LTL', 'TL_FREIGHT'],
-        total_cost: routeCost,
-        total_shipments: Math.round(routeCost / 450), // ~$450 average per shipment
-        routes: [{
-          distance_miles: this.calculateDistanceToCity(destination),
-          transport_mode: 'MIXED',
-          cost: routeCost
-        }]
-      });
-    });
+    console.log(`💰 Equal distribution: $${costPerDestination.toLocaleString()} per destination (${destinations.length} destinations)`);
+    console.log(`🚫 NO HARDCODED PREFERENCES: All cities have equal baseline opportunity`);
 
-    // Add remaining smaller markets - use ALL available cities for comprehensive network
-    const smallerMarkets = distributionCities.slice(10); // Take remaining cities (now includes all cities)
-    const remainingPerMarket = smallerMarkets.length > 0 ? Math.round(remainingCost / smallerMarkets.length) : 0;
-
-    console.log(`📊 Generating routes to ${smallerMarkets.length} additional cities from comprehensive database`);
-
-    smallerMarkets.forEach(destination => {
-      if (remainingPerMarket > 0) {
+    // Generate routes to ALL destinations from comprehensive database
+    destinations.forEach(destination => {
+      if (costPerDestination > 0) {
         routes.push({
           route_pair: `Littleton, MA → ${destination}`,
           origin: 'Littleton, MA',
           destination: destination,
-          transport_modes: ['UPS_PARCEL', 'R&L_LTL'],
-          total_cost: remainingPerMarket,
-          total_shipments: Math.round(remainingPerMarket / 350),
+          transport_modes: ['UPS_PARCEL', 'R&L_LTL', 'TL_FREIGHT'],
+          total_cost: costPerDestination,
+          total_shipments: Math.round(costPerDestination / 400), // ~$400 average per shipment
           routes: [{
             distance_miles: this.calculateDistanceToCity(destination),
             transport_mode: 'MIXED',
-            cost: remainingPerMarket
+            cost: costPerDestination
           }]
         });
       }
     });
+
+    console.log(`✅ Generated ${routes.length} routes with ZERO hardcoded preferences`);
+    console.log(`🎯 NOW the algorithm will determine optimal cities based on REAL factors:`);
+    console.log(`   - Distance from Littleton, MA`);
+    console.log(`   - Cost per mile calculations`);
+    console.log(`   - Service level requirements`);
+    console.log(`   - Optimization criteria weights`);
 
     return routes;
   }
