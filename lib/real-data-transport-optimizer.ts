@@ -69,8 +69,16 @@ export class RealDataTransportOptimizer {
    * Extract real route data from uploaded transport files
    */
   static async getActualRouteData(): Promise<RealRouteData[]> {
-    const response = await fetch('/api/extract-actual-routes');
-    const data = await response.json();
+    try {
+      const response = await fetch('/api/extract-actual-routes', {
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
 
     if (data && data.success && data.route_groups) {
       const extractedRoutes = Object.values(data.route_groups).map((group: any) => ({
@@ -102,9 +110,13 @@ export class RealDataTransportOptimizer {
       }
     }
 
-    // No valid route data found - return empty to trigger comprehensive DB fallback in caller
-    console.warn('⚠️ Route extraction returned no usable data. Falling back to comprehensive cities database.');
-    return [];
+      // No valid route data found - return empty to trigger comprehensive DB fallback in caller
+      console.warn('⚠️ Route extraction returned no usable data. Falling back to comprehensive cities database.');
+      return [];
+    } catch (error) {
+      console.warn('Error fetching route data:', error);
+      return []; // Return empty array to allow fallback behavior
+    }
   }
 
   /**
