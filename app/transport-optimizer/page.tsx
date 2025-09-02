@@ -171,6 +171,60 @@ export default function TransportOptimizer() {
     };
   }, [pollingInterval]);
 
+  // Function to restart the optimizer
+  const restartOptimizer = async () => {
+    if (!selectedScenario) {
+      alert('Please select a scenario first');
+      return;
+    }
+
+    try {
+      // Stop any current polling
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+
+      // Cancel any running jobs
+      const currentJobProgress = Object.values(jobProgress);
+      for (const progress of currentJobProgress) {
+        if (progress.status === 'queued' || progress.status === 'running') {
+          // Try to find and cancel the job
+          try {
+            const jobsResponse = await fetch(`/api/scenarios/${selectedScenario.id}/optimize`);
+            if (jobsResponse.ok) {
+              const jobsData = await jobsResponse.json();
+              if (jobsData.success && jobsData.data) {
+                for (const result of jobsData.data) {
+                  if (result.job_id && (result.status === 'queued' || result.status === 'running')) {
+                    await fetch(`/api/jobs/${result.job_id}`, { method: 'DELETE' });
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.warn('Could not cancel existing jobs:', error);
+          }
+        }
+      }
+
+      // Reset all state
+      setJobProgress({});
+      setIsGenerating(false);
+      setIsAnalyzing(false);
+      setAnalysisResults(null);
+      setScenarios([]);
+      setSelectedScenarios([]);
+
+      console.log('🔄 Optimizer restarted - ready for new scenario generation');
+      alert('Optimizer has been restarted. You can now generate new scenarios.');
+
+    } catch (error) {
+      console.error('Error restarting optimizer:', error);
+      alert('Failed to restart optimizer. Please try again.');
+    }
+  };
+
   // Function to fetch capacity analysis data for the selected scenario
   const fetchCapacityAnalysisData = async (scenarioId: number) => {
     try {
