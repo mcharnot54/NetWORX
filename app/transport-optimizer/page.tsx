@@ -507,60 +507,20 @@ export default function TransportOptimizer() {
     }
   };
 
-  const generateMockRouteDetails = (cities?: string[]): RouteDetail[] => {
-    // Only use provided cities - no hardcoded fallback
+  // Function to validate route details from real data
+  const validateRouteDetails = (cities?: string[]): RouteDetail[] => {
     if (!cities || cities.length === 0) {
-      console.warn('No cities provided for route generation');
-      return [];
+      throw new Error('No cities available for route generation. Cannot proceed without valid city data.');
     }
 
-    let routeCities = cities;
-
-    const routes = [];
-
-    // Generate routes between each pair of cities
-    for (let i = 0; i < routeCities.length; i++) {
-      for (let j = i + 1; j < routeCities.length; j++) {
-        routes.push({
-          origin: routeCities[i],
-          destination: routeCities[j],
-          service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`
-        });
-      }
-    }
-
-    // If we don't have enough routes, add some more with the available cities
-    while (routes.length < 5 && routeCities.length >= 2) {
-      const origin = routeCities[Math.floor(Math.random() * routeCities.length)];
-      const destination = routeCities[Math.floor(Math.random() * routeCities.length)];
-
-      if (origin !== destination && !routes.find(r => r.origin === origin && r.destination === destination)) {
-        routes.push({
-          origin,
-          destination,
-          service_zone: `Zone ${Math.floor(Math.random() * 3) + 1}`
-        });
-      }
-    }
-
-    return routes.slice(0, 10).map(route => ({
-      ...route,
-      distance_miles: Math.floor(Math.random() * 800) + 200,
-      cost_per_mile: Math.random() * 2 + 1.5,
-      volume_units: Math.floor(Math.random() * 10000) + 5000,
-      transit_time_hours: Math.floor(Math.random() * 20) + 8
-    }));
+    // Return empty array - route details should come from real optimization data only
+    return [];
   };
 
-  const generateMockVolumeAllocations = (): FacilityAllocation[] => {
-    return Array.from({ length: facilityRequirements }, (_, i) => ({
-      facility_id: `facility_${i + 1}`,
-      facility_name: `Distribution Center ${i + 1}`,
-      total_volume_units: Math.floor(Math.random() * 50000) + 25000,
-      outbound_volume: Math.floor(Math.random() * 30000) + 15000,
-      inbound_volume: Math.floor(Math.random() * 20000) + 10000,
-      capacity_utilization: Math.random() * 30 + 70
-    }));
+  // Function to validate volume allocations from real data
+  const validateVolumeAllocations = (): FacilityAllocation[] => {
+    // Volume allocations should come from real optimization results only
+    throw new Error('Volume allocations must come from actual optimization results. No mock data will be generated.');
   };
 
   const runTransportAnalysis = async () => {
@@ -1038,7 +998,7 @@ export default function TransportOptimizer() {
                     <p>🎯 <strong>ACTUAL Route Analysis:</strong> Uses real origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
                     <p>📊 <strong>Verified $6.56M Baseline:</strong> Optimization starts from your actual transport costs, not estimates.</p>
                     <p>⚙️ <strong>Configuration Integration:</strong> Uses your cost weights, service levels, and optimization criteria from the Configuration tab.</p>
-                    <p>����� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
+                    <p>��� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
                   </div>
                 </div>
               )}
