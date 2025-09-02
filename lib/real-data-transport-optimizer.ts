@@ -248,22 +248,11 @@ export class RealDataTransportOptimizer {
         };
       }
       
-      // Fallback to verified baseline
-      return {
-        ups_parcel_costs: 2930000,
-        tl_freight_costs: 1190000,
-        rl_ltl_costs: 2440000,
-        total_verified: 6560000
-      };
+      throw new Error('No valid baseline data returned from API. Ensure transport files (UPS, TL, R&L) are uploaded and baseline analysis is completed.');
     } catch (error) {
       console.error('Error fetching baseline data:', error);
-      // Return verified baseline as fallback
-      return {
-        ups_parcel_costs: 2930000,
-        tl_freight_costs: 1190000,
-        rl_ltl_costs: 2440000,
-        total_verified: 6560000
-      };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch transport baseline data: ${errorMessage}. Upload and process transport files first.`);
     }
   }
 
