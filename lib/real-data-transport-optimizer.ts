@@ -363,26 +363,27 @@ export class RealDataTransportOptimizer {
   static generateRealisticDistributionNetwork(): string[] {
     try {
       // Import the comprehensive cities database
-      const { getTopCitiesByPopulation } = require('./comprehensive-cities-database');
+      const { getAllUSCities, getAllCanadianCities } = require('./comprehensive-cities-database');
 
-      // Use top cities by population for optimal MIP solver performance
-      // Balance: comprehensive coverage + solver performance + no hardcoded bias
-      const maxCities = 150; // Optimal for MIP solver performance
-      const topCities = getTopCitiesByPopulation(maxCities - 1) // -1 for Littleton, MA
-        .map(city => `${city.name}, ${city.state_province}`);
+      // Get ALL cities from comprehensive database - US and Canadian
+      const allUSCities = getAllUSCities().map(city => `${city.name}, ${city.state_province}`);
+      const allCanadianCities = getAllCanadianCities().map(city => `${city.name}, ${city.state_province}`);
+      const allCities = [...allUSCities, ...allCanadianCities];
 
-      console.log(`🌎 POPULATION-WEIGHTED COVERAGE: Top ${maxCities} cities by population`);
-      console.log(`⚖️  BALANCED APPROACH: Comprehensive coverage + MIP solver performance`);
-      console.log(`🚫 NO HARDCODED BIAS: Population-based selection, no Chicago preference`);
-      console.log(`🎯 ALGORITHM DECIDES: Optimization will find truly optimal locations`);
+      console.log(`🌎 COMPREHENSIVE COVERAGE: ${allCities.length} cities (${allUSCities.length} US + ${allCanadianCities.length} Canadian)`);
+      console.log(`✅ FULL DATABASE: Using complete comprehensive cities list as requested`);
+      console.log(`🚫 NO TRUNCATION: All cities from database included`);
+      console.log(`🚫 NO HARDCODED BIAS: Algorithm will select optimal cities from full dataset`);
+      console.log(`🎯 ALGORITHM DECIDES: Optimization will find truly optimal locations from complete data`);
 
       // Ensure Littleton, MA is included as primary facility
-      const cities = ['Littleton, MA', ...topCities.filter(city => city !== 'Littleton, MA')];
+      const cities = ['Littleton, MA', ...allCities.filter(city => city !== 'Littleton, MA')];
 
       return cities;
     } catch (error) {
       console.error('❌ CRITICAL: Cannot load comprehensive cities database:', error);
-      throw new Error('Comprehensive cities database required for real optimization. Please ensure database is available.');
+      // PASS-FAIL APPROACH: No fallbacks, fail completely
+      throw new Error('PASS-FAIL: Comprehensive cities database required for real optimization. No fallbacks available. Please ensure database is available.');
     }
   }
 

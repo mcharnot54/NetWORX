@@ -105,33 +105,30 @@ export async function POST(request: NextRequest) {
       { sku: 'Educational_Materials_E', annual_volume: 700_000,   units_per_case: 30, cases_per_pallet: 25 },
     ];
 
-    // 🎯 USE COMPREHENSIVE CITIES DATABASE WITH REASONABLE MIP SOLVER LIMITS
+    // 🎯 USE FULL COMPREHENSIVE CITIES DATABASE - NO TRUNCATION
     let defaultCandidateFacilities: string[] = [];
 
-    console.log('🎯 Loading comprehensive cities database with MIP solver optimization...');
+    console.log('🎯 Loading FULL comprehensive cities database as requested...');
 
     try {
-      const { getAllUSCities, getAllCanadianCities, getTopCitiesByPopulation } = await import('@/lib/comprehensive-cities-database');
+      const { getAllUSCities, getAllCanadianCities } = await import('@/lib/comprehensive-cities-database');
 
-      // Get top cities by population for more realistic optimization
-      // MIP solvers work best with 50-200 candidate facilities for performance
-      const maxCandidates = 150; // Optimal balance: comprehensive coverage + solver performance
+      // Use ALL cities from comprehensive database - remove artificial limits
+      const allUSCities = getAllUSCities().map(city => `${city.name}, ${city.state_province}`);
+      const allCanadianCities = getAllCanadianCities().map(city => `${city.name}, ${city.state_province}`);
 
-      const topCities = getTopCitiesByPopulation(maxCandidates - 1) // -1 for Littleton, MA
-        .map(c => `${c.name}, ${c.state_province}`);
+      defaultCandidateFacilities = ['Littleton, MA', ...allUSCities, ...allCanadianCities];
 
-      defaultCandidateFacilities = ['Littleton, MA', ...topCities];
-
-      console.log(`✅ OPTIMIZED REAL DATA: Using top ${defaultCandidateFacilities.length} cities by population`);
-      console.log(`🎯 MIP-FRIENDLY SIZE: ${defaultCandidateFacilities.length} facilities for optimal solver performance`);
-      console.log(`📊 GEOGRAPHIC COVERAGE: Major population centers across North America`);
-      console.log(`🚫 NO HARDCODED PREFERENCES: Population-weighted selection, no Chicago bias`);
+      console.log(`✅ REAL DATA: Using ${defaultCandidateFacilities.length} cities from comprehensive database`);
+      console.log(`🌎 FULL COVERAGE: ${allUSCities.length} US cities + ${allCanadianCities.length} Canadian cities`);
+      console.log(`🚫 NO LIMITS: Complete database as requested, no truncation`);
+      console.log(`🚫 NO HARDCODED PREFERENCES: Full algorithmic selection from complete data`);
 
     } catch (err) {
       console.error('❌ CRITICAL ERROR: Failed to load comprehensive cities database:', err);
 
-      // If comprehensive DB fails, the optimization should fail rather than use hardcoded data
-      throw new Error(`Cannot run optimization without comprehensive cities database. Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      // PASS-FAIL APPROACH: No fallbacks, fail completely if comprehensive DB unavailable
+      throw new Error(`PASS-FAIL: Cannot run optimization without comprehensive cities database. No fallbacks used. Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
 
     let candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
