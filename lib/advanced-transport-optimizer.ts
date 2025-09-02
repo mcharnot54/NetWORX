@@ -171,7 +171,7 @@ export function optimizeTransport(
   demand?: DemandMap,
   capacity?: CapacityMap,
   bounds?: { minFacilities?: number; maxFacilities?: number },
-  baselineIntegration?: { current_cost: number; target_savings: number }
+  baselineIntegration?: { current_cost: number; target_savings?: number }
 ): TransportResult {
   const cities = matrix.rows;
   const dests = matrix.cols;
