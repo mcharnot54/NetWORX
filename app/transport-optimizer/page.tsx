@@ -264,7 +264,7 @@ export default function TransportOptimizer() {
 
   // Function to extract cities from capacity analysis data (load cities only when needed)
   const extractCitiesFromCapacityData = async (capacityData: any, skipExpensiveCalls = false): Promise<string[]> => {
-    console.log('🎯 Starting city selection...');
+    console.log('��� Starting city selection...');
 
     // FIRST PRIORITY: Get actual cities from transport files (only if not skipping expensive calls)
     if (!skipExpensiveCalls) {
@@ -473,7 +473,7 @@ export default function TransportOptimizer() {
         );
 
         setScenarios(generatedScenarios as any);
-        console.log('✅ Generated scenarios using data:', generatedScenarios);
+        console.log('�� Generated scenarios using data:', generatedScenarios);
 
         // Show success message with details
         alert(`Successfully generated ${generatedScenarios.length} transport scenarios!
@@ -490,15 +490,21 @@ export default function TransportOptimizer() {
 
         // Clear any existing scenarios and throw the error
         setScenarios([]);
-        throw new Error(`Failed to generate scenarios: ${errorMessage}`);
+        throw new Error(`REAL DATA VALIDATION FAILED: ${errorMessage}`);
       }
 
     } catch (error) {
       console.error('Scenario generation setup failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
-      // Show detailed error message to user
-      alert(`❌ SCENARIO GENERATION FAILED\n\n${errorMessage}\n\nPossible solutions:\n• Upload and process transport files (UPS, TL, R&L)\n• Complete capacity analysis for the selected scenario\n• Ensure warehouse configurations are set up\n• Check that the selected scenario has valid data`);
+      // Show strict validation error message to user
+      const isRealDataError = errorMessage.includes('REAL DATA REQUIRED');
+
+      if (isRealDataError) {
+        alert(`❌ REAL DATA VALIDATION FAILED\n\n${errorMessage}\n\nSTRICT REQUIREMENTS:\n• Upload and process actual transport files (UPS, TL, R&L)\n• Complete capacity analysis for the selected scenario\n• Ensure baseline transport analysis is completed\n\nNO SYNTHETIC OR FALLBACK DATA WILL BE GENERATED\nOnly scenarios based on your actual data are allowed.`);
+      } else {
+        alert(`❌ SCENARIO GENERATION FAILED\n\n${errorMessage}\n\nPossible solutions:\n• Upload and process transport files (UPS, TL, R&L)\n• Complete capacity analysis for the selected scenario\n• Ensure warehouse configurations are set up\n• Check that the selected scenario has valid data`);
+      }
 
       // Clear scenarios on failure
       setScenarios([]);
@@ -982,23 +988,31 @@ export default function TransportOptimizer() {
             <div className="tab-content">
               <h2 className="section-title">Scenario Generation</h2>
               <p className="section-description">
-                Generate transport optimization scenarios based on capacity analysis data.
-                Each scenario will use real cities and optimization algorithms to provide accurate results.
+                Generate transport optimization scenarios using ONLY your uploaded real data.
+                <strong>NO SYNTHETIC DATA:</strong> Scenarios will only be generated if all real data requirements are met.
               </p>
 
               {!selectedScenario ? (
                 <div className="warning-message">
                   <h3>⚠️ No Scenario Selected</h3>
-                  <p>Please select a scenario from the "Projects & Scenarios" tab first. Transport optimization uses real data from your uploaded transport files (UPS, TL, R&L).</p>
+                  <p>Please select a scenario from the "Projects & Scenarios" tab first.</p>
+                  <p><strong>REAL DATA REQUIREMENTS:</strong></p>
+                  <ul>
+                    <li>Upload and process transport files (UPS, TL, R&L)</li>
+                    <li>Complete transport baseline analysis</li>
+                    <li>Complete capacity analysis for the scenario</li>
+                  </ul>
+                  <p><strong>NO FALLBACK DATA WILL BE GENERATED.</strong></p>
                 </div>
               ) : (
                 <div className="selected-scenario-info">
                   <h3>Selected Scenario: {selectedScenario.name}</h3>
                   <div className="transport-data-notice">
-                    <p>🎯 <strong>ACTUAL Route Analysis:</strong> Uses real origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
-                    <p>📊 <strong>Verified $6.56M Baseline:</strong> Optimization starts from your actual transport costs, not estimates.</p>
-                    <p>⚙️ <strong>Configuration Integration:</strong> Uses your cost weights, service levels, and optimization criteria from the Configuration tab.</p>
-                    <p>��� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
+                    <p>🎯 <strong>REAL DATA ONLY:</strong> Uses actual origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
+                    <p>📊 <strong>Verified Baseline Required:</strong> Optimization requires completed transport baseline analysis.</p>
+                    <p>⚙️ <strong>Capacity Analysis Required:</strong> Volume growth projections require completed capacity analysis.</p>
+                    <p>❌ <strong>NO FALLBACKS:</strong> No synthetic, estimated, or mock data will be generated. Only real data scenarios allowed.</p>
+                    <p>🚨 <strong>STRICT VALIDATION:</strong> Scenario generation will fail if real data requirements are not met.</p>
                   </div>
                 </div>
               )}

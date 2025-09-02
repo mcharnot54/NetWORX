@@ -1,0 +1,213 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy with SSL termination
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - networx-network
+
+  # Next.js application
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.production
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NODE_OPTIONS: "--max-old-space-size=1536"
+      NEXT_TELEMETRY_DISABLED: 1
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - networx-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optimization worker process
+  optimization-worker:
+    build: 
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      WORKER_TYPE: optimization
+      NODE_OPTIONS: "--max-old-space-size=3584 --expose-gc"
+      UV_THREADPOOL_SIZE: 16
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - networx-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  # File processing worker
+  file-worker:
+    build: 
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      WORKER_TYPE: file-processing
+      NODE_OPTIONS: "--max-old-space-size=2048"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - networx-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: networx
+      POSTGRES_USER: networx
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./backups:/backups
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    restart: unless-stopped
+    networks:
+      - networx-network
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U networx -d networx"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for job persistence and caching
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - networx-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Simple monitoring with Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_INSTALL_PLUGINS: redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+    networks:
+      - networx-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Backup service
+  backup:
+    image: postgres:15-alpine
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
+    command: >
+      sh -c "
+        while true; do
+          echo 'Running backup at $(date)'
+          pg_dump -h postgres -U networx -d networx -f /backups/networx-$(date +%Y%m%d_%H%M%S).sql
+          # Keep only last 7 days of backups
+          find /backups -name '*.sql' -mtime +7 -delete
+          sleep 86400  # 24 hours
+        done
+      "
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - networx-network
+
+networks:
+  networx-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  grafana_data:
+    driver: local

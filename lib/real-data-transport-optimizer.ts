@@ -110,64 +110,17 @@ export class RealDataTransportOptimizer {
       }
     }
 
-      // No valid route data found - return empty to trigger comprehensive DB fallback in caller
-      console.warn('⚠️ Route extraction returned no usable data. Falling back to comprehensive cities database.');
-      return [];
+      // No valid route data found - return empty to trigger error in caller
+    console.warn('⚠️ Route extraction returned no usable data. No fallback data will be generated.');
+    return [];
     } catch (error) {
       console.warn('Error fetching route data:', error);
       return []; // Return empty array to allow fallback behavior
     }
   }
 
-  /**
-   * Generate realistic route data for educational publisher distribution
-   */
-  static generateRealisticRouteData(): RealRouteData[] {
-    const distributionCities = this.generateRealisticDistributionNetwork();
-    const routes: RealRouteData[] = [];
-
-    // Total baseline is $6.56M - distribute EVENLY across ALL cities (NO CHICAGO BIAS)
-    const totalBaseline = 6560000;
-
-    console.log(`🚫 REMOVING CHICAGO BIAS: No hardcoded 15% allocation to Chicago, IL`);
-    console.log(`📊 UNBIASED DISTRIBUTION: Distributing $${totalBaseline.toLocaleString()} across ${distributionCities.length} cities`);
-    console.log(`🎯 ALGORITHM-DRIVEN: Let optimization determine best cities based on distance, cost, and service`);
-
-    // Calculate cost per destination (exclude Littleton, MA from destinations)
-    const destinations = distributionCities.filter(city => city !== 'Littleton, MA');
-    const costPerDestination = destinations.length > 0 ? Math.round(totalBaseline / destinations.length) : 0;
-
-    console.log(`💰 Equal distribution: $${costPerDestination.toLocaleString()} per destination (${destinations.length} destinations)`);
-    console.log(`🚫 NO HARDCODED PREFERENCES: All cities have equal baseline opportunity`);
-
-    // Generate routes to ALL destinations from comprehensive database
-    destinations.forEach(destination => {
-      if (costPerDestination > 0) {
-        routes.push({
-          route_pair: `Littleton, MA → ${destination}`,
-          origin: 'Littleton, MA',
-          destination: destination,
-          transport_modes: ['UPS_PARCEL', 'R&L_LTL', 'TL_FREIGHT'],
-          total_cost: costPerDestination,
-          total_shipments: Math.round(costPerDestination / 400), // ~$400 average per shipment
-          routes: [{
-            distance_miles: this.calculateDistanceToCity(destination),
-            transport_mode: 'MIXED',
-            cost: costPerDestination
-          }]
-        });
-      }
-    });
-
-    console.log(`✅ Generated ${routes.length} routes with ZERO hardcoded preferences`);
-    console.log(`🎯 NOW the algorithm will determine optimal cities based on REAL factors:`);
-    console.log(`   - Distance from Littleton, MA`);
-    console.log(`   - Cost per mile calculations`);
-    console.log(`   - Service level requirements`);
-    console.log(`   - Optimization criteria weights`);
-
-    return routes;
-  }
+  // SYNTHETIC DATA GENERATION REMOVED - REAL DATA ONLY
+  // No fallback route generation methods allowed per strict requirements
 
   /**
    * Calculate distance from Littleton, MA to destination city using coordinates
@@ -248,11 +201,11 @@ export class RealDataTransportOptimizer {
         };
       }
       
-      throw new Error('No valid baseline data returned from API. Ensure transport files (UPS, TL, R&L) are uploaded and baseline analysis is completed.');
+      throw new Error('REAL DATA REQUIRED: No valid baseline data returned from API. Ensure transport files (UPS, TL, R&L) are uploaded and baseline analysis is completed. No synthetic baseline will be generated.');
     } catch (error) {
       console.error('Error fetching baseline data:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to fetch transport baseline data: ${errorMessage}. Upload and process transport files first.`);
+      throw new Error(`REAL DATA REQUIRED: Failed to fetch transport baseline data: ${errorMessage}. Upload and process transport files first. No fallback baseline will be used.`);
     }
   }
 
@@ -327,11 +280,11 @@ export class RealDataTransportOptimizer {
         }
       }
 
-      throw new Error('No valid capacity analysis data found. Complete capacity analysis for the selected scenario first to get real volume growth projections.');
+      throw new Error('REAL DATA REQUIRED: No valid capacity analysis data found. Complete capacity analysis for the selected scenario first to get real volume growth projections. No default projections will be generated.');
     } catch (error) {
       console.error('❌ Error fetching real volume growth data:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to fetch volume growth data: ${errorMessage}. Complete capacity analysis for the scenario first.`);
+      throw new Error(`REAL DATA REQUIRED: Failed to fetch volume growth data: ${errorMessage}. Complete capacity analysis for the scenario first. No fallback data will be used.`);
     }
   }
 
@@ -378,9 +331,8 @@ export class RealDataTransportOptimizer {
 
     const actualCities = Array.from(cities);
 
-    // If route extraction failed, throw an error instead of using fallback
     if (actualCities.length < 2) {
-      throw new Error(`Insufficient valid city data extracted from transport files (found ${actualCities.length} cities). Upload and process transport files with valid geographic data (city, state format) before running optimization.`);
+      throw new Error(`REAL DATA REQUIRED: Insufficient valid city data extracted from transport files (found ${actualCities.length} cities). Upload and process transport files with valid geographic data (city, state format) before running optimization. No synthetic cities will be generated.`);
     }
 
     console.log(`✅ VALIDATED REAL DATA: Using ${actualCities.length} valid cities from your transport files`);
@@ -392,7 +344,7 @@ export class RealDataTransportOptimizer {
    */
   static validateCityDataAvailability(cities: string[]): boolean {
     if (!cities || cities.length < 2) {
-      throw new Error('Insufficient city data for optimization. At least 2 valid cities required from transport files.');
+      throw new Error('REAL DATA REQUIRED: Insufficient city data for optimization. At least 2 valid cities required from transport files. No synthetic cities will be generated.');
     }
     return true;
   }
@@ -405,26 +357,28 @@ export class RealDataTransportOptimizer {
     uiConfiguration: any,
     scenarioTypes: string[]
   ): Promise<RealOptimizationResult[]> {
-    
+
     console.log('🎯 Generating transport scenarios using REAL data from uploaded files...');
-    
-    // Get all real data sources
-    const [routeData, baselineData, volumeGrowth] = await Promise.all([
-      this.getActualRouteData(),
-      this.getActualBaselineData(),
-      this.getVolumeGrowthData(scenarioId)
-    ]);
-    
+
+    // STRICT REAL DATA REQUIREMENTS - NO FALLBACKS ALLOWED
+    const routeData = await this.getActualRouteData();
+    if (!routeData || routeData.length === 0) {
+      throw new Error('REAL DATA REQUIRED: No valid transport routes found in uploaded files. Upload and process UPS, TL, and R&L files before generating scenarios. No synthetic data will be generated.');
+    }
+
+    const baselineData = await this.getActualBaselineData();
+    const volumeGrowth = await this.getVolumeGrowthData(scenarioId);
+
     const config = this.getConfigurationSettings(uiConfiguration);
     const actualCities = this.extractActualCities(routeData);
-    
-    console.log(`✅ Using ${actualCities.length} ACTUAL cities from your transport files`);
-    console.log(`✅ Using $${baselineData.total_verified.toLocaleString()} ACTUAL baseline cost`);
-    console.log(`✅ Using ${routeData.length} ACTUAL routes from uploaded files`);
-    
+
+    console.log(`✅ Using ${actualCities.length} cities`);
+    console.log(`✅ Baseline cost: $${baselineData.total_verified.toLocaleString()}`);
+    console.log(`✅ Routes considered: ${routeData.length}`);
+
     const scenarios: RealOptimizationResult[] = [];
-    
-    // Generate scenarios based on REAL data analysis
+
+    // Generate scenarios based on data analysis
     for (const scenarioType of scenarioTypes) {
       const scenario = await this.generateSingleRealScenario(
         scenarioType,
@@ -433,11 +387,11 @@ export class RealDataTransportOptimizer {
         config,
         volumeGrowth,
         actualCities,
-        scenarioId  // Pass scenarioId for real optimization API calls
+        scenarioId
       );
       scenarios.push(scenario);
     }
-    
+
     return scenarios;
   }
 
@@ -646,17 +600,17 @@ export class RealDataTransportOptimizer {
     config: ConfigurationSettings,
     primaryFacility: string
   ) {
-    // Validate that we have sufficient real data for optimization
+    // STRICT VALIDATION: Real data required, no fallbacks allowed
     if (!routeData || routeData.length === 0) {
-      throw new Error('No route data available. Upload and process transport files (UPS, TL, R&L) before running optimization.');
+      throw new Error('REAL DATA REQUIRED: No route data available. Upload and process transport files (UPS, TL, R&L) before running optimization. No synthetic routes will be generated.');
     }
 
     if (!baselineData || baselineData.total_verified <= 0) {
-      throw new Error('No baseline cost data available. Ensure transport baseline analysis has been completed.');
+      throw new Error('REAL DATA REQUIRED: No baseline cost data available. Ensure transport baseline analysis has been completed. No estimated costs will be used.');
     }
 
     if (!primaryFacility || primaryFacility.trim() === '') {
-      throw new Error('No primary facility specified. Configure warehouse settings before running optimization.');
+      throw new Error('REAL DATA REQUIRED: No primary facility specified. Configure warehouse settings before running optimization. No default facility will be assumed.');
     }
 
     // All validation passed - ready for real optimization
@@ -758,7 +712,7 @@ export class RealDataTransportOptimizer {
       });
     } else {
       // No fallback - require real volume data for projections
-      throw new Error('No real volume data available for yearly projections. Complete capacity analysis first to generate accurate multi-year projections. Cannot generate projections without actual volume growth data from capacity optimizer.');
+      throw new Error('REAL DATA REQUIRED: No volume data available for yearly projections. Complete capacity analysis for the selected scenario first to get real volume growth projections. No synthetic growth projections will be generated.');
     }
 
     if (projection.length > 0) {
