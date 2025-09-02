@@ -384,19 +384,29 @@ export async function GET(
 ) {
   try {
     const scenarioId = parseInt(params.id);
-    
-    const result = await sql`
-      SELECT analysis_data FROM capacity_analysis_results WHERE scenario_id = ${scenarioId}
-    `;
 
-    if (result.length === 0) {
+    try {
+      const result = await sql`
+        SELECT analysis_data FROM capacity_analysis_results WHERE scenario_id = ${scenarioId}
+      `;
+
+      if (result.length === 0) {
+        return NextResponse.json(
+          { error: 'No capacity analysis found for this scenario' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(result[0].analysis_data);
+    } catch (dbErr: any) {
+      const message = String(dbErr?.message || dbErr || 'Unknown error');
+      const isTimeout = message.includes('TimeoutError') || message.includes('aborted');
+      console.warn('Capacity analysis DB error:', message);
       return NextResponse.json(
-        { error: 'No capacity analysis found for this scenario' },
-        { status: 404 }
+        { error: 'Capacity analysis unavailable', reason: isTimeout ? 'timeout' : 'db_error' },
+        { status: 503 }
       );
     }
-
-    return NextResponse.json(result[0].analysis_data);
   } catch (error) {
     console.error('Error fetching capacity analysis:', error);
     return NextResponse.json(

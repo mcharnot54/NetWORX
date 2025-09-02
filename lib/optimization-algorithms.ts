@@ -36,6 +36,8 @@
  * - Inventory optimization (Safety Stock, Z-scores, Normal Distribution)
  */
 
+import { stableSeedFromObject, createSeededRng } from './seeded-rng';
+
 // Distance calculation using Haversine formula
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3959; // Earth's radius in miles
