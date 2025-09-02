@@ -1,412 +1,271 @@
 /**
- * Comprehensive Error Handling and Recovery System
- * 
- * Provides error classification, recovery strategies, and user-friendly
- * error messages for the Transport Optimizer background processing system.
+ * Production Error Handler and Circuit Breakers
+ * Prevents cascade failures and provides proper error handling
  */
 
-export interface ErrorContext {
-  operation: string;
-  scenarioId?: number;
-  jobId?: string;
-  optimizationRunId?: string;
-  userId?: string;
-  timestamp: Date;
-  additionalData?: any;
-}
-
-export interface RecoveryAction {
-  action: 'retry' | 'fallback' | 'cancel' | 'manual_intervention';
-  description: string;
-  automaticRetry?: boolean;
-  retryDelay?: number; // milliseconds
-  maxRetries?: number;
-}
-
-export interface ErrorDetails {
-  code: string;
-  message: string;
-  userMessage: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  recoverable: boolean;
-  recoveryActions: RecoveryAction[];
-  context: ErrorContext;
-}
-
-export class OptimizationError extends Error {
-  public readonly code: string;
-  public readonly severity: 'low' | 'medium' | 'high' | 'critical';
-  public readonly recoverable: boolean;
-  public readonly context: ErrorContext;
-
+export class ProductionError extends Error {
   constructor(
     message: string,
-    code: string,
-    severity: 'low' | 'medium' | 'high' | 'critical' = 'medium',
-    recoverable: boolean = true,
-    context: ErrorContext
+    public code: string,
+    public statusCode: number = 500,
+    public isOperational: boolean = true,
+    public context?: Record<string, any>
   ) {
     super(message);
-    this.name = 'OptimizationError';
-    this.code = code;
-    this.severity = severity;
-    this.recoverable = recoverable;
-    this.context = context;
+    this.name = 'ProductionError';
+    
+    // Capture stack trace
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ProductionError);
+    }
   }
+}
+
+export interface ErrorResponse {
+  success: false;
+  error: string;
+  code: string;
+  statusCode: number;
+  timestamp: string;
+  requestId?: string;
 }
 
 export class ErrorHandler {
-  /**
-   * Classify and handle different types of optimization errors
-   */
-  static handleError(error: Error, context: ErrorContext): ErrorDetails {
-    // Database connection errors
-    if (this.isDatabaseError(error)) {
-      return this.createErrorDetails(
-        'DATABASE_ERROR',
-        'Database connection failed',
-        'Unable to access data. Please try again in a few moments.',
-        'high',
-        true,
-        [
-          {
-            action: 'retry',
-            description: 'Retry database connection',
-            automaticRetry: true,
-            retryDelay: 5000,
-            maxRetries: 3
-          },
-          {
-            action: 'manual_intervention',
-            description: 'Contact support if problem persists'
-          }
-        ],
-        context
-      );
-    }
-
-    // Network/API errors
-    if (this.isNetworkError(error)) {
-      return this.createErrorDetails(
-        'NETWORK_ERROR',
-        'Network request failed',
-        'Connection problem. Please check your internet connection and try again.',
-        'medium',
-        true,
-        [
-          {
-            action: 'retry',
-            description: 'Retry network request',
-            automaticRetry: true,
-            retryDelay: 3000,
-            maxRetries: 5
-          }
-        ],
-        context
-      );
-    }
-
-    // Optimization algorithm errors
-    if (this.isOptimizationError(error)) {
-      return this.createErrorDetails(
-        'OPTIMIZATION_ERROR',
-        'Optimization algorithm failed',
-        'The optimization process encountered an error. This may be due to invalid data or algorithm limitations.',
-        'medium',
-        true,
-        [
-          {
-            action: 'fallback',
-            description: 'Use simplified optimization algorithm'
-          },
-          {
-            action: 'retry',
-            description: 'Retry with different parameters',
-            automaticRetry: false
-          }
-        ],
-        context
-      );
-    }
-
-    // Data validation errors
-    if (this.isValidationError(error)) {
-      return this.createErrorDetails(
-        'VALIDATION_ERROR',
-        'Invalid input data',
-        'The provided data is invalid or incomplete. Please check your inputs and try again.',
-        'low',
-        false,
-        [
-          {
-            action: 'manual_intervention',
-            description: 'Review and correct input data'
-          }
-        ],
-        context
-      );
-    }
-
-    // Memory/Resource errors
-    if (this.isResourceError(error)) {
-      return this.createErrorDetails(
-        'RESOURCE_ERROR',
-        'Insufficient system resources',
-        'The system is currently overloaded. Please try again later.',
-        'high',
-        true,
-        [
-          {
-            action: 'retry',
-            description: 'Retry when system resources are available',
-            automaticRetry: true,
-            retryDelay: 30000,
-            maxRetries: 3
-          },
-          {
-            action: 'fallback',
-            description: 'Use reduced complexity optimization'
-          }
-        ],
-        context
-      );
-    }
-
-    // Timeout errors
-    if (this.isTimeoutError(error)) {
-      return this.createErrorDetails(
-        'TIMEOUT_ERROR',
-        'Operation timed out',
-        'The optimization is taking longer than expected. You can wait for it to complete or try again.',
-        'medium',
-        true,
-        [
-          {
-            action: 'retry',
-            description: 'Retry optimization with extended timeout',
-            automaticRetry: false
-          },
-          {
-            action: 'cancel',
-            description: 'Cancel current operation and start fresh'
-          }
-        ],
-        context
-      );
-    }
-
-    // Generic/Unknown errors
-    return this.createErrorDetails(
-      'UNKNOWN_ERROR',
-      'An unexpected error occurred',
-      'Something went wrong. Our team has been notified. Please try again or contact support.',
-      'medium',
-      true,
-      [
-        {
-          action: 'retry',
-          description: 'Retry the operation',
-          automaticRetry: false
-        },
-        {
-          action: 'manual_intervention',
-          description: 'Contact support with error details'
-        }
-      ],
-      context
-    );
-  }
+  private static readonly SENSITIVE_PATTERNS = [
+    /password/i,
+    /secret/i,
+    /token/i,
+    /key/i,
+    /auth/i,
+    /credential/i,
+    /database_url/i
+  ];
 
   /**
-   * Attempt automatic recovery based on error type
+   * Handle and sanitize errors for API responses
    */
-  static async attemptRecovery(
-    errorDetails: ErrorDetails,
-    originalOperation: () => Promise<any>
-  ): Promise<{ success: boolean; result?: any; finalError?: ErrorDetails }> {
+  static handleApiError(error: any, requestId?: string): ErrorResponse {
+    const timestamp = new Date().toISOString();
     
-    const recoverableActions = errorDetails.recoveryActions.filter(
-      action => action.automaticRetry === true
-    );
-
-    for (const action of recoverableActions) {
-      if (action.action === 'retry') {
-        console.log(`Attempting automatic recovery: ${action.description}`);
-        
-        const maxRetries = action.maxRetries || 1;
-        const retryDelay = action.retryDelay || 1000;
-
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            // Wait before retry
-            if (retryDelay > 0) {
-              await new Promise(resolve => setTimeout(resolve, retryDelay));
-            }
-
-            console.log(`Recovery attempt ${attempt}/${maxRetries}`);
-            const result = await originalOperation();
-            
-            console.log('Recovery successful');
-            return { success: true, result };
-
-          } catch (retryError) {
-            console.log(`Recovery attempt ${attempt} failed:`, retryError);
-            
-            if (attempt === maxRetries) {
-              // If this was the last attempt, return the final error
-              const finalErrorDetails = this.handleError(
-                retryError instanceof Error ? retryError : new Error(String(retryError)),
-                errorDetails.context
-              );
-              return { success: false, finalError: finalErrorDetails };
-            }
-          }
-        }
-      }
+    // Log full error server-side with context
+    this.logError(error, { requestId, timestamp });
+    
+    // Return sanitized error to client
+    if (error instanceof ProductionError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+        statusCode: error.statusCode,
+        timestamp,
+        requestId
+      };
     }
-
-    return { success: false, finalError: errorDetails };
-  }
-
-  /**
-   * Log error for monitoring and debugging
-   */
-  static logError(errorDetails: ErrorDetails): void {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      code: errorDetails.code,
-      message: errorDetails.message,
-      severity: errorDetails.severity,
-      context: errorDetails.context,
-      recoverable: errorDetails.recoverable
+    
+    // Handle known error types
+    if (this.isTimeoutError(error)) {
+      return {
+        success: false,
+        error: 'Request timeout - operation took too long to complete',
+        code: 'TIMEOUT_ERROR',
+        statusCode: 408,
+        timestamp,
+        requestId
+      };
+    }
+    
+    if (this.isDatabaseError(error)) {
+      return {
+        success: false,
+        error: 'Database operation failed - please try again',
+        code: 'DATABASE_ERROR',
+        statusCode: 503,
+        timestamp,
+        requestId
+      };
+    }
+    
+    if (this.isValidationError(error)) {
+      return {
+        success: false,
+        error: this.sanitizeMessage(error.message),
+        code: 'VALIDATION_ERROR',
+        statusCode: 400,
+        timestamp,
+        requestId
+      };
+    }
+    
+    // Unknown errors - don't leak details
+    return {
+      success: false,
+      error: 'An internal error occurred - please try again or contact support',
+      code: 'INTERNAL_ERROR',
+      statusCode: 500,
+      timestamp,
+      requestId
     };
-
-    // In production, this would be sent to a logging service
-    console.error('Optimization Error:', logEntry);
-
-    // For critical errors, immediate notification might be needed
-    if (errorDetails.severity === 'critical') {
-      console.error('CRITICAL ERROR - Immediate attention required:', logEntry);
-      // Could trigger alerts, notifications, etc.
+  }
+  
+  /**
+   * Log error with full context for debugging
+   */
+  private static logError(error: any, context: Record<string, any> = {}): void {
+    const errorInfo = {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      statusCode: error.statusCode,
+      isOperational: error.isOperational,
+      context: error.context,
+      ...context,
+      timestamp: new Date().toISOString(),
+      pid: process.pid,
+      memory: process.memoryUsage(),
+      uptime: process.uptime()
+    };
+    
+    // Remove sensitive information from logs
+    const sanitizedInfo = this.sanitizeLogData(errorInfo);
+    
+    // Log based on severity
+    if (error instanceof ProductionError && error.isOperational) {
+      console.warn('⚠️ Operational Error:', JSON.stringify(sanitizedInfo, null, 2));
+    } else {
+      console.error('❌ System Error:', JSON.stringify(sanitizedInfo, null, 2));
     }
+    
+    // TODO: Send to external logging service (Sentry, CloudWatch, etc.)
+    // await this.sendToExternalLogger(sanitizedInfo);
   }
-
-  // Error classification helpers
-  private static isDatabaseError(error: Error): boolean {
-    return error.message.includes('database') || 
-           error.message.includes('connection') ||
-           error.message.includes('timeout') ||
-           error.name === 'DatabaseError';
+  
+  /**
+   * Sanitize message to remove sensitive information
+   */
+  private static sanitizeMessage(message: string): string {
+    let sanitized = message;
+    
+    // Remove sensitive patterns
+    this.SENSITIVE_PATTERNS.forEach(pattern => {
+      sanitized = sanitized.replace(pattern, '[REDACTED]');
+    });
+    
+    // Remove file paths that might leak system info
+    sanitized = sanitized.replace(/\/[a-zA-Z0-9_\-/.]+\.(js|ts|json)/g, '[FILE_PATH]');
+    
+    // Remove database URLs and connection strings
+    sanitized = sanitized.replace(/postgresql:\/\/[^\s]+/g, '[DATABASE_URL]');
+    sanitized = sanitized.replace(/redis:\/\/[^\s]+/g, '[REDIS_URL]');
+    
+    return sanitized;
   }
-
-  private static isNetworkError(error: Error): boolean {
-    return error.message.includes('fetch') ||
-           error.message.includes('network') ||
-           error.message.includes('ECONNREFUSED') ||
-           error.name === 'NetworkError';
+  
+  /**
+   * Sanitize log data to remove sensitive information
+   */
+  private static sanitizeLogData(data: any): any {
+    if (typeof data !== 'object' || data === null) {
+      return data;
+    }
+    
+    const sanitized = { ...data };
+    
+    // Remove sensitive environment variables
+    if (sanitized.env) {
+      Object.keys(sanitized.env).forEach(key => {
+        if (this.SENSITIVE_PATTERNS.some(pattern => pattern.test(key))) {
+          sanitized.env[key] = '[REDACTED]';
+        }
+      });
+    }
+    
+    // Recursively sanitize nested objects
+    Object.keys(sanitized).forEach(key => {
+      if (typeof sanitized[key] === 'object') {
+        sanitized[key] = this.sanitizeLogData(sanitized[key]);
+      } else if (typeof sanitized[key] === 'string') {
+        sanitized[key] = this.sanitizeMessage(sanitized[key]);
+      }
+    });
+    
+    return sanitized;
   }
-
-  private static isOptimizationError(error: Error): boolean {
-    return error.message.includes('optimization') ||
-           error.message.includes('algorithm') ||
-           error.message.includes('coordinates') ||
-           error.name === 'OptimizationError';
-  }
-
-  private static isValidationError(error: Error): boolean {
-    return error.message.includes('validation') ||
-           error.message.includes('invalid') ||
-           error.message.includes('required') ||
-           error.name === 'ValidationError';
-  }
-
-  private static isResourceError(error: Error): boolean {
-    return error.message.includes('memory') ||
-           error.message.includes('resource') ||
-           error.message.includes('overload') ||
-           error.name === 'ResourceError';
-  }
-
-  private static isTimeoutError(error: Error): boolean {
-    return error.message.includes('timeout') ||
-           error.message.includes('timed out') ||
+  
+  /**
+   * Check if error is a timeout error
+   */
+  private static isTimeoutError(error: any): boolean {
+    const message = error.message?.toLowerCase() || '';
+    return message.includes('timeout') || 
+           message.includes('aborted') ||
+           error.code === 'TIMEOUT_ERROR' ||
            error.name === 'TimeoutError';
   }
-
-  private static createErrorDetails(
-    code: string,
-    message: string,
-    userMessage: string,
-    severity: 'low' | 'medium' | 'high' | 'critical',
-    recoverable: boolean,
-    recoveryActions: RecoveryAction[],
-    context: ErrorContext
-  ): ErrorDetails {
-    return {
-      code,
-      message,
-      userMessage,
-      severity,
-      recoverable,
-      recoveryActions,
-      context
-    };
+  
+  /**
+   * Check if error is a database error
+   */
+  private static isDatabaseError(error: any): boolean {
+    const message = error.message?.toLowerCase() || '';
+    return message.includes('database') ||
+           message.includes('connection') ||
+           message.includes('postgres') ||
+           error.code?.startsWith('23') || // PostgreSQL constraint violations
+           error.code?.startsWith('42'); // PostgreSQL syntax errors
+  }
+  
+  /**
+   * Check if error is a validation error
+   */
+  private static isValidationError(error: any): boolean {
+    const message = error.message?.toLowerCase() || '';
+    return message.includes('validation') ||
+           message.includes('invalid') ||
+           message.includes('required') ||
+           error.name === 'ValidationError' ||
+           error.code === 'VALIDATION_ERROR';
   }
 }
 
 /**
- * Retry utility with exponential backoff
- */
-export async function retryWithBackoff<T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> {
-  let lastError: Error;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      
-      if (attempt === maxRetries) {
-        throw lastError;
-      }
-
-      // Exponential backoff: 1s, 2s, 4s, 8s, etc.
-      const delay = baseDelay * Math.pow(2, attempt - 1);
-      console.log(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-
-  throw lastError!;
-}
-
-/**
- * Circuit breaker for preventing cascading failures
+ * Circuit Breaker Pattern Implementation
  */
 export class CircuitBreaker {
   private failures = 0;
-  private lastFailureTime = 0;
-  private state: 'closed' | 'open' | 'half-open' = 'closed';
-
+  private lastFailTime = 0;
+  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
+  private nextAttempt = 0;
+  
   constructor(
-    private threshold: number = 5,
-    private timeout: number = 60000 // 1 minute
+    private name: string,
+    private failureThreshold = 5,
+    private recoveryTimeMs = 60000,
+    private successThreshold = 2
   ) {}
-
+  
   async execute<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state === 'open') {
-      if (Date.now() - this.lastFailureTime > this.timeout) {
-        this.state = 'half-open';
-      } else {
-        throw new Error('Circuit breaker is open - service temporarily unavailable');
+    // Check circuit state
+    if (this.state === 'OPEN') {
+      if (Date.now() < this.nextAttempt) {
+        throw new ProductionError(
+          `Service temporarily unavailable: ${this.name} circuit is open`,
+          'CIRCUIT_OPEN',
+          503,
+          true,
+          { 
+            circuitName: this.name,
+            nextAttempt: new Date(this.nextAttempt).toISOString(),
+            failures: this.failures
+          }
+        );
       }
+      
+      // Try to recover
+      this.state = 'HALF_OPEN';
+      console.log(`🔄 Circuit ${this.name}: Attempting recovery (HALF_OPEN)`);
     }
-
+    
     try {
       const result = await operation();
       this.onSuccess();
@@ -416,22 +275,170 @@ export class CircuitBreaker {
       throw error;
     }
   }
-
+  
   private onSuccess(): void {
     this.failures = 0;
-    this.state = 'closed';
+    this.state = 'CLOSED';
+    console.log(`✅ Circuit ${this.name}: Operation successful (CLOSED)`);
   }
-
+  
   private onFailure(): void {
     this.failures++;
-    this.lastFailureTime = Date.now();
+    this.lastFailTime = Date.now();
     
-    if (this.failures >= this.threshold) {
-      this.state = 'open';
+    if (this.failures >= this.failureThreshold) {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.recoveryTimeMs;
+      console.warn(`⚠️ Circuit ${this.name}: Opened due to ${this.failures} failures`);
+    } else if (this.state === 'HALF_OPEN') {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.recoveryTimeMs;
+      console.warn(`⚠️ Circuit ${this.name}: Recovery failed, reopening`);
     }
   }
-
-  getState(): 'closed' | 'open' | 'half-open' {
-    return this.state;
+  
+  getState(): { state: string; failures: number; nextAttempt?: string } {
+    return {
+      state: this.state,
+      failures: this.failures,
+      nextAttempt: this.nextAttempt > 0 ? new Date(this.nextAttempt).toISOString() : undefined
+    };
+  }
+  
+  reset(): void {
+    this.failures = 0;
+    this.state = 'CLOSED';
+    this.nextAttempt = 0;
+    console.log(`🔄 Circuit ${this.name}: Manually reset`);
   }
 }
+
+/**
+ * Global circuit breakers for critical services
+ */
+export const circuitBreakers = {
+  database: new CircuitBreaker('database', 3, 30000),
+  optimization: new CircuitBreaker('optimization', 2, 60000),
+  fileProcessing: new CircuitBreaker('file-processing', 5, 45000),
+  redis: new CircuitBreaker('redis', 3, 30000)
+};
+
+/**
+ * Rate Limiter for API endpoints
+ */
+export class RateLimiter {
+  private requests = new Map<string, number[]>();
+  
+  constructor(
+    private windowMs: number = 60000, // 1 minute
+    private maxRequests: number = 100
+  ) {}
+  
+  isAllowed(identifier: string): boolean {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    
+    // Get existing requests for this identifier
+    const userRequests = this.requests.get(identifier) || [];
+    
+    // Remove old requests
+    const recentRequests = userRequests.filter(time => time > windowStart);
+    
+    // Check if under limit
+    if (recentRequests.length >= this.maxRequests) {
+      return false;
+    }
+    
+    // Add current request
+    recentRequests.push(now);
+    this.requests.set(identifier, recentRequests);
+    
+    return true;
+  }
+  
+  getRemainingRequests(identifier: string): number {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    const userRequests = this.requests.get(identifier) || [];
+    const recentRequests = userRequests.filter(time => time > windowStart);
+    
+    return Math.max(0, this.maxRequests - recentRequests.length);
+  }
+  
+  cleanup(): void {
+    const now = Date.now();
+    const cutoff = now - this.windowMs;
+    
+    for (const [identifier, requests] of this.requests.entries()) {
+      const validRequests = requests.filter(time => time > cutoff);
+      
+      if (validRequests.length === 0) {
+        this.requests.delete(identifier);
+      } else {
+        this.requests.set(identifier, validRequests);
+      }
+    }
+  }
+}
+
+/**
+ * Global rate limiters
+ */
+export const rateLimiters = {
+  api: new RateLimiter(60000, 100),      // 100 requests per minute
+  optimization: new RateLimiter(300000, 10), // 10 optimizations per 5 minutes
+  upload: new RateLimiter(60000, 20)     // 20 uploads per minute
+};
+
+/**
+ * Cleanup rate limiters periodically
+ */
+setInterval(() => {
+  Object.values(rateLimiters).forEach(limiter => limiter.cleanup());
+}, 300000); // Cleanup every 5 minutes
+
+/**
+ * Utility functions for error handling in routes
+ */
+export function createErrorMiddleware(requestId: string) {
+  return (error: any): ErrorResponse => {
+    return ErrorHandler.handleApiError(error, requestId);
+  };
+}
+
+export function withErrorHandling<T extends any[], R>(
+  fn: (...args: T) => Promise<R>,
+  circuitBreaker?: CircuitBreaker
+): (...args: T) => Promise<R> {
+  return async (...args: T): Promise<R> => {
+    const operation = () => fn(...args);
+    
+    if (circuitBreaker) {
+      return await circuitBreaker.execute(operation);
+    }
+    
+    return await operation();
+  };
+}
+
+/**
+ * Create common production errors
+ */
+export const createProductionError = {
+  realDataRequired: (message: string, context?: Record<string, any>) =>
+    new ProductionError(`REAL DATA REQUIRED: ${message}`, 'REAL_DATA_REQUIRED', 400, true, context),
+    
+  resourceExhausted: (resource: string, context?: Record<string, any>) =>
+    new ProductionError(`${resource} resource exhausted`, 'RESOURCE_EXHAUSTED', 503, true, context),
+    
+  validationFailed: (message: string, context?: Record<string, any>) =>
+    new ProductionError(`Validation failed: ${message}`, 'VALIDATION_FAILED', 400, true, context),
+    
+  serviceUnavailable: (service: string, context?: Record<string, any>) =>
+    new ProductionError(`${service} service unavailable`, 'SERVICE_UNAVAILABLE', 503, true, context),
+    
+  timeout: (operation: string, timeoutMs: number, context?: Record<string, any>) =>
+    new ProductionError(`${operation} timeout after ${timeoutMs}ms`, 'TIMEOUT', 408, true, context)
+};
+
+console.log('🛡️ Production error handling and circuit breakers initialized');
