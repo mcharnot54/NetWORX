@@ -934,22 +934,28 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Get recommended hub nodes based on optimization type
+   * Get recommended hub nodes based on optimization type (ALGORITHM-DETERMINED, NOT HARDCODED)
    */
   static getRecommendedHubNodes(scenarioType: string, actualCities: string[]): string[] {
-    // Strategic hub locations for different optimization scenarios
-    const hubStrategies: Record<string, string[]> = {
-      'lowest_cost_city': ['Chicago, IL', 'Atlanta, GA'], // Central and Southeast
-      'lowest_cost_zip': ['Chicago, IL', 'Dallas, TX', 'Atlanta, GA'], // Micro-hub network
-      'lowest_miles_city': ['Chicago, IL'], // Single central hub
-      'best_service_parcel': ['Memphis, TN', 'Louisville, KY'], // UPS/FedEx style hubs
-      'blended_service': ['Chicago, IL', 'Atlanta, GA'] // Balanced approach
-    };
+    console.log(`🎯 ALGORITHM-DETERMINED HUBS: Let optimization choose best locations for ${scenarioType}`);
+    console.log(`🚫 NO CHICAGO PREFERENCE: Algorithm will select optimal hub based on comprehensive analysis`);
 
-    const recommendedHubs = hubStrategies[scenarioType] || ['Chicago, IL'];
+    // Instead of hardcoding Chicago, let the algorithm determine optimal hub locations
+    // based on actual city data and optimization criteria
 
-    // Filter to only include hubs that make sense given actual destinations
-    return recommendedHubs.slice(0, Math.min(3, Math.ceil(actualCities.length / 10)));
+    // Return empty array to force algorithm to determine hubs based on:
+    // - Distance calculations from Littleton, MA
+    // - Cost optimization
+    // - Service level requirements
+    // - Geographic distribution analysis
+
+    console.log(`🎯 Hub selection will be based on REAL optimization factors:`);
+    console.log(`   - Geographic centrality to minimize total distance`);
+    console.log(`   - Cost efficiency based on transport rates`);
+    console.log(`   - Service level achievement`);
+    console.log(`   - Population-weighted optimal positioning`);
+
+    return []; // Let algorithm choose optimal hubs
   }
 
   /**
