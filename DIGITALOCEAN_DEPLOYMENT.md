@@ -11,7 +11,7 @@ Monthly DigitalOcean Costs:
 │ Backup Snapshots                    │ $10     │
 │ Domain Registration (optional)      │ $12     │
 │ Load Balancer (optional)            │ $12     │
-├──────────��──────────────────────────┼─────────┤
+├─────────────────────────────────────┼─────────┤
 │ TOTAL (Basic)                       │ $58     │
 │ TOTAL (with LB)                     │ $70     │
 └─────────────────────────────────────┴─────────┘
@@ -27,7 +27,7 @@ Monthly DigitalOcean Costs:
 
 2. **Choose Configuration:**
    ```
-   Image: Ubuntu 22.04 LTS x64
+   Image: Ubuntu 24.04 LTS x64
    Size: Basic Plan
    CPU Options: Regular Intel
    Memory: 8 GB / 4 CPUs ($48/month)
