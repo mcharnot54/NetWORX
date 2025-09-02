@@ -761,9 +761,34 @@ Please ensure your transport files (UPS, TL, R&L) are uploaded and processed.`);
             padding: '1rem',
             marginBottom: '1.5rem'
           }}>
-            <h3 style={{ color: '#15803d', margin: '0 0 0.5rem 0', fontSize: '1rem', fontWeight: '600' }}>
-              ✅ Real Data Sources Active:
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+              <h3 style={{ color: '#15803d', margin: '0', fontSize: '1rem', fontWeight: '600' }}>
+                ✅ Real Data Sources Active:
+              </h3>
+              <button
+                className="restart-button"
+                onClick={restartOptimizer}
+                title="Restart optimizer and clear all running jobs"
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+              >
+                🔄 Restart Optimizer
+              </button>
+            </div>
             <div style={{ fontSize: '0.875rem', color: '#166534' }}>
               • <strong>Actual Routes:</strong> Origins/destinations from your UPS, TL, R&L files<br/>
               • <strong>Verified Baseline:</strong> $6.56M total (UPS: $2.93M, TL: $1.19M, R&L: $2.44M)<br/>
