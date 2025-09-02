@@ -352,34 +352,56 @@ function extractRLRoutes(parsedData: any, filename: string) {
   return routes;
 }
 
-// Helper function to extract city from any text value
+// Helper function to extract city from any text value - STRICT FILTERING
 function extractCityFromValue(value: string): string | null {
   if (!value || typeof value !== 'string') return null;
 
   const trimmed = value.trim();
   if (trimmed.length < 2) return null;
 
+  // STRICT FILTERING: Reject company names and non-geographic terms
+  const companyKeywords = [
+    'INC', 'LLC', 'CORP', 'COMPANY', 'ASSOCIATES', 'CURRICULUM', 'ENTERPRISES',
+    'SOLUTIONS', 'SERVICES', 'SYSTEMS', 'TECHNOLOGIES', 'GROUP', 'INTERNATIONAL',
+    'AMERICA', 'USA', 'DISTRIBUTION', 'LOGISTICS', 'WAREHOUSE', 'CENTER'
+  ];
+
+  const upperValue = trimmed.toUpperCase();
+  const hasCompanyKeyword = companyKeywords.some(keyword => upperValue.includes(keyword));
+
+  if (hasCompanyKeyword) {
+    console.log(`🚫 Rejected company name: ${trimmed}`);
+    return null;
+  }
+
   // Remove numbers and special characters except commas and spaces
   const cleaned = trimmed.replace(/[0-9\-_()[\]{}]/g, '').trim();
 
-  // Common patterns for cities
-  const patterns = [
-    /^([A-Za-z\s]+),\s*([A-Z]{2})$/, // "City, ST"
-    /^([A-Za-z\s]+)\s+([A-Z]{2})$/, // "City ST"
-    /^([A-Za-z\s]{3,})/            // "CITYNAME" (at least 3 chars)
+  // ONLY accept standard city formats with valid state abbreviations
+  const validStates = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'ON', 'BC', 'AB', 'SK', 'MB', 'QC', 'NS', 'NB', 'PE', 'NL'
   ];
 
-  for (const pattern of patterns) {
-    const match = cleaned.match(pattern);
-    if (match) {
-      if (match[2]) {
-        return `${match[1].trim()}, ${match[2]}`;
-      } else if (match[1] && match[1].length >= 3) {
-        return match[1].trim();
-      }
+  // Strict pattern matching for "City, ST" format ONLY
+  const cityStatePattern = /^([A-Za-z\s]{2,}),\s*([A-Z]{2})$/;
+  const match = cleaned.match(cityStatePattern);
+
+  if (match && validStates.includes(match[2])) {
+    const cityName = match[1].trim();
+
+    // Additional validation: reject if city name looks like a company
+    if (companyKeywords.some(keyword => cityName.toUpperCase().includes(keyword))) {
+      console.log(`🚫 Rejected city with company keyword: ${cityName}`);
+      return null;
     }
+
+    console.log(`✅ Valid city extracted: ${cityName}, ${match[2]}`);
+    return `${cityName}, ${match[2]}`;
   }
 
+  console.log(`🚫 Invalid city format: ${trimmed}`);
   return null;
 }
 
