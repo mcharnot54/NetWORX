@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       demand,
       capacityChicago,
       { minFacilities: 2, maxFacilities: 2 },
-      { current_cost: actualTransportBaseline, target_savings: 40 }
+      { current_cost: actualTransportBaseline }
     );
 
     // Run optimization for St. Louis scenario  
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       demand,
       capacityStLouis,
       { minFacilities: 2, maxFacilities: 2 },
-      { current_cost: actualTransportBaseline, target_savings: 40 }
+      { current_cost: actualTransportBaseline }
     );
 
     // Calculate detailed cost comparison

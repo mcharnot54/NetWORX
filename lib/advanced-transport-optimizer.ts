@@ -171,7 +171,7 @@ export function optimizeTransport(
   demand?: DemandMap,
   capacity?: CapacityMap,
   bounds?: { minFacilities?: number; maxFacilities?: number },
-  baselineIntegration?: { current_cost: number; target_savings: number }
+  baselineIntegration?: { current_cost: number; target_savings?: number }
 ): TransportResult {
   const cities = matrix.rows;
   const dests = matrix.cols;
@@ -183,7 +183,6 @@ export function optimizeTransport(
   
   if (baselineIntegration) {
     console.log(`Current baseline cost: $${baselineIntegration.current_cost.toLocaleString()}`);
-    console.log(`Target savings: ${baselineIntegration.target_savings}%`);
   }
 
   const demandMap: DemandMap = demand ?? Object.fromEntries(dests.map((d) => [d, 1000]));
