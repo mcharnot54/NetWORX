@@ -379,19 +379,27 @@ export class RealDataTransportOptimizer {
    * Generate realistic distribution network using comprehensive cities database
    */
   static generateRealisticDistributionNetwork(): string[] {
-    // Import the comprehensive cities database
-    const { getAllUSCities } = require('./comprehensive-cities-database');
+    try {
+      // Import the comprehensive cities database
+      const { getAllUSCities, getAllCanadianCities } = require('./comprehensive-cities-database');
 
-    // Get ALL US cities from the comprehensive database for full coverage
-    const allUSCities = getAllUSCities()
-      .map(city => `${city.name}, ${city.state_province}`);
+      // Get ALL cities from comprehensive database - US and Canadian
+      const allUSCities = getAllUSCities().map(city => `${city.name}, ${city.state_province}`);
+      const allCanadianCities = getAllCanadianCities().map(city => `${city.name}, ${city.state_province}`);
 
-    console.log(`🌎 Using ${allUSCities.length} cities from comprehensive database for maximum coverage`);
+      const allCities = [...allUSCities, ...allCanadianCities];
 
-    // Ensure Littleton, MA is included as primary facility
-    const cities = ['Littleton, MA', ...allUSCities.filter(city => city !== 'Littleton, MA')];
+      console.log(`🌎 COMPREHENSIVE COVERAGE: ${allCities.length} cities (${allUSCities.length} US + ${allCanadianCities.length} Canadian)`);
+      console.log(`🎯 NO ARTIFICIAL LIMITS: Algorithm will optimize across full North American network`);
 
-    return cities;
+      // Ensure Littleton, MA is included as primary facility
+      const cities = ['Littleton, MA', ...allCities.filter(city => city !== 'Littleton, MA')];
+
+      return cities;
+    } catch (error) {
+      console.error('❌ CRITICAL: Cannot load comprehensive cities database:', error);
+      throw new Error('Comprehensive cities database required for real optimization. Please ensure database is available.');
+    }
   }
 
   /**
