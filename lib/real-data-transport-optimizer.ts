@@ -388,33 +388,13 @@ export class RealDataTransportOptimizer {
   }
 
   /**
-   * Generate realistic distribution network using comprehensive cities database
+   * Validate that sufficient city data is available - no fallbacks
    */
-  static generateRealisticDistributionNetwork(): string[] {
-    try {
-      // Import the comprehensive cities database
-      const { getAllUSCities, getAllCanadianCities } = require('./comprehensive-cities-database');
-
-      // Get ALL cities from comprehensive database - US and Canadian
-      const allUSCities = getAllUSCities().map(city => `${city.name}, ${city.state_province}`);
-      const allCanadianCities = getAllCanadianCities().map(city => `${city.name}, ${city.state_province}`);
-      const allCities = [...allUSCities, ...allCanadianCities];
-
-      console.log(`🌎 COMPREHENSIVE COVERAGE: ${allCities.length} cities (${allUSCities.length} US + ${allCanadianCities.length} Canadian)`);
-      console.log(`✅ FULL DATABASE: Using complete comprehensive cities list as requested`);
-      console.log(`🚫 NO TRUNCATION: All cities from database included`);
-      console.log(`🚫 NO HARDCODED BIAS: Algorithm will select optimal cities from full dataset`);
-      console.log(`🎯 ALGORITHM DECIDES: Optimization will find truly optimal locations from complete data`);
-
-      // Ensure Littleton, MA is included as primary facility
-      const cities = ['Littleton, MA', ...allCities.filter(city => city !== 'Littleton, MA')];
-
-      return cities;
-    } catch (error) {
-      console.error('❌ CRITICAL: Cannot load comprehensive cities database:', error);
-      // PASS-FAIL APPROACH: No fallbacks, fail completely
-      throw new Error('PASS-FAIL: Comprehensive cities database required for real optimization. No fallbacks available. Please ensure database is available.');
+  static validateCityDataAvailability(cities: string[]): boolean {
+    if (!cities || cities.length < 2) {
+      throw new Error('Insufficient city data for optimization. At least 2 valid cities required from transport files.');
     }
+    return true;
   }
 
   /**
