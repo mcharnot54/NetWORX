@@ -1002,7 +1002,7 @@ export default function TransportOptimizer() {
                   <h3>Selected Scenario: {selectedScenario.name}</h3>
                   <div className="transport-data-notice">
                     <p>🎯 <strong>REAL DATA ONLY:</strong> Uses actual origins/destinations extracted from your UPS, TL, and R&L transport files.</p>
-                    <p>📊 <strong>Verified $6.56M Baseline:</strong> Optimization starts from your actual transport costs, not estimates.</p>
+                    <p>📊 <strong>Verified Baseline Required:</strong> Optimization requires completed transport baseline analysis.</p>
                     <p>⚙️ <strong>Configuration Integration:</strong> Uses your cost weights, service levels, and optimization criteria from the Configuration tab.</p>
                     <p>��� <strong>No Mock Data:</strong> The optimizer uses only your actual uploaded data to determine optimal network configuration and savings.</p>
                   </div>
