@@ -874,10 +874,20 @@ export const CITY_COORDINATES_LOOKUP: { [key: string]: { lat: number, lon: numbe
       map[normalizeCityKey(city.metro_area)] = { lat: city.lat, lon: city.lon };
     }
   }
-  // common alias: Washington, D.C. -> Washington, DC
-  if (!map['washington, dc'] && map['washington, d c']) {
-    map['washington, dc'] = map['washington, d c'];
-  }
+  // Add common aliases and missing cities
+  map['Washington, DC'] = { lat: 38.9072, lon: -77.0369 };
+  map['washington, dc'] = { lat: 38.9072, lon: -77.0369 };
+
+  // Add missing Canadian cities that appear in optimization
+  map['Richmond Hill, ON'] = { lat: 43.8828, lon: -79.4403 };
+  map['Oakville, ON'] = { lat: 43.4675, lon: -79.6877 };
+  map['Oshawa, ON'] = { lat: 43.8971, lon: -78.8658 };
+  map['Barrie, ON'] = { lat: 44.3894, lon: -79.6903 };
+  map['St. Catharines, ON'] = { lat: 43.1594, lon: -79.2469 };
+  map['Whitby, ON'] = { lat: 43.8975, lon: -78.9429 };
+  map['Guelph, ON'] = { lat: 43.5448, lon: -80.2482 };
+  map['Kingston, ON'] = { lat: 44.2312, lon: -76.4860 };
+
   return map;
 })();
 
