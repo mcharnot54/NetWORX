@@ -398,16 +398,10 @@ export class RealDataTransportOptimizer {
     const actualCities = Array.from(cities);
 
     if (actualCities.length < 2) {
-      console.warn(`⚠️ Insufficient valid city data extracted from uploads (found ${actualCities.length}). Falling back to generated network cities.`);
-      const fallbackRoutes = this.generateRealisticRouteData();
-      const fallbackCities = Array.from(new Set<string>([
-        ...fallbackRoutes.map(r => r.origin),
-        ...fallbackRoutes.map(r => r.destination)
-      ])).filter(Boolean);
-      return fallbackCities;
+      throw new Error(`REAL DATA REQUIRED: Insufficient valid city data extracted from transport files (found ${actualCities.length} cities). Upload and process transport files with valid geographic data (city, state format) before running optimization. No synthetic cities will be generated.`);
     }
 
-    console.log(`✅ VALIDATED CITY SET: ${actualCities.length} cities`);
+    console.log(`✅ VALIDATED REAL DATA: Using ${actualCities.length} valid cities from your transport files`);
     return actualCities;
   }
 
@@ -432,36 +426,14 @@ export class RealDataTransportOptimizer {
 
     console.log('🎯 Generating transport scenarios using REAL data from uploaded files...');
 
-    // Fetch inputs with graceful fallbacks
-    let routeData = await this.getActualRouteData();
+    // STRICT REAL DATA REQUIREMENTS - NO FALLBACKS ALLOWED
+    const routeData = await this.getActualRouteData();
     if (!routeData || routeData.length === 0) {
-      console.warn('⚠️ No valid routes found from uploads. Falling back to realistic generated route data.');
-      routeData = this.generateRealisticRouteData();
+      throw new Error('REAL DATA REQUIRED: No valid transport routes found in uploaded files. Upload and process UPS, TL, and R&L files before generating scenarios. No synthetic data will be generated.');
     }
 
     const baselineData = await this.getActualBaselineData();
-
-    let volumeGrowth: VolumeGrowthData;
-    try {
-      volumeGrowth = await this.getVolumeGrowthData(scenarioId);
-    } catch (e) {
-      console.warn('⚠️ No capacity analysis available. Using default 8-year volume growth projection at 6% annually.');
-      const startYear = new Date().getFullYear();
-      const baselineVolume = Math.max(1, routeData.reduce((s, r) => s + (r.total_shipments || 0), 0) * 100);
-      const growthRate = 0.06;
-      const years = 8;
-      const yearly_volumes = Array.from({ length: years }, (_, i) => ({
-        year: startYear + i,
-        volume: Math.round(baselineVolume * Math.pow(1 + growthRate, i))
-      }));
-      volumeGrowth = {
-        current_volume: baselineVolume,
-        growth_rate: growthRate,
-        forecast_years: years,
-        yearly_volumes,
-        source: 'default_growth_fallback'
-      };
-    }
+    const volumeGrowth = await this.getVolumeGrowthData(scenarioId);
 
     const config = this.getConfigurationSettings(uiConfiguration);
     const actualCities = this.extractActualCities(routeData);
