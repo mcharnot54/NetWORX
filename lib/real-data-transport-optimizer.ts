@@ -110,9 +110,9 @@ export class RealDataTransportOptimizer {
       }
     }
 
-      // No valid route data found - return empty to trigger comprehensive DB fallback in caller
-      console.warn('⚠️ Route extraction returned no usable data. Falling back to comprehensive cities database.');
-      return [];
+      // No valid route data found - return empty to trigger error in caller
+    console.warn('⚠️ Route extraction returned no usable data. No fallback data will be generated.');
+    return [];
     } catch (error) {
       console.warn('Error fetching route data:', error);
       return []; // Return empty array to allow fallback behavior
@@ -201,11 +201,11 @@ export class RealDataTransportOptimizer {
         };
       }
       
-      throw new Error('No valid baseline data returned from API. Ensure transport files (UPS, TL, R&L) are uploaded and baseline analysis is completed.');
+      throw new Error('REAL DATA REQUIRED: No valid baseline data returned from API. Ensure transport files (UPS, TL, R&L) are uploaded and baseline analysis is completed. No synthetic baseline will be generated.');
     } catch (error) {
       console.error('Error fetching baseline data:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to fetch transport baseline data: ${errorMessage}. Upload and process transport files first.`);
+      throw new Error(`REAL DATA REQUIRED: Failed to fetch transport baseline data: ${errorMessage}. Upload and process transport files first. No fallback baseline will be used.`);
     }
   }
 
@@ -280,11 +280,11 @@ export class RealDataTransportOptimizer {
         }
       }
 
-      throw new Error('No valid capacity analysis data found. Complete capacity analysis for the selected scenario first to get real volume growth projections.');
+      throw new Error('REAL DATA REQUIRED: No valid capacity analysis data found. Complete capacity analysis for the selected scenario first to get real volume growth projections. No default projections will be generated.');
     } catch (error) {
       console.error('❌ Error fetching real volume growth data:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to fetch volume growth data: ${errorMessage}. Complete capacity analysis for the scenario first.`);
+      throw new Error(`REAL DATA REQUIRED: Failed to fetch volume growth data: ${errorMessage}. Complete capacity analysis for the scenario first. No fallback data will be used.`);
     }
   }
 
