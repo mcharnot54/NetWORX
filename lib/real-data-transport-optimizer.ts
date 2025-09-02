@@ -83,11 +83,26 @@ export class RealDataTransportOptimizer {
         routes: group.routes || []
       }));
 
-      if (extractedRoutes.length > 0) return extractedRoutes;
+      // Validate that we have actual geographic data, not company names
+      const validRoutes = extractedRoutes.filter(route => {
+        const hasValidDestination = route.destination &&
+                                   route.destination.includes(',') &&
+                                   !route.destination.toUpperCase().includes('CURRICULUM') &&
+                                   !route.destination.toUpperCase().includes('ASSOCIATES') &&
+                                   !route.destination.toUpperCase().includes('INC');
+        return hasValidDestination;
+      });
+
+      if (validRoutes.length > 0) {
+        console.log(`✅ Found ${validRoutes.length} valid geographic routes from transport files`);
+        return validRoutes;
+      } else {
+        console.log('🚫 No valid geographic routes found, extracted data contains company names');
+      }
     }
 
-    // No actual route data found - fail loudly so caller can surface the issue
-    throw new Error('No actual route data found. Please upload UPS, TL, and R&L transport files before generating scenarios.');
+    // No valid route data found - throw error to trigger comprehensive database fallback
+    throw new Error('No valid geographic route data found. Route extraction returned company names instead of cities.');
   }
 
   /**
