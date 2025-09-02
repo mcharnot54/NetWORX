@@ -327,23 +327,11 @@ export class RealDataTransportOptimizer {
         }
       }
 
-      console.warn('⚠️ No valid capacity analysis data found, using baseline assumptions');
-
-      // Fallback to reasonable growth assumptions if no data available
-      return {
-        current_volume: 13000000, // 13M units baseline assumption
-        growth_rate: 0.06, // 6% annual growth assumption
-        forecast_years: 8,
-        source: 'fallback_assumption'
-      };
+      throw new Error('No valid capacity analysis data found. Complete capacity analysis for the selected scenario first to get real volume growth projections.');
     } catch (error) {
       console.error('❌ Error fetching real volume growth data:', error);
-      return {
-        current_volume: 13000000,
-        growth_rate: 0.06,
-        forecast_years: 8,
-        source: 'error_fallback'
-      };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch volume growth data: ${errorMessage}. Complete capacity analysis for the scenario first.`);
     }
   }
 
