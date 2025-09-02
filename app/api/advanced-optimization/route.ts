@@ -267,8 +267,7 @@ export async function POST(request: NextRequest) {
         capacity,
         { minFacilities: 1, maxFacilities: 5 },
         {
-          current_cost: actualTransportBaseline,
-          target_savings: 35  // Target 35%+ savings for "immensely higher" results
+          current_cost: actualTransportBaseline
         }
       );
 
