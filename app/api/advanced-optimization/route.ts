@@ -105,46 +105,28 @@ export async function POST(request: NextRequest) {
       { sku: 'Educational_Materials_E', annual_volume: 700_000,   units_per_case: 30, cases_per_pallet: 25 },
     ];
 
-    // Candidate facilities for network optimization - use comprehensive cities DB (500+ entries)
+    // 🎯 FORCE USE OF COMPREHENSIVE CITIES DATABASE - NO HARDCODED FALLBACKS
     let defaultCandidateFacilities: string[] = [];
+
+    console.log('🎯 Loading FULL comprehensive cities database for real optimization...');
+
     try {
       const { getAllUSCities, getAllCanadianCities } = await import('@/lib/comprehensive-cities-database');
       const us = getAllUSCities().map(c => `${c.name}, ${c.state_province}`);
       const ca = getAllCanadianCities().map(c => `${c.name}, ${c.state_province}`);
-      // Limit to top N candidates to avoid huge memory usage in MIP model
-      const maxCandidates = 250;
-      defaultCandidateFacilities = ['Littleton, MA', ...us.slice(0, Math.min(us.length, maxCandidates - 10)), ...ca.slice(0, Math.max(0, maxCandidates - 10 - Math.min(us.length, maxCandidates - 10)))];
-      console.log(`Using comprehensive candidate facility list: ${defaultCandidateFacilities.length} entries (limited to ${maxCandidates})`);
+
+      // Use ALL cities from comprehensive database - remove artificial limits
+      defaultCandidateFacilities = ['Littleton, MA', ...us, ...ca];
+
+      console.log(`✅ REAL DATA: Using ${defaultCandidateFacilities.length} cities from comprehensive database`);
+      console.log(`📊 Coverage: ${us.length} US cities + ${ca.length} Canadian cities`);
+      console.log(`🚫 NO HARDCODED CITIES: Algorithm will select optimal locations from real data`);
+
     } catch (err) {
-      console.warn('Failed to load comprehensive cities DB, falling back to curated defaults', err);
-      defaultCandidateFacilities = [
-        'Littleton, MA',     // Current facility (mandatory)
-        'Chicago, IL',       // Midwest coverage
-        'St. Louis, MO',     // Central US hub - optimal Midwest location
-        'Dallas, TX',        // South/Central coverage
-        'Atlanta, GA',       // Southeast coverage
-        'Los Angeles, CA',   // West Coast coverage
-        'Phoenix, AZ',       // Southwest coverage
-        'Denver, CO',        // Mountain West coverage
-        'Nashville, TN',     // Southeast logistics hub
-        'Kansas City, MO',   // Central logistics hub
-        'Memphis, TN',       // Central logistics hub
-        'Columbus, OH',      // Ohio Valley coverage
-        'Indianapolis, IN',  // Midwest logistics hub
-        'Charlotte, NC',     // Southeast coverage
-        'Jacksonville, FL',  // Southeast/Florida coverage
-        'Portland, OR',      // Pacific Northwest coverage
-        'Seattle, WA',       // Pacific Northwest coverage
-        'Salt Lake City, UT',// Mountain West coverage
-        'Albuquerque, NM',   // Southwest coverage
-        'Oklahoma City, OK', // South Central coverage
-        // Canadian major centers for cross-border coverage
-        'Toronto, ON',       // Central Canada
-        'Montreal, QC',      // Eastern Canada
-        'Vancouver, BC',     // Western Canada
-        'Calgary, AB',       // Western Canada
-        'Winnipeg, MB',      // Central Canada
-      ];
+      console.error('❌ CRITICAL ERROR: Failed to load comprehensive cities database:', err);
+
+      // If comprehensive DB fails, the optimization should fail rather than use hardcoded data
+      throw new Error(`Cannot run optimization without comprehensive cities database. Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
 
     let candidateFacilities = (Array.isArray(bodyCities) && bodyCities.length > 0)
