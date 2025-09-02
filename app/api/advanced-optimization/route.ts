@@ -139,17 +139,27 @@ export async function POST(request: NextRequest) {
     console.log('Debug: bodyCities length=', Array.isArray(bodyCities) ? bodyCities.length : 0, 'bodyCities=', bodyCities);
     console.log('Debug: raw candidateFacilities chosen count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
 
-    // Validate candidateFacilities look like city strings (contain comma 'City, ST' or known token)
+    // Validate candidateFacilities look like city strings (must contain comma 'City, ST')
     const looksLikeCity = (s: string) => typeof s === 'string' && s.includes(',');
-    const validatedCandidates = candidateFacilities.filter(looksLikeCity);
+    const providedOverride = Array.isArray(bodyCities) && bodyCities.length > 0;
 
-    if (validatedCandidates.length === 0) {
-      console.warn('Candidate facilities override did not contain city,state entries. Falling back to defaultCandidateFacilities. Received:', candidateFacilities.slice(0,5));
-      candidateFacilities = defaultCandidateFacilities;
-    } else if (validatedCandidates.length !== candidateFacilities.length) {
-      console.warn(`Filtered candidateFacilities to ${validatedCandidates.length}/${candidateFacilities.length} entries that look like 'City, ST'`);
-      candidateFacilities = validatedCandidates;
+    if (providedOverride) {
+      const allValid = candidateFacilities.every(looksLikeCity);
+      if (!allValid) {
+        console.error('❌ PASS-FAIL: Invalid candidate facilities override received:', candidateFacilities.slice(0, 5));
+        return NextResponse.json(
+          {
+            error: 'Invalid candidate facilities override',
+            details: "All entries must be formatted as 'City, ST'. No fallbacks allowed per pass-fail policy.",
+            received_sample: candidateFacilities.slice(0, 5)
+          },
+          { status: 400 }
+        );
+      }
     }
+
+    const validatedCandidates = candidateFacilities.filter(looksLikeCity);
+    candidateFacilities = validatedCandidates.length > 0 ? validatedCandidates : defaultCandidateFacilities;
 
     console.log('Debug: candidateFacilities final count=', candidateFacilities.length, 'sample=', candidateFacilities.slice(0,5));
 
