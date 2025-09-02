@@ -490,15 +490,21 @@ export default function TransportOptimizer() {
 
         // Clear any existing scenarios and throw the error
         setScenarios([]);
-        throw new Error(`Failed to generate scenarios: ${errorMessage}`);
+        throw new Error(`REAL DATA VALIDATION FAILED: ${errorMessage}`);
       }
 
     } catch (error) {
       console.error('Scenario generation setup failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
-      // Show detailed error message to user
-      alert(`❌ SCENARIO GENERATION FAILED\n\n${errorMessage}\n\nPossible solutions:\n• Upload and process transport files (UPS, TL, R&L)\n• Complete capacity analysis for the selected scenario\n• Ensure warehouse configurations are set up\n• Check that the selected scenario has valid data`);
+      // Show strict validation error message to user
+      const isRealDataError = errorMessage.includes('REAL DATA REQUIRED');
+
+      if (isRealDataError) {
+        alert(`❌ REAL DATA VALIDATION FAILED\n\n${errorMessage}\n\nSTRICT REQUIREMENTS:\n• Upload and process actual transport files (UPS, TL, R&L)\n• Complete capacity analysis for the selected scenario\n• Ensure baseline transport analysis is completed\n\nNO SYNTHETIC OR FALLBACK DATA WILL BE GENERATED\nOnly scenarios based on your actual data are allowed.`);
+      } else {
+        alert(`❌ SCENARIO GENERATION FAILED\n\n${errorMessage}\n\nPossible solutions:\n• Upload and process transport files (UPS, TL, R&L)\n• Complete capacity analysis for the selected scenario\n• Ensure warehouse configurations are set up\n• Check that the selected scenario has valid data`);
+      }
 
       // Clear scenarios on failure
       setScenarios([]);
