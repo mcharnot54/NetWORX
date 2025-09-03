@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile.production
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NEXT_TELEMETRY_DISABLED: 1
@@ -47,7 +47,7 @@ services:
       dockerfile: Dockerfile.worker
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       WORKER_TYPE: optimization
@@ -72,7 +72,7 @@ services:
       dockerfile: Dockerfile.worker
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       WORKER_TYPE: file-processing
