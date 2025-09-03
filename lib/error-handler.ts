@@ -149,8 +149,8 @@ export class ErrorHandler {
     const timestamp = new Date().toISOString();
     
     // Log full error server-side with context
-    this.logError(error, { requestId, timestamp });
-    
+    this.logInternal(error, { requestId, timestamp });
+
     // Return sanitized error to client
     if (error instanceof ProductionError) {
       return {
@@ -211,7 +211,7 @@ export class ErrorHandler {
   /**
    * Log error with full context for debugging
    */
-  private static logError(error: any, context: Record<string, any> = {}): void {
+  private static logInternal(error: any, context: Record<string, any> = {}): void {
     const errorInfo = {
       message: error.message,
       stack: error.stack,
@@ -226,17 +226,17 @@ export class ErrorHandler {
       memory: process.memoryUsage(),
       uptime: process.uptime()
     };
-    
+
     // Remove sensitive information from logs
     const sanitizedInfo = this.sanitizeLogData(errorInfo);
-    
+
     // Log based on severity
     if (error instanceof ProductionError && error.isOperational) {
       console.warn('⚠️ Operational Error:', JSON.stringify(sanitizedInfo, null, 2));
     } else {
       console.error('❌ System Error:', JSON.stringify(sanitizedInfo, null, 2));
     }
-    
+
     // TODO: Send to external logging service (Sentry, CloudWatch, etc.)
     // await this.sendToExternalLogger(sanitizedInfo);
   }
