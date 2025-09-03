@@ -246,12 +246,12 @@ class DatabaseManager {
       
       // Consider healthy if responds within 2 seconds
       const healthy = latency < 2000;
-      this.isHealthy = healthy;
-      
+      this._isHealthyState = healthy;
+
       return healthy;
     } catch (error) {
       console.error('❌ Database health check failed:', error);
-      this.isHealthy = false;
+      this._isHealthyState = false;
       return false;
     }
   }
