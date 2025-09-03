@@ -3,6 +3,64 @@
  * Prevents cascade failures and provides proper error handling
  */
 
+export class OptimizationError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public severity: 'low' | 'medium' | 'high' | 'critical' = 'medium',
+    public recoverable: boolean = true,
+    public context?: any
+  ) {
+    super(message);
+    this.name = 'OptimizationError';
+  }
+}
+
+export interface ErrorContext {
+  operation: string;
+  scenarioId?: number;
+  jobId?: string;
+  optimizationRunId?: string;
+  timestamp: Date;
+  additionalData?: any;
+}
+
+export interface ErrorDetails {
+  userMessage: string;
+  code: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  recoverable: boolean;
+  context: ErrorContext;
+}
+
+/**
+ * Retry function with exponential backoff
+ */
+export async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+
+      if (attempt === maxRetries) {
+        throw lastError;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError!;
+}
+
 export class ProductionError extends Error {
   constructor(
     message: string,
@@ -40,6 +98,49 @@ export class ErrorHandler {
     /credential/i,
     /database_url/i
   ];
+
+  /**
+   * Handle optimization errors specifically
+   */
+  static handleError(error: Error, context: ErrorContext): ErrorDetails {
+    const errorDetails: ErrorDetails = {
+      userMessage: error.message,
+      code: 'UNKNOWN_ERROR',
+      severity: 'medium',
+      recoverable: true,
+      context
+    };
+
+    // Handle different error types
+    if (error instanceof OptimizationError) {
+      errorDetails.code = error.code;
+      errorDetails.severity = error.severity;
+      errorDetails.recoverable = error.recoverable;
+    } else if (this.isTimeoutError(error)) {
+      errorDetails.code = 'TIMEOUT_ERROR';
+      errorDetails.severity = 'medium';
+      errorDetails.recoverable = true;
+    } else if (this.isDatabaseError(error)) {
+      errorDetails.code = 'DATABASE_ERROR';
+      errorDetails.severity = 'high';
+      errorDetails.recoverable = true;
+    }
+
+    return errorDetails;
+  }
+
+  /**
+   * Log error details
+   */
+  static logError(errorDetails: ErrorDetails): void {
+    console.error('Error occurred:', {
+      message: errorDetails.userMessage,
+      code: errorDetails.code,
+      severity: errorDetails.severity,
+      recoverable: errorDetails.recoverable,
+      context: errorDetails.context
+    });
+  }
 
   /**
    * Handle and sanitize errors for API responses

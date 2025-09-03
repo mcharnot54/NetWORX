@@ -37,7 +37,7 @@ class DatabaseManager {
     totalLatency: 0
   };
   private lastError?: string;
-  private isHealthy = true;
+  private _isHealthyState = true;
   
   private readonly config: DatabaseConfig = {
     connectionTimeoutMs: 10000,  // Fail fast - 10 seconds
@@ -97,7 +97,7 @@ class DatabaseManager {
     }
     
     // Health check
-    if (!this.isHealthy) {
+    if (!this._isHealthyState) {
       throw new Error('Database manager is unhealthy. Check connection and try again.');
     }
     
@@ -122,7 +122,7 @@ class DatabaseManager {
       // Mark as unhealthy if too many failures
       const failureRate = this.queryStats.failed / Math.max(1, this.queryStats.total);
       if (failureRate > 0.1) { // > 10% failure rate
-        this.isHealthy = false;
+        this._isHealthyState = false;
         console.warn('⚠️ Database marked as unhealthy due to high failure rate');
       }
       
@@ -159,7 +159,7 @@ class DatabaseManager {
         ]);
         
         // Success - reset health status
-        this.isHealthy = true;
+        this._isHealthyState = true;
         return result;
         
       } catch (error) {
@@ -246,12 +246,12 @@ class DatabaseManager {
       
       // Consider healthy if responds within 2 seconds
       const healthy = latency < 2000;
-      this.isHealthy = healthy;
-      
+      this._isHealthyState = healthy;
+
       return healthy;
     } catch (error) {
       console.error('❌ Database health check failed:', error);
-      this.isHealthy = false;
+      this._isHealthyState = false;
       return false;
     }
   }
@@ -281,7 +281,7 @@ class DatabaseManager {
       console.log(`✅ Connected to database: ${result[0]?.database} (${result[0]?.version?.substring(0, 20)}...)`);
     } catch (error) {
       console.error('❌ Database connection test failed:', error);
-      this.isHealthy = false;
+      this._isHealthyState = false;
       throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
