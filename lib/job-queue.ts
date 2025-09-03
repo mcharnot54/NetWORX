@@ -35,7 +35,7 @@ class JobQueue {
   private isProcessing = false;
   private readonly maxConcurrentJobs = 2;
   private readonly jobTimeoutMinutes = 10;
-  private circuitBreaker = new CircuitBreaker(3, 300000); // 3 failures, 5 minutes timeout
+  private circuitBreaker = new CircuitBreaker('job-queue', 3, 300000); // 3 failures, 5 minutes timeout
 
   /**
    * Add a new optimization job to the queue
