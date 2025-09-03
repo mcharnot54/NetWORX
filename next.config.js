@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable standalone for now to simplify build
-  // ...(process.env.ELECTRON === 'true' && { output: 'standalone' }),
+  // Enable standalone output for production Docker image
+  output: 'standalone',
 
   // Disable problematic features that cause fetch failures
   experimental: {
