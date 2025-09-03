@@ -159,7 +159,7 @@ class DatabaseManager {
         ]);
         
         // Success - reset health status
-        this.isHealthy = true;
+        this._isHealthyState = true;
         return result;
         
       } catch (error) {
