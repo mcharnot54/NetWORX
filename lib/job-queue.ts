@@ -307,7 +307,7 @@ class JobQueue {
       }
     };
 
-    const errorDetails = ErrorHandler.handleError(
+    const errorDetails = (ErrorHandler as any).handleError(
       error instanceof Error ? error : new Error(String(error)),
       errorContext
     );
