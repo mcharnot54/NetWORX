@@ -619,7 +619,7 @@ class JobQueue {
       completed: jobs.filter(j => j.status === 'completed').length,
       failed: jobs.filter(j => j.status === 'failed').length,
       cancelled: jobs.filter(j => j.status === 'cancelled').length,
-      circuitBreakerState: this.circuitBreaker.getState()
+      circuitBreakerState: this.circuitBreaker.getState().state
     };
   }
 }
