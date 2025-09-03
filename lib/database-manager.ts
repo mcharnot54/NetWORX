@@ -97,7 +97,7 @@ class DatabaseManager {
     }
     
     // Health check
-    if (!this.isHealthy) {
+    if (!this._isHealthyState) {
       throw new Error('Database manager is unhealthy. Check connection and try again.');
     }
     
