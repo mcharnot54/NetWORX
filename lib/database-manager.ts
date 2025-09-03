@@ -122,7 +122,7 @@ class DatabaseManager {
       // Mark as unhealthy if too many failures
       const failureRate = this.queryStats.failed / Math.max(1, this.queryStats.total);
       if (failureRate > 0.1) { // > 10% failure rate
-        this.isHealthy = false;
+        this._isHealthyState = false;
         console.warn('⚠️ Database marked as unhealthy due to high failure rate');
       }
       
