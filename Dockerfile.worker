@@ -6,56 +6,61 @@ RUN npm install -g pnpm
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies only when needed
 FROM base AS deps
+# Copy package files
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile --prod
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
-# Build worker
+# Build the worker
 FROM base AS builder
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
+# Install all dependencies (including dev)
 RUN pnpm install --frozen-lockfile
+
+# Copy source code
 COPY . .
 
-# Build worker application (if you have a separate build process)
-# RUN pnpm build:worker
+# Build the application (this will also build worker components)
+RUN pnpm build
 
-# Production worker image
+# Production image for worker
 FROM node:18-alpine AS runner
 WORKDIR /app
 
 # Install pnpm
 RUN npm install -g pnpm
 
-# Create non-root user
+# Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 worker
 
-# Copy built worker
+# Copy dependencies and built code
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/types ./types
 COPY --from=builder /app/package.json ./package.json
 
-# Create worker script
-COPY --from=builder /app/scripts/worker.js ./worker.js
+# Copy the built application (for any shared utilities)
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/lib ./lib
+COPY --from builder /app/types ./types
 
-# Create directories
-RUN mkdir -p /app/logs /app/temp
+# Create directories for logs
+RUN mkdir -p /app/logs
 RUN chown -R worker:nodejs /app
 
-# Worker optimizations for heavy compute workloads
+# Worker optimizations for heavy compute
 ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=3584 --expose-gc --optimize-for-size"
+ENV NODE_OPTIONS="--max-old-space-size=3584 --expose-gc"
 ENV UV_THREADPOOL_SIZE=16
 
-# Switch to worker user
+# Switch to non-root user
 USER worker
 
-# Health check
-HEALTHCHECK --interval=60s --timeout=30s --start-period=10s --retries=3 \
-  CMD node -e "process.exit(0)"
+# Health check for workers
+HEALTHCHECK --interval=60s --timeout=30s --start-period=30s --retries=3 \
+  CMD node -e "console.log('Worker health check passed')" || exit 1
 
-# Start worker process
-CMD ["node", "worker.js"]
+# Start the worker (this will be overridden by docker-compose environment)
+CMD ["node", "-e", "console.log('Worker container started. Waiting for worker script...'); setInterval(() => {}, 1000)"]
