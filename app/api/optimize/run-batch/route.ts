@@ -390,7 +390,14 @@ export async function OPTIONS() {
   try {
     // Quick health checks
     const [dbHealthy, redisHealthy] = await Promise.all([
-      db.isHealthy(),
+      (async () => {
+        try {
+          await db.query('SELECT 1', []);
+          return true;
+        } catch {
+          return false;
+        }
+      })(),
       jobManager.isHealthy()
     ]);
     
