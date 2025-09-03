@@ -37,7 +37,7 @@ class DatabaseManager {
     totalLatency: 0
   };
   private lastError?: string;
-  private isHealthy = true;
+  private _isHealthyState = true;
   
   private readonly config: DatabaseConfig = {
     connectionTimeoutMs: 10000,  // Fail fast - 10 seconds
