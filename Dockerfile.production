@@ -39,8 +39,8 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copy built application
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+# static assets are included above by copying .next directory
 
 # Copy production dependencies
 COPY --from=deps /app/node_modules ./node_modules
