@@ -54,17 +54,11 @@ class DatabaseManager {
     console.log('🔗 Initializing centralized database manager...');
     
     this.sql = neon(process.env.DATABASE_URL, {
-      // Production-optimized timeouts
-      connectionTimeoutMillis: this.config.connectionTimeoutMs,
-      queryTimeoutMillis: this.config.queryTimeoutMs,
-      idleTimeoutMillis: 30000,
-      
       // Connection optimization
       arrayMode: false,
       fullResults: false,
       fetchOptions: {
-        cache: 'no-store',
-        signal: AbortSignal.timeout(this.config.queryTimeoutMs)
+        cache: 'no-store'
       }
     });
 
