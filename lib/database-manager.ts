@@ -281,7 +281,7 @@ class DatabaseManager {
       console.log(`✅ Connected to database: ${result[0]?.database} (${result[0]?.version?.substring(0, 20)}...)`);
     } catch (error) {
       console.error('❌ Database connection test failed:', error);
-      this.isHealthy = false;
+      this._isHealthyState = false;
       throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
