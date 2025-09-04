@@ -140,7 +140,9 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   // GET endpoint for preview mode
   try {
-    const request = new NextRequest(new URL('http://localhost:3000/api/deduplicate-files'));
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl();
+    const request = new NextRequest(new URL(`${baseUrl}/api/deduplicate-files`));
     const mockBody = JSON.stringify({ preview: true });
     
     // Create a new request with the preview body
