@@ -53,16 +53,8 @@ class DatabaseManager {
     
     console.log('🔗 Initializing centralized database manager...');
     
-    this.sql = neon(process.env.DATABASE_URL, ({
-      // Supported Neon client options; timeouts are enforced via AbortSignal
-      arrayMode: false,
-      fullResults: false,
-      fetchOptions: {
-        cache: 'no-store',
-        // Enforce per-request timeout
-        signal: AbortSignal.timeout(this.config.queryTimeoutMs)
-      }
-    }) as any);
+    // Use unified database client; expose (text, params) interface for manager consumers
+    this.sql = (text: string, params?: any[]) => baseSql.unsafe(text, params as any[]);
 
     // Test connection on startup
     this.testConnection();
@@ -108,7 +100,7 @@ class DatabaseManager {
       this.queryStats.total++;
       this.queryStats.totalLatency += latency;
       
-      console.log(`�� Query completed: ${latency}ms`);
+      console.log(`📊 Query completed: ${latency}ms`);
       return result;
       
     } catch (error) {
