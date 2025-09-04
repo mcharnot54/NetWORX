@@ -130,9 +130,9 @@ export class ErrorHandler {
   }
 
   /**
-   * Log error details
+   * Log sanitized ErrorDetails (public helper)
    */
-  static logError(errorDetails: ErrorDetails): void {
+  static logErrorDetails(errorDetails: ErrorDetails): void {
     console.error('Error occurred:', {
       message: errorDetails.userMessage,
       code: errorDetails.code,
@@ -149,7 +149,7 @@ export class ErrorHandler {
     const timestamp = new Date().toISOString();
     
     // Log full error server-side with context
-    this.logError(error, { requestId, timestamp });
+    this.logFullError(error, { requestId, timestamp });
     
     // Return sanitized error to client
     if (error instanceof ProductionError) {
@@ -211,7 +211,7 @@ export class ErrorHandler {
   /**
    * Log error with full context for debugging
    */
-  private static logError(error: any, context: Record<string, any> = {}): void {
+  private static logFullError(error: any, context: Record<string, any> = {}): void {
     const errorInfo = {
       message: error.message,
       stack: error.stack,

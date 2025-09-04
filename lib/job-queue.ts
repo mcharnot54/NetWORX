@@ -313,7 +313,7 @@ class JobQueue {
     );
 
     // Log the error
-    ErrorHandler.logError(errorDetails);
+    ErrorHandler.logErrorDetails(errorDetails);
 
     // Update job with error details
     job.error_message = errorDetails.userMessage;
