@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import * as XLSX from 'xlsx';
+import { createS3Client, getBucketName } from '@/lib/s3';
 
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
-const S3_BUCKET = process.env.S3_BUCKET_NAME || 'networx-uploads';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-const S3_ENDPOINT = process.env.S3_ENDPOINT;
-const s3Client = new S3Client({
-  region: AWS_REGION,
-  endpoint: S3_ENDPOINT,
-  forcePathStyle: false,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+const s3Client = createS3Client();
+const S3_BUCKET = getBucketName();
 
 export async function GET() {
   try {
