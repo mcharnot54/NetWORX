@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET() {
   try {
     // Call the quick summary endpoint
-    const response = await fetch('http://localhost:3000/api/quick-baseline-summary');
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl();
+    const response = await fetch(`${baseUrl}/api/quick-baseline-summary`);
     const data = await response.json();
 
     if (!data.success) {
