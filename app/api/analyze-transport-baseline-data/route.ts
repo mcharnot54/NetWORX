@@ -5,7 +5,9 @@ export async function GET() {
     console.log('🚛 Analyzing transportation baseline data for route optimization...');
 
     // Get the current baseline costs which include all transportation data
-    const baselineResponse = await fetch('http://localhost:3000/api/current-baseline-costs');
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl();
+    const baselineResponse = await fetch(`${baseUrl}/api/current-baseline-costs`);
     
     if (!baselineResponse.ok) {
       throw new Error('Failed to get baseline costs');
