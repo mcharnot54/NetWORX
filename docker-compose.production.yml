@@ -16,12 +16,13 @@ services:
       - networx
 
   app:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.production
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      FORCE_PG: '1'
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NEXT_TELEMETRY_DISABLED: 1
@@ -44,12 +45,13 @@ services:
       - networx
 
   optimization-worker:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.worker
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      FORCE_PG: '1'
       REDIS_HOST: redis
       REDIS_PORT: 6379
       WORKER_TYPE: optimization
@@ -69,12 +71,13 @@ services:
       - networx
 
   file-worker:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.worker
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://networx:${DB_PASSWORD}@postgres:5432/networx
+      FORCE_PG: '1'
       REDIS_HOST: redis
       REDIS_PORT: 6379
       WORKER_TYPE: file-processing
