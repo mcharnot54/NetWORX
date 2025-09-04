@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
     // Get baseline data
     let baselineData: any = {};
     try {
-      const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
+      const { getBaseUrl } = await import('@/lib/url');
+      const baseUrl = getBaseUrl(request);
+      const baselineResponse = await fetch(`${baseUrl}/api/analyze-transport-baseline-data`);
       baselineData = await baselineResponse.json();
     } catch (error) {
       console.warn('Using defaults due to baseline API error');
