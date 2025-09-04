@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    console.log('🚛 Analyzing transportation baseline data for route optimization...');
+    console.log('�� Analyzing transportation baseline data for route optimization...');
 
     // Get the current baseline costs which include all transportation data
     const { getBaseUrl } = await import('@/lib/url');
@@ -16,7 +16,7 @@ export async function GET() {
     const baselineData = await baselineResponse.json();
     
     // Get the final transport extraction data which has route details
-    const transportResponse = await fetch('http://localhost:3000/api/final-transport-extraction');
+    const transportResponse = await fetch(`${baseUrl}/api/final-transport-extraction`);
     
     let transportDetails = null;
     if (transportResponse.ok) {
