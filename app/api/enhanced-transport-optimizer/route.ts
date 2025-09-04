@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
     console.log(`Scenario: ${scenario_id}, Type: ${optimization_type}, Cities: ${cities?.join(', ')}`);
 
     // Get actual transportation baseline data
-    const baselineAnalysis = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl(request);
+    const baselineAnalysis = await fetch(`${baseUrl}/api/analyze-transport-baseline-data`);
     const baselineData = await baselineAnalysis.json();
 
     if (!baselineData.success) {
