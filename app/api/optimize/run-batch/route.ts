@@ -19,7 +19,7 @@ import { OptimizationWorker } from '@/lib/optimization-worker';
 import { ErrorHandler, circuitBreakers, createProductionError } from '@/lib/error-handler';
 import { db } from '@/lib/database-manager';
 
-// PRODUCTION NOTE: No more in-memory jobs - using Redis-backed persistence
+// PRODUCTION NOTE: No more in-memory jobs - using Redis-backed persistence (DigitalOcean Managed Redis)
 
 async function fetchScenarioById(id: number) {
   try {
