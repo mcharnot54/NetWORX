@@ -28,17 +28,14 @@ export class ProductionJobManager {
   private constructor() {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
       password: process.env.REDIS_PASSWORD,
-      retryDelayOnFailure: (attempts) => Math.min(attempts * 50, 500),
+      retryStrategy: (times) => Math.min(times * 50, 500),
       maxRetriesPerRequest: 3,
-      lazyConnect: true,
       enableOfflineQueue: false,
+      lazyConnect: true,
       connectTimeout: 10000,
-      commandTimeout: 5000,
-      // Production optimizations
-      keepAlive: 30000,
-      family: 4, // Use IPv4
+      family: 4,
       db: 0
     });
 
