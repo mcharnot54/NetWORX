@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
     const { optimizeTransport, generateCostMatrix } = await import('@/lib/advanced-transport-optimizer');
 
     // Get actual baseline transportation data
-    const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl(request);
+    const baselineResponse = await fetch(`${baseUrl}/api/analyze-transport-baseline-data`);
     const baselineData = await baselineResponse.json();
 
     if (!baselineData.success) {
