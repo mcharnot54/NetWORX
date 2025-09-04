@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
     const historicalSalesKey = 'excel-uploads/2025-08-19T16-32-44-960Z/Historial Sales Data Continuum Datasets 050125 (3).xlsx';
 
     // Call the analysis endpoint
-    const response = await fetch('http://localhost:3000/api/s3/analyze-baseline', {
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl(request);
+    const response = await fetch(`${baseUrl}/api/s3/analyze-baseline`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
