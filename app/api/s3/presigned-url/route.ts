@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createS3Client, getBucketName } from '@/lib/s3';
 
-// AWS Configuration
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
-const S3_BUCKET = process.env.S3_BUCKET_NAME || 'networx-uploads';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-const s3Client = new S3Client({
-  region: AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+const s3Client = createS3Client();
+const S3_BUCKET = getBucketName();
+const AWS_REGION = process.env.SPACES_REGION || process.env.AWS_REGION || 'us-east-1';
 
 export async function POST(request: NextRequest) {
   try {

@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     // Get the comprehensive transport baseline (uses correct $2.9M UPS amount)
-    const transportResponse = await fetch('http://localhost:3000/api/calculate-transport-baseline');
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl(request);
+    const transportResponse = await fetch(`${baseUrl}/api/calculate-transport-baseline`);
     
     if (!transportResponse.ok) {
       throw new Error('Failed to get transport baseline');

@@ -157,7 +157,9 @@ export async function POST(request: NextRequest) {
       // Check if we have real transport data to identify current primary facility
       let identifiedPrimaryFacility = '';
       try {
-        const routeResponse = await fetch(`http://localhost:3000/api/extract-actual-routes`);
+        const { getBaseUrl } = await import('@/lib/url');
+        const baseUrl = getBaseUrl(request);
+        const routeResponse = await fetch(`${baseUrl}/api/extract-actual-routes`);
         if (routeResponse.ok) {
           const routeData = await routeResponse.json();
           if (routeData.success && routeData.data.route_groups) {
@@ -305,7 +307,9 @@ export async function POST(request: NextRequest) {
     // Try to get capacity analysis data for volume growth projections
     let capacityGrowthData = null;
     try {
-      const capacityResponse = await fetch(`http://localhost:3000/api/scenarios/${scenarioId}/capacity-analysis`);
+      const { getBaseUrl } = await import('@/lib/url');
+      const baseUrl = getBaseUrl(request);
+      const capacityResponse = await fetch(`${baseUrl}/api/scenarios/${scenarioId}/capacity-analysis`);
       if (capacityResponse.ok) {
         const capacityData = await capacityResponse.json();
         if (capacityData.success && capacityData.data) {
@@ -325,7 +329,9 @@ export async function POST(request: NextRequest) {
 
     // Preflight: Fetch verified baseline summary - fail if missing
     console.log('🚀 Fetching verified baseline costs from analyze-transport-baseline-data...');
-    const baselineResponse = await fetch(`http://localhost:3000/api/analyze-transport-baseline-data`);
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl(request);
+    const baselineResponse = await fetch(`${baseUrl}/api/analyze-transport-baseline-data`);
     if (!baselineResponse.ok) {
       throw new Error('Failed to fetch verified baseline data. Ensure baseline extraction completed.');
     }

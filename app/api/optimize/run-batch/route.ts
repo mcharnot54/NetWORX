@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { v4 as uuidv4 } from 'uuid';
 import {
   OptimizationConfig,
@@ -16,7 +19,7 @@ import { OptimizationWorker } from '@/lib/optimization-worker';
 import { ErrorHandler, circuitBreakers, createProductionError } from '@/lib/error-handler';
 import { db } from '@/lib/database-manager';
 
-// PRODUCTION NOTE: No more in-memory jobs - using Redis-backed persistence
+// PRODUCTION NOTE: No more in-memory jobs - using Redis-backed persistence (DigitalOcean Managed Redis)
 
 async function fetchScenarioById(id: number) {
   try {
@@ -54,7 +57,9 @@ async function performOptimization(body: any) {
   let actualTransportBaseline = 6560000; // Default $6.56M
   try {
     await circuitBreakers.database.execute(async () => {
-      const baselineResponse = await fetch('http://localhost:3000/api/analyze-transport-baseline-data');
+      const { getBaseUrl } = await import('@/lib/url');
+      const baseUrl = getBaseUrl();
+      const baselineResponse = await fetch(`${baseUrl}/api/analyze-transport-baseline-data`);
       const baselineData = await baselineResponse.json();
       if (baselineData.success) {
         actualTransportBaseline = baselineData.baseline_summary.total_verified;

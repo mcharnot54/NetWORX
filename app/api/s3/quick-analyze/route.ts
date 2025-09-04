@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: NextRequest) {
   try {
     // Use the known S3 keys from your uploads
@@ -11,7 +14,9 @@ export async function POST(request: NextRequest) {
     console.log('Sales:', historicalSalesKey);
 
     // Call the main analysis endpoint
-    const analysisResponse = await fetch('http://localhost:3000/api/s3/analyze-baseline', {
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl(request);
+    const analysisResponse = await fetch(`${baseUrl}/api/s3/analyze-baseline`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

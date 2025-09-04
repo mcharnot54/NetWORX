@@ -1,41 +1,42 @@
-import { neon } from "@neondatabase/serverless";
+import { Pool } from "pg";
 
 // Create database connection based on environment
 const createDatabaseConnection = () => {
-  if (!process.env.DATABASE_URL) {
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
     console.warn("DATABASE_URL is not set - database operations will fail");
-    
-    // Create a mock sql function that throws helpful errors
-    const mockSql = () => {
+
+    const mockSql: any = () => {
       throw new Error("Database not configured: DATABASE_URL environment variable is missing. Please connect to a database service.");
     };
-    
-    // Add properties to make it behave like neon sql
-    Object.assign(mockSql, {
-      unsafe: () => {
-        throw new Error("Database not configured: DATABASE_URL environment variable is missing");
-      }
-    });
-    
+    mockSql.unsafe = () => {
+      throw new Error("Database not configured: DATABASE_URL environment variable is missing");
+    };
     return mockSql;
   }
 
-  // Configure Neon connection with more tolerant timeout settings for cloud environments
-  // Increased timeouts to reduce transient timeout errors when DB connections are slower
-  return neon(process.env.DATABASE_URL, ({
-    // Connection timeout optimized for cloud environments
-    connectionTimeoutMillis: 30000, // Increased to 30 seconds for slower connections
-    queryTimeoutMillis: 120000, // Increased to 120 seconds to allow longer queries
-    idleTimeoutMillis: 60000, // Increased to 60 seconds to reduce frequent reconnects
+  // Always use native TCP (pg) for DigitalOcean Postgres
+  const pool = new Pool({
+    connectionString: url,
+    max: 10,
+    idleTimeoutMillis: 60000,
+    connectionTimeoutMillis: 10000,
+    ssl: /digitalocean\.com|ondigitalocean\.com/.test(url) ? ({ rejectUnauthorized: false } as any) : undefined,
+  });
 
-    // Database-level timeouts and fetch options
-    arrayMode: false,
-    fullResults: false,
-    fetchOptions: {
-      cache: 'no-store', // Prevent stale connections
-      signal: AbortSignal.timeout(120000), // 120 second fetch timeout
-    },
-  }) as any);
+  const pgSql: any = async (strings: TemplateStringsArray, ...values: any[]) => {
+    const text = strings.reduce((acc, str, i) => acc + str + (i < values.length ? `$${i + 1}` : ''), '');
+    const res = await pool.query(text, values);
+    return res.rows as any[];
+  };
+
+  pgSql.unsafe = async (text: string, params?: any[]) => {
+    const res = await pool.query(text, params);
+    return res.rows as any[];
+  };
+
+  return pgSql;
 };
 
 // Initialize the sql connection
