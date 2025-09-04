@@ -1,4 +1,3 @@
-import { neon } from "@neondatabase/serverless";
 import { Pool } from "pg";
 
 // Create database connection based on environment
@@ -17,45 +16,27 @@ const createDatabaseConnection = () => {
     return mockSql;
   }
 
-  // Decide driver:
-  // - Use native TCP (pg) for docker/local Postgres (host contains 'postgres') or when FORCE_PG=1
-  // - Otherwise fall back to Neon serverless client
-  const usePg = process.env.FORCE_PG === '1' || /@postgres(?::|\b)/.test(url) || url.startsWith('postgres://') || url.startsWith('postgresql://');
-
-  if (usePg) {
-    const pool = new Pool({
-      connectionString: url,
-      max: 10,
-      idleTimeoutMillis: 60000,
-      connectionTimeoutMillis: 10000,
-    });
-
-    const pgSql: any = async (strings: TemplateStringsArray, ...values: any[]) => {
-      const text = strings.reduce((acc, str, i) => acc + str + (i < values.length ? `$${i + 1}` : ''), '');
-      const res = await pool.query(text, values);
-      return res.rows as any[];
-    };
-
-    pgSql.unsafe = async (text: string, params?: any[]) => {
-      const res = await pool.query(text, params);
-      return res.rows as any[];
-    };
-
-    return pgSql;
-  }
-
-  // Neon serverless (HTTP) client for environments that require fetch-based connections
-  return neon(url, ({
-    connectionTimeoutMillis: 30000,
-    queryTimeoutMillis: 120000,
+  // Always use native TCP (pg) for DigitalOcean Postgres
+  const pool = new Pool({
+    connectionString: url,
+    max: 10,
     idleTimeoutMillis: 60000,
-    arrayMode: false,
-    fullResults: false,
-    fetchOptions: {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(120000),
-    },
-  }) as any);
+    connectionTimeoutMillis: 10000,
+    ssl: /digitalocean\.com|ondigitalocean\.com/.test(url) ? ({ rejectUnauthorized: false } as any) : undefined,
+  });
+
+  const pgSql: any = async (strings: TemplateStringsArray, ...values: any[]) => {
+    const text = strings.reduce((acc, str, i) => acc + str + (i < values.length ? `$${i + 1}` : ''), '');
+    const res = await pool.query(text, values);
+    return res.rows as any[];
+  };
+
+  pgSql.unsafe = async (text: string, params?: any[]) => {
+    const res = await pool.query(text, params);
+    return res.rows as any[];
+  };
+
+  return pgSql;
 };
 
 // Initialize the sql connection
