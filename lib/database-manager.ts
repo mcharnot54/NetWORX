@@ -3,7 +3,7 @@
  * Replaces multiple unmanaged neon() calls that can exhaust DB limits
  */
 
-import { neon } from '@neondatabase/serverless';
+import { sql as baseSql } from './database';
 
 export interface DatabaseConfig {
   connectionTimeoutMs: number;
@@ -108,7 +108,7 @@ class DatabaseManager {
       this.queryStats.total++;
       this.queryStats.totalLatency += latency;
       
-      console.log(`📊 Query completed: ${latency}ms`);
+      console.log(`�� Query completed: ${latency}ms`);
       return result;
       
     } catch (error) {
