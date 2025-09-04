@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch('http://localhost:3000/api/test-baseline-extraction');
+    const { getBaseUrl } = await import('@/lib/url');
+    const baseUrl = getBaseUrl(request);
+    const response = await fetch(`${baseUrl}/api/test-baseline-extraction`);
     const data = await response.json();
     
     if (!data.success) {
